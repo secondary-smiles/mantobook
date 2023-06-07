@@ -1,0 +1,168 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:46 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PCAP_BREAKLOOP</title>
+
+</head>
+<body>
+<h1>pcap_breakloop</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">pcap_breakloop
+&minus; force a pcap_dispatch() or pcap_loop() call to
+return</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;pcap/pcap.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>void
+pcap_breakloop(pcap_t *);</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pcap_breakloop</b>()
+sets a flag that will force <b>pcap_dispatch</b>(3PCAP) or
+<b>pcap_loop</b>(3PCAP) to return rather than looping; they
+will return the number of packets that have been processed
+so far, or <b>PCAP_ERROR_BREAK</b> if no packets have been
+processed so far. If the loop is currently blocked waiting
+for packets to arrive, <b>pcap_breakloop</b>() will also, on
+some platforms, wake up the thread that is blocked. In this
+version of libpcap, the only platforms on which a wakeup is
+caused by <b>pcap_breakloop</b>() are Linux and Windows, and
+the wakeup will only be caused when capturing on network
+interfaces; it will not be caused on other operating
+systems, and will not be caused on any OS when capturing on
+other types of devices.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This routine is
+safe to use inside a signal handler on UNIX or a console
+control handler on Windows, or in a thread other than the
+one in which the loop is running, as it merely sets a flag
+that is checked within the loop and, on some platforms,
+performs a signal-safe and thread-safe API call.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The flag is
+checked in loops reading packets from the OS - a signal by
+itself will not necessarily terminate those loops - as well
+as in loops processing a set of packets returned by the OS.
+<b>Note that if you are catching signals on UNIX systems
+that support restarting system calls after a signal, and
+calling pcap_breakloop() in the signal handler, you must
+specify, when catching those signals, that system calls
+should NOT be restarted by that signal. Otherwise, if the
+signal interrupted a call reading packets in a live capture,
+when your signal handler returns after calling
+pcap_breakloop(), the call will be restarted, and the loop
+will not terminate until more packets arrive and the call
+completes.</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note also
+that, in a multi-threaded application, if one thread is
+blocked in pcap_dispatch(), pcap_loop(), pcap_next(3PCAP),
+or pcap_next_ex(3PCAP), a call to pcap_breakloop() in a
+different thread will only unblock that thread on the
+platforms and capture devices listed above.</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">If a non-zero
+packet buffer timeout is set on the <b>pcap_t</b>, and you
+are capturing on a network interface, the thread will be
+unblocked with the timeout expires. This is not guaranteed
+to happen unless at least one packet has arrived; the only
+platforms on which it happens are macOS, the BSDs, Solaris
+11, AIX, Tru64 UNIX, and Windows.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+ensure that the loop will eventually be unblocked on any
+other platforms, or unblocked when capturing on a device
+other than a network interface, you will need to use
+whatever mechanism the OS provides for breaking a thread out
+of blocking calls in order to unblock the thread, such as
+thread cancellation or thread signalling in systems that
+support POSIX threads.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note that if
+pcap_breakloop() unblocks the thread capturing packets, and
+you are running on a platform that supports packet
+buffering, there may be packets in the buffer that arrived
+before pcap_breakloop() were called but that weren&rsquo;t
+yet provided to libpcap, those packets will not have been
+processed by pcap_dispatch() or pcap_loop(). If
+pcap_breakloop() was called in order to terminate the
+capture process, then, in order to process those packets,
+you would have to call pcap_dispatch() one time in order to
+process the last batch of packets. This may block until the
+packet buffer timeout expires, so a non-zero packet buffer
+timeout must be used.</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+<b>pcap_next</b>() and <b>pcap_next_ex</b>() will, on some
+platforms, loop reading packets from the OS; that loop will
+not necessarily be terminated by a signal, so
+<b>pcap_breakloop</b>() should be used to terminate packet
+processing even if <b>pcap_next</b>() or
+<b>pcap_next_ex</b>() is being used.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pcap_breakloop</b>()
+does not guarantee that no further packets will be processed
+by <b>pcap_dispatch</b>() or <b>pcap_loop</b>() after it is
+called; at most one more packet might be processed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<b>PCAP_ERROR_BREAK</b> is returned from
+<b>pcap_dispatch</b>() or <b>pcap_loop</b>(), the flag is
+cleared, so a subsequent call will resume reading packets.
+If a positive number is returned, the flag is not cleared,
+so a subsequent call will return <b>PCAP_ERROR_BREAK</b> and
+clear the flag.</p>
+
+<h2>BACKWARD COMPATIBILITY
+<a name="BACKWARD COMPATIBILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This function
+became available in libpcap release 0.8.1.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In releases
+prior to libpcap 1.10.0, <b>pcap_breakloop</b>() will not
+wake up a blocked thread on any platform.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pcap</b>(3PCAP)</p>
+<hr>
+</body>
+</html>

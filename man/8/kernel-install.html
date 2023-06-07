@@ -1,0 +1,593 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:06 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>KERNEL&minus;INSTALL</title>
+
+</head>
+<body>
+<h1>kernel-install</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">kernel-install
+&minus; Add and remove kernel and initrd images to and from
+/boot</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>kernel&minus;install</b>
+[OPTIONS...] COMMAND <i>KERNEL&minus;VERSION
+KERNEL&minus;IMAGE</i> [<i>INITRD&minus;FILE</i>...]</p></td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>kernel&minus;install</b>
+is used to install and remove kernel and initrd images
+<small>[1]</small> to and from the boot loader partition,
+referred to as <i>$BOOT</i> here. It will usually be one of
+/boot/, /efi/, or /boot/efi/, see below.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>kernel&minus;install</b>
+will run the executable files (&quot;plugins&quot;) located
+in the directory /usr/lib/kernel/install.d/ and the local
+administration directory /etc/kernel/install.d/. All files
+are collectively sorted and executed in lexical order,
+regardless of the directory in which they live. However,
+files with identical filenames replace each other. Files in
+/etc/kernel/install.d/ take precedence over files with the
+same name in /usr/lib/kernel/install.d/. This can be used to
+override a system&minus;supplied executables with a local
+file if needed; a symbolic link in /etc/kernel/install.d/
+with the same name as an executable in
+/usr/lib/kernel/install.d/, pointing to /dev/null, disables
+the executable entirely. Executables must have the extension
+&quot;.install&quot;; other extensions are ignored.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An executable
+placed in these directories should return <b>0</b> on
+success. It may also return <b>77</b> to cause the whole
+operation to terminate (executables later in lexical order
+will be skipped).</p>
+
+<h2>COMMANDS
+<a name="COMMANDS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+commands are understood:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>add</b>
+<i>KERNEL&minus;VERSION KERNEL&minus;IMAGE</i>
+<b>[</b><i>INITRD&minus;FILE</i> <b>...]</b></p>
+
+<p style="margin-left:17%;">This command expects a kernel
+version string and a path to a kernel image file as
+arguments. Optionally, one or more initrd images may be
+specified as well (note that plugins might generate
+additional ones). <b>kernel&minus;install</b> calls the
+executable files from /usr/lib/kernel/install.d/*.install
+and /etc/kernel/install.d/*.install (i.e. the plugins) with
+the following arguments:</p>
+
+<p style="margin-left:23%; margin-top: 1em">add
+<i>KERNEL&minus;VERSION</i>
+$BOOT/<i>ENTRY&minus;TOKEN</i>/<i>KERNEL&minus;VERSION</i>/
+<i>KERNEL&minus;IMAGE</i> [<i>INITRD&minus;FILE</i> ...]</p>
+
+<p style="margin-left:17%; margin-top: 1em">The third
+argument directly refers to the path where to place kernel
+images, initrd images and other resources for
+<b><font color="#0000FF">Boot Loader
+Specification</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">Type #1 entries (the &quot;entry
+directory&quot;). If other boot loader schemes are used the
+parameter may be ignored. The <i>ENTRY&minus;TOKEN</i>
+string is typically the machine ID and is supposed to
+identify the local installation on the system. For details
+see below.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Two
+default plugins execute the following operations in this
+case:</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+<b>kernel&minus;install</b> creates
+$BOOT/<i>ENTRY&minus;TOKEN</i>/<i>KERNEL&minus;VERSION</i>,
+if enabled (see <i>$KERNEL_INSTALL_LAYOUT</i>).</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+50&minus;depmod.install runs <b>depmod</b>(8) for the
+<i>KERNEL&minus;VERSION</i>.</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+90&minus;loaderentry.install copies
+<i>KERNEL&minus;IMAGE</i> to
+$BOOT/<i>ENTRY&minus;TOKEN</i>/<i>KERNEL&minus;VERSION</i>/linux.
+If <i>INITRD&minus;FILE</i>s are provided, it also copies
+them to
+$BOOT/<i>ENTRY&minus;TOKEN</i>/<i>KERNEL_VERSION</i>/<i>INITRD&minus;FILE</i>.
+It also creates a boot loader entry according to the</font>
+<b><font color="#0000FF">Boot Loader
+Specification</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">(Type #1) in
+$BOOT/loader/entries/<i>ENTRY&minus;TOKEN</i>&minus;<i>KERNEL&minus;VERSION</i>.conf.
+The title of the entry is the <i>PRETTY_NAME</i> parameter
+specified in /etc/os&minus;release or
+/usr/lib/os&minus;release (if the former is missing), or
+&quot;Linux <i>KERNEL&minus;VERSION</i>&quot;, if
+unset.</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">If
+<i>$KERNEL_INSTALL_LAYOUT</i> is not &quot;bls&quot;, this
+plugin does nothing.</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+90&minus;uki&minus;copy.install copies a file uki.efi from
+<i>$KERNEL_INSTALL_STAGING_AREA</i> or if it does not exist
+the <i>KERNEL&minus;IMAGE</i> argument, iff it has a
+&quot;.efi&quot; extension, to
+$BOOT/EFI/Linux/<i>ENTRY&minus;TOKEN</i>&minus;<i>KERNEL&minus;VERSION</i>.efi.</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">If
+<i>$KERNEL_INSTALL_LAYOUT</i> is not &quot;uki&quot;, this
+plugin does nothing.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>remove</b>
+<i>KERNEL&minus;VERSION</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This
+command expects a kernel version string as single argument.
+This calls executables from
+/usr/lib/kernel/install.d/*.install and
+/etc/kernel/install.d/*.install with the following
+arguments:</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">remove
+<i>KERNEL&minus;VERSION</i>
+$BOOT/<i>ENTRY&minus;TOKEN</i>/<i>KERNEL&minus;VERSION</i>/</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Afterwards,
+<b>kernel&minus;install</b> removes the entry directory
+$BOOT/<i>ENTRY&minus;TOKEN</i>/<i>KERNEL&minus;VERSION</i>/
+and its contents, if it exists.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Two
+default plugins execute the following operations in this
+case:</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+50&minus;depmod.install removes the files generated by
+<b>depmod</b> for this kernel again.</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+90&minus;loaderentry.install removes the file
+$BOOT/loader/entries/<i>ENTRY&minus;TOKEN</i>&minus;<i>KERNEL&minus;VERSION</i>.conf.</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+90&minus;uki&minus;copy.install removes the file
+$BOOT/EFI/Linux/<i>ENTRY&minus;TOKEN</i>&minus;<i>KERNEL&minus;VERSION</i>.efi.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>inspect</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Shows the
+various paths and parameters configured or
+auto&minus;detected. In particular shows the values of the
+various <i>$KERNEL_INSTALL_*</i> environment variables
+listed below.</font></p>
+
+<h2>THE $BOOT PARTITION
+<a name="THE $BOOT PARTITION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+partition where the kernels and</font>
+<b><font color="#0000FF">Boot Loader
+Specification</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">snippets are located is called
+<i>$BOOT</i>. <b>kernel&minus;install</b> determines the
+location of this partition by checking /efi/, /boot/, and
+/boot/efi/ in turn. The first location where
+$BOOT/loader/entries/ or $BOOT/<i>ENTRY&minus;TOKEN</i>/
+exists is used.</font></p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+following options are understood:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;v</b>,
+<b>&minus;&minus;verbose</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Output
+additional information about operations being
+performed.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;h</b>,
+<b>&minus;&minus;help</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Print a
+short help text and exit.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;version</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Print a
+short version string and exit.</font></p>
+
+<h2>ENVIRONMENT VARIABLES
+<a name="ENVIRONMENT VARIABLES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Environment
+variables exported for plugins</b> <br>
+If <b>&minus;&minus;verbose</b> is used,
+<i>$KERNEL_INSTALL_VERBOSE=1</i> will be exported for
+plugins. They may output additional logs in this
+case.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$KERNEL_INSTALL_MACHINE_ID</i>
+is set for the plugins to the desired machine&minus;id to
+use. It's always a 128&minus;bit ID. Normally it's read from
+/etc/machine&minus;id, but it can also be overridden via
+<i>$MACHINE_ID</i> (see below). If not specified via these
+methods, a fallback value will generated by
+<b>kernel&minus;install</b> and used only for a single
+invocation.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$KERNEL_INSTALL_ENTRY_TOKEN</i>
+is set for the plugins to the desired entry
+&quot;token&quot; to use. It's an identifier that shall be
+used to identify the local installation, and is often the
+machine ID, i.e. same as <i>$KERNEL_INSTALL_MACHINE_ID</i>,
+but might also be a different type of identifier, for
+example a fixed string or the <i>ID=</i>, <i>IMAGE_ID=</i>
+values from /etc/os&minus;release. The string passed here
+will be used to name Boot Loader Specification entries, or
+the directories the kernel image and initial RAM disk images
+are placed into.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Note
+that while <i>$KERNEL_INSTALL_ENTRY_TOKEN</i> and
+<i>$KERNEL_INSTALL_MACHINE_ID</i> are often set to the same
+value, the latter is guaranteed to be a valid 32 character
+ID in lowercase hexadecimals while the former can be any
+short string. The entry token to use is read from
+/etc/kernel/entry&minus;token, if it exists. Otherwise a few
+possible candidates below <i>$BOOT</i> are checked for Boot
+Loader Specification Type 1 entry directories, and if found
+the entry token is derived from that. If that is not
+successful, <i>$KERNEL_INSTALL_MACHINE_ID</i> is used as
+fallback.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$KERNEL_INSTALL_BOOT_ROOT</i>
+is set for the plugins to the absolute path of the root
+directory (mount point, usually) of the hierarchy where boot
+loader entries, kernel images, and associated resources
+should be placed. This usually is the path where the
+XBOOTLDR partition or the ESP (EFI System Partition) are
+mounted, and also conceptually referred to as <i>$BOOT</i>.
+Can be overridden by setting <i>$BOOT_ROOT</i> (see
+below).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$KERNEL_INSTALL_LAYOUT=bls|uki|other|...</i>
+is set for the plugins to specify the installation layout.
+Defaults to <b>bls</b> if $BOOT/<i>ENTRY&minus;TOKEN</i>
+exists, or <b>other</b> otherwise. Additional layout names
+may be defined by convention. If a plugin uses a special
+layout, it's encouraged to declare its own layout name and
+configure <i>layout=</i> in install.conf upon initial
+installation. The following values are currently
+understood:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">bls</font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Standard</font>
+<b><font color="#0000FF">Boot Loader
+Specification</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">Type #1 layout, compatible with
+<b>systemd-boot</b>(7): entries in
+$BOOT/loader/entries/<i>ENTRY&minus;TOKEN</i>&minus;<i>KERNEL&minus;VERSION</i>[+<i>TRIES</i>].conf,
+kernel and initrds under
+$BOOT/<i>ENTRY&minus;TOKEN</i>/<i>KERNEL&minus;VERSION</i>/</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Implemented
+by 90&minus;loaderentry.install.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">uki</font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Standard</font>
+<b><font color="#0000FF">Boot Loader
+Specification</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">Type #2 layout, compatible with
+<b>systemd-boot</b>(7): unified kernel images under
+$BOOT/EFI/Linux as
+$BOOT/EFI/Linux/<i>ENTRY&minus;TOKEN</i>&minus;<i>KERNEL&minus;VERSION</i>[+<i>TRIES</i>].efi.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Implemented
+by 90&minus;uki&minus;copy.install.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">other</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Some
+other layout not understood natively by
+<b>kernel&minus;install</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$KERNEL_INSTALL_INITRD_GENERATOR</i>
+is set for plugins to select the initrd generator. This may
+be configured as <i>initrd_generator=</i> in install.conf,
+see below.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$KERNEL_INSTALL_STAGING_AREA</i>
+is set for plugins to a path to a directory. Plugins may
+drop files in that directory, and they will be installed as
+part of the loader entry, based on the file name and
+extension.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Environment
+variables understood by kernel&minus;install</b> <i><br>
+$KERNEL_INSTALL_CONF_ROOT</i> can be set to override the
+location of the configuration files read by
+<b>kernel&minus;install</b>. When set, install.conf,
+entry&minus;token, and other files will be read from this
+directory.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$KERNEL_INSTALL_PLUGINS</i>
+can be set to override the list of plugins executed by
+<b>kernel&minus;install</b>. The argument is a
+whitespace&minus;separated list of paths.
+&quot;KERNEL_INSTALL_PLUGINS=:&quot; may be used to prevent
+any plugins from running.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$MACHINE_ID</i>
+can be set for <b>kernel&minus;install</b> to override
+<i>$KERNEL_INSTALL_MACHINE_ID</i>, the machine
+ID.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$BOOT_ROOT</i>
+can be set for <b>kernel&minus;install</b> to override
+<i>$KERNEL_INSTALL_BOOT_ROOT</i>, the installation location
+for boot entries.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+last two variables may also be set in install.conf.
+Variables set in the environment take precedence over the
+values specified in the config file.</font></p>
+
+<h2>EXIT STATUS
+<a name="EXIT STATUS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">If
+every executable returns 0 or 77, 0 is returned, and a
+non&minus;zero failure code otherwise.</font></p>
+
+<h2>FILES
+<a name="FILES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">/usr/lib/kernel/install.d/*.install
+/etc/kernel/install.d/*.install</font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Drop&minus;in
+files which are executed by kernel&minus;install.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">/usr/lib/kernel/cmdline
+/etc/kernel/cmdline /proc/cmdline</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Read by
+90&minus;loaderentry.install. The content of the file
+/etc/kernel/cmdline specifies the kernel command line to
+use. If that file does not exist, /usr/lib/kernel/cmdline is
+used. If that also does not exist, /proc/cmdline is used.
+<i>$KERNEL_INSTALL_CONF_ROOT</i> may be used to override the
+path.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">/etc/kernel/tries</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Read by
+90&minus;loaderentry.install and
+90&minus;uki&minus;copy.install. If this file exists a
+numeric value is read from it and the naming of the
+generated entry file or UKI is slightly altered to include
+it as
+$BOOT/loader/entries/<i>ENTRY&minus;TOKEN</i>&minus;<i>KERNEL&minus;VERSION</i>+<i>TRIES</i>.conf
+or
+$BOOT/EFI/Linux/<i>ENTRY&minus;TOKEN</i>&minus;<i>KERNEL&minus;VERSION</i>+<i>TRIES</i>.conf,
+respectively. This is useful for boot loaders such as
+<b>systemd-boot</b>(7) which implement boot attempt counting
+with a counter embedded in the entry file name.
+<i>$KERNEL_INSTALL_CONF_ROOT</i> may be used to override the
+path.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">/etc/kernel/entry&minus;token</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">If this
+file exists it is read and used as &quot;entry token&quot;
+for this system, i.e. is used for naming Boot Loader
+Specification entries, see
+<i>$KERNEL_INSTALL_ENTRY_TOKEN</i> above for details.
+<i>$KERNEL_INSTALL_CONF_ROOT</i> may be used to override the
+path.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">/etc/machine&minus;id</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">The
+content of this file specifies the machine identification
+<i>MACHINE&minus;ID</i>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">/etc/os&minus;release
+/usr/lib/os&minus;release</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Read by
+90&minus;loaderentry.install. If available,
+<i>PRETTY_NAME=</i> is read from these files and used as the
+title of the boot menu entry. Otherwise, &quot;Linux
+<i>KERNEL&minus;VERSION</i>&quot; will be used.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">/usr/lib/kernel/install.conf
+/etc/kernel/install.conf</font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configuration
+options for <b>kernel&minus;install</b>, as a series of
+<i>KEY=VALUE</i> assignments, compatible with shell syntax,
+following the same rules as described in
+<b>os-release</b>(5). /etc/kernel/install.conf will be read
+if present, and /usr/lib/kernel/install.conf otherwise. This
+file is optional. <i>$KERNEL_INSTALL_CONF_ROOT</i> may be
+used to override the path.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Currently,
+the following keys are supported: <i>MACHINE_ID=</i>,
+<i>BOOT_ROOT=</i>, <i>layout=</i>, <i>initrd_generator=</i>.
+See the Environment variables section above for
+details.</font></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>machine-id</b>(5),
+<b>os-release</b>(5), <b>depmod</b>(8),
+<b>systemd-boot</b>(7),</font> <b><font color="#0000FF">Boot
+Loader Specification</font></b>
+<small><font color="#000000">[2]</font></small></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em"><font color="#000000">Nowadays
+actually CPIO archives used as an &quot;initramfs&quot;,
+rather than &quot;initrd&quot;. See <b>bootup</b>(7) for an
+explanation.</font></p> </td></tr>
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+<p><font color="#000000">2.</font></p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p><font color="#000000">Boot Loader
+Specification</font></p> </td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://uapi-group.org/specifications/specs/boot_loader_specification</font></p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:02 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SYSTEMD&minus;NOTIFY</title>
+
+</head>
+<body>
+<h1>systemd-notify</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd-notify
+&minus; Notify service manager about start&minus;up
+completion and other daemon status changes</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="72%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;notify
+[OPTIONS...] [VARIABLE=VALUE...]</b></p></td>
+<td width="17%">
+</td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd&minus;notify</b>
+may be called by service scripts to notify the invoking
+service manager about status changes. It can be used to send
+arbitrary information, encoded in an
+environment&minus;block&minus;like list of strings. Most
+importantly, it can be used for start&minus;up completion
+notification.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is mostly
+just a wrapper around <b>sd_notify()</b> and makes this
+functionality available to shell scripts. For details see
+<b>sd_notify</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The command
+line may carry a list of environment variables to send as
+part of the status update.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+systemd will refuse reception of status updates from this
+command unless <i>NotifyAccess=</i> is appropriately set for
+the service unit this command is called from. See
+<b>systemd.service</b>(5) for details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+<b>sd_notify()</b> notifications may be attributed to units
+correctly only if either the sending process is still around
+at the time the service manager processes the message, or if
+the sending process is explicitly runtime&minus;tracked by
+the service manager. The latter is the case if the service
+manager originally forked off the process, i.e. on all
+processes that match <i>NotifyAccess=</i><b>main</b> or
+<i>NotifyAccess=</i><b>exec</b>. Conversely, if an auxiliary
+process of the unit sends an <b>sd_notify()</b> message and
+immediately exits, the service manager might not be able to
+properly attribute the message to the unit, and thus will
+ignore it, even if <i>NotifyAccess=</i><b>all</b> is set for
+it. To address this <b>systemd&minus;notify</b> will wait
+until the notification message has been processed by the
+service manager. When <b>&minus;&minus;no&minus;block</b> is
+used, this synchronization for reception of notifications is
+disabled, and hence the aforementioned race may occur if the
+invoking process is not the service manager or spawned by
+the service manager.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd&minus;notify</b>
+will first attempt to invoke <b>sd_notify()</b> pretending
+to have the PID of the parent process of
+<b>systemd&minus;notify</b> (i.e. the invoking process).
+This will only succeed when invoked with sufficient
+privileges. On failure, it will then fall back to invoking
+it under its own PID. This behaviour is useful in order that
+when the tool is invoked from a shell script the shell
+process &mdash; and not the <b>systemd&minus;notify</b>
+process &mdash; appears as sender of the message, which in
+turn is helpful if the shell process is the main process of
+a service, due to the limitations of
+<i>NotifyAccess=</i><b>all</b>. Use the
+<b>&minus;&minus;pid=</b> switch to tweak this
+behaviour.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+options are understood:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;ready</b></p>
+
+<p style="margin-left:17%;">Inform the invoking service
+manager about service start&minus;up or configuration reload
+completion. This is equivalent to <b>systemd&minus;notify
+READY=1</b>. For details about the semantics of this option
+see <b>sd_notify</b>(3).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;reloading</b></p>
+
+<p style="margin-left:17%;">Inform the invoking service
+manager about the beginning of a configuration reload cycle.
+This is equivalent to <b>systemd&minus;notify
+RELOADING=1</b> (but implicitly also sets a
+<i>MONOTONIC_USEC=</i> field as required for
+<i>Type=notify&minus;reload</i> services, see
+<b>systemd.service</b>(5), for details). For details about
+the semantics of this option see <b>sd_notify</b>(3).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;stopping</b></p>
+
+<p style="margin-left:17%;">Inform the invoking service
+manager about the beginning of the shutdown phase of the
+service. This is equivalent to <b>systemd&minus;notify
+STOPPING=1</b>. For details about the semantics of this
+option see <b>sd_notify</b>(3).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;pid=</b></p>
+
+<p style="margin-left:17%;">Inform the service manager
+about the main PID of the service. Takes a PID as argument.
+If the argument is specified as &quot;auto&quot; or omitted,
+the PID of the process that invoked
+<b>systemd&minus;notify</b> is used, except if that's the
+service manager. If the argument is specified as
+&quot;self&quot;, the PID of the <b>systemd&minus;notify</b>
+command itself is used, and if &quot;parent&quot; is
+specified the calling process' PID is used &mdash; even if
+it is the service manager. The latter is equivalent to
+<b>systemd&minus;notify MAINPID=$PID</b>. For details about
+the semantics of this option see <b>sd_notify</b>(3).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If this switch
+is used in an <b>systemd&minus;notify</b> invocation from a
+process that shall become the new main process of a service
+&mdash; and which is not the process forked off by the
+service manager (or the current main process) &mdash;, then
+it is essential to set <i>NotifyAccess=all</i> in the
+service unit file, or otherwise the notification will be
+ignored for security reasons. See <b>systemd.service</b>(5)
+for details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;uid=</b><i>USER</i></p>
+
+<p style="margin-left:17%;">Set the user ID to send the
+notification from. Takes a UNIX user name or numeric UID.
+When specified the notification message will be sent with
+the specified UID as sender, in place of the user the
+command was invoked as. This option requires sufficient
+privileges in order to be able manipulate the user identity
+of the process.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;status=</b></p>
+
+<p style="margin-left:17%;">Send a free&minus;form human
+readable status string for the daemon to the service
+manager. This option takes the status string as argument.
+This is equivalent to <b>systemd&minus;notify
+STATUS=...</b>. For details about the semantics of this
+option see <b>sd_notify</b>(3). This information is shown in
+<b>systemctl</b>(1)'s <b>status</b> output, among other
+places.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;booted</b></p>
+
+<p style="margin-left:17%;">Returns 0 if the system was
+booted up with systemd, non&minus;zero otherwise. If this
+option is passed, no message is sent. This option is hence
+unrelated to the other options. For details about the
+semantics of this option, see <b>sd_booted</b>(3). An
+alternate way to check for this state is to call
+<b>systemctl</b>(1) with the
+<b>is&minus;system&minus;running</b> command. It will return
+&quot;offline&quot; if the system was not booted with
+systemd.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;no&minus;block</b></p>
+
+<p style="margin-left:17%;">Do not synchronously wait for
+the requested operation to finish. Use of this option is
+only recommended when <b>systemd&minus;notify</b> is spawned
+by the service manager, or when the invoking process is
+directly spawned by the service manager and has enough
+privileges to allow <b>systemd&minus;notify</b> to send the
+notification on its behalf. Sending notifications with this
+option set is prone to race conditions in all other
+cases.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;h</b>,
+<b>&minus;&minus;help</b></p>
+
+<p style="margin-left:17%;">Print a short help text and
+exit.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;version</b></p>
+
+<p style="margin-left:17%;">Print a short version string
+and exit.</p>
+
+<h2>EXIT STATUS
+<a name="EXIT STATUS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On success, 0
+is returned, a non&minus;zero failure code otherwise.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;1.&nbsp;Start&minus;up
+Notification and Status Updates</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">A simple shell
+daemon that sends start&minus;up notifications after having
+set up its communication channel. During runtime it sends
+further status updates to the init system:</p>
+
+<p style="margin-left:17%; margin-top: 1em">#!/bin/sh</p>
+
+<p style="margin-left:17%; margin-top: 1em">mkfifo
+/tmp/waldo <br>
+systemd&minus;notify &minus;&minus;ready
+&minus;&minus;status=&quot;Waiting for data...&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">while : ; do
+<br>
+read &minus;r a &lt; /tmp/waldo <br>
+systemd&minus;notify &minus;&minus;status=&quot;Processing
+$a&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em"># Do something
+with $a ...</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">systemd&minus;notify
+&minus;&minus;status=&quot;Waiting for data...&quot; <br>
+done</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>systemctl</b>(1), <b>systemd.unit</b>(5),
+<b>systemd.service</b>(5), <b>sd_notify</b>(3),
+<b>sd_booted</b>(3)</p>
+<hr>
+</body>
+</html>

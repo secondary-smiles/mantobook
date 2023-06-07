@@ -1,0 +1,837 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:04 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GDBM_File</title>
+
+</head>
+<body>
+<h1>GDBM_File</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">GDBM_File
+&minus; Perl5 access to the gdbm library.</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use GDBM_File;
+<br>
+[$db =] tie %hash, 'GDBM_File', $filename, GDBM_WRCREAT,
+0640 <br>
+or die &quot;$GDBM_File::gdbm_errno&quot;; <br>
+# Use the %hash... <br>
+$e = $db&minus;&gt;errno; <br>
+$e = $db&minus;&gt;syserrno; <br>
+$str = $db&minus;&gt;strerror; <br>
+$bool = $db&minus;&gt;needs_recovery; <br>
+$db&minus;&gt;clear_error; <br>
+$db&minus;&gt;reorganize; <br>
+$db&minus;&gt;sync; <br>
+$n = $db&minus;&gt;count; <br>
+$n = $db&minus;&gt;flags; <br>
+$str = $db&minus;&gt;dbname; <br>
+$db&minus;&gt;cache_size; <br>
+$db&minus;&gt;cache_size($newsize); <br>
+$n = $db&minus;&gt;block_size; <br>
+$bool = $db&minus;&gt;sync_mode; <br>
+$db&minus;&gt;sync_mode($bool); <br>
+$bool = $db&minus;&gt;centfree; <br>
+$db&minus;&gt;centfree($bool); <br>
+$bool = $db&minus;&gt;coalesce; <br>
+$db&minus;&gt;coalesce($bool); <br>
+$bool = $db&minus;&gt;mmap; <br>
+$size = $db&minus;&gt;mmapsize; <br>
+$db&minus;&gt;mmapsize($newsize); <br>
+$db&minus;&gt;recover(%args); <br>
+untie %hash ;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>GDBM_File</b>
+is a module which allows Perl programs to make use of the
+facilities provided by the <small>GNU</small> gdbm library.
+If you intend to use this module you should really have a
+copy of the <b><small>GDBM</small> manual</b> at hand. The
+manual is avaialble online at
+&lt;https://www.gnu.org.ua/software/gdbm/manual&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Most of the
+<b>gdbm</b> functions are available through the
+<b>GDBM_File</b> interface.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unlike
+Perl&rsquo;s built-in hashes, it is not safe to
+&quot;delete&quot; the current item from a GDBM_File tied
+hash while iterating over it with &quot;each&quot;. This is
+a limitation of the gdbm library.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Tie</b> <br>
+Use the Perl built-in <b>tie</b> to associate a
+<b><small>GDBM</small></b> database with a Perl hash:</p>
+
+<p style="margin-left:11%; margin-top: 1em">tie %hash,
+'GDBM_File', $filename, $flags, $mode;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here,
+<i>$filename</i> is the name of the database file to open or
+create. <i>$flags</i> is a bitwise <small>OR</small> of
+<i>access mode</i> and optional <i>modifiers</i>. Access
+mode is one of: <b><small><br>
+GDBM_READER</small></b></p>
+
+<p style="margin-left:17%;">Open existing database file in
+read-only mode.</p>
+
+
+<p style="margin-left:11%;"><b><small>GDBM_WRITER</small></b></p>
+
+<p style="margin-left:17%;">Open existing database file in
+read-write mode.</p>
+
+
+<p style="margin-left:11%;"><b><small>GDBM_WRCREAT</small></b></p>
+
+<p style="margin-left:17%;">If the database file exists,
+open it in read-write mode. If it doesn&rsquo;t, create it
+first and open read-write.</p>
+
+
+<p style="margin-left:11%;"><b><small>GDBM_NEWDB</small></b></p>
+
+<p style="margin-left:17%;">Create new database and open it
+read-write. If the database already exists, truncate it
+first.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A number of
+modifiers can be <small>OR</small> &rsquo;d to the access
+mode. Most of them are rarely needed (see
+&lt;https://www.gnu.org.ua/software/gdbm/manual/Open.html&gt;
+for a complete list), but one is worth mentioning. The
+<b><small>GDBM_NUMSYNC</small></b> modifier, when used with
+<b><small>GDBM_NEWDB</small></b> , instructs
+<b><small>GDBM</small></b> to create the database in
+<i>extended</i> (so called <i>numsync</i>) format. This
+format is best suited for crash-tolerant implementations.
+See <b><small>CRASH TOLERANCE</small></b> below for more
+information.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>$mode</i> parameter is the file mode for creating new
+database file. Use an octal constant or a combination of
+&quot;S_I*&quot; constants from the <b>Fcntl</b> module.
+This parameter is used if <i>$flags</i> is
+<b><small>GDBM_NEWDB</small></b> or
+<b><small>GDBM_WRCREAT</small></b> .</p>
+
+<p style="margin-left:11%; margin-top: 1em">On success,
+<b>tie</b> returns an object of class <b>GDBM_File</b>. On
+failure, it returns <b>undef</b>. It is recommended to
+always check the return value, to make sure your hash is
+successfully associated with the database file. See
+<b><small>ERROR HANDLING</small></b> below for examples.</p>
+
+<h2>STATIC METHODS
+<a name="STATIC METHODS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>GDBM_version</b>
+<br>
+$str = GDBM_File&minus;&gt;GDBM_version; <br>
+@ar = GDBM_File&minus;&gt;GDBM_version;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+version number of the underlying <b>libgdbm</b> library. In
+scalar context, returns the library version formatted as
+string:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">MINOR.MAJOR[.PATCH][
+(GUESS)]</p>
+
+<p style="margin-left:11%; margin-top: 1em">where
+<i><small>MINOR</small></i> , <i><small>MAJOR</small></i> ,
+and <i><small>PATCH</small></i> are version numbers, and
+<i><small>GUESS</small></i> is a guess level (see
+below).</p>
+
+<p style="margin-left:11%; margin-top: 1em">In list
+context, returns a list:</p>
+
+<p style="margin-left:11%; margin-top: 1em">( MINOR, MAJOR,
+PATCH [, GUESS] )</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i><small>GUESS</small></i> component is present only if
+<b>libgdbm</b> version is 1.8.3 or earlier. This is because
+earlier releases of <b>libgdbm</b> did not include
+information about their version and the <b>GDBM_File</b>
+module has to implement certain guesswork in order to
+determine it. <i><small>GUESS</small></i> is a textual
+description in string context, and a positive number
+indicating how rough the guess is in list context. Possible
+values are: <br>
+1 &minus; exact guess</p>
+
+<p style="margin-left:17%;">The major and minor version
+numbers are guaranteed to be correct. The actual patchlevel
+is most probably guessed right, but can be 1&minus;2 less
+than indicated.</p>
+
+<p style="margin-left:11%;">2 &minus; approximate</p>
+
+<p style="margin-left:17%;">The major and minor number are
+guaranteed to be correct. The patchlevel is set to the upper
+bound.</p>
+
+<p style="margin-left:11%;">3 &minus; rough guess</p>
+
+<p style="margin-left:17%;">The version is guaranteed to be
+not newer than <b><i><small>MAJOR</small></i></b> <b>.</b>
+<b><i><small>MINOR</small></i></b> .</p>
+
+<h2>ERROR HANDLING
+<a name="ERROR HANDLING"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$GDBM_File::gdbm_errno</b>
+<br>
+When referenced in numeric context, retrieves the current
+value of the <b>gdbm_errno</b> variable, i.e. a numeric code
+describing the state of the most recent operation on any
+<b>gdbm</b> database. Each numeric code has a symbolic name
+associated with it. For a comprehensive list of these, see
+&lt;https://www.gnu.org.ua/software/gdbm/manual/Error&minus;codes.html&gt;.
+Notice, that this list includes all error codes defined for
+the most recent version of <b>gdbm</b>. Depending on the
+actual version of the library <b>GDBM_File</b> is built
+with, some of these may be missing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In string
+context, <b>$gdbm_errno</b> returns a human-readable
+description of the error. If necessary, this description
+includes the value of <b>$!</b>. This makes it possible to
+use it in diagnostic messages. For example, the usual tying
+sequence is</p>
+
+<p style="margin-left:11%; margin-top: 1em">tie %hash,
+'GDBM_File', $filename, GDBM_WRCREAT, 0640 <br>
+or die &quot;$GDBM_File::gdbm_errno&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following,
+more complex, example illustrates how you can fall back to
+read-only mode if the database file permissions forbid
+read-write access:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Errno
+qw(EACCES); <br>
+unless (tie(%hash, 'GDBM_File', $filename, GDBM_WRCREAT,
+0640)) { <br>
+if ($GDBM_File::gdbm_errno == GDBM_FILE_OPEN_ERROR <br>
+&amp;&amp; $!{EACCES}) { <br>
+if (tie(%hash, 'GDBM_File', $filename, GDBM_READER, 0640)) {
+<br>
+die &quot;$GDBM_File::gdbm_errno&quot;; <br>
+} <br>
+} else { <br>
+die &quot;$GDBM_File::gdbm_errno&quot;; <br>
+} <br>
+}</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>gdbm_check_syserr</b>
+<br>
+if (gdbm_check_syserr(gdbm_errno)) ...</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns true if
+the system error number (<b>$!</b>) gives more information
+on the cause of the error.</p>
+
+<h2>DATABASE METHODS
+<a name="DATABASE METHODS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>close</b>
+<br>
+$db&minus;&gt;close;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Closes the
+database. Normally you would just do <b>untie</b>. However,
+you will need to use this function if you have explicitly
+assigned the result of <b>tie</b> to a variable, and wish to
+release the database to another users. Consider the
+following code:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$db = tie
+%hash, 'GDBM_File', $filename, GDBM_WRCREAT, 0640; <br>
+# Do something with %hash or $db... <br>
+untie %hash; <br>
+$db&minus;&gt;close;</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this
+example, doing <b>untie</b> alone is not enough, since the
+database would remain referenced by <b>$db</b>, and, as a
+consequence, the database file would remain locked. Calling
+<b>$db&minus;&gt;close</b> ensures the database file is
+closed and unlocked.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>errno</b>
+<br>
+$db&minus;&gt;errno</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+last error status associated with this database. In string
+context, returns a human-readable description of the error.
+See also <b>$GDBM_File::gdbm_errno</b> variable above.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>syserrno</b>
+<br>
+$db&minus;&gt;syserrno</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+last system error status (C &quot;errno&quot; variable),
+associated with this database,</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>strerror</b>
+<br>
+$db&minus;&gt;strerror</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns textual
+description of the last error that occurred in this
+database.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>clear_error</b>
+<br>
+$db&minus;&gt;clear_error</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clear error
+status.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>needs_recovery</b>
+<br>
+$db&minus;&gt;needs_recovery</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns true if
+the database needs recovery.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>reorganize</b>
+<br>
+$db&minus;&gt;reorganize;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Reorganizes the
+database.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>sync</b>
+<br>
+$db&minus;&gt;sync;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Synchronizes
+recent changes to the database with its disk copy.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>count</b>
+<br>
+$n = $db&minus;&gt;count;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns number
+of keys in the database.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>flags</b>
+<br>
+$db&minus;&gt;flags;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns flags
+passed as 4th argument to <b>tie</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dbname</b>
+<br>
+$db&minus;&gt;dbname;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+database name (i.e. 3rd argument to <b>tie</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>cache_size</b>
+<br>
+$db&minus;&gt;cache_size; <br>
+$db&minus;&gt;cache_size($newsize);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+size of the internal <b><small>GDBM</small></b> cache for
+that database.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Called with
+argument, sets the size to <i>$newsize</i>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>block_size</b>
+<br>
+$db&minus;&gt;block_size;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+block size of the database.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sync_mode</b>
+<br>
+$db&minus;&gt;sync_mode; <br>
+$db&minus;&gt;sync_mode($bool);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+status of the automatic synchronization mode. Called with
+argument, enables or disables the sync mode, depending on
+whether $bool is <b>true</b> or <b>false</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When
+synchronization mode is on (<b>true</b>), any changes to the
+database are immediately written to the disk. This ensures
+database consistency in case of any unforeseen errors (e.g.
+power failures), at the expense of considerable slowdown of
+operation.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Synchronization
+mode is off by default.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>centfree</b>
+<br>
+$db&minus;&gt;centfree; <br>
+$db&minus;&gt;centfree($bool);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns status
+of the central free block pool (<b>0</b> &minus; disabled,
+<b>1</b> &minus; enabled).</p>
+
+<p style="margin-left:11%; margin-top: 1em">With argument,
+changes its status.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default,
+central free block pool is disabled.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>coalesce</b>
+<br>
+$db&minus;&gt;coalesce; <br>
+$db&minus;&gt;coalesce($bool);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>mmap</b>
+<br>
+$db&minus;&gt;mmap;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns true if
+memory mapping is enabled.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+will <b>croak</b> if the <b>libgdbm</b> library is complied
+without memory mapping support.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>mmapsize</b>
+<br>
+$db&minus;&gt;mmapsize; <br>
+$db&minus;&gt;mmapsize($newsize);</p>
+
+<p style="margin-left:11%; margin-top: 1em">If memory
+mapping is enabled, returns the size of memory mapping. With
+argument, sets the size to <b>$newsize</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+will <b>croak</b> if the <b>libgdbm</b> library is complied
+without memory mapping support.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>recover</b>
+<br>
+$db&minus;&gt;recover(%args);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Recovers data
+from a failed database. <b>%args</b> is optional and can
+contain following keys: <br>
+err =&gt; sub { ... }</p>
+
+<p style="margin-left:17%;">Reference to code for detailed
+error reporting. Upon encountering an error, <b>recover</b>
+will call this sub with a single argument &minus; a
+description of the error.</p>
+
+<p style="margin-left:11%;">backup =&gt; \$str</p>
+
+<p style="margin-left:17%;">Creates a backup copy of the
+database before recovery and returns its filename in
+<b>$str</b>.</p>
+
+<p style="margin-left:11%;">max_failed_keys =&gt; $n</p>
+
+<p style="margin-left:17%;">Maximum allowed number of
+failed keys. If the actual number becomes equal to
+<i>$n</i>, <b>recover</b> aborts and returns error.</p>
+
+<p style="margin-left:11%;">max_failed_buckets =&gt; $n</p>
+
+<p style="margin-left:17%;">Maximum allowed number of
+failed buckets. If the actual number becomes equal to
+<i>$n</i>, <b>recover</b> aborts and returns error.</p>
+
+<p style="margin-left:11%;">max_failures =&gt; $n</p>
+
+<p style="margin-left:17%;">Maximum allowed number of
+failures during recovery.</p>
+
+<p style="margin-left:11%;">stat =&gt; \%hash</p>
+
+<p style="margin-left:17%;">Return recovery statistics in
+<i>%hash</i>. Upon return, the following keys will be
+present: <br>
+recovered_keys</p>
+
+<p style="margin-left:29%;">Number of successfully
+recovered keys.</p>
+
+<p style="margin-left:17%;">recovered_buckets</p>
+
+<p style="margin-left:29%;">Number of successfully
+recovered buckets.</p>
+
+<p style="margin-left:17%;">failed_keys</p>
+
+<p style="margin-left:29%;">Number of keys that failed to
+be retrieved.</p>
+
+<p style="margin-left:17%;">failed_buckets</p>
+
+<p style="margin-left:29%;">Number of buckets that failed
+to be retrieved.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>convert</b>
+<br>
+$db&minus;&gt;convert($format);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Changes the
+format of the database file referred to by <b>$db</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Starting from
+version 1.20, <b>gdbm</b> supports two database file
+formats: <i>standard</i> and <i>extended</i>. The former is
+the traditional database format, used by previous
+<b>gdbm</b> versions. The <i>extended</i> format contains
+additional data and is recommended for use in crash tolerant
+applications.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;https://www.gnu.org.ua/software/gdbm/manual/Numsync.html&gt;,
+for the discussion of both formats.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>$format</b> argument sets the new desired database
+format. It is <b><small>GDBM_NUMSYNC</small></b> to convert
+the database from standard to extended format, and <b>0</b>
+to convert it from extended to standard format.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the database
+is already in the requested format, the function returns
+success without doing anything.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dump</b>
+<br>
+$db&minus;&gt;dump($filename, %options)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Creates a dump
+of the database file in <i>$filename</i>. Such file can be
+used as a backup copy or sent over a wire to recreate the
+database on another machine. To create a database from the
+dump file, use the <b>load</b> method.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>GDBM</small></b>
+supports two dump formats: old <i>binary</i> and new
+<i>ascii</i>. The binary format is not portable across
+architectures and is deprecated. It is supported for
+backward compatibility. The ascii format is portable and
+stores additional meta-data about the file. It was
+introduced with the <b>gdbm</b> version 1.11 and is the
+preferred dump format. The <b>dump</b> method creates ascii
+dumps by default.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the named
+file already exists, the function will refuse to overwrite
+and will croak an error. If it doesn&rsquo;t exist, it will
+be created with the mode <b>0666</b> modified by the current
+<b>umask</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These defaults
+can be altered using the following <i>%options</i>: <b><br>
+binary</b> =&gt; 1</p>
+
+<p style="margin-left:17%;">Create dump in <i>binary</i>
+format.</p>
+
+<p style="margin-left:11%;"><b>mode</b> =&gt;
+<i><small>MODE</small></i></p>
+
+<p style="margin-left:17%;">Set file mode to
+<i><small>MODE</small></i> .</p>
+
+<p style="margin-left:11%;"><b>overwrite</b> =&gt; 1</p>
+
+<p style="margin-left:17%;">Silently overwrite existing
+files.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>load</b>
+<br>
+$db&minus;&gt;load($filename, %options)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Load the data
+from the dump file <i>$filename</i> into the database
+<i>$db</i>. The file must have been previously created using
+the <b>dump</b> method. File format is recognized
+automatically. By default, the function will croak if the
+dump contains a key that already exists in the database. It
+will silently ignore the failure to restore database mode
+and/or ownership. These defaults can be altered using the
+following <i>%options</i>: <b><br>
+replace</b> =&gt; 1</p>
+
+<p style="margin-left:17%;">Replace existing keys.</p>
+
+<p style="margin-left:11%;"><b>restore_mode</b> =&gt; 0 |
+1</p>
+
+<p style="margin-left:17%;">If <i>0</i>, don&rsquo;t try to
+restore the mode of the database file to that stored in the
+dump.</p>
+
+<p style="margin-left:11%;"><b>restore_owner</b> =&gt; 0 |
+1</p>
+
+<p style="margin-left:17%;">If <i>0</i>, don&rsquo;t try to
+restore the owner of the database file to that stored in the
+dump.</p>
+
+<p style="margin-left:11%;"><b>strict_errors</b> =&gt;
+1</p>
+
+<p style="margin-left:17%;">Croak if failed to restore
+ownership and/or mode.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The usual
+sequence to recreate a database from the dump file is:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %hash; <br>
+my $db = tie %hash, 'GDBM_File', 'a.db', GDBM_NEWDB, 0640;
+<br>
+$db&minus;&gt;load('a.dump');</p>
+
+<h2>CRASH TOLERANCE
+<a name="CRASH TOLERANCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Crash tolerance
+is a new feature that, given appropriate support from the
+<small>OS</small> and the filesystem, guarantees that a
+logically consistent recent state of the database can be
+recovered following a crash, such as power outage,
+<small>OS</small> kernel panic, or the like.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Crash tolerance
+support appeared in <b>gdbm</b> version 1.21. The theory
+behind it is explained in &quot;Crashproofing the Original
+NoSQL Key-Value Store&quot;, by Terence Kelly
+(&lt;https://queue.acm.org/detail.cfm?id=3487353&gt;). A
+detailed discussion of the <b>gdbm</b> implementation is
+available in the <b><small>GDBM</small> Manual</b>
+(&lt;https://www.gnu.org.ua/software/gdbm/manual/Crash&minus;Tolerance.html&gt;).
+The information below describes the Perl interface.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For maximum
+robustness, we recommend to use <i>extended database
+format</i> for crash tolerant databases. To create a
+database in extended format, use the
+<b>GDBM_NEWDB|GDBM_NUMSYNC</b> when opening the database,
+e.g.:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$db = tie
+%hash, 'GDBM_File', $filename, <br>
+GDBM_NEWDB|GDBM_NUMSYNC, 0640;</p>
+
+<p style="margin-left:11%; margin-top: 1em">To convert
+existing database to the extended format, use the
+<b>convert</b> method, described above, e.g.:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$db&minus;&gt;convert(GDBM_NUMSYNC);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>crash_tolerance_status</b>
+<br>
+GDBM_File&minus;&gt;crash_tolerance_status;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This static
+method returns the status of crash tolerance support. A
+non-zero value means crash tolerance is compiled in and
+supported by the operating system.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>failure_atomic</b>
+<br>
+$db&minus;&gt;failure_atomic($even, $odd)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Enables crash
+tolerance for the database <b>$db</b>, Arguments are the
+pathnames of two files that will be created and filled with
+<i>snapshots</i> of the database file. The two files must
+not exist when this method is called and must reside on the
+same filesystem as the database file. This filesystem must
+be support the <i>reflink</i> operation
+(https://www.gnu.org.ua/software/gdbm/manual/Filesystems&minus;supporting&minus;crash&minus;tolerance.html&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">After a
+successful call to <b>failure_atomic</b>, every call to
+<b>$db&minus;</b>sync&gt; method will make an efficient
+reflink snapshot of the database file in one of these files;
+consecutive calls to <b>sync</b> alternate between the two,
+hence the names.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The most recent
+of these files can be used to recover the database after a
+crash. To select the right snapshot, use the
+<b>latest_snapshot</b> static method.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>latest_snapshot</b>
+<br>
+$file = GDBM_File&minus;&gt;latest_snapshot($even, $odd);
+<br>
+($file, $error) = GDBM_File&minus;&gt;latest_snapshot($even,
+$odd);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Given the two
+snapshot names (the ones used previously in a call to
+<b>failure_atomic</b>), this method selects the one suitable
+for database recovery, i.e. the file which contains the most
+recent database snapshot.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In scalar
+context, it returns the selected file name or <b>undef</b>
+in case of failure.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In array
+context, the returns a list of two elements: the file name
+and status code. On success, the file name is defined and
+the code is <b><small>GDBM_SNAPSHOT_OK</small></b> . On
+error, the file name is <b>undef</b>, and the status is one
+of the following: <small><br>
+GDBM_SNAPSHOT_BAD</small></p>
+
+<p style="margin-left:17%;">Neither snapshot file is
+applicable. This means that the crash has occurred before a
+call to <b>failure_atomic</b> completed. In this case, it is
+best to fall back on a safe backup copy of the data
+file.</p>
+
+
+<p style="margin-left:11%;"><small>GDBM_SNAPSHOT_ERR</small></p>
+
+<p style="margin-left:17%;">A system error occurred.
+Examine <b>$!</b> for details. See
+&lt;https://www.gnu.org.ua/software/gdbm/manual/Crash&minus;recovery.html&gt;
+for a comprehensive list of error codes and their
+meaning.</p>
+
+
+<p style="margin-left:11%;"><small>GDBM_SNAPSHOT_SAME</small></p>
+
+<p style="margin-left:17%;">The file modes and modification
+dates of both snapshot files are exactly the same. This can
+happen only for databases in standard format.</p>
+
+
+<p style="margin-left:11%;"><small>GDBM_SNAPSHOT_SUSPICIOUS</small></p>
+
+<p style="margin-left:17%;">The <i>numsync</i> counters of
+the two snapshots differ by more than one. The most probable
+reason is programmer&rsquo;s error: the two parameters refer
+to snapshots belonging to different database files.</p>
+
+<h2>AVAILABILITY
+<a name="AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">gdbm is
+available from any <small>GNU</small> archive. The master
+site is &quot;ftp.gnu.org&quot;, but you are strongly urged
+to use one of the many mirrors. You can obtain a list of
+mirror sites from
+&lt;http://www.gnu.org/order/ftp.html&gt;.</p>
+
+<h2>SECURITY AND PORTABILITY
+<a name="SECURITY AND PORTABILITY"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>GDBM</small>
+files are not portable across platforms. If you wish to
+transfer a <small>GDBM</small> file over the wire, dump it
+to a portable format first.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Do not
+accept <small>GDBM</small> files from untrusted
+sources.</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Robustness of
+<small>GDBM</small> against corrupted databases depends
+highly on its version. Versions prior to 1.15 did not
+implement any validity checking, so that a corrupted or
+maliciously crafted database file could cause perl to crash
+or even expose a security vulnerability. Versions between
+1.15 and 1.20 were progressively strengthened against
+invalid inputs. Finally, version 1.21 had undergone
+extensive fuzzy checking which proved its ability to
+withstand any kinds of inputs without crashing.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>perl</b>(1),
+<b>DB_File</b>(3), perldbmfilter, <b>gdbm</b>(3),
+&lt;https://www.gnu.org.ua/software/gdbm/manual.html&gt;.</p>
+<hr>
+</body>
+</html>

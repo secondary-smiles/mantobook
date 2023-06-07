@@ -1,0 +1,214 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:04 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>ct action in tc</title>
+
+</head>
+<body>
+<h1>tc-ct</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">ct &minus; tc
+connection tracking action</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:23%; margin-top: 1em"><b>tc ...
+action ct commit [ force ] [ zone</b> <i>ZONE</i> <b>] [
+mark</b> <i>MASKED_MARK</i> <b>] [ label</b>
+<i>MASKED_LABEL</i> <b>] [ nat</b> <i>NAT_SPEC</i>
+<b>]</b></p>
+
+<p style="margin-left:23%; margin-top: 1em"><b>tc ...
+action ct [ nat ] [ zone</b> <i>ZONE</i> <b>]</b></p>
+
+<p style="margin-left:23%; margin-top: 1em"><b>tc ...
+action ct clear</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The ct action
+is a tc action for sending packets and interacting with the
+netfilter conntrack module.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It can (as
+shown in the synopsis, in order):</p>
+
+<p style="margin-left:11%; margin-top: 1em">Send the packet
+to conntrack, and commit the connection, while configuring a
+32bit mark, 128bit label, and src/dst nat.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Send the packet
+to conntrack, which will mark the packet with the
+connection&rsquo;s state and configured metadata
+(mark/label), and execute previous configured nat.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clear the
+packet&rsquo;s of previous connection tracking state.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>zone</b>
+<i>ZONE</i></p>
+
+<p style="margin-left:22%;">Specify a conntrack zone number
+on which to send the packet to conntrack.</p>
+
+<p style="margin-left:11%;"><b>mark</b>
+<i>MASKED_MARK</i></p>
+
+<p style="margin-left:22%;">Specify a masked 32bit mark to
+set for the connection (only valid with commit).</p>
+
+<p style="margin-left:11%;"><b>label</b>
+<i>MASKED_LABEL</i></p>
+
+<p style="margin-left:22%;">Specify a masked 128bit label
+to set for the connection (only valid with commit).</p>
+
+<p style="margin-left:11%;"><b>nat</b> <i>NAT_SPEC</i></p>
+
+<p style="margin-left:22%;"><b>Where</b> <i>NAT_SPEC</i>
+<b>:= {src|dst} addr</b>
+<i>addr1</i><b>[-</b><i>addr2</i><b>] [port</b>
+<i>port1</i><b>[-</b><i>port2</i><b>]]</b></p>
+
+<p style="margin-left:22%; margin-top: 1em">Specify src/dst
+and range of nat to configure for the connection (only valid
+with commit). <br>
+src/dst - configure src or dst nat <i><br>
+addr1</i><b>/</b><i>addr2</i> <b>- IPv4/IPv6 addresses</b>
+<i><br>
+port1</i><b>/</b><i>port2</i> <b>- Port numbers</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="7%">
+
+
+<p><b>nat</b></p></td>
+<td width="4%"></td>
+<td width="78%">
+
+
+<p>Restore any previous configured nat.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="7%">
+
+
+<p><b>clear</b></p></td>
+<td width="4%"></td>
+<td width="78%">
+
+
+<p>Remove any conntrack state and metadata (mark/label)
+from the packet (must only option specified).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="7%">
+
+
+<p><b>force</b></p></td>
+<td width="4%"></td>
+<td width="78%">
+
+
+<p>Forces conntrack direction for a previously committed
+connections, so that current direction will become the
+original direction (only valid with commit).</p></td></tr>
+</table>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Example showing
+natted firewall in conntrack zone 2, and conntrack mark
+usage:</p>
+
+<p style="margin-left:11%; margin-top: 1em">#Add ingress
+qdisc on eth0 and eth1 interfaces <br>
+$ tc qdisc add dev eth0 ingress <br>
+$ tc qdisc add dev eth1 ingress</p>
+
+<p style="margin-left:11%; margin-top: 1em">#Setup filters
+on eth0, allowing opening new connections in zone 2, and
+doing src nat + mark for each new connection <br>
+$ tc filter add dev eth0 ingress prio 1 chain 0 proto ip
+flower ip_proto tcp ct_state -trk \ <br>
+action ct zone 2 pipe action goto chain 2 <br>
+$ tc filter add dev eth0 ingress prio 1 chain 2 proto ip
+flower ct_state +trk+new \ <br>
+action ct zone 2 commit mark 0xbb nat src addr 5.5.5.7 pipe
+action mirred egress redirect dev eth1 <br>
+$ tc filter add dev eth0 ingress prio 1 chain 2 proto ip
+flower ct_zone 2 ct_mark 0xbb ct_state +trk+est \ <br>
+action ct nat pipe action mirred egress redirect dev
+eth1</p>
+
+<p style="margin-left:11%; margin-top: 1em">#Setup filters
+on eth1, allowing only established connections of zone 2
+through, and reverse nat (dst nat in this case) <br>
+$ tc filter add dev eth1 ingress prio 1 chain 0 proto ip
+flower ip_proto tcp ct_state -trk \ <br>
+action ct zone 2 pipe action goto chain 1 <br>
+$ tc filter add dev eth1 ingress prio 1 chain 1 proto ip
+flower ct_zone 2 ct_mark 0xbb ct_state +trk+est \ <br>
+action ct nat pipe action mirred egress redirect dev
+eth0</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tc</b>(8),
+<b>tc-flower</b>(8) <b>tc-mirred</b>(8)</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Paul Blakey
+&lt;paulb@mellanox.com&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Marcelo Ricardo
+Leitner &lt;marcelo.leitner@gmail.com&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Yossi Kuperman
+&lt;yossiku@mellanox.com&gt;</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:22 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>IPC::Run::Win32Helper</title>
+
+</head>
+<body>
+<h1>IPC::Run::Win32Helper</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">IPC::Run::Win32Helper
+&minus; helper routines for IPC::Run on Win32 platforms.</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+IPC::Run::Win32Helper; # Exports all by default</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">IPC::Run needs
+to use sockets to redirect subprocess I/O so that the
+<b>select()</b> loop will work on Win32. This seems to only
+work on WinNT and Win2K at this time, not sure if it will
+ever work on Win95 or Win98. If you have experience in this
+area, please contact me at barries@slaysys.com, thanks!.</p>
+
+<h2>FUNCTIONS
+<a name="FUNCTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>optimize()</b></p>
+
+<p style="margin-left:17%;">Most common incantations of
+&quot;run()&quot; (<i>not</i> &quot;harness()&quot;,
+&quot;start()&quot;, or &quot;finish()&quot;) now use
+temporary files to redirect input and output instead of
+pumper processes.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Temporary files
+are used when sending to child processes if input is taken
+from a scalar with no filter subroutines. This is the only
+time we can assume that the parent is not interacting with
+the child&rsquo;s redirected input as it runs.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Temporary files
+are used when receiving from children when output is to a
+scalar or subroutine with or without filters, but only if
+the child in question closes its inputs or takes input from
+unfiltered SCALARs or named files. Normally, a child
+inherits its <small>STDIN</small> from its parent; to close
+it, use &quot;0&lt;&amp;&minus;&quot; or the &quot;noinherit
+=&gt; 1&quot; option. If data is sent to the child from
+<small>CODE</small> refs, filehandles or from scalars
+through filters than the child&rsquo;s outputs will not be
+optimized because &quot;optimize()&quot; assumes the parent
+is interacting with the child. It is ok if the output is
+filtered or handled by a subroutine, however.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This assumes
+that all named files are real files (as opposed to named
+pipes) and won&rsquo;t change; and that a process is not
+communicating with the child indirectly (through means not
+visible to IPC::Run). These can be an invalid assumptions,
+but are the 99% case. Write me if you need an option to
+enable or disable optimizations; I suspect it will work like
+the &quot;binary()&quot; modifier.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To detect cases
+that you might want to optimize by closing inputs, try
+setting the &quot;IPCRUNDEBUG&quot; environment variable to
+the special &quot;notopt&quot; value:</p>
+
+<p style="margin-left:17%; margin-top: 1em">C:&gt; set
+IPCRUNDEBUG=notopt <br>
+C:&gt; my_app_that_uses_IPC_Run.pl</p>
+
+<p style="margin-left:11%;"><b>optimizer()</b>
+rationalizations</p>
+
+<p style="margin-left:17%;">Only for that limited case can
+we be sure that it&rsquo;s ok to batch all the input in to a
+temporary file. If <small>STDIN</small> is from a
+<small>SCALAR</small> or from a named file or filehandle
+(again, only in &quot;run()&quot;), then outputs to
+<small>CODE</small> refs are also assumed to be safe enough
+to batch through a temp file, otherwise only outputs to
+<small>SCALAR</small> refs are batched. This can cause a bit
+of grief if the parent process benefits from or relies on a
+bit of &quot;early returns&quot; coming in before the child
+program exits. As long as the output is redirected to a
+<small>SCALAR</small> ref, this will not be visible. When
+output is redirected to a subroutine or (deprecated)
+filters, the subroutine will not get any data until after
+the child process exits, and it is likely to get bigger
+chunks of data at once.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The reason for
+the optimization is that, without it, &quot;pumper&quot;
+processes are used to overcome the inconsistencies of the
+Win32 <small>API.</small> We need to use anonymous pipes to
+connect to the child processes&rsquo; stdin, stdout, and
+stderr, yet <b>select()</b> does not work on these.
+<b>select()</b> only works on sockets on Win32. So for each
+redirected child handle, there is normally a
+&quot;pumper&quot; process that connects to the parent using
+a socket--so the parent can <b>select()</b> on that fd--and
+to the child on an anonymous pipe--so the child can
+read/write a pipe.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using a socket
+to connect directly to the child (as at least one
+<small>MSDN</small> article suggests) seems to cause the
+trailing output from most children to be lost. I think this
+is because child processes rarely close their stdout and
+stderr explicitly, and the winsock dll does not seem to
+flush output when a process that uses it exits without
+explicitly closing them.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Because of
+these pumpers and the inherent slowness of Win32
+<b>CreateProcess()</b>, child processes with redirects are
+quite slow to launch; so this routine looks for the very
+common case of reading/writing to/from scalar references in
+a <b>run()</b> routine and converts such reads and writes in
+to temporary file reads and writes.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Such files are
+marked as <small>FILE_ATTRIBUTE_TEMPORARY</small> to
+increase speed and as
+<small>FILE_FLAG_DELETE_ON_CLOSE</small> so it will be
+cleaned up when the child process exits (for input files).
+The user&rsquo;s default permissions are used for both the
+temporary files and the directory that contains them, hope
+your Win32 permissions are secure enough for you. Files are
+created with the Win32API::File defaults of
+FILE_SHARE_READ|FILE_SHARE_WRITE.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Setting the
+debug level to &quot;details&quot; or &quot;gory&quot; will
+give detailed information about the optimization process;
+setting it to &quot;basic&quot; or higher will tell whether
+or not a given call is optimized. Setting it to
+&quot;notopt&quot; will highlight those calls that
+aren&rsquo;t optimized.</p>
+
+<p style="margin-left:11%;">win32_parse_cmd_line</p>
+
+<p style="margin-left:17%;">@words = win32_parse_cmd_line(
+q{foo bar 'baz baz' &quot;bat bat&quot;} );</p>
+
+<p style="margin-left:17%; margin-top: 1em">returns 4
+words. This parses like the bourne shell (see the bit about
+<b>shellwords()</b> in Text::ParseWords), assuming
+we&rsquo;re trying to be a little cross-platform here. The
+only difference is that &quot;\&quot; is *not* treated as an
+escape except when it precedes punctuation, since it&rsquo;s
+used all over the place in <small>DOS</small> path
+specs.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>TODO:</small>
+strip caret escapes?</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>TODO:</small>
+use
+https://docs.microsoft.com/en&minus;us/cpp/cpp/main&minus;function&minus;command&minus;line&minus;args#parsing&minus;c&minus;command&minus;line&minus;arguments</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>TODO:</small>
+globbing? probably not (it&rsquo;s unDOSish).</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>TODO:</small>
+shebang emulation? Probably, but perhaps that should be part
+of Run.pm so all spawned processes get the benefit.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>LIMITATIONS:</small>
+shellwords dies silently on malformed input like</p>
+
+<p style="margin-left:17%; margin-top: 1em">a\&quot;</p>
+
+<p style="margin-left:11%;">win32_spawn</p>
+
+<p style="margin-left:17%;">Spawns a child process,
+possibly with <small>STDIN, STDOUT,</small> and
+<small>STDERR</small> (file descriptors 0, 1, and 2,
+respectively) redirected.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>LIMITATIONS</small></b>
+.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Cannot redirect
+higher file descriptors due to lack of support for this in
+the Win32 environment.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This can be
+worked around by marking a handle as inheritable in the
+parent (or leaving it marked; this is the default in perl),
+obtaining it&rsquo;s Win32 handle with
+&quot;Win32API::GetOSFHandle(FH)&quot; or
+&quot;Win32API::FdGetOsFHandle($fd)&quot; and passing it to
+the child using the command line, the environment, or any
+other <small>IPC</small> mechanism (it&rsquo;s a plain old
+integer). The child can then use &quot;OsFHandleOpen()&quot;
+or &quot;OsFHandleOpenFd()&quot; and possibly &quot;&lt;open
+FOO &quot;&quot;&amp;BAR&quot;&gt;&gt; or &quot;&lt;open FOO
+&quot;&quot;&amp;$fd&gt;&gt; as need be. Ach, the pain!</p>
+
+<p style="margin-left:17%; margin-top: 1em">Remember to
+check the Win32 handle against
+<small>INVALID_HANDLE_VALUE.</small></p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Barries
+Slaymaker &lt;barries@slaysys.com&gt;. Funded by Perforce
+Software, Inc.</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright 2001,
+Barrie Slaymaker, All Rights Reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You may use
+this under the terms of either the <small>GPL 2.0</small> or
+the Artistic License.</p>
+<hr>
+</body>
+</html>

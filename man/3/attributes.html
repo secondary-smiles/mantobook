@@ -1,0 +1,650 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:18 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>attributes</title>
+
+</head>
+<body>
+<h1>attributes</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">attributes
+&minus; get/set subroutine or variable attributes</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">sub foo :
+method ; <br>
+my ($x,@y,%z) : Bent = 1; <br>
+my $s = sub : method { ... }; <br>
+use attributes (); # optional, to get subroutine
+declarations <br>
+my @attrlist = attributes::get(\&amp;foo); <br>
+use attributes 'get'; # import the attributes::get
+subroutine <br>
+my @attrlist = get \&amp;foo;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Subroutine
+declarations and definitions may optionally have attribute
+lists associated with them. (Variable &quot;my&quot;
+declarations also may, but see the warning below.) Perl
+handles these declarations by passing some information about
+the call site and the thing being declared along with the
+attribute list to this module. In particular, the first
+example above is equivalent to the following:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use attributes
+__PACKAGE__, \&amp;foo, 'method';</p>
+
+<p style="margin-left:11%; margin-top: 1em">The second
+example in the synopsis does something equivalent to
+this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use attributes
+(); <br>
+my ($x,@y,%z); <br>
+attributes::&minus;&gt;import(__PACKAGE__, \$x, 'Bent');
+<br>
+attributes::&minus;&gt;import(__PACKAGE__, \@y, 'Bent');
+<br>
+attributes::&minus;&gt;import(__PACKAGE__, \%z, 'Bent');
+<br>
+($x,@y,%z) = 1;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Yes,
+that&rsquo;s a lot of expansion.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>WARNING</small></b>
+: attribute declarations for variables are still evolving.
+The semantics and interfaces of such declarations could
+change in future versions. They are present for purposes of
+experimentation with what the semantics ought to be. Do not
+rely on the current implementation of this feature.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are only
+a few attributes currently handled by Perl itself (or
+directly by this module, depending on how you look at it.)
+However, package-specific attributes are allowed by an
+extension mechanism. (See &quot;Package-specific Attribute
+Handling&quot; below.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The setting of
+subroutine attributes happens at compile time. Variable
+attributes in &quot;our&quot; declarations are also applied
+at compile time. However, &quot;my&quot; variables get their
+attributes applied at run-time. This means that you have to
+<i>reach</i> the run-time component of the &quot;my&quot;
+before those attributes will get applied. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $x : Bent =
+42 if 0;</p>
+
+<p style="margin-left:11%; margin-top: 1em">will neither
+assign 42 to $x <i>nor</i> will it apply the
+&quot;Bent&quot; attribute to the variable.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An attempt to
+set an unrecognized attribute is a fatal error. (The error
+is trappable, but it still stops the compilation within that
+&quot;eval&quot;.) Setting an attribute with a name
+that&rsquo;s all lowercase letters that&rsquo;s not a
+built-in attribute (such as &quot;foo&quot;) will result in
+a warning with <b>&minus;w</b> or &quot;use warnings
+'reserved'&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>What
+&quot;import&quot; does</b> <br>
+In the description it is mentioned that</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub foo :
+method;</p>
+
+<p style="margin-left:11%; margin-top: 1em">is equivalent
+to</p>
+
+<p style="margin-left:11%; margin-top: 1em">use attributes
+__PACKAGE__, \&amp;foo, 'method';</p>
+
+<p style="margin-left:11%; margin-top: 1em">As you might
+know this calls the &quot;import&quot; function of
+&quot;attributes&quot; at compile time with these
+parameters: &rsquo;attributes&rsquo;, the caller&rsquo;s
+package name, the reference to the code and
+&rsquo;method&rsquo;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">attributes&minus;&gt;import(
+__PACKAGE__, \&amp;foo, 'method' );</p>
+
+<p style="margin-left:11%; margin-top: 1em">So you want to
+know what &quot;import&quot; actually does?</p>
+
+<p style="margin-left:11%; margin-top: 1em">First of all
+&quot;import&quot; gets the type of the third parameter
+(&rsquo; <small>CODE</small> &rsquo; in this case).
+&quot;attributes.pm&quot; checks if there is a subroutine
+called &quot;MODIFY_&lt;reftype&gt;_ATTRIBUTES&quot; in the
+caller&rsquo;s namespace (here: &rsquo;main&rsquo;). In this
+case a subroutine &quot;MODIFY_CODE_ATTRIBUTES&quot; is
+required. Then this method is called to check if you have
+used a &quot;bad attribute&quot;. The subroutine call in
+this example would look like</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">MODIFY_CODE_ATTRIBUTES(
+'main', \&amp;foo, 'method' );</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;MODIFY_&lt;reftype&gt;_ATTRIBUTES&quot;
+has to return a list of all &quot;bad attributes&quot;. If
+there are any bad attributes &quot;import&quot; croaks.</p>
+
+<p style="margin-left:11%; margin-top: 1em">(See
+&quot;Package-specific Attribute Handling&quot; below.)</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Built-in
+Attributes</b> <br>
+The following are the built-in attributes for subroutines:
+<br>
+lvalue</p>
+
+<p style="margin-left:17%;">Indicates that the referenced
+subroutine is a valid lvalue and can be assigned to. The
+subroutine must return a modifiable value such as a scalar
+variable, as described in perlsub.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This module
+allows one to set this attribute on a subroutine that is
+already defined. For Perl subroutines (XSUBs are fine), it
+may or may not do what you want, depending on the code
+inside the subroutine, with details subject to change in
+future Perl versions. You may run into problems with lvalue
+context not being propagated properly into the subroutine,
+or maybe even assertion failures. For this reason, a warning
+is emitted if warnings are enabled. In other words, you
+should only do this if you really know what you are doing.
+You have been warned.</p>
+
+<p style="margin-left:11%;">method</p>
+
+<p style="margin-left:17%;">Indicates that the referenced
+subroutine is a method. A subroutine so marked will not
+trigger the &quot;Ambiguous call resolved as CORE::%s&quot;
+warning.</p>
+
+<p style="margin-left:11%;">prototype(..)</p>
+
+<p style="margin-left:17%;">The &quot;prototype&quot;
+attribute is an alternate means of specifying a prototype on
+a sub. The desired prototype is within the parens.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The prototype
+from the attribute is assigned to the sub immediately after
+the prototype from the sub, which means that if both are
+declared at the same time, the traditionally defined
+prototype is ignored. In other words, &quot;sub foo($$) :
+prototype(@) {}&quot; is indistinguishable from &quot;sub
+foo(@){}&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If illegalproto
+warnings are enabled, the prototype declared inside this
+attribute will be sanity checked at compile time.</p>
+
+<p style="margin-left:11%;">const</p>
+
+<p style="margin-left:17%;">This experimental attribute,
+introduced in Perl 5.22, only applies to anonymous
+subroutines. It causes the subroutine to be called as soon
+as the &quot;sub&quot; expression is evaluated. The return
+value is captured and turned into a constant subroutine.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+are the built-in attributes for variables: <br>
+shared</p>
+
+<p style="margin-left:17%;">Indicates that the referenced
+variable can be shared across different threads when used in
+conjunction with the threads and threads::shared
+modules.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Available
+Subroutines</b> <br>
+The following subroutines are available for general use once
+this module has been loaded:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>get</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>This routine expects a single parameter--a reference to
+a subroutine or variable. It returns a list of attributes,
+which may be empty. If passed invalid arguments, it uses
+<b>die()</b> (via Carp::croak) to raise a fatal exception.
+If it can find an appropriate package name for a class
+method lookup, it will include the results from a
+&quot;FETCH_<i>type</i>_ATTRIBUTES&quot; call in its return
+list, as described in &quot;Package-specific Attribute
+Handling&quot; below. Otherwise, only built-in attributes
+will be returned.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">reftype</p>
+
+<p style="margin-left:17%;">This routine expects a single
+parameter--a reference to a subroutine or variable. It
+returns the built-in type of the referenced variable,
+ignoring any package into which it might have been blessed.
+This can be useful for determining the <i>type</i> value
+which forms part of the method names described in
+&quot;Package-specific Attribute Handling&quot; below.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that these
+routines are <i>not</i> exported by default.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Package-specific
+Attribute Handling <small><br>
+WARNING</small></b> : the mechanisms described here are
+still experimental. Do not rely on the current
+implementation. In particular, there is no provision for
+applying package attributes to &rsquo;cloned&rsquo; copies
+of subroutines used as closures. (See &quot;Making
+References&quot; in perlref for information on closures.)
+Package-specific attribute handling may change incompatibly
+in a future release.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When an
+attribute list is present in a declaration, a check is made
+to see whether an attribute &rsquo;modify&rsquo; handler is
+present in the appropriate package (or its @ISA inheritance
+tree). Similarly, when &quot;attributes::get&quot; is called
+on a valid reference, a check is made for an appropriate
+attribute &rsquo;fetch&rsquo; handler. See &quot;
+<small>EXAMPLES&quot;</small> to see how the
+&quot;appropriate package&quot; determination works.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The handler
+names are based on the underlying type of the variable being
+declared or of the reference passed. Because these
+attributes are associated with subroutine or variable
+declarations, this deliberately ignores any possibility of
+being blessed into some package. Thus, a subroutine
+declaration uses &quot; <small>CODE&quot;</small> as its
+<i>type</i>, and even a blessed hash reference uses &quot;
+<small>HASH&quot;</small> as its <i>type</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The class
+methods invoked for modifying and fetching are these:
+<small><br>
+FETCH_</small> <i>type</i>_ATTRIBUTES</p>
+
+<p style="margin-left:17%;">This method is called with two
+arguments: the relevant package name, and a reference to a
+variable or subroutine for which package-defined attributes
+are desired. The expected return value is a list of
+associated attributes. This list may be empty.</p>
+
+<p style="margin-left:11%;"><small>MODIFY_</small>
+<i>type</i>_ATTRIBUTES</p>
+
+<p style="margin-left:17%;">This method is called with two
+fixed arguments, followed by the list of attributes from the
+relevant declaration. The two fixed arguments are the
+relevant package name and a reference to the declared
+subroutine or variable. The expected return value is a list
+of attributes which were not recognized by this handler.
+Note that this allows for a derived class to delegate a call
+to its base class, and then only examine the attributes
+which the base class didn&rsquo;t already handle for it.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The call to
+this method is currently made <i>during</i> the processing
+of the declaration. In particular, this means that a
+subroutine reference will probably be for an undefined
+subroutine, even if this declaration is actually part of the
+definition.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Calling
+&quot;attributes::get()&quot; from within the scope of a
+null package declaration &quot;package ;&quot; for an
+unblessed variable reference will not provide any starting
+package name for the &rsquo;fetch&rsquo; method lookup.
+Thus, this circumstance will not result in a method call for
+package-defined attributes. A named subroutine knows to
+which symbol table entry it belongs (or originally
+belonged), and it will use the corresponding package. An
+anonymous subroutine knows the package name into which it
+was compiled (unless it was also compiled with a null
+package declaration), and so it will use that package
+name.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Syntax of
+Attribute Lists</b> <br>
+An attribute list is a sequence of attribute specifications,
+separated by whitespace or a colon (with optional
+whitespace). Each attribute specification is a simple name,
+optionally followed by a parenthesised parameter list. If
+such a parameter list is present, it is scanned past as for
+the rules for the &quot;q()&quot; operator. (See &quot;Quote
+and Quote-like Operators&quot; in perlop.) The parameter
+list is passed as it was found, however, and not as per
+&quot;q()&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some examples
+of syntactically valid attribute lists:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">switch(10,foo(7,3))
+: expensive <br>
+Ugly('\(&quot;) :Bad <br>
+_5x5 <br>
+lvalue method</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some examples
+of syntactically invalid attribute lists (with
+annotation):</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">switch(10,foo()
+# ()&minus;string not balanced <br>
+Ugly('(') # ()&minus;string not balanced <br>
+5x5 # &quot;5x5&quot; not a valid identifier <br>
+Y2::north # &quot;Y2::north&quot; not a simple identifier
+<br>
+foo + bar # &quot;+&quot; neither a colon nor whitespace</p>
+
+<h2>EXPORTS
+<a name="EXPORTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Default
+exports</b> <br>
+None.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Available
+exports</b> <br>
+The routines &quot;get&quot; and &quot;reftype&quot; are
+exportable.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Export tags
+defined</b> <br>
+The &quot;:ALL&quot; tag will get all of the above
+exports.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Here are some
+samples of syntactically valid declarations, with annotation
+as to how they resolve internally into &quot;use
+attributes&quot; invocations by perl. These examples are
+primarily useful to see how the &quot;appropriate
+package&quot; is found for the possible method lookups for
+package-defined attributes.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>1.</p></td>
+<td width="3%"></td>
+<td width="8%">
+
+
+<p>Code:</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">package Canine;
+<br>
+package Dog; <br>
+my Canine $spot : Watchful ;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Effect:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use attributes
+(); <br>
+attributes::&minus;&gt;import(Canine =&gt; \$spot,
+&quot;Watchful&quot;);</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">2.</p></td>
+<td width="3%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">Code:</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">package Felis;
+<br>
+my $cat : Nervous;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Effect:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use attributes
+(); <br>
+attributes::&minus;&gt;import(Felis =&gt; \$cat,
+&quot;Nervous&quot;);</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">3.</p></td>
+<td width="3%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">Code:</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">package X; <br>
+sub foo : lvalue ;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Effect:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use attributes
+X =&gt; \&amp;foo, &quot;lvalue&quot;;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">4.</p></td>
+<td width="3%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">Code:</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">package X; <br>
+sub Y::x : lvalue { 1 }</p>
+
+<p style="margin-left:17%; margin-top: 1em">Effect:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use attributes
+Y =&gt; \&amp;Y::x, &quot;lvalue&quot;;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">5.</p></td>
+<td width="3%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">Code:</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">package X; <br>
+sub foo { 1 } <br>
+package Y; <br>
+BEGIN { *bar = \&amp;X::foo; } <br>
+package Z; <br>
+sub Y::bar : lvalue ;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Effect:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use attributes
+X =&gt; \&amp;X::foo, &quot;lvalue&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This last
+example is purely for purposes of completeness. You should
+not be trying to mess with the attributes of something in a
+package that&rsquo;s not your own.</p>
+
+<h2>MORE EXAMPLES
+<a name="MORE EXAMPLES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">1.</p></td>
+<td width="9%"></td>
+<td width="43%">
+
+
+<p style="margin-top: 1em">sub MODIFY_CODE_ATTRIBUTES {</p></td>
+<td width="34%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%;">my ($class,$code,@attrs) = @_;
+<br>
+my $allowed = 'MyAttribute'; <br>
+my @bad = grep { $_ ne $allowed } @attrs; <br>
+return @bad; <br>
+} <br>
+sub foo : MyAttribute { <br>
+print &quot;foo\n&quot;; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">This example
+runs. At compile time &quot;MODIFY_CODE_ATTRIBUTES&quot; is
+called. In that subroutine, we check if any attribute is
+disallowed and we return a list of these &quot;bad
+attributes&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As we return an
+empty list, everything is fine.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">2.</p></td>
+<td width="6%"></td>
+<td width="43%">
+
+
+<p style="margin-top: 1em">sub MODIFY_CODE_ATTRIBUTES {</p></td>
+<td width="37%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%;">my ($class,$code,@attrs) = @_;
+<br>
+my $allowed = 'MyAttribute'; <br>
+my @bad = grep{ $_ ne $allowed }@attrs; <br>
+return @bad; <br>
+} <br>
+sub foo : MyAttribute Test { <br>
+print &quot;foo\n&quot;; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">This example is
+aborted at compile time as we use the attribute
+&quot;Test&quot; which isn&rsquo;t allowed.
+&quot;MODIFY_CODE_ATTRIBUTES&quot; returns a list that
+contains a single element (&rsquo;Test&rsquo;).</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Private
+Variables via <b>my()</b>&quot; in perlsub and
+&quot;Subroutine Attributes&quot; in perlsub for details on
+the basic declarations; &quot;use&quot; in perlfunc for
+details on the normal invocation mechanism.</p>
+<hr>
+</body>
+</html>

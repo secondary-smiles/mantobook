@@ -1,0 +1,472 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:23 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Business::ISBN</title>
+
+</head>
+<body>
+<h1>Business::ISBN</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Business::ISBN
+&minus; work with International Standard Book Numbers</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Business::ISBN; <br>
+# 10 digit ISBNs <br>
+$isbn10 = Business::ISBN&minus;&gt;new('1565922573'); <br>
+$isbn10 =
+Business::ISBN&minus;&gt;new('1&minus;56592&minus;257&minus;3');
+<br>
+# 13 digit ISBNs <br>
+$isbn13 =
+Business::ISBN&minus;&gt;new('978&minus;0&minus;596&minus;52724&minus;2');
+<br>
+# convert <br>
+$isbn10 = $isbn13&minus;&gt;as_isbn10; # for the 978
+prefixes <br>
+$isbn13 = $isbn10&minus;&gt;as_isbn13; <br>
+# maybe you don't care what it is as long as everything
+works <br>
+$isbn = Business::ISBN&minus;&gt;new( $ARGV[0] ); <br>
+#print the ISBN with hyphens at usual positions <br>
+print $isbn&minus;&gt;as_string; <br>
+#print the ISBN with hyphens at specified positions. <br>
+#this not does affect the default positions <br>
+print $isbn&minus;&gt;as_string([]); <br>
+#print the group code or publisher code <br>
+print $isbn&minus;&gt;group_code; <br>
+print $isbn&minus;&gt;publisher_code; <br>
+#check to see if the ISBN is valid <br>
+$isbn&minus;&gt;is_valid; <br>
+#fix the ISBN checksum. BEWARE: the error might not be <br>
+#in the checksum! <br>
+$isbn&minus;&gt;fix_checksum; <br>
+# create an EAN13 barcode in PNG format <br>
+$isbn&minus;&gt;png_barcode;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This modules
+handles International Standard Book Numbers, including
+<small>ISBN&minus;10</small> and
+<small>ISBN&minus;13.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">The data come
+from Business::ISBN::Data, which means you can update the
+data separately from the code. Also, you can use
+Business::ISBN::Data with whatever <i>RangeMessage.xml</i>
+you like if you have updated data. See that module for
+details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Function
+interface</b> <br>
+valid_isbn_checksum( <small>ISBN10</small> |
+<small>ISBN13</small> )</p>
+
+<p style="margin-left:17%;">This function is exportable on
+demand, and works for either 10 or 13 character ISBNs).</p>
+
+<p style="margin-left:17%; margin-top: 1em">use
+Business::ISBN qw( valid_isbn_checksum );</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns 1 if
+the <small>ISBN</small> is a valid <small>ISBN</small> with
+the right checksum.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns 0 if
+the <small>ISBN</small> has valid prefix and publisher
+codes, but an invalid checksum.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns undef
+if the <small>ISBN</small> does not validate for any other
+reason.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Object
+interface</b> <br>
+new($isbn)</p>
+
+<p style="margin-left:17%;">The constructor accepts a
+scalar representing the <small>ISBN.</small></p>
+
+<p style="margin-left:17%; margin-top: 1em">The string
+representing the <small>ISBN</small> may contain characters
+other than &quot;[0&minus;9xX]&quot;, although these will be
+removed in the internal representation. The resulting string
+must look like an <small>ISBN</small> &minus; the first nine
+characters must be digits and the tenth character must be a
+digit, &rsquo;x&rsquo;, or &rsquo;X&rsquo;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The constructor
+attempts to determine the group code and the publisher code.
+If these data cannot be determined, the constructor sets
+&quot;$obj&minus;&gt;error&quot; to something other than
+&quot;GOOD_ISBN&quot;. An object is still returned and it is
+up to the program to check the &quot;error&quot; method for
+one of five values or one of the &quot;error_*&quot; methods
+to check for a particular error. The actual values of these
+symbolic versions are the same as those from previous
+versions of this module which used literal values:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">Business::ISBN::INVALID_PUBLISHER_CODE
+<br>
+Business::ISBN::INVALID_GROUP_CODE <br>
+Business::ISBN::BAD_CHECKSUM <br>
+Business::ISBN::GOOD_ISBN <br>
+Business::ISBN::BAD_ISBN</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you have one
+of these values and want to turn it into a string, you can
+use the %Business::ISBN::ERROR_TEXT hash, which is
+exportable by asking for it explicitly in the import
+list:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use
+Business::ISBN qw(%ERROR_TEXT);</p>
+
+<p style="margin-left:17%; margin-top: 1em">As of version
+2.010_01, you can get this text from &quot;error_text&quot;
+so you don&rsquo;t have to import anything.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The string
+passed as the <small>ISBN</small> need not be a valid
+<small>ISBN</small> as long as it superficially looks like
+one. This allows one to use the &quot;fix_checksum()&quot;
+method. Despite the disclaimer in the discussion of that
+method, the author has found it extremely useful. One should
+check the validity of the <small>ISBN</small> with
+&quot;is_valid()&quot; rather than relying on the return
+value of the constructor. If all one wants to do is check
+the validity of an <small>ISBN,</small> one can skip the
+object-oriented interface and use the
+&quot;valid_isbn_checksum()&quot; function which is
+exportable on demand.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+constructor decides it cannot create an object, it returns
+&quot;undef&quot;. It may do this if the string passed as
+the <small>ISBN</small> cannot be munged to the internal
+format meaning that it does not even come close to looking
+like an <small>ISBN.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Instance
+methods</b> <br>
+input_isbn</p>
+
+<p style="margin-left:17%;">Returns the starting
+<small>ISBN.</small> Since you may insert hyphens or fix
+checksums, you might want to see the original data.</p>
+
+<p style="margin-left:11%;">common_data</p>
+
+<p style="margin-left:17%;">Returns the starting
+<small>ISBN</small> after normalization, which removes
+anything that isn&rsquo;t a digit or a valid checksum
+character.</p>
+
+<p style="margin-left:11%;">isbn</p>
+
+<p style="margin-left:17%;">Returns the current value of
+<small>ISBN,</small> even if it has an invalid checksum.
+This is the raw data so it doesn&rsquo;t have the hyphens.
+If you want hyphenation, try &quot;as_string&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;isbn&quot; method should be the same as
+&quot;as_string( [] )&quot;.</p>
+
+<p style="margin-left:11%;">error</p>
+
+<p style="margin-left:17%;">Return the error code for the
+reason the <small>ISBN</small> isn&rsquo;t valid. The return
+value is a key in %ERROR_TEXT.</p>
+
+<p style="margin-left:11%;">error_is_bad_group <br>
+error_is_bad_publisher <br>
+error_is_article_out_of_range <br>
+error_is_bad_checksum</p>
+
+<p style="margin-left:17%;">Returns true if the
+<small>ISBN</small> error is that type.</p>
+
+<p style="margin-left:11%;">error_text</p>
+
+<p style="margin-left:17%;">Returns a text version of the
+error text</p>
+
+<p style="margin-left:11%;">is_valid</p>
+
+<p style="margin-left:17%;">Return true if the
+<small>ISBN</small> is valid, meaning that it has a valid
+prefix (for <small>ISBN&minus;13</small> ), group code, and
+publisher code; and its checksum validates.</p>
+
+<p style="margin-left:11%;">type</p>
+
+<p style="margin-left:17%;">Returns either
+&quot;ISBN10&quot; or &quot;ISBN13&quot;.</p>
+
+<p style="margin-left:11%;">prefix</p>
+
+<p style="margin-left:17%;">Returns the prefix for the
+<small>ISBN.</small> This is currently either 978 or 979 for
+<small>ISBN&minus;13.</small> It returns the empty string
+(so, a defined value) for <small>ISBN&minus;10.</small></p>
+
+<p style="margin-left:11%;">group_code</p>
+
+<p style="margin-left:17%;">Returns the group code for the
+<small>ISBN.</small> This is the numerical version, for
+example, &rsquo;0&rsquo; for the English group. The valid
+group codes come from &quot;Business::ISBN::Data&quot;.</p>
+
+<p style="margin-left:11%;">group</p>
+
+<p style="margin-left:17%;">Returns the group name for the
+<small>ISBN.</small> This is the string version. For
+instance, &rsquo;English&rsquo; for the &rsquo;0&rsquo;
+group. The names come from
+&quot;Business::ISBN::Data&quot;.</p>
+
+<p style="margin-left:11%;">publisher_code</p>
+
+<p style="margin-left:17%;">Returns the publisher code for
+the <small>ISBN.</small> This is the numeric version, for
+instance &rsquo;596&rsquo; for O&rsquo;Reilly Media.</p>
+
+<p style="margin-left:11%;">article_code</p>
+
+<p style="margin-left:17%;">Returns the article code for
+the <small>ISBN.</small> This is the numeric version that
+uniquely identifies the item.</p>
+
+<p style="margin-left:11%;">article_code_length</p>
+
+<p style="margin-left:17%;">Returns the article code length
+for the <small>ISBN.</small></p>
+
+<p style="margin-left:11%;">article_code_min</p>
+
+<p style="margin-left:17%;">Returns the minimum article
+code length for the publisher code.</p>
+
+<p style="margin-left:11%;">article_code_max</p>
+
+<p style="margin-left:17%;">Returns the max article code
+length for the publisher code.</p>
+
+<p style="margin-left:11%;">checksum</p>
+
+<p style="margin-left:17%;">Returns the checksum code for
+the <small>ISBN.</small> This checksum may not be valid
+since you can create an object an fix the checksum later
+with &quot;fix_checksum&quot;.</p>
+
+<p style="margin-left:11%;">is_valid_checksum</p>
+
+<p style="margin-left:17%;">Returns
+&quot;Business::ISBN::GOOD_ISBN&quot; for valid checksums
+and &quot;Business::ISBN::BAD_CHECKSUM&quot; otherwise. This
+does not guarantee that the rest of the <small>ISBN</small>
+is actually assigned to a book.</p>
+
+<p style="margin-left:11%;">fix_checksum</p>
+
+<p style="margin-left:17%;">Checks the checksum and
+modifies the <small>ISBN</small> to set it correctly if
+needed.</p>
+
+<p style="margin-left:11%;"><b>as_string()</b>,
+as_string([])</p>
+
+<p style="margin-left:17%;">Return the <small>ISBN</small>
+as a string. This function takes an optional anonymous array
+(or array reference) that specifies the placement of hyphens
+in the string. An empty anonymous array produces a string
+with no hyphens. An empty argument list automatically
+hyphenates the <small>ISBN</small> based on the discovered
+group and publisher codes. An <small>ISBN</small> that is
+not valid may produce strange results.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The positions
+specified in the passed anonymous array are only used for
+one method use and do not replace the values specified by
+the constructor. The method assumes that you know what you
+are doing and will attempt to use the least three positions
+specified. If you pass an anonymous array of several
+positions, the list will be sorted and the lowest three
+positions will be used. Positions less than 1 and greater
+than 12 are silently ignored.</p>
+
+<p style="margin-left:17%; margin-top: 1em">A terminating
+&rsquo;x&rsquo; is changed to &rsquo;X&rsquo;.</p>
+
+<p style="margin-left:11%;">as_isbn10</p>
+
+<p style="margin-left:17%;">Returns a new
+<small>ISBN</small> object. If the object is already
+<small>ISBN&minus;10,</small> this method clones it. If it
+is an <small>ISBN&minus;13</small> with the prefix 978, it
+returns the <small>ISBN&minus;10</small> equivalent. For all
+other cases it returns undef.</p>
+
+<p style="margin-left:11%;">as_isbn13</p>
+
+<p style="margin-left:17%;">Returns a new
+<small>ISBN</small> object. If the object is already
+<small>ISBN&minus;13,</small> this method clones it. If it
+is an <small>ISBN&minus;10,</small> it returns the
+<small>ISBN&minus;13</small> equivalent with the 978
+prefix.</p>
+
+<p style="margin-left:11%;">increment</p>
+
+<p style="margin-left:17%;">Returns the next
+&quot;Business::ISBN&quot; by incrementing the article code
+of the specified <small>ISBN</small> (object or scalar).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns undef,
+if the parameter is invalid or equals the maximum possible
+<small>ISBN</small> for the publisher.</p>
+
+<p style="margin-left:17%; margin-top: 1em">$isbn =
+Business::ISBN&minus;&gt;new('1565922573'); #
+1&minus;56592&minus;257&minus;3 <br>
+$next_isbn = $isbn&minus;&gt;increment; #
+1&minus;56592&minus;258&minus;1</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the next
+article code would exceed the maximum possible article code
+(such as incrementing 999 to 1000), this returns
+<small>ARTICLE_CODE_OUT_OF_RANGE</small> as the error.</p>
+
+<p style="margin-left:11%;">decrement</p>
+
+<p style="margin-left:17%;">Returns the previous
+&quot;Business::ISBN&quot; by decrementing the article code
+of the specified <small>ISBN</small> (object or scalar).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns undef,
+if the parameter is invalid or equals the minimum possible
+<small>ISBN</small> for the publisher.</p>
+
+<p style="margin-left:17%; margin-top: 1em">$isbn =
+Business::ISBN&minus;&gt;new('1565922573'); #
+1&minus;56592&minus;257&minus;3 <br>
+$prev_isbn = $isbn&minus;&gt;decrement; #
+1&minus;56592&minus;256&minus;5</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the next
+article code would exceed the maximum possible article code
+(such as incrementing 000 to &minus;1), this returns
+<small>ARTICLE_CODE_OUT_OF_RANGE</small> as the error.</p>
+
+<p style="margin-left:11%;">png_barcode</p>
+
+<p style="margin-left:17%;">Returns image data in
+<small>PNG</small> format for the barcode for the
+<small>ISBN.</small> This works with
+<small>ISBN&minus;10</small> and
+<small>ISBN&minus;13.</small> The ISBN&minus;10s are
+automaically converted to <small>ISBN&minus;13.</small></p>
+
+<p style="margin-left:17%; margin-top: 1em">This requires
+&quot;GD::Barcode::EAN13&quot;.</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<h2>TO DO
+<a name="TO DO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">* i would like
+to create the bar codes with the price extension</p>
+
+<h2>SOURCE AVAILABILITY
+<a name="SOURCE AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This source is
+in Github:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">https://github.com/briandfoy/business&minus;isbn</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">brian d foy
+&quot;&lt;bdfoy@cpan.org&gt;&quot;</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+&Acirc;&copy; 2001&minus;2023, brian d foy
+&lt;bdfoy@cpan.org&gt;. All rights reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This module is
+licensed under the Artistic License 2.0. See the
+<small>LICENSE</small> file in the distribution, or
+https://opensource.org/licenses/Artistic&minus;2.0</p>
+
+<h2>CREDITS
+<a name="CREDITS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Thanks to Mark
+W. Eichin &quot;&lt;eichin@thok.org&gt;&quot; for
+suggestions and discussions on <small>EAN</small>
+support.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Thanks to Andy
+Lester &quot;&lt;andy@petdance.com&gt;&quot; for lots of bug
+fixes and testing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ed Summers
+&quot;&lt;esummers@cpan.org&gt;&quot; has volunteered to
+help with this module.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Markus Spann
+&quot;&lt;markus_spann@gmx.de&gt;&quot; added
+&quot;increment&quot; and &quot;decrement&quot;.</p>
+<hr>
+</body>
+</html>

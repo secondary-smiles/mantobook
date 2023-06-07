@@ -1,0 +1,210 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:31 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Appender::Buffer</title>
+
+</head>
+<body>
+<h1>Log::Log4perl::Appender::Buffer</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Log::Log4perl::Appender::Buffer
+&minus; Buffering Appender</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Log::Log4perl qw(:easy); <br>
+my $conf = qq( <br>
+log4perl.category = DEBUG, Buffer <br>
+# Regular Screen Appender <br>
+log4perl.appender.Screen = Log::Log4perl::Appender::Screen
+<br>
+log4perl.appender.Screen.stdout = 1 <br>
+log4perl.appender.Screen.layout = PatternLayout <br>
+log4perl.appender.Screen.layout.ConversionPattern = %d %p %c
+%m %n <br>
+# Buffering appender, using the appender above as outlet
+<br>
+log4perl.appender.Buffer = Log::Log4perl::Appender::Buffer
+<br>
+log4perl.appender.Buffer.appender = Screen <br>
+log4perl.appender.Buffer.trigger_level = ERROR <br>
+); <br>
+Log::Log4perl&minus;&gt;init(\$conf); <br>
+DEBUG(&quot;This message gets buffered.&quot;); <br>
+INFO(&quot;This message gets buffered also.&quot;); <br>
+# Time passes. Nothing happens. But then ... <br>
+print &quot;It's GO time!!!\n&quot;; <br>
+ERROR(&quot;This message triggers a buffer
+flush.&quot;);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Log::Log4perl::Appender::Buffer&quot;
+takes these arguments: <br>
+&quot;appender&quot;</p>
+
+<p style="margin-left:17%;">Specifies the name of the
+appender it buffers messages for. The appender specified
+must be defined somewhere in the configuration file, not
+necessarily before the definition of
+&quot;Log::Log4perl::Appender::Buffer&quot;.</p>
+
+<p style="margin-left:11%;">&quot;max_messages&quot;</p>
+
+<p style="margin-left:17%;">Specifies the maximum number of
+messages the appender will hold in its ring buffer.
+&quot;max_messages&quot; is optional. By default,
+&quot;Log::Log4perl::Appender::Buffer&quot; will <i>not</i>
+limit the number of messages buffered. This might be
+undesirable in long-running processes accumulating lots of
+messages before a flush happens. If &quot;max_messages&quot;
+is set to a numeric value,
+&quot;Log::Log4perl::Appender::Buffer&quot; will displace
+old messages in its buffer to make room if the buffer is
+full.</p>
+
+<p style="margin-left:11%;">&quot;trigger_level&quot;</p>
+
+<p style="margin-left:17%;">If trigger_level is set to one
+of Log4perl&rsquo;s levels (see Log::Log4perl::Level), a
+&quot;trigger&quot; function will be defined internally to
+flush the buffer if a message with a priority of $level or
+higher comes along. This is just a convenience function.
+Defining</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">log4perl.appender.Buffer.trigger_level
+= ERROR</p>
+
+<p style="margin-left:17%; margin-top: 1em">is equivalent
+to creating a trigger function like</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">log4perl.appender.Buffer.trigger
+= sub { \ <br>
+my($self, $params) = @_; \ <br>
+return $params&minus;&gt;{log4p_level} &gt;= \ <br>
+$Log::Log4perl::Level::ERROR; }</p>
+
+<p style="margin-left:17%; margin-top: 1em">See the next
+section for defining generic trigger functions.</p>
+
+<p style="margin-left:11%;">&quot;trigger&quot;</p>
+
+<p style="margin-left:17%;">&quot;trigger&quot; holds a
+reference to a subroutine, which
+&quot;Log::Log4perl::Appender::Buffer&quot; will call on
+every incoming message with the same parameters as the
+appender&rsquo;s &quot;log()&quot; method:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my($self,
+$params) = @_;</p>
+
+<p style="margin-left:17%; margin-top: 1em">$params
+references a hash containing the message priority (key
+&quot;l4p_level&quot;), the message category (key
+&quot;l4p_category&quot;) and the content of the message
+(key &quot;message&quot;).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+subroutine returns 1, it will trigger a flush of buffered
+messages.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Shortcut</p>
+
+<h2>DEVELOPMENT NOTES
+<a name="DEVELOPMENT NOTES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Log::Log4perl::Appender::Buffer&quot;
+is a <i>composite</i> appender. Unlike other appenders, it
+doesn&rsquo;t log any messages, it just passes them on to
+its attached sub-appender. For this reason, it doesn&rsquo;t
+need a layout (contrary to regular appenders). If it defines
+none, messages are passed on unaltered.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Custom filters
+are also applied to the composite appender only. They are
+<i>not</i> applied to the sub-appender. Same applies to
+appender thresholds. This behaviour might change in the
+future.</p>
+
+<h2>LICENSE
+<a name="LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2002&minus;2013 by Mike Schilli &lt;m@perlmeister.com&gt;
+and Kevin Goess &lt;cpan@goess.org&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This library is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Please
+contribute patches to the project on Github:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">http://github.com/mschilli/log4perl</p>
+
+<p style="margin-left:11%; margin-top: 1em">Send bug
+reports or requests for enhancements to the authors via
+our</p>
+
+<p style="margin-left:11%; margin-top: 1em"><small>MAILING
+LIST</small> (questions, bug reports, suggestions/patches):
+log4perl&minus;devel@lists.sourceforge.net</p>
+
+<p style="margin-left:11%; margin-top: 1em">Authors (please
+contact them via the list above, not directly): Mike Schilli
+&lt;m@perlmeister.com&gt;, Kevin Goess
+&lt;cpan@goess.org&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Contributors
+(in alphabetical order): Ateeq Altaf, Cory Bennett, Jens
+Berthold, Jeremy Bopp, Hutton Davidson, Chris R. Donnelly,
+Matisse Enzer, Hugh Esco, Anthony Foiani, James FitzGibbon,
+Carl Franks, Dennis Gregorovic, Andy Grundman, Paul
+Harrington, Alexander Hartmaier David Hull, Robert Jacobson,
+Jason Kohles, Jeff Macdonald, Markus Peter, Brett Rann,
+Peter Rabbitson, Erik Selberg, Aaron Straup Cope, Lars
+Thegler, David Viner, Mac Yang.</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:53 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GITFORMAT&minus;CHUNK</title>
+
+</head>
+<body>
+<h1>gitformat-chunk</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">gitformat-chunk
+&minus; Chunk&minus;based file formats</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Used by
+<b>gitformat-commit-graph</b>(5) and the &quot;MIDX&quot;
+format (see the pack format documentation in
+<b>gitformat-pack</b>(5)).</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Some file
+formats in Git use a common concept of &quot;chunks&quot; to
+describe sections of the file. This allows structured access
+to a large file by scanning a small &quot;table of
+contents&quot; for the remaining data. This common format is
+used by the <b>commit&minus;graph</b> and
+<b>multi&minus;pack&minus;index</b> files. See the
+<b>multi&minus;pack&minus;index</b> format in
+<b>gitformat-pack</b>(5) and the <b>commit&minus;graph</b>
+format in <b>gitformat-commit-graph</b>(5) for how they use
+the chunks to describe structured data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A
+chunk&minus;based file format begins with some header
+information custom to that format. That header should
+include enough information to identify the file type, format
+version, and number of chunks in the file. From this
+information, that file can determine the start of the
+chunk&minus;based region.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+chunk&minus;based region starts with a table of contents
+describing where each chunk starts and ends. This consists
+of (C+1) rows of 12 bytes each, where C is the number of
+chunks. Consider the following table:</p>
+
+<p style="margin-left:17%; margin-top: 1em">| Chunk ID (4
+bytes) | Chunk Offset (8 bytes) | <br>
+
+|&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;|&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;|
+<br>
+| ID[0] | OFFSET[0] | <br>
+| ... | ... | <br>
+| ID[C] | OFFSET[C] | <br>
+| 0x0000 | OFFSET[C+1] |</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each row
+consists of a 4&minus;byte chunk identifier (ID) and an
+8&minus;byte offset. Each integer is stored in
+network&minus;byte order.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The chunk
+identifier <b>ID[i]</b> is a label for the data stored
+within this fill from <b>OFFSET[i]</b> (inclusive) to
+<b>OFFSET[i+1]</b> (exclusive). Thus, the size of the
+<b>i&lsquo;th chunk is equal to the difference between
+&lsquo;OFFSET[i+1]</b> and <b>OFFSET[i]</b>. This requires
+that the chunk data appears contiguously in the same order
+as the table of contents.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The final entry
+in the table of contents must be four zero bytes. This
+confirms that the table of contents is ending and provides
+the offset for the end of the chunk&minus;based data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: The
+chunk&minus;based format expects that the file contains
+<i>at least</i> a trailing hash after
+<b>OFFSET[C+1]</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Functions for
+working with chunk&minus;based file formats are declared in
+<b>chunk&minus;format.h</b>. Using these methods provide
+extra checks that assist developers when creating new file
+formats.</p>
+
+<h2>WRITING CHUNK&minus;BASED FILE FORMATS
+<a name="WRITING CHUNK&minus;BASED FILE FORMATS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">To write a
+chunk&minus;based file format, create a <b>struct
+chunkfile</b> by calling <b>init_chunkfile()</b> and pass a
+<b>struct hashfile</b> pointer. The caller is responsible
+for opening the <b>hashfile</b> and writing header
+information so the file format is identifiable before the
+chunk&minus;based format begins.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Then, call
+<b>add_chunk()</b> for each chunk that is intended for
+write. This populates the <b>chunkfile</b> with information
+about the order and size of each chunk to write. Provide a
+<b>chunk_write_fn</b> function pointer to perform the write
+of the chunk data upon request.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Call
+<b>write_chunkfile()</b> to write the table of contents to
+the <b>hashfile</b> followed by each of the chunks. This
+will verify that each chunk wrote the expected amount of
+data so the table of contents is correct.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Finally, call
+<b>free_chunkfile()</b> to clear the <b>struct chunkfile</b>
+data. The caller is responsible for finalizing the
+<b>hashfile</b> by writing the trailing hash and closing the
+file.</p>
+
+<h2>READING CHUNK&minus;BASED FILE FORMATS
+<a name="READING CHUNK&minus;BASED FILE FORMATS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">To read a
+chunk&minus;based file format, the file must be opened as a
+memory&minus;mapped region. The chunk&minus;format API
+expects that the entire file is mapped as a contiguous
+memory region.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Initialize a
+<b>struct chunkfile</b> pointer with
+<b>init_chunkfile(NULL)</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">After reading
+the header information from the beginning of the file,
+including the chunk count, call
+<b>read_table_of_contents()</b> to populate the <b>struct
+chunkfile</b> with the list of chunks, their offsets, and
+their sizes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Extract the
+data information for each chunk using <b>pair_chunk()</b> or
+<b>read_chunk()</b>:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+<b>pair_chunk()</b> assigns a given pointer with the
+location inside the memory&minus;mapped file corresponding
+to that chunk&rsquo;s offset. If the chunk does not exist,
+then the pointer is not modified.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+<b>read_chunk()</b> takes a <b>chunk_read_fn</b> function
+pointer and calls it with the appropriate initial pointer
+and size information. The function is not called if the
+chunk does not exist. Use this method to read chunks if you
+need to perform immediate parsing or if you need to execute
+logic based on the size of the chunk.</p>
+
+<p style="margin-left:11%; margin-top: 1em">After calling
+these methods, call <b>free_chunkfile()</b> to clear the
+<b>struct chunkfile</b> data. This will not close the
+memory&minus;mapped region. Callers are expected to own that
+data for the timeframe the pointers into the region are
+needed.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These file
+formats use the chunk&minus;format API, and can be used as
+examples for future formats:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+<b>commit&minus;graph:</b> see
+<b>write_commit_graph_file()</b> and
+<b>parse_commit_graph()</b> in <b>commit&minus;graph.c</b>
+for how the chunk&minus;format API is used to write and
+parse the commit&minus;graph file format documented in the
+commit&minus;graph file format in
+<b>gitformat-commit-graph</b>(5).</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+<b>multi&minus;pack&minus;index:</b> see
+<b>write_midx_internal()</b> and
+<b>load_multi_pack_index()</b> in <b>midx.c</b> for how the
+chunk&minus;format API is used to write and parse the
+multi&minus;pack&minus;index file format documented in the
+multi&minus;pack&minus;index file format section of
+<b>gitformat-pack</b>(5).</p>
+
+<h2>GIT
+<a name="GIT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Part of the
+<b>git</b>(1) suite</p>
+<hr>
+</body>
+</html>

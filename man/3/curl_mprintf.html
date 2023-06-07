@@ -1,0 +1,561 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:28 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>curl_printf</title>
+
+</head>
+<body>
+<h1>curl_mprintf</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">curl_maprintf,
+curl_mfprintf, curl_mprintf, curl_msnprintf, curl_msprintf
+curl_mvaprintf, curl_mvfprintf, curl_mvprintf,
+curl_mvsnprintf, curl_mvsprintf - formatted output
+conversion</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;curl/mprintf.h&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">int
+curl_mprintf(const char *format, ...); <br>
+int curl_mfprintf(FILE *fd, const char *format, ...); <br>
+int curl_msprintf(char *buffer, const char *format, ...);
+<br>
+int curl_msnprintf(char *buffer, size_t maxlength, const
+char *format, ...); <br>
+int curl_mvprintf(const char *format, va_list args); <br>
+int curl_mvfprintf(FILE *fd, const char *format, va_list
+args); <br>
+int curl_mvsprintf(char *buffer, const char *format, va_list
+args); <br>
+int curl_mvsnprintf(char *buffer, size_t maxlength, const
+char *format, <br>
+va_list args); <br>
+char *curl_maprintf(const char *format , ...); <br>
+char *curl_mvaprintf(const char *format, va_list args);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These functions
+produce output according to the format string and given
+arguments. They are mostly clones of the well-known C-style
+functions but there are slight differences in behavior.</p>
+
+<p style="margin-left:11%; margin-top: 1em">We discourage
+users from using any of these functions in new
+applications.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Functions in
+the curl_mprintf() family produce output according to a
+format as described below. The functions
+<b>curl_mprintf()</b> and <b>curl_mvprintf()</b> write
+output to stdout, the standard output stream;
+<b>curl_mfprintf()</b> and <b>curl_mvfprintf()</b> write
+output to the given output stream; <b>curl_msprintf()</b>,
+<b>curl_msnprintf()</b>, <b>curl_mvsprintf()</b>, and
+<b>curl_mvsnprintf()</b> write to the character string
+<b>buffer</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The functions
+<b>curl_msnprintf()</b> and <b>curl_mvsnprintf()</b> write
+at most <i>maxlength</i> bytes (including the terminating
+null byte (&rsquo;\0&rsquo;)) to <i>buffer</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The functions
+<b>curl_mvprintf()</b>, <b>curl_mvfprintf()</b>,
+<b>curl_mvsprintf()</b>, <b>curl_mvsnprintf()</b> are
+equivalent to the functions <b>curl_mprintf()</b>,
+<b>curl_mfprintf()</b>, <b>curl_msprintf()</b>,
+<b>curl_msnprintf()</b>, respectively, except that they are
+called with a <i>va_list</i> instead of a variable number of
+arguments. These functions do not call the <i>va_end</i>
+macro. Because they invoke the <i>va_arg</i> macro, the
+value of <i>ap</i> is undefined after the call.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The functions
+<b>curl_maprintf()</b> and <b>curl_mvaprintf()</b> return
+the output string as pointer to a newly allocated memory
+area. The returned string must be <i>curl_free(3)</i>ed by
+the receiver.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All of these
+functions write the output under the control of a format
+string that specifies how subsequent arguments are converted
+for output.</p>
+
+<h2>FORMAT STRING
+<a name="FORMAT STRING"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The format
+string is composed of zero or more directives: ordinary
+characters (not %), which are copied unchanged to the output
+stream; and conversion specifications, each of which results
+in fetching zero or more subsequent arguments. Each
+conversion specification is introduced by the character %,
+and ends with a conversion specifier. In between there may
+be (in this order) zero or more <i>flags</i>, an optional
+minimum <i>field width</i>, an optional <i>precision</i> and
+an optional <i>length modifier</i>.</p>
+
+<h2>The $ modifier
+<a name="The $ modifier"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The arguments
+must correspond properly with the conversion specifier. By
+default, the arguments are used in the order given, where
+each &rsquo;*&rsquo; (see Field width and Precision below)
+and each conversion specifier asks for the next argument
+(and it is an error if insufficiently many arguments are
+given). One can also specify explicitly which argument is
+taken, at each place where an argument is required, by
+writing &quot;%m$&quot; instead of &rsquo;%&rsquo; and
+&quot;*m$&quot; instead of &rsquo;*&rsquo;, where the
+decimal integer m denotes the position in the argument list
+of the desired argument, indexed starting from 1. Thus, <br>
+curl_mprintf(&quot;%*d&quot;, width, num); <br>
+and <br>
+curl_mprintf(&quot;%2$*1$d&quot;, width, num); <br>
+are equivalent. The second style allows repeated references
+to the same argument.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the style
+using &rsquo;$&rsquo; is used, it must be used throughout
+for all conversions taking an argument and all width and
+precision arguments, but it may be mixed with &quot;%%&quot;
+formats, which do not consume an argument. There may be no
+gaps in the numbers of arguments specified using
+&rsquo;$&rsquo;; for example, if arguments 1 and 3 are
+specified, argument 2 must also be specified somewhere in
+the format string.</p>
+
+<h2>Flag characters
+<a name="Flag characters"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The character %
+is followed by zero or more of the following flags:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><b>#</b></p></td>
+<td width="7%"></td>
+<td width="78%">
+
+
+<p>The value should be converted to its &quot;alternate
+form&quot;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><b>0</b></p></td>
+<td width="7%"></td>
+<td width="78%">
+
+
+<p>The value should be zero padded.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><b>-</b></p></td>
+<td width="7%"></td>
+<td width="78%">
+
+
+<p>The converted value is to be left adjusted on the field
+boundary. (The default is right justification.) The
+converted value is padded on the right with blanks, rather
+than on the left with blanks or zeros. A &rsquo;-&rsquo;
+overrides a &rsquo;0&rsquo; if both are given.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><b>&rsquo; &rsquo;</b></p></td>
+<td width="7%"></td>
+<td width="78%">
+
+
+<p>(a space) A blank should be left before a positive
+number (or empty string) produced by a signed
+conversion.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><b>+</b></p></td>
+<td width="7%"></td>
+<td width="78%">
+
+
+<p>A sign (+ or -) should always be placed before a number
+produced by a signed conversion. By default, a sign is used
+only for negative numbers. A &rsquo;+&rsquo; overrides a
+space if both are used.</p></td></tr>
+</table>
+
+<h2>Field width
+<a name="Field width"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">An optional
+decimal digit string (with nonzero first digit) specifying a
+minimum field width. If the converted value has fewer
+characters than the field width, it will be padded with
+spaces on the left (or right, if the left-adjustment flag
+has been given). Instead of a decimal digit string one may
+write &quot;*&quot; or &quot;*m$&quot; (for some decimal
+integer m) to specify that the field width is given in the
+next argument, or in the <i>m-th</i> argument, respectively,
+which must be of type int. A negative field width is taken
+as a &rsquo;-&rsquo; flag followed by a positive field
+width. In no case does a nonexistent or small field width
+cause truncation of a field; if the result of a conversion
+is wider than the field width, the field is expanded to
+contain the conversion result.</p>
+
+<h2>Precision
+<a name="Precision"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">An optional
+precision in the form of a period (&rsquo;.&rsquo;) followed
+by an optional decimal digit string. Instead of a decimal
+digit string one may write &quot;*&quot; or &quot;*m$&quot;
+(for some decimal integer m) to specify that the precision
+is given in the next argument, or in the <i>m-th</i>
+argument, respectively, which must be of type int. If the
+precision is given as just &rsquo;.&rsquo;, the precision is
+taken to be zero. A negative precision is taken as if the
+precision were omitted. This gives the minimum number of
+digits to appear for <b>d</b>, <b>i</b>, <b>o</b>, <b>u</b>,
+<b>x</b>, and <b>X</b> conversions, the number of digits to
+appear after the radix character for <b>a</b>, <b>A</b>,
+<b>e</b>, <b>E</b>, <b>f</b>, and <b>F</b> conversions, the
+maximum number of significant digits for <b>g</b> and
+<b>G</b> conversions, or the maximum number of characters to
+be printed from a string for <b>s</b> and <b>S</b>
+conversions.</p>
+
+<h2>Length modifier
+<a name="Length modifier"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em"><b>h</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">A following integer conversion
+corresponds to a <i>short</i> or <i>unsigned short</i>
+argument.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>l</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>(ell) A following integer conversion corresponds to a
+<i>long</i> or <i>unsigned long</i> argument, or a following
+n conversion corresponds to a pointer to a long argument</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>ll</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>(ell-ell). A following integer conversion corresponds to
+a <i>long long</i> or <i>unsigned long long</i> argument, or
+a following n conversion corresponds to a pointer to a long
+long argument.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>q</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>A synonym for <b>ll</b>.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>L</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>A following a, A, e, E, f, F, g, or G conversion
+corresponds to a long double argument.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>z</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>A following integer conversion corresponds to a
+<i>size_t</i> or <i>ssize_t</i> argument.</p></td></tr>
+</table>
+
+<h2>Conversion specifiers
+<a name="Conversion specifiers"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A character
+that specifies the type of conversion to be applied. The
+conversion specifiers and their meanings are:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em"><b>d, i</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">The int argument is converted to
+signed decimal notation. The precision, if any, gives the
+minimum number of digits that must appear; if the converted
+value requires fewer digits, it is padded on the left with
+zeros. The default precision is 1. When 0 is printed with an
+explicit precision 0, the output is empty.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>o, u, x, X</b></p>
+
+<p style="margin-left:22%;">The unsigned int argument is
+converted to unsigned octal (o), unsigned decimal (u), or
+unsigned hexadecimal (<b>x</b> and <b>X</b>) notation. The
+letters <i>abcdef</i> are used for <b>x</b> conversions; the
+letters <i>ABCDEF</i> are used for <b>X</b> conversions. The
+precision, if any, gives the minimum number of digits that
+must appear; if the converted value requires fewer digits,
+it is padded on the left with zeros. The default precision
+is 1. When 0 is printed with an explicit precision 0, the
+output is empty.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>e, E</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>The double argument is rounded and output in the style
+<b>&quot;[-]d.ddde&Acirc;&plusmn;dd&quot;</b></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>f, F</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>The double argument is rounded and output to decimal
+notation in the style <b>&quot;[-]ddd.ddd&quot;</b>.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>g, G</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>The double argument is converted in style f or e.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>c</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>The int argument is converted to an unsigned char, and
+the resulting character is written.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>s</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>The <i>const char *</i> argument is expected to be a
+pointer to an array of character type (pointer to a string).
+Characters from the array are written up to (but not
+including) a terminating null byte. If a precision is
+specified, no more than the number specified are written. If
+a precision is given, no null byte need be present; if the
+precision is not specified, or is greater than the size of
+the array, the array must contain a terminating null
+byte.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>p</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>The <i>void *</i> pointer argument is printed in
+hexadecimal.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>n</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>The number of characters written so far is stored into
+the integer pointed to by the corresponding argument.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>%</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>A &rsquo;%&rsquo; is written. No argument is
+converted.</p> </td></tr>
+</table>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">mprintf(&quot;My
+name is %s\n&quot;, name); <br>
+mprintf(&quot;Pi is almost %f\n&quot;, 25/8);</p>
+
+<h2>AVAILABILITY
+<a name="AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These functions
+will be removed from the public libcurl API in the future.
+Do not use them in new programs or projects.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>curl_maprintf</b> and <b>curl_mvaprintf</b> functions
+return a pointer to a newly allocated string, or NULL if it
+failed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All other
+functions return the number of characters actually printed
+(excluding the null byte used to end output to strings).
+Note that this sometimes differ from how the POSIX versions
+of these functions work.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>printf</b>(3),
+<b>sprintf</b>(3), <b>fprintf</b>(3), <b>vprintf</b>(3)</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,3174 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:58 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERL5300DELTA</title>
+
+</head>
+<body>
+<h1>perl5300delta</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perl5300delta
+&minus; what is new for perl v5.30.0</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+describes differences between the 5.28.0 release and the
+5.30.0 release.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+upgrading from an earlier release such as 5.26.0, first read
+perl5280delta, which describes differences between 5.26.0
+and 5.28.0.</p>
+
+<h2>Notice
+<a name="Notice"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">sv_utf8_(downgrade|decode)
+are no longer marked as experimental. [ <small>GH</small>
+#16822]
+&lt;https://github.com/Perl/perl5/issues/16822&gt;.</p>
+
+<h2>Core Enhancements
+<a name="Core Enhancements"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Limited
+variable length lookbehind in regular expression pattern
+matching is now experimentally supported</b> <br>
+Using a lookbehind assertion (like &quot;(?&lt;=foo?)&quot;
+or &quot;(?&lt;!ba{1,9}r)&quot; previously would generate an
+error and refuse to compile. Now it compiles (if the maximum
+lookbehind is at most 255 characters), but raises a warning
+in the new &quot;experimental::vlb&quot; warnings category.
+This is to caution you that the precise behavior is subject
+to change based on feedback from use in the field.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+&quot;(?&lt;=pattern)&quot; in perlre and
+&quot;(?&lt;!pattern)&quot; in perlre.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>The upper
+limit &quot;n&quot; specifiable in a regular expression
+quantifier of the form &quot;{m,n}&quot; has been doubled to
+65534</b> <br>
+The meaning of an unbounded upper quantifier
+&quot;{m,}&quot; remains unchanged. It matches 2**31 &minus;
+1 times on most platforms, and more on ones where a C
+language short variable is more than 4 bytes long.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Unicode 12.1
+is supported</b> <br>
+Because of a change in Unicode release cycles, Perl jumps
+from Unicode 10.0 in Perl 5.28 to Unicode 12.1 in Perl
+5.30.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For details on
+the Unicode changes, see
+&lt;https://www.unicode.org/versions/Unicode11.0.0/&gt; for
+11.0;
+&lt;https://www.unicode.org/versions/Unicode12.0.0/&gt; for
+12.0; and
+&lt;https://www.unicode.org/versions/Unicode12.1.0/&gt; for
+12.1. (Unicode 12.1 differs from 12.0 only in the addition
+of a single character, that for the new Japanese era
+name.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Word_Break
+property, as in past Perl releases, remains tailored to
+behave more in line with expectations of Perl users. This
+means that sequential runs of horizontal white space
+characters are not broken apart, but kept as a single run.
+Unicode 11 changed from past versions to be more in line
+with Perl, but it left several white space characters as
+causing breaks: <small>TAB, NO BREAK SPACE,</small> and
+<small>FIGURE SPACE</small> (U+2007). We have decided to
+continue to use the previous Perl tailoring with regards to
+these.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Wildcards in
+Unicode property value specifications are now partially
+supported</b> <br>
+You can now do something like this in a regular expression
+pattern</p>
+
+<p style="margin-left:11%; margin-top: 1em">qr! \p{nv=
+/(?x) \A [0&minus;5] \z / }!</p>
+
+<p style="margin-left:11%; margin-top: 1em">which matches
+all Unicode code points whose numeric value is between 0 and
+5 inclusive. So, it could match the Thai or Bengali digits
+whose numeric values are 0, 1, 2, 3, 4, or 5.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This marks
+another step in implementing the regular expression features
+the Unicode Consortium suggests.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Most properties
+are supported, with the remainder planned for 5.32. Details
+are in &quot;Wildcards in Property Values&quot; in
+perlunicode.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>qr&rsquo;\N{name}&rsquo;
+is now supported</b> <br>
+Previously it was an error to evaluate a named character
+&quot;\N{...}&quot; within a single quoted regular
+expression pattern (whose evaluation is deferred from the
+normal place). This restriction is now removed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Turkic
+<small>UTF&minus;8</small> locales are now seamlessly
+supported</b> <br>
+Turkic languages have different casing rules than other
+languages for the characters &quot;i&quot; and
+&quot;I&quot;. The uppercase of &quot;i&quot; is
+<small>LATIN CAPITAL LETTER I WITH DOT ABOVE</small>
+(U+0130); and the lowercase of &quot;I&quot; is <small>LATIN
+SMALL LETTER DOTLESS I</small> (U+0131). Unicode furnishes
+alternate casing rules for use with Turkic languages.
+Previously, Perl ignored these, but now, it uses them when
+it detects that it is operating under a Turkic
+<small>UTF&minus;8</small> locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>It is now
+possible to compile perl to always use thread-safe locale
+operations.</b> <br>
+Previously, these calls were only used when the perl was
+compiled to be multi-threaded. To always enable them,
+add</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;Accflags='&minus;DUSE_THREAD_SAFE_LOCALE'</p>
+
+<p style="margin-left:11%; margin-top: 1em">to your
+<i>Configure</i> flags.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Eliminate
+opASSIGN macro usage from core</b> <br>
+This macro is still defined but no longer used in core</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&quot;&minus;Drv&quot;
+now means something on &quot;&minus;DDEBUGGING&quot;
+builds</b> <br>
+Now, adding the verbose flag (&quot;&minus;Dv&quot;) to the
+&quot;&minus;Dr&quot; flag turns on all possible regular
+expression debugging.</p>
+
+<h2>Incompatible Changes
+<a name="Incompatible Changes"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Assigning
+non-zero to $[ is fatal</b> <br>
+Setting $[ to a non-zero value has been deprecated since
+Perl 5.12 and now throws a fatal error. See &quot;Assigning
+non-zero to $[ is fatal&quot; in perldeprecation.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Delimiters
+must now be graphemes</b> <br>
+See &quot;Use of unassigned code point or non-standalone
+grapheme for a delimiter.&quot; in perldeprecation</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Some
+formerly deprecated uses of an unescaped left brace
+&quot;{&quot; in regular expression patterns are now
+illegal</b> <br>
+But to avoid breaking code unnecessarily, most instances
+that issued a deprecation warning, remain legal and now have
+a non-deprecation warning raised. See &quot;Unescaped left
+braces in regular expressions&quot; in perldeprecation.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Previously
+deprecated sysread()/syswrite() on :utf8 handles is now
+fatal</b> <br>
+Calling <b>sysread()</b>, <b>syswrite()</b>, <b>send()</b>
+or <b>recv()</b> on a &quot;:utf8&quot; handle, whether
+applied explicitly or implicitly, is now fatal. This was
+deprecated in perl 5.24.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There were two
+problems with calling these functions on &quot;:utf8&quot;
+handles:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>All four functions only paid attention to the
+&quot;:utf8&quot; flag. Other layers were completely
+ignored, so a handle with
+&quot;:encoding(UTF&minus;16LE)&quot; layer would be treated
+as <small>UTF&minus;8.</small> Other layers, such as
+compression are completely ignored with or without the
+&quot;:utf8&quot; flag.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p><b>sysread()</b> and <b>recv()</b> would read from the
+handle, skipping any validation by the layers, and do no
+validation of their own. This could lead to invalidly
+encoded perl scalars.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">[
+<small>GH</small> #14839]
+&lt;https://github.com/Perl/perl5/issues/14839&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>my() in
+false conditional prohibited</b> <br>
+Declarations such as &quot;my $x if 0&quot; are no longer
+permitted.</p>
+
+<p style="margin-left:11%; margin-top: 1em">[
+<small>GH</small> #16702]
+&lt;https://github.com/Perl/perl5/issues/16702&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Fatalize $*
+and $#</b> <br>
+These special variables, long deprecated, now throw
+exceptions when used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">[
+<small>GH</small> #16718]
+&lt;https://github.com/Perl/perl5/issues/16718&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Fatalize
+unqualified use of dump()</b> <br>
+The &quot;dump()&quot; function, long discouraged, may no
+longer be used unless it is fully qualified, <i>i.e.</i>,
+&quot;CORE::dump()&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">[
+<small>GH</small> #16719]
+&lt;https://github.com/Perl/perl5/issues/16719&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Remove
+File::Glob::glob()</b> <br>
+The &quot;File::Glob::glob()&quot; function, long
+deprecated, has been removed and now throws an exception
+which advises use of &quot;File::Glob::bsd_glob()&quot;
+instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">[
+<small>GH</small> #16721]
+&lt;https://github.com/Perl/perl5/issues/16721&gt;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&quot;pack()&quot;
+no longer can return malformed
+<small>UTF&minus;8</small></b> <br>
+It croaks if it would otherwise return a
+<small>UTF&minus;8</small> string that contains malformed
+<small>UTF&minus;8.</small> This protects against potential
+security threats. This is considered a bug fix as well. [
+<small>GH</small> #16035]
+&lt;https://github.com/Perl/perl5/issues/16035&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Any set of
+digits in the Common script are legal in a script run of
+another script</b> <br>
+There are several sets of digits in the Common script.
+&quot;[0&minus;9]&quot; is the most familiar. But there are
+also &quot;[\x{FF10}&minus;\x{FF19}]&quot; (
+<small>FULLWIDTH DIGIT ZERO</small> &minus; <small>FULLWIDTH
+DIGIT NINE</small> ), and several sets for use in
+mathematical notation, such as the
+<small>MATHEMATICAL</small> DOUBLE-STRUCK DIGITs. Any of
+these sets should be able to appear in script runs of, say,
+Greek. But the design of 5.30 overlooked all but the
+<small>ASCII</small> digits &quot;[0&minus;9]&quot;, so the
+design was flawed. This has been fixed, so is both a bug fix
+and an incompatibility. [ <small>GH</small> #16704]
+&lt;https://github.com/Perl/perl5/issues/16704&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All digits in a
+run still have to come from the same set of ten digits.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>JSON::PP</small>
+enables allow_nonref by default</b> <br>
+As <small>JSON::XS 4.0</small> changed its policy and
+enabled allow_nonref by default, <small>JSON::PP</small>
+also enabled allow_nonref by default.</p>
+
+<h2>Deprecations
+<a name="Deprecations"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>In
+<small>XS</small> code, use of various macros dealing with
+<small>UTF&minus;8.</small></b> <br>
+This deprecation was scheduled to become fatal in 5.30, but
+has been delayed to 5.32 due to problems that showed up with
+some <small>CPAN</small> modules. For details of
+what&rsquo;s affected, see perldeprecation.</p>
+
+<h2>Performance Enhancements
+<a name="Performance Enhancements"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Translating from
+<small>UTF&minus;8</small> into the code point it represents
+now is done via a deterministic finite automaton, speeding
+it up. As a typical example,
+&quot;ord(&quot;\x7fff&quot;)&quot; now requires 12% fewer
+instructions than before. The performance of checking that a
+sequence of bytes is valid <small>UTF&minus;8</small> is
+similarly improved, again by using a <small>DFA.</small></p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Eliminate recursion from <b>finalize_op()</b>. [
+<small>GH</small> #11866]
+&lt;https://github.com/Perl/perl5/issues/11866&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>A handful of small optimizations related to character
+folding and character classes in regular expressions.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Optimization of &quot;IV&quot; to &quot;UV&quot;
+conversions. [ <small>GH</small> #16761]
+&lt;https://github.com/Perl/perl5/issues/16761&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Speed up of the integer stringification algorithm by
+processing two digits at a time instead of one. [
+<small>GH</small> #16769]
+&lt;https://github.com/Perl/perl5/issues/16769&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Improvements based on <small>LGTM</small> analysis and
+recommendation.
+(&lt;https://lgtm.com/projects/g/Perl/perl5/alerts/?mode=tree&gt;).
+[ <small>GH</small> #16765]
+&lt;https://github.com/Perl/perl5/issues/16765&gt;. [
+<small>GH</small> #16773]
+&lt;https://github.com/Perl/perl5/issues/16773&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Code optimizations in <i>regcomp.c</i>,
+<i>regcomp.h</i>, <i>regexec.c</i>.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Regular expression pattern matching of things like
+&quot;qr/[^<i>a</i>]/&quot; is significantly sped up, where
+<i>a</i> is any <small>ASCII</small> character. Other
+classes can get this speed up, but which ones is complicated
+and depends on the underlying bit patterns of those
+characters, so differs between <small>ASCII</small> and
+<small>EBCDIC</small> platforms, but all case pairs, like
+&quot;qr/[Gg]/&quot; are included, as is
+&quot;[^01]&quot;.</p> </td></tr>
+</table>
+
+<h2>Modules and Pragmata
+<a name="Modules and Pragmata"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Updated
+Modules and Pragmata</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Archive::Tar has been upgraded
+from version 2.30 to 2.32.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>B has been upgraded from version 1.74 to 1.76.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>B::Concise has been upgraded from version 1.003 to
+1.004.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>B::Deparse has been upgraded from version 1.48 to
+1.49.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>bignum has been upgraded from version 0.49 to 0.51.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>bytes has been upgraded from version 1.06 to 1.07.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Carp has been upgraded from version 1.38 to 1.50</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Compress::Raw::Bzip2 has been upgraded from version
+2.074 to 2.084.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Compress::Raw::Zlib has been upgraded from version 2.076
+to 2.084.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Config::Extensions has been upgraded from version 0.02
+to 0.03.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Config::Perl::V. has been upgraded from version 0.29 to
+0.32. This was due to a new configuration variable that has
+influence on binary compatibility:
+&quot;USE_THREAD_SAFE_LOCALE&quot;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p><small>CPAN</small> has been upgraded from version 2.20
+to 2.22.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Data::Dumper has been upgraded from version 2.170 to
+2.174</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Data::Dumper
+now avoids leaking when &quot;croak&quot;ing.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">DB_File has been upgraded from
+version 1.840 to 1.843.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>deprecate has been upgraded from version 0.03 to
+0.04.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Devel::Peek has been upgraded from version 1.27 to
+1.28.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Devel::PPPort has been upgraded from version 3.40 to
+3.52.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Digest::SHA has been upgraded from version 6.01 to
+6.02.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Encode has been upgraded from version 2.97 to 3.01.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Errno has been upgraded from version 1.29 to 1.30.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>experimental has been upgraded from version 0.019 to
+0.020.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>ExtUtils::CBuilder has been upgraded from version
+0.280230 to 0.280231.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>ExtUtils::Manifest has been upgraded from version 1.70
+to 1.72.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>ExtUtils::Miniperl has been upgraded from version 1.08
+to 1.09.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>ExtUtils::ParseXS has been upgraded from version 3.39 to
+3.40. &quot;OUTLIST&quot; parameters are no longer
+incorrectly included in the automatically generated function
+prototype. [ <small>GH</small> #16746]
+&lt;https://github.com/Perl/perl5/issues/16746&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>feature has been upgraded from version 1.52 to 1.54.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>File::Copy has been upgraded from version 2.33 to
+2.34.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>File::Find has been upgraded from version 1.34 to
+1.36.</p> </td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em">$File::Find::dont_use_nlink
+now defaults to 1 on all platforms. [ <small>GH</small>
+#16759]
+&lt;https://github.com/Perl/perl5/issues/16759&gt;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Variables
+$Is_Win32 and $Is_VMS are being initialized.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">File::Glob has been upgraded
+from version 1.31 to 1.32.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>File::Path has been upgraded from version 2.15 to
+2.16.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>File::Spec has been upgraded from version 3.74 to
+3.78.</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Silence Cwd
+warning on Android builds if &quot;targetsh&quot; is not
+defined.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">File::Temp has been upgraded
+from version 0.2304 to 0.2309.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Filter::Util::Call has been upgraded from version 1.58
+to 1.59.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>GDBM_File has been upgraded from version 1.17 to
+1.18.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>HTTP::Tiny has been upgraded from version 0.070 to
+0.076.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>I18N::Langinfo has been upgraded from version 0.17 to
+0.18.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p><small>IO</small> has been upgraded from version 1.39 to
+1.40.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>IO-Compress has been upgraded from version 2.074 to
+2.084.</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Adds support
+for &quot;IO::Uncompress::Zstd&quot; and
+&quot;IO::Uncompress::UnLzip&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;BinModeIn&quot; and &quot;BinModeOut&quot; options are
+now no-ops. <small>ALL</small> files will be read/written in
+binmode.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">IPC::Cmd has been upgraded from
+version 1.00 to 1.02.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p><small>JSON::PP</small> has been upgraded from version
+2.97001 to 4.02.</p></td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>JSON::PP</small>
+as <small>JSON::XS 4.0</small> enables
+&quot;allow_nonref&quot; by default.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">lib has been upgraded from
+version 0.64 to 0.65.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Locale::Codes has been upgraded from version 3.56 to
+3.57.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Math::BigInt has been upgraded from version 1.999811 to
+1.999816.</p> </td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;bnok()&quot;
+now supports the full Kronenburg extension. [cpan #95628]
+&lt;https://rt.cpan.org/Ticket/Display.html?id=95628&gt;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Math::BigInt::FastCalc has been
+upgraded from version 0.5006 to 0.5008.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Math::BigRat has been upgraded from version 0.2613 to
+0.2614.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Module::CoreList has been upgraded from version
+5.20180622 to 5.20190520.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Changes to
+B::Op_private and Config</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Module::Load has been upgraded
+from version 0.32 to 0.34.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Module::Metadata has been upgraded from version 1.000033
+to 1.000036.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Properly clean
+up temporary directories after testing.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">NDBM_File has been upgraded from
+version 1.14 to 1.15.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Net::Ping has been upgraded from version 2.62 to
+2.71.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>ODBM_File has been upgraded from version 1.15 to
+1.16.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>PathTools has been upgraded from version 3.74 to
+3.78.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>parent has been upgraded from version 0.236 to
+0.237.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>perl5db.pl has been upgraded from version 1.54 to
+1.55.</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Debugging
+threaded code no longer deadlocks in &quot;DB::sub&quot; nor
+&quot;DB::lsub&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">perlfaq has been upgraded from
+version 5.021011 to 5.20190126.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>PerlIO::encoding has been upgraded from version 0.26 to
+0.27.</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Warnings
+enabled by setting the &quot;WARN_ON_ERR&quot; flag in
+$PerlIO::encoding::fallback are now only produced if
+warnings are enabled with &quot;use warnings
+&quot;utf8&quot;;&quot; or setting $^W.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">PerlIO::scalar has been upgraded
+from version 0.29 to 0.30.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>podlators has been upgraded from version 4.10 to
+4.11.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p><small>POSIX</small> has been upgraded from version 1.84
+to 1.88.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>re has been upgraded from version 0.36 to 0.37.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>SDBM_File has been upgraded from version 1.14 to
+1.15.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>sigtrap has been upgraded from version 1.08 to 1.09.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Storable has been upgraded from version 3.08 to
+3.15.</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Storable no
+longer probes for recursion limits at build time. [
+<small>GH</small> #16780]
+&lt;https://github.com/Perl/perl5/issues/16780&gt; and
+others.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Metasploit
+exploit code was included to test for
+<small>CVE&minus;2015&minus;1592</small> detection, this
+caused anti-virus detections on at least one
+<small>AV</small> suite. The exploit code has been removed
+and replaced with a simple functional test. [
+<small>GH</small> #16778]
+&lt;https://github.com/Perl/perl5/issues/16778&gt;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Test::Simple has been upgraded
+from version 1.302133 to 1.302162.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Thread::Queue has been upgraded from version 3.12 to
+3.13.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>threads::shared has been upgraded from version 1.58 to
+1.60.</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Added support
+for extra tracing of locking, this requires a
+&quot;&minus;DDEBUGGING&quot; and extra compilation
+flags.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Time::HiRes has been upgraded
+from version 1.9759 to 1.9760.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Time::Local has been upgraded from version 1.25 to
+1.28.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Time::Piece has been upgraded from version 1.3204 to
+1.33.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Unicode::Collate has been upgraded from version 1.25 to
+1.27.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Unicode::UCD has been upgraded from version 0.70 to
+0.72.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>User::grent has been upgraded from version 1.02 to
+1.03.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>utf8 has been upgraded from version 1.21 to 1.22.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>vars has been upgraded from version 1.04 to 1.05.</p></td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;vars.pm&quot;
+no longer disables non-vars strict when checking if strict
+vars is enabled. [ <small>GH</small> #15851]
+&lt;https://github.com/Perl/perl5/issues/15851&gt;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">version has been upgraded from
+version 0.9923 to 0.9924.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>warnings has been upgraded from version 1.42 to
+1.44.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>XS::APItest has been upgraded from version 0.98 to
+1.00.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>XS::Typemap has been upgraded from version 0.16 to
+0.17.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Removed
+Modules and Pragmata</b> <br>
+The following modules will be removed from the core
+distribution in a future release, and will at that time need
+to be installed from <small>CPAN.</small> Distributions on
+<small>CPAN</small> which require these modules will need to
+list them as prerequisites.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The core
+versions of these modules will now issue
+&quot;deprecated&quot;&minus;category warnings to alert you
+to this fact. To silence these deprecation warnings, install
+the modules in question from <small>CPAN.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that these
+are (with rare exceptions) fine modules that you are
+encouraged to continue to use. Their disinclusion from core
+primarily hinges on their necessity to bootstrapping a fully
+functional, CPAN-capable Perl installation, not usually on
+concerns over their design.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">B::Debug is no longer
+distributed with the core distribution. It continues to be
+available on <small>CPAN</small> as &quot;B::Debug
+&lt;https://metacpan.org/pod/B::Debug&gt;&quot;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Locale::Codes has been removed at the request of its
+author. It continues to be available on <small>CPAN</small>
+as &quot;Locale::Codes
+&lt;https://metacpan.org/pod/Locale::Codes&gt;&quot; [
+<small>GH</small> #16660]
+&lt;https://github.com/Perl/perl5/issues/16660&gt;.</p> </td></tr>
+</table>
+
+<h2>Documentation
+<a name="Documentation"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Changes to
+Existing Documentation</b> <br>
+We have attempted to update the documentation to reflect the
+changes listed in this document. If you find any we have
+missed, send email to perlbug@perl.org
+&lt;mailto:perlbug@perl.org&gt;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>perlapi</i></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">&quot;AvFILL()&quot; was wrongly
+listed as deprecated. This has been corrected. [
+<small>GH</small> #16586]
+&lt;https://github.com/Perl/perl5/issues/16586&gt;</p> </td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>perlop</i></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">We no longer have null (empty
+line) here doc terminators, so perlop should not refer to
+them.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The behaviour of &quot;tr&quot; when the delimiter is an
+apostrophe has been clarified. In particular, hyphens
+aren&rsquo;t special, and &quot;\x{}&quot; isn&rsquo;t
+interpolated. [ <small>GH</small> #15853]
+&lt;https://github.com/Perl/perl5/issues/15853&gt;</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em"><i>perlreapi,
+perlvar</i></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="66%">
+
+
+<p style="margin-top: 1em">Improve docs for lastparen,
+lastcloseparen.</p> </td>
+<td width="17%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>perlfunc</i></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">The entry for
+&quot;&minus;X&quot; in perlfunc has been clarified to
+indicate that symbolic links are followed for most
+tests.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Clarification of behaviour of &quot;reset
+EXPR&quot;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Try to clarify that &quot;ref(qr/xx/)&quot; returns
+&quot;Regexp&quot; rather than &quot;REGEXP&quot; and why. [
+<small>GH</small> #16801]
+&lt;https://github.com/Perl/perl5/issues/16801&gt;.</p> </td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>perlreref</i></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="71%">
+
+
+<p style="margin-top: 1em">Clarification of the syntax of
+/(?(cond)yes)/.</p> </td>
+<td width="12%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>perllocale</i></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">There are actually two slightly
+different types of <small>UTF&minus;8</small> locales: one
+for Turkic languages and one for everything else. Starting
+in Perl v5.30, Perl seamlessly handles both types.</p></td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>perlrecharclass</i></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="74%">
+
+
+<p style="margin-top: 1em">Added a note for the ::xdigit::
+character class.</p></td>
+<td width="9%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>perlvar</i></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">More specific documentation of
+paragraph mode. [ <small>GH</small> #16787]
+&lt;https://github.com/Perl/perl5/issues/16787&gt;.</p> </td></tr>
+</table>
+
+<h2>Diagnostics
+<a name="Diagnostics"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+additions or changes have been made to diagnostic output,
+including warnings and fatal error messages. For the
+complete list of diagnostic messages, see perldiag.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Changes to
+Existing Diagnostics</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">As noted under
+&quot;Incompatible Changes&quot; above, the deprecation
+warning &quot;Unescaped left brace in regex is deprecated
+here (and will be fatal in Perl 5.30), passed through in
+regex; marked by &lt;&minus;&minus;&nbsp;
+<small>HERE</small> in m/%s/&quot; has been changed to the
+non-deprecation warning &quot;Unescaped left brace in regex
+is passed through in regex; marked by
+&lt;&minus;&minus;&nbsp; <small>HERE</small> in
+m/%s/&quot;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Specifying &quot;\o{}&quot; without anything between the
+braces now yields the fatal error message &quot;Empty
+\o{}&quot;. Previously it was &quot;Number with no
+digits&quot;. This means the same wording is used for this
+kind of error as with similar constructs such as
+&quot;\p{}&quot;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Within the scope of the experimental feature &quot;use
+re 'strict'&quot;, specifying &quot;\x{}&quot; without
+anything between the braces now yields the fatal error
+message &quot;Empty \x{}&quot;. Previously it was
+&quot;Number with no digits&quot;. This means the same
+wording is used for this kind of error as with similar
+constructs such as &quot;\p{}&quot;. It is legal, though not
+wise to have an empty &quot;\x&quot; outside of &quot;re
+'strict'&quot;; it silently generates a <small>NUL</small>
+character.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Type of arg %d to %s must be %s (not %s)</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Attempts to
+push, pop, etc on a hash or glob now produce this message
+rather than complaining that they no longer work on scalars.
+[ <small>GH</small> #15774]
+&lt;https://github.com/Perl/perl5/issues/15774&gt;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="37%">
+
+
+<p style="margin-top: 1em">Prototype not terminated</p></td>
+<td width="46%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The file and
+line number is now reported for this error. [
+<small>GH</small> #16697]
+&lt;https://github.com/Perl/perl5/issues/16697&gt;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Under &quot;&minus;Dr&quot; (or
+&quot;use re 'Debug'&quot;) the compiled regex engine
+program is displayed. It used to use two different spellings
+for <i>infinity</i>, &quot;INFINITY&quot;, and
+&quot;INFTY&quot;. It now uses the latter exclusively, as
+that spelling has been around the longest.</p></td></tr>
+</table>
+
+<h2>Utility Changes
+<a name="Utility Changes"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>xsubpp</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">The generated prototype (with
+&quot;PROTOTYPES: ENABLE&quot;) would include
+&quot;OUTLIST&quot; parameters, but these aren&rsquo;t
+arguments to the perl function. This has been rectified. [
+<small>GH</small> #16746]
+&lt;https://github.com/Perl/perl5/issues/16746&gt;.</p> </td></tr>
+</table>
+
+<h2>Configuration and Compilation
+<a name="Configuration and Compilation"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Normally the thread-safe locale
+functions are used only on threaded builds. It is now
+possible to force their use on unthreaded builds on systems
+that have them available, by including the
+&quot;&minus;Accflags='&minus;DUSE_THREAD_SAFE_LOCALE'&quot;
+option to <i>Configure</i>.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Improve detection of memrchr, strlcat, and strlcpy</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Improve Configure detection of <b>memmem()</b>. [
+<small>GH</small> #16807]
+&lt;https://github.com/Perl/perl5/issues/16807&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Multiple improvements and fixes for
+&minus;DPERL_GLOBAL_STRUCT build option.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Fix &minus;DPERL_GLOBAL_STRUCT_PRIVATE build option.</p></td></tr>
+</table>
+
+<h2>Testing
+<a name="Testing"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p style="margin-top: 1em"><i>t/lib/croak/op</i> [
+<small>GH</small> #15774]
+&lt;https://github.com/Perl/perl5/issues/15774&gt;.</p> </td>
+<td width="14%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">separate error
+for &quot;push&quot;, etc. on hash/glob.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p style="margin-top: 1em"><i>t/op/svleak.t</i> [
+<small>GH</small> #16749]
+&lt;https://github.com/Perl/perl5/issues/16749&gt;.</p> </td>
+<td width="14%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Add test for
+&quot;goto &amp;sub&quot; in overload leaking.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Split <i>t/re/fold_grind.t</i>
+into multiple test files.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Fix intermittent tests which failed due to race
+conditions which surface during parallel testing. [
+<small>GH</small> #16795]
+&lt;https://github.com/Perl/perl5/issues/16795&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Thoroughly test paragraph mode, using a new test file,
+<i>t/io/paragraph_mode.t</i>. [ <small>GH</small> #16787]
+&lt;https://github.com/Perl/perl5/issues/16787&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Some tests in <i>t/io/eintr.t</i> caused the process to
+hang on pre&minus;16 Darwin. These tests are skipped for
+those version of Darwin.</p></td></tr>
+</table>
+
+<h2>Platform Support
+<a name="Platform Support"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Platform-Specific
+Notes</b> <br>
+HP-UX 11.11</p>
+
+<p style="margin-left:17%;">An obscure problem in
+&quot;pack()&quot; when compiling with <small>HP</small>
+C&minus;ANSI-C has been fixed by disabling optimizations in
+<i>pp_pack.c</i>.</p>
+
+<p style="margin-left:11%;">Mac <small>OS X</small></p>
+
+<p style="margin-left:17%;">Perl&rsquo;s build and testing
+process on Mac <small>OS X</small> for
+&quot;&minus;Duseshrplib&quot; builds is now compatible with
+Mac <small>OS X</small> System Integrity Protection (
+<small>SIP</small> ).</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>SIP</small>
+prevents binaries in <i>/bin</i> (and a few other places)
+being passed the &quot;DYLD_LIBRARY_PATH&quot; environment
+variable. For our purposes this prevents
+&quot;DYLD_LIBRARY_PATH&quot; from being passed to the
+shell, which prevents that variable being passed to the
+testing or build process, so running &quot;perl&quot;
+couldn&rsquo;t find <i>libperl.dylib</i>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To work around
+that, the initial build of the <i>perl</i> executable
+expects to find <i>libperl.dylib</i> in the build directory,
+and the library path is then adjusted during installation to
+point to the installed library.</p>
+
+<p style="margin-left:17%; margin-top: 1em">[
+<small>GH</small> #15057]
+&lt;https://github.com/Perl/perl5/issues/15057&gt;.</p>
+
+<p style="margin-left:11%;">Minix3</p>
+
+<p style="margin-left:17%;">Some support for Minix3 has
+been re-added.</p>
+
+<p style="margin-left:11%;">Cygwin</p>
+
+<p style="margin-left:17%;">Cygwin doesn&rsquo;t make
+&quot;cuserid&quot; visible.</p>
+
+<p style="margin-left:11%;">Win32 Mingw</p>
+
+<p style="margin-left:17%;">C99 math functions are now
+available.</p>
+
+<p style="margin-left:11%;">Windows</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>The &quot;USE_CPLUSPLUS&quot; build option which has
+long been available in <i>win32/Makefile</i> (for
+<b>nmake</b>) and <i>win32/makefile.mk</i> (for
+<b>dmake</b>) is now also available in
+<i>win32/GNUmakefile</i> (for <b>gmake</b>).</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>The <b>nmake</b> makefile no longer defaults to Visual C
+<small>++</small> 6.0 (a very old version which is unlikely
+to be widely used today). As a result, it is now a
+requirement to specify the &quot;CCTYPE&quot; since there is
+no obvious choice of which modern version to default to
+instead. Failure to specify &quot;CCTYPE&quot; will result
+in an error being output and the build will stop.</p></td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">(The
+<b>dmake</b> and <b>gmake</b> makefiles will automatically
+detect which compiler is being used, so do not require
+&quot;CCTYPE&quot; to be set. This feature has not yet been
+added to the <b>nmake</b> makefile.)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em">&quot;sleep()&quot; with
+warnings enabled for a &quot;USE_IMP_SYS&quot; build no
+longer warns about the sleep timeout being too large. [
+<small>GH</small> #16631]
+&lt;https://github.com/Perl/perl5/issues/16631&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>Support for compiling perl on Windows using Microsoft
+Visual Studio 2019 (containing Visual C <small>++</small>
+14.2) has been added.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p><b>socket()</b> now sets $! if the protocol, address
+family and socket type combination is not found. [
+<small>GH</small> #16849]
+&lt;https://github.com/Perl/perl5/issues/16849&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>The Windows Server 2003 <small>SP1</small> Platform
+<small>SDK</small> build, with its early x64 compiler and
+tools, was accidentally broken in Perl 5.27.9. This has now
+been fixed.</p></td></tr>
+</table>
+
+<h2>Internal Changes
+<a name="Internal Changes"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">The sizing pass has been
+eliminated from the regular expression compiler. An extra
+pass may instead be needed in some cases to count the number
+of parenthetical capture groups.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>A new function &quot;&quot;my_strtod&quot;&quot; in
+perlapi or its synonym, <b>Strtod()</b>, is now available
+with the same signature as the libc <b>strtod()</b>. It
+provides <b>strotod()</b> equivalent behavior on all
+platforms, using the best available precision, depending on
+platform capabilities and <i>Configure</i> options, while
+handling locale-related issues, such as if the radix
+character should be a dot or comma.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Added &quot;newSVsv_nomg()&quot; to copy a
+<small>SV</small> without processing get magic on the
+source. [ <small>GH</small> #16461]
+&lt;https://github.com/Perl/perl5/issues/16461&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>It is now forbidden to malloc more than
+&quot;PTRDIFF_T_MAX&quot; bytes. Much code (including C
+optimizers) assumes that all data structures will not be
+larger than this, so this catches such attempts before
+overflow happens.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Two new regnodes have been introduced
+&quot;EXACT_ONLY8&quot;, and &quot;EXACTFU_ONLY8&quot;.
+They&rsquo;re equivalent to &quot;EXACT&quot; and
+&quot;EXACTFU&quot;, except that they contain a code point
+which requires <small>UTF&minus;8</small> to
+represent/match. Hence, if the target string isn&rsquo;t
+<small>UTF&minus;8,</small> we know it can&rsquo;t possibly
+match, without needing to try.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;print_bytes_for_locale()&quot; is now defined if
+&quot;DEBUGGING&quot;, Prior, it didn&rsquo;t get defined
+unless &quot;LC_COLLATE&quot; was defined on the
+platform.</p> </td></tr>
+</table>
+
+<h2>Selected Bug Fixes
+<a name="Selected Bug Fixes"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Compilation under
+&quot;&minus;DPERL_MEM_LOG&quot; and
+&quot;&minus;DNO_LOCALE&quot; have been fixed.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Perl 5.28 introduced an &quot;index()&quot; optimization
+when comparing to &minus;1 (or indirectly, e.g. &gt;= 0).
+When this optimization was triggered inside a
+&quot;when&quot; clause it caused a warning (&quot;Argument
+%s isn&rsquo;t numeric in smart match&quot;). This has now
+been fixed. [ <small>GH</small> #16626]
+&lt;https://github.com/Perl/perl5/issues/16626&gt;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The new in-place editing code no longer leaks directory
+handles. [ <small>GH</small> #16602]
+&lt;https://github.com/Perl/perl5/issues/16602&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Warnings produced from constant folding operations on
+overloaded values no longer produce spurious &quot;Use of
+uninitialized value&quot; warnings. [ <small>GH</small>
+#16349]
+&lt;https://github.com/Perl/perl5/issues/16349&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Fix for &quot;mutator not seen in (lex = ...) .=
+...&quot; [ <small>GH</small> #16655]
+&lt;https://github.com/Perl/perl5/issues/16655&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;pack &quot;u&quot;, &quot;invalid
+uuencoding&quot;&quot; now properly <small>NUL</small>
+terminates the zero-length <small>SV</small> produced. [
+<small>GH</small> #16343]
+&lt;https://github.com/Perl/perl5/issues/16343&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Improve the debugging output for <b>calloc()</b> calls
+with &quot;&minus;Dm&quot;. [ <small>GH</small> #16653]
+&lt;https://github.com/Perl/perl5/issues/16653&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Regexp script runs were failing to permit
+<small>ASCII</small> digits in some cases. [
+<small>GH</small> #16704]
+&lt;https://github.com/Perl/perl5/issues/16704&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>On Unix-like systems supporting a platform-specific
+technique for determining $^X, Perl failed to fall back to
+the generic technique when the platform-specific one fails
+(for example, a Linux system with /proc not mounted). This
+was a regression in Perl 5.28.0. [ <small>GH</small> #16715]
+&lt;https://github.com/Perl/perl5/issues/16715&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>SDBM_File is now more robust with corrupt database
+files. The improvements do not make <small>SDBM</small>
+files suitable as an interchange format. [ <small>GH</small>
+#16164]
+&lt;https://github.com/Perl/perl5/issues/16164&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;binmode($fh);&quot; or &quot;binmode($fh,
+':raw');&quot; now properly removes the &quot;:utf8&quot;
+flag from the default &quot;:crlf&quot; I/O layer on Win32.
+[ <small>GH</small> #16730]
+&lt;https://github.com/Perl/perl5/issues/16730&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The experimental reference aliasing feature was
+misinterpreting array and hash slice assignment as being
+localised, e.g.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">\(@a[3,5,7]) =
+\(....);</p>
+
+<p style="margin-left:17%; margin-top: 1em">was being
+interpreted as:</p>
+
+<p style="margin-left:17%; margin-top: 1em">local
+\(@a[3,5,7]) = \(....);</p>
+
+<p style="margin-left:17%; margin-top: 1em">[
+<small>GH</small> #16701]
+&lt;https://github.com/Perl/perl5/issues/16701&gt;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">&quot;sort SUBNAME&quot; within
+an &quot;eval EXPR&quot; when &quot;EXPR&quot; was
+<small>UTF&minus;8</small> upgraded could panic if the
+&quot;SUBNAME&quot; was non-ASCII. [ <small>GH</small>
+#16979]
+&lt;https://github.com/Perl/perl5/issues/16979&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Correctly handle <b>realloc()</b> modifying
+&quot;errno&quot; on success so that the modification
+isn&rsquo;t visible to the perl user, since <b>realloc()</b>
+is called implicitly by the interpreter. This modification
+is permitted by the C standard, but has only been observed
+on FreeBSD 13.0&minus;CURRENT. [ <small>GH</small> #16907]
+&lt;https://github.com/Perl/perl5/issues/16907&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Perl now exposes <small>POSIX</small> &quot;getcwd&quot;
+as &quot;Internals::getcwd()&quot; if available. This is
+intended for use by &quot;Cwd.pm&quot; during bootstrapping
+and may be removed or changed without notice. This fixes
+some bootstrapping issues while building perl in a directory
+where some ancestor directory isn&rsquo;t readable. [
+<small>GH</small> #16903]
+&lt;https://github.com/Perl/perl5/issues/16903&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;pack()&quot; no longer can return malformed
+<small>UTF&minus;8.</small> It croaks if it would otherwise
+return a <small>UTF&minus;8</small> string that contains
+malformed <small>UTF&minus;8.</small> This protects against
+potential security threats. [ <small>GH</small> #16035]
+&lt;https://github.com/Perl/perl5/issues/16035&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>See &quot;Any set of digits in the Common script are
+legal in a script run of another script&quot;.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Regular expression matching no longer leaves stale
+<small>UTF&minus;8</small> length magic when updating $^R.
+This could result in &quot;length($^R)&quot; returning an
+incorrect value.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Reduce recursion on ops [ <small>GH</small> #11866]
+&lt;https://github.com/Perl/perl5/issues/11866&gt;.</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This can
+prevent stack overflow when processing extremely deep op
+trees.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Avoid leak in multiconcat with
+overloading. [ <small>GH</small> #16823]
+&lt;https://github.com/Perl/perl5/issues/16823&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The handling of user-defined &quot;\p{}&quot; properties
+(see &quot;User-Defined Character Properties&quot; in
+perlunicode) has been rewritten to be in C (instead of
+Perl). This speeds things up, but in the process several
+inconsistencies and bug fixes are made.</p></td></tr>
+</table>
+
+<p style="margin-left:17%;">1.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%"></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em">A few error messages have minor
+wording changes. This is essentially because the new way is
+integrated into the regex error handling mechanism that
+marks the position in the input at which the error occurred.
+That was not possible previously. The messages now also
+contain additional back-trace-like information in case the
+error occurs deep in nested calls.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>2.</p></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p>A user-defined property is implemented as a perl
+subroutine with certain highly constrained naming
+conventions. It was documented previously that the sub would
+be in the current package if the package was unspecified.
+This turned out not to be true in all cases, but now it
+is.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>3.</p></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p>All recursive calls are treated as infinite recursion.
+Previously they would cause the interpreter to panic. Now,
+they cause the regex pattern to fail to compile.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>4.</p></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p>Similarly, any other error likely would lead to a panic;
+now to just the pattern failing to compile.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>5.</p></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p>The old mechanism did not detect illegal ranges in the
+definition of the property. Now, the range max must not be
+smaller than the range min. Otherwise, the pattern fails to
+compile.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>6.</p></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p>The intention was to have each sub called only once
+during the lifetime of the program, so that a
+property&rsquo;s definition is immutable. This was relaxed
+so that it could be called once for all /i compilations, and
+potentially a second time for non&minus;/i (the sub is
+passed a parameter indicating which). However, in practice
+there were instances when this was broken, and multiple
+calls were possible. Those have been fixed. Now (besides the
+/i,non&minus;/i cases) the only way a sub can be called
+multiple times is if some component of it has not been
+defined yet. For example, suppose we have sub <b>IsA()</b>
+whose definition is known at compile time, and it in turn
+calls <b>isB()</b> whose definition is not yet known.
+<b>isA()</b> will be called each time a pattern it appears
+in is compiled. If <b>isA()</b> also calls <b>isC()</b> and
+that definition is known, <b>isC()</b> will be called just
+once.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>7.</p></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p>There were some races and very long hangs should one
+thread be compiling the same property as another
+simultaneously. These have now been fixed.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>&bull;</p></td>
+<td width="3%"></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed a failure
+to match properly.</p>
+
+<p style="margin-left:17%; margin-top: 1em">An EXACTFish
+regnode has a finite length it can hold for the string being
+matched. If that length is exceeded, a second node is used
+for the next segment of the string, for as many regnodes as
+are needed. Care has to be taken where to break the string,
+in order to deal multi-character folds in Unicode correctly.
+If we want to break a string at a place which could
+potentially be in the middle of a multi-character fold, we
+back off one (or more) characters, leaving a shorter
+EXACTFish regnode. This backing off mechanism contained an
+off-by-one error. [ <small>GH</small> #16806]
+&lt;https://github.com/Perl/perl5/issues/16806&gt;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">A bare &quot;eof&quot; call with
+no previous file handle now returns true. [
+<small>GH</small> #16786]
+&lt;https://github.com/Perl/perl5/issues/16786&gt;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Failing to compile a format now aborts compilation. Like
+other errors in sub-parses this could leave the parser in a
+strange state, possibly crashing perl if compilation
+continued. [ <small>GH</small> #16169]
+&lt;https://github.com/Perl/perl5/issues/16169&gt;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>If an in-place edit is still in progress during global
+destruction and the process exit code (as stored in $?) is
+zero, perl will now treat the in-place edit as successful,
+replacing the input file with any output produced.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This allows
+code like:</p>
+
+<p style="margin-left:17%; margin-top: 1em">perl &minus;i
+&minus;ne 'print &quot;Foo&quot;; last'</p>
+
+<p style="margin-left:17%; margin-top: 1em">to replace the
+input file, while code like:</p>
+
+<p style="margin-left:17%; margin-top: 1em">perl &minus;i
+&minus;ne 'print &quot;Foo&quot;; die'</p>
+
+<p style="margin-left:17%; margin-top: 1em">will not.
+Partly resolves [ <small>GH</small> #16748]
+&lt;https://github.com/Perl/perl5/issues/16748&gt;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">A regression in 5.28 caused the
+following code to fail</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">close(STDIN);
+open(CHILD, &quot;|wc &minus;l&quot;)'</p>
+
+<p style="margin-left:17%; margin-top: 1em">because the
+child&rsquo;s stdin would be closed on exec. This has now
+been fixed.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Fixed an issue where compiling a
+regexp containing both compile-time and run-time code blocks
+could lead to trying to compile something which is invalid
+syntax.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Fixed build failures with
+&quot;&minus;DNO_LOCALE_NUMERIC&quot; and
+&quot;&minus;DNO_LOCALE_COLLATE&quot;. [ <small>GH</small>
+#16771]
+&lt;https://github.com/Perl/perl5/issues/16771&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Prevent the tests in <i>ext/B/t/strict.t</i> from being
+skipped. [ <small>GH</small> #16783]
+&lt;https://github.com/Perl/perl5/issues/16783&gt;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;/di&quot; nodes ending or beginning in <i>s</i>
+are now &quot;EXACTF&quot;. We do not want two
+&quot;EXACTFU&quot; to be joined together during
+optimization, and to form a &quot;ss&quot;, &quot;sS&quot;,
+&quot;Ss&quot; or &quot;SS&quot; sequence; they are the only
+multi-character sequences which may match differently under
+&quot;/ui&quot; and &quot;/di&quot;.</p></td></tr>
+</table>
+
+<h2>Acknowledgements
+<a name="Acknowledgements"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Perl 5.30.0
+represents approximately 11 months of development since Perl
+5.28.0 and contains approximately 620,000 lines of changes
+across 1,300 files from 58 authors.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Excluding
+auto-generated files, documentation and release tools, there
+were approximately 510,000 lines of changes to 750 .pm, .t,
+.c and .h files.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl continues
+to flourish into its fourth decade thanks to a vibrant
+community of users and developers. The following people are
+known to have contributed the improvements that became Perl
+5.30.0:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Aaron Crane,
+Abigail, Alberto Simo~es, Alexandr Savca, Andreas Koenig,
+Andy Dougherty, Aristotle Pagaltzis, Brian Greenfield, Chad
+Granum, Chris &rsquo;BinGOs&rsquo; Williams, Craig A. Berry,
+Dagfinn Ilmari Mannsaaker, Dan Book, Dan Dedrick, Daniel
+Dragan, Dan Kogai, David Cantrell, David Mitchell, Dominic
+Hargreaves, E. Choroba, Ed J, Eugen Konkov, Francois Perrad,
+Graham Knop, Hauke D, H.Merijn Brand, Hugo van der Sanden,
+Jakub Wilk, James Clarke, James E Keenan, Jerry D. Hedden,
+Jim Cromie, John <small>SJ</small> Anderson, Karen
+Etheridge, Karl Williamson, Leon Timmermans, Matthias
+Bethke, Nicholas Clark, Nicolas R., Niko Tyni, Pali, Petr
+PisaX, Phil Pearl (Lobbes), Richard Leach, Ryan Voots,
+Sawyer X, Shlomi Fish, Sisyphus, Slaven Rezic, Steve Hay,
+Sullivan Beck, Tina Mueller, Tomasz Konojacki, Tom Wyant,
+Tony Cook, Unicode Consortium, Yves Orton, Zak B. Elep.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The list above
+is almost certainly incomplete as it is automatically
+generated from version control history. In particular, it
+does not include the names of most of the (very much
+appreciated) contributors who reported issues to the Perl
+bug tracker. Noteworthy in this release were the large
+number of bug fixes made possible by Sergey
+Aleynikov&rsquo;s high quality perlbug reports for issues he
+discovered by fuzzing with <small>AFL.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">Many of the
+changes included in this version originated in the
+<small>CPAN</small> modules included in Perl&rsquo;s core.
+We&rsquo;re grateful to the entire <small>CPAN</small>
+community for helping Perl to flourish.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For a more
+complete list of all of Perl&rsquo;s historical
+contributors, please see the <i><small>AUTHORS</small></i>
+file in the Perl source distribution.</p>
+
+<h2>Reporting Bugs
+<a name="Reporting Bugs"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you find
+what you think is a bug, you might check the perl bug
+database at &lt;https://rt.perl.org/&gt;. There may also be
+information at &lt;http://www.perl.org/&gt;, the Perl Home
+Page.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you believe
+you have an unreported bug, please run the perlbug program
+included with your release. Be sure to trim your bug down to
+a tiny but sufficient test case. Your bug report, along with
+the output of &quot;perl &minus;V&quot;, will be sent off to
+perlbug@perl.org to be analysed by the Perl porting
+team.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the bug you
+are reporting has security implications which make it
+inappropriate to send to a publicly archived mailing list,
+then see &quot; <small>SECURITY VULNERABILITY CONTACT
+INFORMATION&quot;</small> in perlsec for details of how to
+report the issue.</p>
+
+<h2>Give Thanks
+<a name="Give Thanks"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you wish to
+thank the Perl 5 Porters for the work we had done in Perl 5,
+you can do so by running the &quot;perlthanks&quot;
+program:</p>
+
+<p style="margin-left:11%; margin-top: 1em">perlthanks</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will send
+an email to the Perl 5 Porters list with your show of
+thanks.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>Changes</i> file for an explanation of how to view
+exhaustive details on what changed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i><small>INSTALL</small></i> file for how to build
+Perl.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i><small>README</small></i> file for general stuff.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>Artistic</i> and <i>Copying</i> files for copyright
+information.</p>
+<hr>
+</body>
+</html>

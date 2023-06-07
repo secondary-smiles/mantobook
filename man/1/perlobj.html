@@ -1,0 +1,1341 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:59 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERLOBJ</title>
+
+</head>
+<body>
+<h1>perlobj</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perlobj &minus;
+Perl object reference</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+provides a reference for Perl&rsquo;s object orientation
+features. If you&rsquo;re looking for an introduction to
+object-oriented programming in Perl, please see
+perlootut.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In order to
+understand Perl objects, you first need to understand
+references in Perl. See perlreftut for details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This document
+describes all of Perl&rsquo;s object-oriented (
+<small>OO</small> ) features from the ground up. If
+you&rsquo;re just looking to write some object-oriented code
+of your own, you are probably better served by using one of
+the object systems from <small>CPAN</small> described in
+perlootut.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;re
+looking to write your own object system, or you need to
+maintain code which implements objects from scratch then
+this document will help you understand exactly how Perl does
+object orientation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are a few
+basic principles which define object oriented Perl:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>1.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>An object is simply a data structure that knows to which
+class it belongs.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>2.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>A class is simply a package. A class provides methods
+that expect to operate on objects.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>3.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>A method is simply a subroutine that expects a reference
+to an object (or a package name, for class methods) as the
+first argument.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">Let&rsquo;s
+look at each of these principles in depth.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>An Object is
+Simply a Data Structure</b> <br>
+Unlike many other languages which support object
+orientation, Perl does not provide any special syntax for
+constructing an object. Objects are merely Perl data
+structures (hashes, arrays, scalars, filehandles, etc.) that
+have been explicitly associated with a particular class.</p>
+
+<p style="margin-left:11%; margin-top: 1em">That explicit
+association is created by the built-in &quot;bless&quot;
+function, which is typically used within the
+<i>constructor</i> subroutine of the class.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here is a
+simple constructor:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package File;
+<br>
+sub new { <br>
+my $class = shift; <br>
+return bless {}, $class; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The name
+&quot;new&quot; isn&rsquo;t special. We could name our
+constructor something else:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package File;
+<br>
+sub load { <br>
+my $class = shift; <br>
+return bless {}, $class; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The modern
+convention for <small>OO</small> modules is to always use
+&quot;new&quot; as the name for the constructor, but there
+is no requirement to do so. Any subroutine that blesses a
+data structure into a class is a valid constructor in
+Perl.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the previous
+examples, the &quot;{}&quot; code creates a reference to an
+empty anonymous hash. The &quot;bless&quot; function then
+takes that reference and associates the hash with the class
+in $class. In the simplest case, the $class variable will
+end up containing the string &quot;File&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">We can also use
+a variable to store a reference to the data structure that
+is being blessed as our object:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub new { <br>
+my $class = shift; <br>
+my $self = {}; <br>
+bless $self, $class; <br>
+return $self; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once
+we&rsquo;ve blessed the hash referred to by $self we can
+start calling methods on it. This is useful if you want to
+put object initialization in its own separate method:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub new { <br>
+my $class = shift; <br>
+my $self = {}; <br>
+bless $self, $class; <br>
+$self&minus;&gt;_initialize(); <br>
+return $self; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since the
+object is also a hash, you can treat it as one, using it to
+store data associated with the object. Typically, code
+inside the class can treat the hash as an accessible data
+structure, while code outside the class should always treat
+the object as opaque. This is called <b>encapsulation</b>.
+Encapsulation means that the user of an object does not have
+to know how it is implemented. The user simply calls
+documented methods on the object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note, however,
+that (unlike most other <small>OO</small> languages) Perl
+does not ensure or enforce encapsulation in any way. If you
+want objects to actually <i>be</i> opaque you need to
+arrange for that yourself. This can be done in a variety of
+ways, including using &quot;Inside-Out objects&quot; or
+modules from <small>CPAN.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Objects Are
+Blessed; Variables Are Not</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">When we bless
+something, we are not blessing the variable which contains a
+reference to that thing, nor are we blessing the reference
+that the variable stores; we are blessing the thing that the
+variable refers to (sometimes known as the <i>referent</i>).
+This is best demonstrated with this code:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Scalar::Util 'blessed'; <br>
+my $foo = {}; <br>
+my $bar = $foo; <br>
+bless $foo, 'Class'; <br>
+print blessed( $bar ) // 'not blessed'; # prints
+&quot;Class&quot; <br>
+$bar = &quot;some other value&quot;; <br>
+print blessed( $bar ) // 'not blessed'; # prints &quot;not
+blessed&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">When we call
+&quot;bless&quot; on a variable, we are actually blessing
+the underlying data structure that the variable refers to.
+We are not blessing the reference itself, nor the variable
+that contains that reference. That&rsquo;s why the second
+call to &quot;blessed( $bar )&quot; returns false. At that
+point $bar is no longer storing a reference to an
+object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You will
+sometimes see older books or documentation mention
+&quot;blessing a reference&quot; or describe an object as a
+&quot;blessed reference&quot;, but this is incorrect. It
+isn&rsquo;t the reference that is blessed as an object;
+it&rsquo;s the thing the reference refers to (i.e. the
+referent).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>A Class is
+Simply a Package</b> <br>
+Perl does not provide any special syntax for class
+definitions. A package is simply a namespace containing
+variables and subroutines. The only difference is that in a
+class, the subroutines may expect a reference to an object
+or the name of a class as the first argument. This is purely
+a matter of convention, so a class may contain both methods
+and subroutines which <i>don&rsquo;t</i> operate on an
+object or class.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each package
+contains a special array called @ISA. The @ISA array
+contains a list of that class&rsquo;s parent classes, if
+any. This array is examined when Perl does method
+resolution, which we will cover later.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Calling methods
+from a package means it must be loaded, of course, so you
+will often want to load a module and add it to @ISA at the
+same time. You can do so in a single step using the parent
+pragma. (In older code you may encounter the base pragma,
+which is nowadays discouraged except when you have to work
+with the equally discouraged fields pragma.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">However the
+parent classes are set, the package&rsquo;s @ISA variable
+will contain a list of those parents. This is simply a list
+of scalars, each of which is a string that corresponds to a
+package name.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All classes
+inherit from the <small>UNIVERSAL</small> class implicitly.
+The <small>UNIVERSAL</small> class is implemented by the
+Perl core, and provides several default methods, such as
+&quot;isa()&quot;, &quot;can()&quot;, and
+&quot;VERSION()&quot;. The &quot;UNIVERSAL&quot; class will
+<i>never</i> appear in a package&rsquo;s @ISA variable.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl
+<i>only</i> provides method inheritance as a built-in
+feature. Attribute inheritance is left up the class to
+implement. See the &quot;Writing Accessors&quot; section for
+details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>A Method is
+Simply a Subroutine</b> <br>
+Perl does not provide any special syntax for defining a
+method. A method is simply a regular subroutine, and is
+declared with &quot;sub&quot;. What makes a method special
+is that it expects to receive either an object or a class
+name as its first argument.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl
+<i>does</i> provide special syntax for method invocation,
+the &quot;&minus;&gt;&quot; operator. We will cover this in
+more detail later.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Most methods
+you write will expect to operate on objects:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub save { <br>
+my $self = shift; <br>
+open my $fh, '&gt;', $self&minus;&gt;path() or die $!; <br>
+print {$fh} $self&minus;&gt;data() or die $!; <br>
+close $fh or die $!; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Method
+Invocation</b> <br>
+Calling a method on an object is written as
+&quot;$object&minus;&gt;method&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The left hand
+side of the method invocation (or arrow) operator is the
+object (or class name), and the right hand side is the
+method name.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $pod =
+File&minus;&gt;new( 'perlobj.pod', $data ); <br>
+$pod&minus;&gt;save();</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;&minus;&gt;&quot; syntax is also used when
+dereferencing a reference. It looks like the same operator,
+but these are two different operations.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When you call a
+method, the thing on the left side of the arrow is passed as
+the first argument to the method. That means when we call
+&quot;Critter&minus;&gt;new()&quot;, the &quot;new()&quot;
+method receives the string &quot;Critter&quot; as its first
+argument. When we call &quot;$fred&minus;&gt;speak()&quot;,
+the $fred variable is passed as the first argument to
+&quot;speak()&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Just as with
+any Perl subroutine, all of the arguments passed in @_ are
+aliases to the original argument. This includes the object
+itself. If you assign directly to $_[0] you will change the
+contents of the variable that holds the reference to the
+object. We recommend that you don&rsquo;t do this unless you
+know exactly what you&rsquo;re doing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl knows what
+package the method is in by looking at the left side of the
+arrow. If the left hand side is a package name, it looks for
+the method in that package. If the left hand side is an
+object, then Perl looks for the method in the package that
+the object has been blessed into.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the left
+hand side is neither a package name nor an object, then the
+method call will cause an error, but see the section on
+&quot;Method Call Variations&quot; for more nuances.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Inheritance</b>
+<br>
+We already talked about the special @ISA array and the
+parent pragma.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When a class
+inherits from another class, any methods defined in the
+parent class are available to the child class. If you
+attempt to call a method on an object that isn&rsquo;t
+defined in its own class, Perl will also look for that
+method in any parent classes it may have.</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+File::MP3; <br>
+use parent 'File'; # sets @File::MP3::ISA = ('File'); <br>
+my $mp3 = File::MP3&minus;&gt;new( 'Andvari.mp3', $data );
+<br>
+$mp3&minus;&gt;save();</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since we
+didn&rsquo;t define a &quot;save()&quot; method in the
+&quot;File::MP3&quot; class, Perl will look at the
+&quot;File::MP3&quot; class&rsquo;s parent classes to find
+the &quot;save()&quot; method. If Perl cannot find a
+&quot;save()&quot; method anywhere in the inheritance
+hierarchy, it will die.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this case,
+it finds a &quot;save()&quot; method in the &quot;File&quot;
+class. Note that the object passed to &quot;save()&quot; in
+this case is still a &quot;File::MP3&quot; object, even
+though the method is found in the &quot;File&quot;
+class.</p>
+
+<p style="margin-left:11%; margin-top: 1em">We can override
+a parent&rsquo;s method in a child class. When we do so, we
+can still call the parent class&rsquo;s method with the
+&quot;SUPER&quot; pseudo-class.</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub save { <br>
+my $self = shift; <br>
+say 'Prepare to rock'; <br>
+$self&minus;&gt;SUPER::save(); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;SUPER&quot; modifier can <i>only</i> be used for
+method calls. You can&rsquo;t use it for regular subroutine
+calls or class methods:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">SUPER::save($thing);
+# FAIL: looks for save() sub in package SUPER <br>
+SUPER&minus;&gt;save($thing); # FAIL: looks for save()
+method in class <br>
+# SUPER <br>
+$thing&minus;&gt;SUPER::save(); # Okay: looks for save()
+method in parent <br>
+# classes</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>How
+<small>SUPER</small> is Resolved</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;SUPER&quot; pseudo-class is resolved from the package
+where the call is made. It is <i>not</i> resolved based on
+the object&rsquo;s class. This is important, because it lets
+methods at different levels within a deep inheritance
+hierarchy each correctly call their respective parent
+methods.</p>
+
+<p style="margin-left:11%; margin-top: 1em">package A; <br>
+sub new { <br>
+return bless {}, shift; <br>
+} <br>
+sub speak { <br>
+my $self = shift; <br>
+say 'A'; <br>
+} <br>
+package B; <br>
+use parent &minus;norequire, 'A'; <br>
+sub speak { <br>
+my $self = shift; <br>
+$self&minus;&gt;SUPER::speak(); <br>
+say 'B'; <br>
+} <br>
+package C; <br>
+use parent &minus;norequire, 'B'; <br>
+sub speak { <br>
+my $self = shift; <br>
+$self&minus;&gt;SUPER::speak(); <br>
+say 'C'; <br>
+} <br>
+my $c = C&minus;&gt;new(); <br>
+$c&minus;&gt;speak();</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this
+example, we will get the following output:</p>
+
+<p style="margin-left:11%; margin-top: 1em">A <br>
+B <br>
+C</p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+demonstrates how &quot;SUPER&quot; is resolved. Even though
+the object is blessed into the &quot;C&quot; class, the
+&quot;speak()&quot; method in the &quot;B&quot; class can
+still call &quot;SUPER::speak()&quot; and expect it to
+correctly look in the parent class of &quot;B&quot; (i.e the
+class the method call is in), not in the parent class of
+&quot;C&quot; (i.e. the class the object belongs to).</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are rare
+cases where this package-based resolution can be a problem.
+If you copy a subroutine from one package to another,
+&quot;SUPER&quot; resolution will be done based on the
+original package.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Multiple
+Inheritance</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Multiple
+inheritance often indicates a design problem, but Perl
+always gives you enough rope to hang yourself with if you
+ask for it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To declare
+multiple parents, you simply need to pass multiple class
+names to &quot;use parent&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+MultiChild; <br>
+use parent 'Parent1', 'Parent2';</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Method
+Resolution Order</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Method
+resolution order only matters in the case of multiple
+inheritance. In the case of single inheritance, Perl simply
+looks up the inheritance chain to find a method:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Grandparent
+<br>
+| <br>
+Parent <br>
+| <br>
+Child</p>
+
+<p style="margin-left:11%; margin-top: 1em">If we call a
+method on a &quot;Child&quot; object and that method is not
+defined in the &quot;Child&quot; class, Perl will look for
+that method in the &quot;Parent&quot; class and then, if
+necessary, in the &quot;Grandparent&quot; class.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If Perl cannot
+find the method in any of these classes, it will die with an
+error message.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When a class
+has multiple parents, the method lookup order becomes more
+complicated.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default,
+Perl does a depth-first left-to-right search for a method.
+That means it starts with the first parent in the @ISA
+array, and then searches all of its parents, grandparents,
+etc. If it fails to find the method, it then goes to the
+next parent in the original class&rsquo;s @ISA array and
+searches from there.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">SharedGreatGrandParent
+<br>
+/ \ <br>
+PaternalGrandparent MaternalGrandparent <br>
+\ / <br>
+Father Mother <br>
+\ / <br>
+Child</p>
+
+<p style="margin-left:11%; margin-top: 1em">So given the
+diagram above, Perl will search &quot;Child&quot;,
+&quot;Father&quot;, &quot;PaternalGrandparent&quot;,
+&quot;SharedGreatGrandParent&quot;, &quot;Mother&quot;, and
+finally &quot;MaternalGrandparent&quot;. This may be a
+problem because now we&rsquo;re looking in
+&quot;SharedGreatGrandParent&quot; <i>before</i> we&rsquo;ve
+checked all its derived classes (i.e. before we tried
+&quot;Mother&quot; and &quot;MaternalGrandparent&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is possible
+to ask for a different method resolution order with the mro
+pragma.</p>
+
+<p style="margin-left:11%; margin-top: 1em">package Child;
+<br>
+use mro 'c3'; <br>
+use parent 'Father', 'Mother';</p>
+
+<p style="margin-left:11%; margin-top: 1em">This pragma
+lets you switch to the &quot;C3&quot; resolution order. In
+simple terms, &quot;C3&quot; order ensures that shared
+parent classes are never searched before child classes, so
+Perl will now search: &quot;Child&quot;, &quot;Father&quot;,
+&quot;PaternalGrandparent&quot;, &quot;Mother&quot;
+&quot;MaternalGrandparent&quot;, and finally
+&quot;SharedGreatGrandParent&quot;. Note however that this
+is not &quot;breadth-first&quot; searching: All the
+&quot;Father&quot; ancestors (except the common ancestor)
+are searched before any of the &quot;Mother&quot; ancestors
+are considered.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The C3 order
+also lets you call methods in sibling classes with the
+&quot;next&quot; pseudo-class. See the mro documentation for
+more details on this feature.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Method
+Resolution Caching</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">When Perl
+searches for a method, it caches the lookup so that future
+calls to the method do not need to search for it again.
+Changing a class&rsquo;s parent class or adding subroutines
+to a class will invalidate the cache for that class.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The mro pragma
+provides some functions for manipulating the method cache
+directly.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Writing
+Constructors</b> <br>
+As we mentioned earlier, Perl provides no special
+constructor syntax. This means that a class must implement
+its own constructor. A constructor is simply a class method
+that returns a reference to a new object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The constructor
+can also accept additional parameters that define the
+object. Let&rsquo;s write a real constructor for the
+&quot;File&quot; class we used earlier:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package File;
+<br>
+sub new { <br>
+my $class = shift; <br>
+my ( $path, $data ) = @_; <br>
+my $self = bless { <br>
+path =&gt; $path, <br>
+data =&gt; $data, <br>
+}, $class; <br>
+return $self; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">As you can see,
+we&rsquo;ve stored the path and file data in the object
+itself. Remember, under the hood, this object is still just
+a hash. Later, we&rsquo;ll write accessors to manipulate
+this data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For our
+&quot;File::MP3&quot; class, we can check to make sure that
+the path we&rsquo;re given ends with &quot;.mp3&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+File::MP3; <br>
+sub new { <br>
+my $class = shift; <br>
+my ( $path, $data ) = @_; <br>
+die &quot;You cannot create a File::MP3 without an mp3
+extension\n&quot; <br>
+unless $path =~ /\.mp3\z/; <br>
+return $class&minus;&gt;SUPER::new(@_); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+constructor lets its parent class do the actual object
+construction.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Attributes</b>
+<br>
+An attribute is a piece of data belonging to a particular
+object. Unlike most object-oriented languages, Perl provides
+no special syntax or support for declaring and manipulating
+attributes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Attributes are
+often stored in the object itself. For example, if the
+object is an anonymous hash, we can store the attribute
+values in the hash using the attribute name as the key.</p>
+
+<p style="margin-left:11%; margin-top: 1em">While
+it&rsquo;s possible to refer directly to these hash keys
+outside of the class, it&rsquo;s considered a best practice
+to wrap all access to the attribute with accessor
+methods.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This has
+several advantages. Accessors make it easier to change the
+implementation of an object later while still preserving the
+original <small>API.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">An accessor
+lets you add additional code around attribute access. For
+example, you could apply a default to an attribute that
+wasn&rsquo;t set in the constructor, or you could validate
+that a new value for the attribute is acceptable.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Finally, using
+accessors makes inheritance much simpler. Subclasses can use
+the accessors rather than having to know how a parent class
+is implemented internally.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Writing
+Accessors</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">As with
+constructors, Perl provides no special accessor declaration
+syntax, so classes must provide explicitly written accessor
+methods. There are two common types of accessors, read-only
+and read-write.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A simple
+read-only accessor simply gets the value of a single
+attribute:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub path { <br>
+my $self = shift; <br>
+return $self&minus;&gt;{path}; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">A read-write
+accessor will allow the caller to set the value as well as
+get it:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub path { <br>
+my $self = shift; <br>
+if (@_) { <br>
+$self&minus;&gt;{path} = shift; <br>
+} <br>
+return $self&minus;&gt;{path}; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>An Aside
+About Smarter and Safer Code</b> <br>
+Our constructor and accessors are not very smart. They
+don&rsquo;t check that a $path is defined, nor do they check
+that a $path is a valid filesystem path.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Doing these
+checks by hand can quickly become tedious. Writing a bunch
+of accessors by hand is also incredibly tedious. There are a
+lot of modules on <small>CPAN</small> that can help you
+write safer and more concise code, including the modules we
+recommend in perlootut.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Method Call
+Variations</b> <br>
+Perl supports several other ways to call methods besides the
+&quot;$object&minus;&gt;method()&quot; usage we&rsquo;ve
+seen so far.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Method Names
+with a Fully Qualified Name</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl allows you
+to call methods using their fully qualified name (the
+package and method name):</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $mp3 =
+File::MP3&minus;&gt;new( 'Regin.mp3', $data ); <br>
+$mp3&minus;&gt;File::save();</p>
+
+<p style="margin-left:11%; margin-top: 1em">When you call a
+fully qualified method name like &quot;File::save&quot;, the
+method resolution search for the &quot;save&quot; method
+starts in the &quot;File&quot; class, skipping any
+&quot;save&quot; method the &quot;File::MP3&quot; class may
+have defined. It still searches the &quot;File&quot;
+class&rsquo;s parents if necessary.</p>
+
+<p style="margin-left:11%; margin-top: 1em">While this
+feature is most commonly used to explicitly call methods
+inherited from an ancestor class, there is no technical
+restriction that enforces this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $obj =
+Tree&minus;&gt;new(); <br>
+$obj&minus;&gt;Dog::bark();</p>
+
+<p style="margin-left:11%; margin-top: 1em">This calls the
+&quot;bark&quot; method from class &quot;Dog&quot; on an
+object of class &quot;Tree&quot;, even if the two classes
+are completely unrelated. Use this with great care.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;SUPER&quot; pseudo-class that was described earlier is
+<i>not</i> the same as calling a method with a
+fully-qualified name. See the earlier
+&quot;Inheritance&quot; section for details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Method Names
+as Strings</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl lets you
+use a scalar variable containing a string as a method
+name:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $file =
+File&minus;&gt;new( $path, $data ); <br>
+my $method = 'save'; <br>
+$file&minus;&gt;$method();</p>
+
+<p style="margin-left:11%; margin-top: 1em">This works
+exactly like calling &quot;$file&minus;&gt;save()&quot;.
+This can be very useful for writing dynamic code. For
+example, it allows you to pass a method name to be called as
+a parameter to another method.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Class Names
+as Strings</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl also lets
+you use a scalar containing a string as a class name:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $class =
+'File'; <br>
+my $file = $class&minus;&gt;new( $path, $data );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Again, this
+allows for very dynamic code.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Subroutine
+References as Methods</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+use a subroutine reference as a method:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $sub = sub {
+<br>
+my $self = shift; <br>
+$self&minus;&gt;save(); <br>
+}; <br>
+$file&minus;&gt;$sub();</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is exactly
+equivalent to writing &quot;$sub&minus;&gt;($file)&quot;.
+You may see this idiom in the wild combined with a call to
+&quot;can&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">if ( my $meth =
+$object&minus;&gt;can('foo') ) { <br>
+$object&minus;&gt;$meth(); <br>
+}</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>Dereferencing
+Method Call</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl also lets
+you use a dereferenced scalar reference in a method call.
+That&rsquo;s a mouthful, so let&rsquo;s look at some
+code:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$file&minus;&gt;${
+\'save' }; <br>
+$file&minus;&gt;${ returns_scalar_ref() }; <br>
+$file&minus;&gt;${ \( returns_scalar() ) }; <br>
+$file&minus;&gt;${ returns_ref_to_sub_ref() };</p>
+
+<p style="margin-left:11%; margin-top: 1em">This works if
+the dereference produces a string <i>or</i> a subroutine
+reference.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Method Calls
+on Filehandles</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Under the hood,
+Perl filehandles are instances of the &quot;IO::Handle&quot;
+or &quot;IO::File&quot; class. Once you have an open
+filehandle, you can call methods on it. Additionally, you
+can call methods on the &quot;STDIN&quot;,
+&quot;STDOUT&quot;, and &quot;STDERR&quot; filehandles.</p>
+
+<p style="margin-left:11%; margin-top: 1em">open my $fh,
+'&gt;', 'path/to/file'; <br>
+$fh&minus;&gt;autoflush(); <br>
+$fh&minus;&gt;print('content'); <br>
+STDOUT&minus;&gt;autoflush();</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Invoking
+Class Methods</b> <br>
+Because Perl allows you to use barewords for package names
+and subroutine names, it sometimes interprets a
+bareword&rsquo;s meaning incorrectly. For example, the
+construct &quot;Class&minus;&gt;new()&quot; can be
+interpreted as either &quot;'Class'&minus;&gt;new()&quot; or
+&quot;Class()&minus;&gt;new()&quot;. In English, that second
+interpretation reads as &quot;call a subroutine named
+<b>Class()</b>, then call <b>new()</b> as a method on the
+return value of <b>Class()</b>&quot;. If there is a
+subroutine named &quot;Class()&quot; in the current
+namespace, Perl will always interpret
+&quot;Class&minus;&gt;new()&quot; as the second alternative:
+a call to &quot;new()&quot; on the object returned by a call
+to &quot;Class()&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can force
+Perl to use the first interpretation (i.e. as a method call
+on the class named &quot;Class&quot;) in two ways. First,
+you can append a &quot;::&quot; to the class name:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Class::&minus;&gt;new()</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl will
+always interpret this as a method call.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+you can quote the class name:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">'Class'&minus;&gt;new()</p>
+
+<p style="margin-left:11%; margin-top: 1em">Of course, if
+the class name is in a scalar Perl will do the right thing
+as well:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $class =
+'Class'; <br>
+$class&minus;&gt;new();</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Indirect
+Object Syntax</i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Outside of
+the file handle case, use of this syntax is discouraged as
+it can confuse the Perl interpreter. See below for more
+details.</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl supports
+another method invocation syntax called &quot;indirect
+object&quot; notation. This syntax is called
+&quot;indirect&quot; because the method comes before the
+object it is being invoked on.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This syntax can
+be used with any class or object method:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $file = new
+File $path, $data; <br>
+save $file;</p>
+
+<p style="margin-left:11%; margin-top: 1em">We recommend
+that you avoid this syntax, for several reasons.</p>
+
+<p style="margin-left:11%; margin-top: 1em">First, it can
+be confusing to read. In the above example, it&rsquo;s not
+clear if &quot;save&quot; is a method provided by the
+&quot;File&quot; class or simply a subroutine that expects a
+file object as its first argument.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When used with
+class methods, the problem is even worse. Because Perl
+allows subroutine names to be written as barewords, Perl has
+to guess whether the bareword after the method is a class
+name or subroutine name. In other words, Perl can resolve
+the syntax as either &quot;File&minus;&gt;new( $path, $data
+)&quot; <b>or</b> &quot;new( File( $path, $data )
+)&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To parse this
+code, Perl uses a heuristic based on what package names it
+has seen, what subroutines exist in the current package,
+what barewords it has previously seen, and other input.
+Needless to say, heuristics can produce very surprising
+results!</p>
+
+<p style="margin-left:11%; margin-top: 1em">Older
+documentation (and some <small>CPAN</small> modules)
+encouraged this syntax, particularly for constructors, so
+you may still find it in the wild. However, we encourage you
+to avoid using it in new code.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can force
+Perl to interpret the bareword as a class name by appending
+&quot;::&quot; to it, like we saw earlier:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $file = new
+File:: $path, $data;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Indirect object
+syntax is only available when the &quot;indirect&quot; named
+feature is enabled. This is enabled by default, but can be
+disabled if requested. This feature is present in older
+feature version bundles, but was removed from the
+&quot;:5.36&quot; bundle; so a &quot;use VERSION&quot;
+declaration of &quot;v5.36&quot; or above will also disable
+the feature.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use v5.36; <br>
+# indirect object syntax is no longer available</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&quot;bless&quot;,
+&quot;blessed&quot;, and &quot;ref&quot;</b> <br>
+As we saw earlier, an object is simply a data structure that
+has been blessed into a class via the &quot;bless&quot;
+function. The &quot;bless&quot; function can take either one
+or two arguments:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $object =
+bless {}, $class; <br>
+my $object = bless {};</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the first
+form, the anonymous hash is being blessed into the class in
+$class. In the second form, the anonymous hash is blessed
+into the current package.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The second form
+is strongly discouraged, because it breaks the ability of a
+subclass to reuse the parent&rsquo;s constructor, but you
+may still run across it in existing code.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+know whether a particular scalar refers to an object, you
+can use the &quot;blessed&quot; function exported by
+Scalar::Util, which is shipped with the Perl core.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Scalar::Util 'blessed'; <br>
+if ( defined blessed($thing) ) { ... }</p>
+
+<p style="margin-left:11%; margin-top: 1em">If $thing
+refers to an object, then this function returns the name of
+the package the object has been blessed into. If $thing
+doesn&rsquo;t contain a reference to a blessed object, the
+&quot;blessed&quot; function returns &quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+&quot;blessed($thing)&quot; will also return false if $thing
+has been blessed into a class named &quot;0&quot;. This is a
+possible, but quite pathological. Don&rsquo;t create a class
+named &quot;0&quot; unless you know what you&rsquo;re
+doing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Similarly,
+Perl&rsquo;s built-in &quot;ref&quot; function treats a
+reference to a blessed object specially. If you call
+&quot;ref($thing)&quot; and $thing holds a reference to an
+object, it will return the name of the class that the object
+has been blessed into.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you simply
+want to check that a variable contains an object reference,
+we recommend that you use &quot;defined
+blessed($object)&quot;, since &quot;ref&quot; returns true
+values for all references, not just objects.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>The
+<small>UNIVERSAL</small> Class</b> <br>
+All classes automatically inherit from the
+<small>UNIVERSAL</small> class, which is built-in to the
+Perl core. This class provides a number of methods, all of
+which can be called on either a class or an object. You can
+also choose to override some of these methods in your class.
+If you do so, we recommend that you follow the built-in
+semantics described below. <br>
+isa($class)</p>
+
+<p style="margin-left:17%;">The &quot;isa&quot; method
+returns <i>true</i> if the object is a member of the class
+in $class, or a member of a subclass of $class.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you override
+this method, it should never throw an exception.</p>
+
+<p style="margin-left:11%;"><small>DOES</small> ($role)</p>
+
+<p style="margin-left:17%;">The &quot;DOES&quot; method
+returns <i>true</i> if its object claims to perform the role
+$role. By default, this is equivalent to &quot;isa&quot;.
+This method is provided for use by object system extensions
+that implement roles, like &quot;Moose&quot; and
+&quot;Role::Tiny&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">You can also
+override &quot;DOES&quot; directly in your own classes. If
+you override this method, it should never throw an
+exception.</p>
+
+<p style="margin-left:11%;">can($method)</p>
+
+<p style="margin-left:17%;">The &quot;can&quot; method
+checks to see if the class or object it was called on has a
+method named $method. This checks for the method in the
+class and all of its parents. If the method exists, then a
+reference to the subroutine is returned. If it does not then
+&quot;undef&quot; is returned.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If your class
+responds to method calls via &quot;AUTOLOAD&quot;, you may
+want to overload &quot;can&quot; to return a subroutine
+reference for methods which your &quot;AUTOLOAD&quot; method
+handles.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you override
+this method, it should never throw an exception.</p>
+
+<p style="margin-left:11%;"><small>VERSION</small>
+($need)</p>
+
+<p style="margin-left:17%;">The &quot;VERSION&quot; method
+returns the version number of the class (package).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the $need
+argument is given then it will check that the current
+version (as defined by the $VERSION variable in the package)
+is greater than or equal to $need; it will die if this is
+not the case. This method is called automatically by the
+&quot;VERSION&quot; form of &quot;use&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">use Package 1.2
+qw(some imported subs); <br>
+# implies: <br>
+Package&minus;&gt;VERSION(1.2);</p>
+
+<p style="margin-left:17%; margin-top: 1em">We recommend
+that you use this method to access another package&rsquo;s
+version, rather than looking directly at $Package::VERSION.
+The package you are looking at could have overridden the
+&quot;VERSION&quot; method.</p>
+
+<p style="margin-left:17%; margin-top: 1em">We also
+recommend using this method to check whether a module has a
+sufficient version. The internal implementation uses the
+version module to make sure that different types of version
+numbers are compared correctly.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>AUTOLOAD</small></b>
+<br>
+If you call a method that doesn&rsquo;t exist in a class,
+Perl will throw an error. However, if that class or any of
+its parent classes defines an &quot;AUTOLOAD&quot; method,
+that &quot;AUTOLOAD&quot; method is called instead.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;AUTOLOAD&quot;
+is called as a regular method, and the caller will not know
+the difference. Whatever value your &quot;AUTOLOAD&quot;
+method returns is returned to the caller.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The fully
+qualified method name that was called is available in the
+$AUTOLOAD package global for your class. Since this is a
+global, if you want to refer to do it without a package name
+prefix under &quot;strict 'vars'&quot;, you need to declare
+it.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># XXX &minus;
+this is a terrible way to implement accessors, but it makes
+<br>
+# for a simple example. <br>
+our $AUTOLOAD; <br>
+sub AUTOLOAD { <br>
+my $self = shift; <br>
+# Remove qualifier from original method name... <br>
+my $called = $AUTOLOAD =~ s/.*:://r; <br>
+# Is there an attribute of that name? <br>
+die &quot;No such attribute: $called&quot; <br>
+unless exists $self&minus;&gt;{$called}; <br>
+# If so, return it... <br>
+return $self&minus;&gt;{$called}; <br>
+} <br>
+sub DESTROY { } # see below</p>
+
+<p style="margin-left:11%; margin-top: 1em">Without the
+&quot;our $AUTOLOAD&quot; declaration, this code will not
+compile under the strict pragma.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As the comment
+says, this is not a good way to implement accessors.
+It&rsquo;s slow and too clever by far. However, you may see
+this as a way to provide accessors in older Perl code. See
+perlootut for recommendations on <small>OO</small> coding in
+Perl.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If your class
+does have an &quot;AUTOLOAD&quot; method, we strongly
+recommend that you override &quot;can&quot; in your class as
+well. Your overridden &quot;can&quot; method should return a
+subroutine reference for any method that your
+&quot;AUTOLOAD&quot; responds to.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Destructors</b>
+<br>
+When the last reference to an object goes away, the object
+is destroyed. If you only have one reference to an object
+stored in a lexical scalar, the object is destroyed when
+that scalar goes out of scope. If you store the object in a
+package global, that object may not go out of scope until
+the program exits.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+do something when the object is destroyed, you can define a
+&quot;DESTROY&quot; method in your class. This method will
+always be called by Perl at the appropriate time, unless the
+method is empty.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is called
+just like any other method, with the object as the first
+argument. It does not receive any additional arguments.
+However, the $_[0] variable will be read-only in the
+destructor, so you cannot assign a value to it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If your
+&quot;DESTROY&quot; method throws an exception, this will
+not cause any control transfer beyond exiting the method.
+The exception will be reported to &quot;STDERR&quot; as a
+warning, marked &quot;(in cleanup)&quot;, and Perl will
+continue with whatever it was doing before.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because
+&quot;DESTROY&quot; methods can be called at any time, you
+should localize any global status variables that might be
+set by anything you do in your &quot;DESTROY&quot; method.
+If you are in doubt about a particular status variable, it
+doesn&rsquo;t hurt to localize it. There are five global
+status variables, and the safest way is to localize all five
+of them:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub DESTROY {
+<br>
+local($., $@, $!, $^E, $?); <br>
+my $self = shift; <br>
+...; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you define
+an &quot;AUTOLOAD&quot; in your class, then Perl will call
+your &quot;AUTOLOAD&quot; to handle the &quot;DESTROY&quot;
+method. You can prevent this by defining an empty
+&quot;DESTROY&quot;, like we did in the autoloading example.
+You can also check the value of $AUTOLOAD and return without
+doing anything when called to handle
+&quot;DESTROY&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Global
+Destruction</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The order in
+which objects are destroyed during the global destruction
+before the program exits is unpredictable. This means that
+any objects contained by your object may already have been
+destroyed. You should check that a contained object is
+defined before calling a method on it:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub DESTROY {
+<br>
+my $self = shift; <br>
+$self&minus;&gt;{handle}&minus;&gt;close() if
+$self&minus;&gt;{handle}; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use the
+&quot;${^GLOBAL_PHASE}&quot; variable to detect if you are
+currently in the global destruction phase:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub DESTROY {
+<br>
+my $self = shift; <br>
+return if ${^GLOBAL_PHASE} eq 'DESTRUCT'; <br>
+$self&minus;&gt;{handle}&minus;&gt;close(); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+variable was added in Perl 5.14.0. If you want to detect the
+global destruction phase on older versions of Perl, you can
+use the &quot;Devel::GlobalDestruction&quot; module on
+<small>CPAN.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">If your
+&quot;DESTROY&quot; method issues a warning during global
+destruction, the Perl interpreter will append the string
+&quot; during global destruction&quot; to the warning.</p>
+
+<p style="margin-left:11%; margin-top: 1em">During global
+destruction, Perl will always garbage collect objects before
+unblessed references. See &quot;
+<small>PERL_DESTRUCT_LEVEL&quot;</small> in perlhacktips for
+more information about global destruction.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Non-Hash
+Objects</b> <br>
+All the examples so far have shown objects based on a
+blessed hash. However, it&rsquo;s possible to bless any type
+of data structure or referent, including scalars, globs, and
+subroutines. You may see this sort of thing when looking at
+code in the wild.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s an
+example of a module as a blessed scalar:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package Time;
+<br>
+use v5.36; <br>
+sub new { <br>
+my $class = shift; <br>
+my $time = time; <br>
+return bless \$time, $class; <br>
+} <br>
+sub epoch { <br>
+my $self = shift; <br>
+return $$self; <br>
+} <br>
+my $time = Time&minus;&gt;new(); <br>
+print $time&minus;&gt;epoch();</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Inside-Out
+objects</b> <br>
+In the past, the Perl community experimented with a
+technique called &quot;inside-out objects&quot;. An
+inside-out object stores its data outside of the
+object&rsquo;s reference, indexed on a unique property of
+the object, such as its memory address, rather than in the
+object itself. This has the advantage of enforcing the
+encapsulation of object attributes, since their data is not
+stored in the object itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This technique
+was popular for a while (and was recommended in Damian
+Conway&rsquo;s <i>Perl Best Practices</i>), but never
+achieved universal adoption. The Object::InsideOut module on
+<small>CPAN</small> provides a comprehensive implementation
+of this technique, and you may see it or other inside-out
+modules in the wild.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here is a
+simple example of the technique, using the
+Hash::Util::FieldHash core module. This module was added to
+the core to support inside-out object implementations.</p>
+
+<p style="margin-left:11%; margin-top: 1em">package Time;
+<br>
+use v5.36; <br>
+use Hash::Util::FieldHash 'fieldhash'; <br>
+fieldhash my %time_for; <br>
+sub new { <br>
+my $class = shift; <br>
+my $self = bless \( my $object ), $class; <br>
+$time_for{$self} = time; <br>
+return $self; <br>
+} <br>
+sub epoch { <br>
+my $self = shift; <br>
+return $time_for{$self}; <br>
+} <br>
+my $time = Time&minus;&gt;new; <br>
+print $time&minus;&gt;epoch;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Pseudo-hashes</b>
+<br>
+The pseudo-hash feature was an experimental feature
+introduced in earlier versions of Perl and removed in
+5.10.0. A pseudo-hash is an array reference which can be
+accessed using named keys like a hash. You may run in to
+some code in the wild which uses it. See the fields pragma
+for more information.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A kinder,
+gentler tutorial on object-oriented programming in Perl can
+be found in perlootut. You should also check out perlmodlib
+for some style guides on constructing both modules and
+classes.</p>
+<hr>
+</body>
+</html>

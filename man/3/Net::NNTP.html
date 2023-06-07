@@ -1,0 +1,748 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:38 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Net::NNTP</title>
+
+</head>
+<body>
+<h1>Net::NNTP</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Net::NNTP
+&minus; NNTP Client class</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use Net::NNTP;
+<br>
+$nntp = Net::NNTP&minus;&gt;new(&quot;some.host.name&quot;);
+<br>
+$nntp&minus;&gt;quit; <br>
+# start with SSL, e.g. nntps <br>
+$nntp = Net::NNTP&minus;&gt;new(&quot;some.host.name&quot;,
+SSL =&gt; 1); <br>
+# start with plain and upgrade to SSL <br>
+$nntp = Net::NNTP&minus;&gt;new(&quot;some.host.name&quot;);
+<br>
+$nntp&minus;&gt;starttls;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Net::NNTP&quot;
+is a class implementing a simple <small>NNTP</small> client
+in Perl as described in <small>RFC977</small> and
+<small>RFC4642.</small> With IO::Socket::SSL installed it
+also provides support for implicit and explicit
+<small>TLS</small> encryption, i.e. <small>NNTPS</small> or
+<small>NNTP+STARTTLS.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">The Net::NNTP
+class is a subclass of Net::Cmd and (depending on
+avaibility) of IO::Socket::IP, IO::Socket::INET6 or
+IO::Socket::INET.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Class
+Methods</b> <br>
+&quot;new([$host][, %options])&quot;</p>
+
+<p style="margin-left:17%;">This is the constructor for a
+new Net::NNTP object. $host is the name of the remote host
+to which a <small>NNTP</small> connection is required. If
+not given then it may be passed as the &quot;Host&quot;
+option described below. If no host is passed then two
+environment variables are checked, first
+&quot;NNTPSERVER&quot; then &quot;NEWSHOST&quot;, then
+&quot;Net::Config&quot; is checked, and if a host is not
+found then &quot;news&quot; is used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">%options are
+passed in a hash like fashion, using key and value pairs.
+Possible options are:</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Host</b>
+&minus; <small>NNTP</small> host to connect to. It may be a
+single scalar, as defined for the &quot;PeerAddr&quot;
+option in IO::Socket::INET, or a reference to an array with
+hosts to try in turn. The &quot;host&quot; method will
+return the value which was used to connect to the host.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Port</b>
+&minus; port to connect to. Default &minus; 119 for plain
+<small>NNTP</small> and 563 for immediate <small>SSL</small>
+(nntps).</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>SSL</small></b>
+&minus; If the connection should be done from start with
+<small>SSL,</small> contrary to later upgrade with
+&quot;starttls&quot;. You can use <small>SSL</small>
+arguments as documented in IO::Socket::SSL, but it will
+usually use the right arguments already.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Timeout</b>
+&minus; Maximum time, in seconds, to wait for a response
+from the <small>NNTP</small> server, a value of zero will
+cause all <small>IO</small> operations to block. (default:
+120)</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Debug</b>
+&minus; Enable the printing of debugging information to
+<small>STDERR</small></p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Reader</b>
+&minus; If the remote server is <small>INN</small> then
+initially the connection will be to innd, by default
+&quot;Net::NNTP&quot; will issue a &quot;MODE READER&quot;
+command so that the remote server becomes nnrpd. If the
+&quot;Reader&quot; option is given with a value of zero,
+then this command will not be sent and the connection will
+be left talking to innd.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>LocalAddr</b>
+and <b>LocalPort</b> &minus; These parameters are passed
+directly to IO::Socket to allow binding the socket to a
+specific local address and port.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Domain</b>
+&minus; This parameter is passed directly to IO::Socket and
+makes it possible to enforce IPv4 connections even if
+IO::Socket::IP is used as super class. Alternatively
+<b>Family</b> can be used.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Object
+Methods</b> <br>
+Unless otherwise stated all methods return either a
+<i>true</i> or <i>false</i> value, with <i>true</i> meaning
+that the operation was a success. When a method states that
+it returns a value, failure will be returned as <i>undef</i>
+or an empty list.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Net::NNTP&quot;
+inherits from &quot;Net::Cmd&quot; so methods defined in
+&quot;Net::Cmd&quot; may be used to send commands to the
+remote <small>NNTP</small> server in addition to the methods
+documented here. <br>
+&quot;host()&quot;</p>
+
+<p style="margin-left:17%;">Returns the value used by the
+constructor, and passed to IO::Socket::INET, to connect to
+the host.</p>
+
+<p style="margin-left:11%;">&quot;starttls()&quot;</p>
+
+<p style="margin-left:17%;">Upgrade existing plain
+connection to <small>SSL.</small> Any arguments necessary
+for <small>SSL</small> must be given in &quot;new&quot;
+already.</p>
+
+
+<p style="margin-left:11%;">&quot;article([{$msgid|$msgnum}[,
+$fh]])&quot;</p>
+
+<p style="margin-left:17%;">Retrieve the header, a blank
+line, then the body (text) of the specified article.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If $fh is
+specified then it is expected to be a valid filehandle and
+the result will be printed to it, on success a true value
+will be returned. If $fh is not specified then the return
+value, on success, will be a reference to an array
+containing the article requested, each entry in the array
+will contain one line of the article.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If no arguments
+are passed then the current article in the currently
+selected newsgroup is fetched.</p>
+
+<p style="margin-left:17%; margin-top: 1em">$msgnum is a
+numeric id of an article in the current newsgroup, and will
+change the current article pointer. $msgid is the message id
+of an article as shown in that article&rsquo;s header. It is
+anticipated that the client will obtain the $msgid from a
+list provided by the &quot;newnews&quot; command, from
+references contained within another article, or from the
+message-id provided in the response to some other
+commands.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If there is an
+error then &quot;undef&quot; will be returned.</p>
+
+<p style="margin-left:11%;">&quot;body([{$msgid|$msgnum}[,
+[$fh]])&quot;</p>
+
+<p style="margin-left:17%;">Like &quot;article&quot; but
+only fetches the body of the article.</p>
+
+<p style="margin-left:11%;">&quot;head([{$msgid|$msgnum}[,
+[$fh]])&quot;</p>
+
+<p style="margin-left:17%;">Like &quot;article&quot; but
+only fetches the headers for the article.</p>
+
+
+<p style="margin-left:11%;">&quot;articlefh([{$msgid|$msgnum}])&quot;
+<br>
+&quot;bodyfh([{$msgid|$msgnum}])&quot; <br>
+&quot;headfh([{$msgid|$msgnum}])&quot;</p>
+
+<p style="margin-left:17%;">These are similar to
+<b>article()</b>, <b>body()</b> and <b>head()</b>, but
+rather than returning the requested data directly, they
+return a tied filehandle from which to read the article.</p>
+
+
+<p style="margin-left:11%;">&quot;nntpstat([{$msgid|$msgnum}])&quot;</p>
+
+<p style="margin-left:17%;">The &quot;nntpstat&quot;
+command is similar to the &quot;article&quot; command except
+that no text is returned. When selecting by message number
+within a group, the &quot;nntpstat&quot; command serves to
+set the &quot;current article pointer&quot; without sending
+text.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using the
+&quot;nntpstat&quot; command to select by message-id is
+valid but of questionable value, since a selection by
+message-id does <b>not</b> alter the &quot;current article
+pointer&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+message-id of the &quot;current article&quot;.</p>
+
+
+<p style="margin-left:11%;">&quot;group([$group])&quot;</p>
+
+<p style="margin-left:17%;">Set and/or get the current
+group. If $group is not given then information is returned
+on the current group.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In a scalar
+context it returns the group name.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In an array
+context the return value is a list containing, the number of
+articles in the group, the number of the first article, the
+number of the last article and the group name.</p>
+
+<p style="margin-left:11%;">&quot;help()&quot;</p>
+
+<p style="margin-left:17%;">Request help text (a short
+summary of commands that are understood by this
+implementation) from the server. Returns the text or undef
+upon failure.</p>
+
+<p style="margin-left:11%;">&quot;ihave($msgid[,
+$message])&quot;</p>
+
+<p style="margin-left:17%;">The &quot;ihave&quot; command
+informs the server that the client has an article whose id
+is $msgid. If the server desires a copy of that article and
+$message has been given then it will be sent.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns
+<i>true</i> if the server desires the article and $message
+was successfully sent, if specified.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If $message is
+not specified then the message must be sent using the
+&quot;datasend&quot; and &quot;dataend&quot; methods from
+Net::Cmd</p>
+
+<p style="margin-left:17%; margin-top: 1em">$message can be
+either an array of lines or a reference to an array and must
+be encoded by the caller to octets of whatever encoding is
+required, e.g. by using the Encode module&rsquo;s
+&quot;encode()&quot; function.</p>
+
+<p style="margin-left:11%;">&quot;last()&quot;</p>
+
+<p style="margin-left:17%;">Set the &quot;current article
+pointer&quot; to the previous article in the current
+newsgroup.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+message-id of the article.</p>
+
+<p style="margin-left:11%;">&quot;date()&quot;</p>
+
+<p style="margin-left:17%;">Returns the date on the remote
+server. This date will be in a <small>UNIX</small> time
+format (seconds since 1970)</p>
+
+<p style="margin-left:11%;">&quot;postok()&quot;</p>
+
+<p style="margin-left:17%;">&quot;postok&quot; will return
+<i>true</i> if the servers initial response indicated that
+it will allow posting.</p>
+
+<p style="margin-left:11%;">&quot;authinfo($user,
+$pass)&quot;</p>
+
+<p style="margin-left:17%;">Authenticates to the server
+(using the original <small>AUTHINFO USER / AUTHINFO
+PASS</small> form, defined in <small>RFC2980</small> ) using
+the supplied username and password. Please note that the
+password is sent in clear text to the server. This command
+should not be used with valuable passwords unless the
+connection to the server is somehow protected.</p>
+
+<p style="margin-left:11%;">&quot;authinfo_simple($user,
+$pass)&quot;</p>
+
+<p style="margin-left:17%;">Authenticates to the server
+(using the proposed <small>NNTP V2 AUTHINFO SIMPLE</small>
+form, defined and deprecated in <small>RFC2980</small> )
+using the supplied username and password. As with
+&quot;authinfo&quot; the password is sent in clear text.</p>
+
+<p style="margin-left:11%;">&quot;list()&quot;</p>
+
+<p style="margin-left:17%;">Obtain information about all
+the active newsgroups. The results is a reference to a hash
+where the key is a group name and each value is a reference
+to an array. The elements in this array are:&minus; the last
+article number in the group, the first article number in the
+group and any information flags about the group.</p>
+
+<p style="margin-left:11%;">&quot;newgroups($since[,
+$distributions])&quot;</p>
+
+<p style="margin-left:17%;">$since is a time value and
+$distributions is either a distribution pattern or a
+reference to a list of distribution patterns. The result is
+the same as &quot;list&quot;, but the groups return will be
+limited to those created after $since and, if specified, in
+one of the distribution areas in $distributions.</p>
+
+<p style="margin-left:11%;">&quot;newnews($since[,
+$groups[, $distributions]])&quot;</p>
+
+<p style="margin-left:17%;">$since is a time value. $groups
+is either a group pattern or a reference to a list of group
+patterns. $distributions is either a distribution pattern or
+a reference to a list of distribution patterns.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns a
+reference to a list which contains the message-ids of all
+news posted after $since, that are in a groups which matched
+$groups and a distribution which matches $distributions.</p>
+
+<p style="margin-left:11%;">&quot;next()&quot;</p>
+
+<p style="margin-left:17%;">Set the &quot;current article
+pointer&quot; to the next article in the current
+newsgroup.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+message-id of the article.</p>
+
+
+<p style="margin-left:11%;">&quot;post([$message])&quot;</p>
+
+<p style="margin-left:17%;">Post a new article to the news
+server. If $message is specified and posting is allowed then
+the message will be sent.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If $message is
+not specified then the message must be sent using the
+&quot;datasend&quot; and &quot;dataend&quot; methods from
+Net::Cmd</p>
+
+<p style="margin-left:17%; margin-top: 1em">$message can be
+either an array of lines or a reference to an array and must
+be encoded by the caller to octets of whatever encoding is
+required, e.g. by using the Encode module&rsquo;s
+&quot;encode()&quot; function.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The message,
+either sent via &quot;datasend&quot; or as the $message
+parameter, must be in the format as described by
+<small>RFC822</small> and must contain From:, Newsgroups:
+and Subject: headers.</p>
+
+<p style="margin-left:11%;">&quot;postfh()&quot;</p>
+
+<p style="margin-left:17%;">Post a new article to the news
+server using a tied filehandle. If posting is allowed, this
+method will return a tied filehandle that you can
+<b>print()</b> the contents of the article to be posted. You
+must explicitly <b>close()</b> the filehandle when you are
+finished posting the article, and the return value from the
+<b>close()</b> call will indicate whether the message was
+successfully posted.</p>
+
+<p style="margin-left:11%;">&quot;slave()&quot;</p>
+
+<p style="margin-left:17%;">Tell the remote server that I
+am not a user client, but probably another news server.</p>
+
+<p style="margin-left:11%;">&quot;quit()&quot;</p>
+
+<p style="margin-left:17%;">Quit the remote server and
+close the socket connection.</p>
+
+<p style="margin-left:11%;">&quot;can_inet6()&quot;</p>
+
+<p style="margin-left:17%;">Returns whether we can use
+IPv6.</p>
+
+<p style="margin-left:11%;">&quot;can_ssl()&quot;</p>
+
+<p style="margin-left:17%;">Returns whether we can use
+<small>SSL.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Extension
+Methods</b> <br>
+These methods use commands that are not part of the
+<small>RFC977</small> documentation. Some servers may not
+support all of them. <br>
+&quot;newsgroups([$pattern])&quot;</p>
+
+<p style="margin-left:17%;">Returns a reference to a hash
+where the keys are all the group names which match $pattern,
+or all of the groups if no pattern is specified, and each
+value contains the description text for the group.</p>
+
+
+<p style="margin-left:11%;">&quot;distributions()&quot;</p>
+
+<p style="margin-left:17%;">Returns a reference to a hash
+where the keys are all the possible distribution names and
+the values are the distribution descriptions.</p>
+
+
+<p style="margin-left:11%;">&quot;distribution_patterns()&quot;</p>
+
+<p style="margin-left:17%;">Returns a reference to an array
+where each element, itself an array reference, consists of
+the three fields of a line of the distrib.pats list
+maintained by some <small>NNTP</small> servers, namely: a
+weight, a wildmat and a value which the client may use to
+construct a Distribution header.</p>
+
+
+<p style="margin-left:11%;">&quot;subscriptions()&quot;</p>
+
+<p style="margin-left:17%;">Returns a reference to a list
+which contains a list of groups which are recommended for a
+new user to subscribe to.</p>
+
+<p style="margin-left:11%;">&quot;overview_fmt()&quot;</p>
+
+<p style="margin-left:17%;">Returns a reference to an array
+which contain the names of the fields returned by
+&quot;xover&quot;.</p>
+
+<p style="margin-left:11%;">&quot;active_times()&quot;</p>
+
+<p style="margin-left:17%;">Returns a reference to a hash
+where the keys are the group names and each value is a
+reference to an array containing the time the groups was
+created and an identifier, possibly an Email address, of the
+creator.</p>
+
+
+<p style="margin-left:11%;">&quot;active([$pattern])&quot;</p>
+
+<p style="margin-left:17%;">Similar to &quot;list&quot; but
+only active groups that match the pattern are returned.
+$pattern can be a group pattern.</p>
+
+
+<p style="margin-left:11%;">&quot;xgtitle($pattern)&quot;</p>
+
+<p style="margin-left:17%;">Returns a reference to a hash
+where the keys are all the group names which match $pattern
+and each value is the description text for the group.</p>
+
+<p style="margin-left:11%;">&quot;xhdr($header,
+$message_spec)&quot;</p>
+
+<p style="margin-left:17%;">Obtain the header field $header
+for all the messages specified.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The return
+value will be a reference to a hash where the keys are the
+message numbers and each value contains the text of the
+requested header for that message.</p>
+
+
+<p style="margin-left:11%;">&quot;xover($message_spec)&quot;</p>
+
+<p style="margin-left:17%;">The return value will be a
+reference to a hash where the keys are the message numbers
+and each value contains a reference to an array which
+contains the overview fields for that message.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The names of
+the fields can be obtained by calling
+&quot;overview_fmt&quot;.</p>
+
+
+<p style="margin-left:11%;">&quot;xpath($message_id)&quot;</p>
+
+<p style="margin-left:17%;">Returns the path name to the
+file on the server which contains the specified message.</p>
+
+<p style="margin-left:11%;">&quot;xpat($header, $pattern,
+$message_spec)&quot;</p>
+
+<p style="margin-left:17%;">The result is the same as
+&quot;xhdr&quot; except the is will be restricted to headers
+where the text of the header matches $pattern</p>
+
+
+<p style="margin-left:11%;">&quot;xrover($message_spec)&quot;</p>
+
+<p style="margin-left:17%;">The <small>XROVER</small>
+command returns reference information for the article(s)
+specified.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns a
+reference to a <small>HASH</small> where the keys are the
+message numbers and the values are the References: lines
+from the articles</p>
+
+
+<p style="margin-left:11%;">&quot;listgroup([$group])&quot;</p>
+
+<p style="margin-left:17%;">Returns a reference to a list
+of all the active messages in $group, or the current group
+if $group is not specified.</p>
+
+<p style="margin-left:11%;">&quot;reader()&quot;</p>
+
+<p style="margin-left:17%;">Tell the server that you are a
+reader and not another server.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is
+required by some servers. For example if you are connecting
+to an <small>INN</small> server and you have transfer
+permission your connection will be connected to the transfer
+daemon, not the <small>NNTP</small> daemon. Issuing this
+command will cause the transfer daemon to hand over control
+to the <small>NNTP</small> daemon.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Some servers do
+not understand this command, but issuing it and ignoring the
+response is harmless.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Unsupported</b>
+<br>
+The following <small>NNTP</small> command are unsupported by
+the package, and there are no plans to do so.</p>
+
+<p style="margin-left:11%; margin-top: 1em">AUTHINFO
+GENERIC <br>
+XTHREAD <br>
+XSEARCH <br>
+XINDEX</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Definitions</b>
+<br>
+$message_spec</p>
+
+<p style="margin-left:17%;">$message_spec is either a
+single message-id, a single message number, or a reference
+to a list of two message numbers.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+$message_spec is a reference to a list of two message
+numbers and the second number in a range is less than or
+equal to the first then the range represents all messages in
+the group after the first message number.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>NOTE</small></b>
+For compatibility reasons only with earlier versions of
+Net::NNTP a message spec can be passed as a list of two
+numbers, this is deprecated and a reference to the list
+should now be passed</p>
+
+<p style="margin-left:11%;">$pattern</p>
+
+<p style="margin-left:17%;">The &quot;NNTP&quot; protocol
+uses the &quot;WILDMAT&quot; format for patterns. The
+<small>WILDMAT</small> format was first developed by Rich
+Salz based on the format used in the <small>UNIX</small>
+&quot;find&quot; command to articulate file names. It was
+developed to provide a uniform mechanism for matching
+patterns in the same manner that the <small>UNIX</small>
+shell matches filenames.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Patterns are
+implicitly anchored at the beginning and end of each string
+when testing for a match.</p>
+
+<p style="margin-left:17%; margin-top: 1em">There are five
+pattern matching operations other than a strict one-to-one
+match between the pattern and the source to be checked for a
+match.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The first is an
+asterisk &quot;*&quot; to match any sequence of zero or more
+characters.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The second is a
+question mark &quot;?&quot; to match any single character.
+The third specifies a specific set of characters.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The set is
+specified as a list of characters, or as a range of
+characters where the beginning and end of the range are
+separated by a minus (or dash) character, or as any
+combination of lists and ranges. The dash can also be
+included in the set as a character it if is the beginning or
+end of the set. This set is enclosed in square brackets. The
+close square bracket &quot;]&quot; may be used in a set if
+it is the first character in the set.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The fourth
+operation is the same as the logical not of the third
+operation and is specified the same way as the third with
+the addition of a caret character &quot;^&quot; at the
+beginning of the test string just inside the open square
+bracket.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The final
+operation uses the backslash character to invalidate the
+special meaning of an open square bracket &quot;[&quot;, the
+asterisk, backslash or the question mark. Two backslashes in
+sequence will result in the evaluation of the backslash as a
+character with no special meaning. <br>
+Examples <br>
+&quot;[^]&minus;]&quot;</p>
+
+<p style="margin-left:23%;">matches any single character
+other than a close square bracket or a minus sign/dash.</p>
+
+<p style="margin-left:17%;">*bdc</p>
+
+<p style="margin-left:23%;">matches any string that ends
+with the string &quot;bdc&quot; including the string
+&quot;bdc&quot; (without quotes).</p>
+
+
+<p style="margin-left:17%;">&quot;[0&minus;9a&minus;zA&minus;Z]&quot;</p>
+
+<p style="margin-left:23%;">matches any single printable
+alphanumeric <small>ASCII</small> character.</p>
+
+<p style="margin-left:17%;">&quot;a??d&quot;</p>
+
+<p style="margin-left:23%;">matches any four character
+string which begins with a and ends with d.</p>
+
+<h2>EXPORTS
+<a name="EXPORTS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>None</i>.</p>
+
+<h2>KNOWN BUGS
+<a name="KNOWN BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">See
+&lt;https://rt.cpan.org/Dist/Display.html?Status=Active&amp;Queue=libnet&gt;.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Net::Cmd,
+IO::Socket::SSL.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Graham Barr
+&lt;gbarr@pobox.com &lt;mailto:gbarr@pobox.com&gt;&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Steve Hay
+&lt;shay@cpan.org &lt;mailto:shay@cpan.org&gt;&gt; is now
+maintaining libnet as of version 1.22_02.</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (C)
+1995&minus;1997 Graham Barr. All rights reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (C)
+2013&minus;2016, 2020 Steve Hay. All rights reserved.</p>
+
+<h2>LICENCE
+<a name="LICENCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself, i.e. under the terms of
+either the <small>GNU</small> General Public License or the
+Artistic License, as specified in the
+<i><small>LICENCE</small></i> file.</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Version
+3.14</p>
+
+<h2>DATE
+<a name="DATE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">23 Dec 2020</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">See the
+<i>Changes</i> file.</p>
+<hr>
+</body>
+</html>

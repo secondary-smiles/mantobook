@@ -1,0 +1,1677 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:15 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Alien::Build</title>
+
+</head>
+<body>
+<h1>Alien::Build</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Alien::Build
+&minus; Build external dependencies for use in CPAN</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+2.80</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">my $build =
+Alien::Build&minus;&gt;load('./alienfile'); <br>
+$build&minus;&gt;load_requires('configure'); <br>
+$build&minus;&gt;set_prefix('/usr/local'); <br>
+$build&minus;&gt;set_stage('/foo/mystage'); # needs to be
+absolute <br>
+
+$build&minus;&gt;load_requires($build&minus;&gt;install_type);
+<br>
+$build&minus;&gt;download; <br>
+$build&minus;&gt;build; <br>
+# files are now in /foo/mystage, it is your job (or <br>
+# ExtUtils::MakeMaker, Module::Build, etc) to copy <br>
+# those files into /usr/local</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+provides tools for building external (non-CPAN) dependencies
+for <small>CPAN.</small> It is mainly designed to be used at
+install time of a <small>CPAN</small> client, and work
+closely with Alien::Base which is used at runtime.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is the
+detailed documentation for the Alien::Build class. If you
+are starting out you probably want to do so from one of
+these documents: <br>
+Alien::Build::Manual::Alien</p>
+
+<p style="margin-left:17%;">A broad overview of
+&quot;Alien&minus;Build&quot; and its ecosystem.</p>
+
+
+<p style="margin-left:11%;">Alien::Build::Manual::AlienUser</p>
+
+<p style="margin-left:17%;">For users of an
+&quot;Alien::libfoo&quot; that is implemented using
+Alien::Base. (The developer of &quot;Alien::libfoo&quot;
+<i>should</i> provide the documentation necessary, but if
+not, this is the place to start).</p>
+
+
+<p style="margin-left:11%;">Alien::Build::Manual::AlienAuthor</p>
+
+<p style="margin-left:17%;">If you are writing your own
+Alien based on Alien::Build and Alien::Base.</p>
+
+<p style="margin-left:11%;">Alien::Build::Manual::FAQ</p>
+
+<p style="margin-left:17%;">If you have a common question
+that has already been answered, like &quot;How do I use
+alienfile with some build system&quot;.</p>
+
+
+<p style="margin-left:11%;">Alien::Build::Manual::PluginAuthor</p>
+
+<p style="margin-left:17%;">This is for the brave souls who
+want to write plugins that will work with Alien::Build +
+alienfile.</p>
+
+
+<p style="margin-left:11%;">Alien::Build::Manual::Security</p>
+
+<p style="margin-left:17%;">If you are concerned that
+Aliens might be downloading tarballs off the internet, then
+this is the place for you. This will discuss some of the
+risks of downloading (really any) software off the internet
+and will give you some tools to remediate these risks.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that you
+will not usually create a Alien::Build instance directly,
+but rather be using a thin installer layer, such as
+Alien::Build::MM (for use with ExtUtils::MakeMaker) or
+Alien::Build::MB (for use with Module::Build). One of the
+goals of this project is to remain installer agnostic.</p>
+
+<h2>CONSTRUCTORS
+<a name="CONSTRUCTORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>new</b> <br>
+my $build = Alien::Build&minus;&gt;new;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This creates a
+new empty instance of Alien::Build. Normally you will want
+to use &quot;load&quot; below to create an instance of
+Alien::Build from an alienfile recipe.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>load</b>
+<br>
+my $build = Alien::Build&minus;&gt;load($alienfile);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This creates an
+Alien::Build instance with the given alienfile recipe.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>resume</b>
+<br>
+my $build = Alien::Build&minus;&gt;resume($alienfile,
+$root);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Load a
+checkpointed Alien::Build instance. You will need the
+original alienfile and the build root (usually
+&quot;_alien&quot;), and a build that had been properly
+checkpointed using the &quot;checkpoint&quot; method
+below.</p>
+
+<h2>PROPERTIES
+<a name="PROPERTIES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">There are three
+main properties for Alien::Build. There are a number of
+properties documented here with a specific usage. Note that
+these properties may need to be serialized into something
+primitive like <small>JSON</small> that does not support:
+regular expressions, code references of blessed objects.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+writing a plugin (Alien::Build::Plugin) you should use a
+prefix like &quot;plugin_<i>name</i>&quot; (where
+<i>name</i> is the name of your plugin) so that it does not
+interfere with other plugin or future versions of
+Alien::Build. For example, if you were writing
+&quot;Alien::Build::Plugin::Fetch::NewProtocol&quot;, please
+use the prefix &quot;plugin_fetch_newprotocol&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub init <br>
+{ <br>
+my($self, $meta) = @_; <br>
+$meta&minus;&gt;prop( plugin_fetch_newprotocol_foo =&gt;
+'some value' ); <br>
+$meta&minus;&gt;register_hook( <br>
+some_hook =&gt; sub { <br>
+my($build) = @_; <br>
+
+$build&minus;&gt;install_prop&minus;&gt;{plugin_fetch_newprotocol_bar}
+= 'some other value'; <br>
+
+$build&minus;&gt;runtime_prop&minus;&gt;{plugin_fetch_newprotocol_baz}
+= 'and another value'; <br>
+} <br>
+); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+writing a alienfile recipe please use the prefix
+&quot;my_&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use alienfile;
+<br>
+meta_prop&minus;&gt;{my_foo} = 'some value'; <br>
+probe sub { <br>
+my($build) = @_; <br>
+$build&minus;&gt;install_prop&minus;&gt;{my_bar} = 'some
+other value'; <br>
+$build&minus;&gt;install_prop&minus;&gt;{my_baz} = 'and
+another value'; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Any property
+may be used from a command:</p>
+
+<p style="margin-left:11%; margin-top: 1em">probe [ 'some
+command %{.meta.plugin_fetch_newprotocol_foo}' ]; <br>
+probe [ 'some command
+%{.install.plugin_fetch_newprotocol_bar}' ]; <br>
+probe [ 'some command
+%{.runtime.plugin_fetch_newprotocol_baz}' ]; <br>
+probe [ 'some command %{.meta.my_foo}' ]; <br>
+probe [ 'some command %{.install.my_bar}' ]; <br>
+probe [ 'some command %{.runtime.my_baz}' ];</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>meta_prop</b>
+<br>
+my $href = $build&minus;&gt;meta_prop; <br>
+my $href = Alien::Build&minus;&gt;meta_prop;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Meta properties
+have to do with the recipe itself, and not any particular
+instance that probes or builds that recipe. Meta properties
+can be changed from within an alienfile using the
+&quot;meta_prop&quot; directive, or from a plugin from its
+&quot;init&quot; method (though should <small>NOT</small> be
+modified from any hooks registered within that
+&quot;init&quot; method). This is not strictly enforced, but
+if you do not follow this rule your recipe will likely be
+broken. <br>
+arch</p>
+
+<p style="margin-left:17%;">This is a hint to an installer
+like Alien::Build::MM or Alien::Build::MB, that the library
+or tool contains architecture dependent files and so should
+be stored in an architecture dependent location. If not
+specified by your alienfile then it will be set to true.</p>
+
+<p style="margin-left:11%;">check_digest</p>
+
+<p style="margin-left:17%;">True if cryptographic digest
+should be checked when files are fetched or downloaded. This
+is set by Digest negotiator plugin.</p>
+
+<p style="margin-left:11%;">destdir</p>
+
+<p style="margin-left:17%;">Some plugins
+(Alien::Build::Plugin::Build::Autoconf for example) support
+installing via &quot;DESTDIR&quot;. They will set this
+property to true if they plan on doing such an install. This
+helps Alien::Build find the staged install files and how to
+locate them.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If available,
+&quot;DESTDIR&quot; is used to stage install files in a sub
+directory before copying the files into &quot;blib&quot;.
+This is generally preferred method if available.</p>
+
+<p style="margin-left:11%;">destdir_filter</p>
+
+<p style="margin-left:17%;">Regular expression for the
+files that should be copied from the &quot;DESTDIR&quot;
+into the stage directory. If not defined, then all files
+will be copied.</p>
+
+<p style="margin-left:11%;">destdir_ffi_filter</p>
+
+<p style="margin-left:17%;">Same as
+&quot;destdir_filter&quot; except applies to
+&quot;build_ffi&quot; instead of &quot;build&quot;.</p>
+
+<p style="margin-left:11%;">digest</p>
+
+<p style="margin-left:17%;">This properties contains the
+cryptographic digests (if any) that should be used when
+verifying any fetched and downloaded files. It is a hash
+reference where the key is the filename and the value is an
+array reference containing a pair of values, the first being
+the algorithm (&rsquo; <small>SHA256</small> &rsquo; is
+recommended) and the second is the actual digest. The
+special filename &quot;*&quot; may be specified to indicate
+that any downloaded file should match that digest. If there
+are both real filenames and the &quot;*&quot; placeholder,
+the real filenames will be used for filenames that match and
+any other files will use the placeholder. Example:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$build&minus;&gt;meta_prop&minus;&gt;{digest}
+= { <br>
+'foo&minus;1.00.tar.gz' =&gt; [ SHA256 =&gt;
+'9feac593aa49a44eb837de52513a57736457f1ea70078346c60f0bfc5f24f2c1'
+], <br>
+'foo&minus;1.01.tar.gz' =&gt; [ SHA256 =&gt;
+'6bbde6a7f10ae5924cf74afc26ff5b7bc4b4f9dfd85c6b534c51bd254697b9e7'
+], <br>
+'*' =&gt; [ SHA256 =&gt;
+'33a20aae3df6ecfbe812b48082926d55391be4a57d858d35753ab1334b9fddb3'
+], <br>
+};</p>
+
+<p style="margin-left:17%; margin-top: 1em">Cryptographic
+signatures will only be checked if the check_digest meta
+property is set and if the Digest negotiator plugin is
+loaded. (The Digest negotiator can be used directly, but is
+also loaded automatically if you use the digest directive is
+used by the alienfile).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>env</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Environment variables to override during the build
+stage.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%;">env_interpolate</p>
+
+<p style="margin-left:17%;">Environment variable values
+will be interpolated with helpers. Example:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">meta&minus;&gt;prop&minus;&gt;{env_interpolate}
+= 1; <br>
+meta&minus;&gt;prop&minus;&gt;{env}&minus;&gt;{PERL} =
+'%{perl}';</p>
+
+<p style="margin-left:11%;">local_source</p>
+
+<p style="margin-left:17%;">Set to true if source code
+package is available locally. (that is not fetched over the
+internet). This is computed by default based on the
+&quot;start_url&quot; property. Can be set by an alienfile
+or plugin.</p>
+
+<p style="margin-left:11%;">platform</p>
+
+<p style="margin-left:17%;">Hash reference. Contains
+information about the platform beyond just $^O. <br>
+platform.compiler_type</p>
+
+<p style="margin-left:23%;">Refers to the type of flags
+that the compiler accepts. May be expanded in the future,
+but for now, will be one of: <br>
+microsoft</p>
+
+<p style="margin-left:29%;">On Windows when using Microsoft
+Visual C <small>++</small></p>
+
+<p style="margin-left:23%;">unix</p>
+
+<p style="margin-left:29%;">Virtually everything else,
+including gcc on windows.</p>
+
+<p style="margin-left:23%; margin-top: 1em">The main
+difference is that with Visual C <small>++</small>
+&quot;&minus;LIBPATH&quot; should be used instead of
+&quot;&minus;L&quot;, and static libraries should have the
+&quot;.LIB&quot; suffix instead of &quot;.a&quot;.</p>
+
+<p style="margin-left:17%;">platform.system_type</p>
+
+<p style="margin-left:23%;">$^O is frequently good enough
+to make platform specific logic in your alienfile, this
+handles the case when $^O can cover platforms that provide
+multiple environments that Perl might run under. The main
+example is windows, but others may be added in the future.
+<br>
+unix</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="5%">
+
+
+<p>vms</p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%;">windows-activestate <br>
+windows-microsoft <br>
+windows-mingw <br>
+windows-strawberry <br>
+windows-unknown</p>
+
+<p style="margin-left:23%; margin-top: 1em">Note that
+&quot;cygwin&quot; and &quot;msys&quot; are considered
+&quot;unix&quot; even though they run on windows!</p>
+
+<p style="margin-left:17%;">platform.cpu.count</p>
+
+<p style="margin-left:23%;">Contains a non-negative integer
+of available (possibly virtual) CPUs on the system. This can
+be used by build plugins to build in parallel. The
+environment variable &quot;ALIEN_CPU_COUNT&quot; can be set
+to override the <small>CPU</small> count.</p>
+
+<p style="margin-left:17%;">platform.cpu.arch.name</p>
+
+<p style="margin-left:23%;">Contains a normalized name for
+the architecture of the current Perl. This can be used by
+fetch plugins to determine which binary packages to
+download. The value may be one of the following, but this
+list will be expanded as needed. <br>
+&quot;armel&quot;</p>
+
+<p style="margin-left:29%;">32&minus;bit <small>ARM</small>
+soft-float</p>
+
+<p style="margin-left:23%;">&quot;armhf&quot;</p>
+
+<p style="margin-left:29%;">32&minus;bit <small>ARM</small>
+hard-float</p>
+
+<p style="margin-left:23%;">&quot;aarch64&quot;</p>
+
+<p style="margin-left:29%;">64&minus;bit
+<small>ARM</small></p>
+
+<p style="margin-left:23%;">&quot;ppc&quot;</p>
+
+<p style="margin-left:29%;">32&minus;bit PowerPC
+(big-endian)</p>
+
+<p style="margin-left:23%;">&quot;ppc64&quot;</p>
+
+<p style="margin-left:29%;">64&minus;bit PowerPC
+(big-endian)</p>
+
+<p style="margin-left:23%;">&quot;x86&quot;</p>
+
+<p style="margin-left:29%;">32&minus;bit Intel (i386, i486,
+i686)</p>
+
+<p style="margin-left:23%;">&quot;x86_64&quot;</p>
+
+<p style="margin-left:29%;">64&minus;bit Intel (
+<small>AMD64</small> )</p>
+
+<p style="margin-left:23%;">&quot;unknown&quot;</p>
+
+<p style="margin-left:29%;">Unable to detect architecture.
+Please report this if needed.</p>
+
+<p style="margin-left:11%;">out_of_source</p>
+
+<p style="margin-left:17%;">Build in a different directory
+from the where the source code is stored. In autoconf this
+is referred to as a &quot; <small>VPATH&quot;</small> build.
+Everyone else calls this an &quot;out-of-source&quot; build.
+When this property is true, instead of extracting to the
+source build root, the downloaded source will be extracted
+to an source extraction directory and the source build root
+will be empty. You can use the &quot;extract&quot; install
+property to get the location of the extracted source.</p>
+
+<p style="margin-left:11%;">network</p>
+
+<p style="margin-left:17%;">True if a network fetch is
+available. This should <small>NOT</small> be set by an
+alienfile or plugin. This is computed based on the
+&quot;ALIEN_INSTALL_NETWORK&quot; environment variables.</p>
+
+<p style="margin-left:11%;">start_url</p>
+
+<p style="margin-left:17%;">The default or start
+<small>URL</small> used by fetch plugins.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>install_prop</b>
+<br>
+my $href = $build&minus;&gt;install_prop;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Install
+properties are used during the install phase (either under
+&quot;share&quot; or &quot;system&quot; install). They are
+remembered for the entire install phase, but not kept around
+during the runtime phase. Thus they cannot be accessed from
+your Alien::Base based module. <br>
+autoconf_prefix</p>
+
+<p style="margin-left:17%;">The prefix as understood by
+autoconf. This is only different on Windows Where
+<small>MSYS</small> is used and paths like
+&quot;C:/foo&quot; are represented as &quot;/C/foo&quot;
+which are understood by the <small>MSYS</small> tools, but
+not by Perl. You should only use this if you are using
+Alien::Build::Plugin::Build::Autoconf in your alienfile.
+This is set during before the build hook is run.</p>
+
+<p style="margin-left:11%;">download</p>
+
+<p style="margin-left:17%;">The location of the downloaded
+archive (tar.gz, or similar) or directory. This will be
+undefined until the archive is actually downloaded.</p>
+
+<p style="margin-left:11%;">download_detail</p>
+
+<p style="margin-left:17%;">This property contains optional
+details about a downloaded file. This property is populated
+by Alien::Build core. This property is a hash reference. The
+key is the path to the file that has been downloaded and the
+value is a hash reference with additional detail. All fields
+are optional. <br>
+download_detail.digest</p>
+
+<p style="margin-left:23%;">This, if available, with the
+cryptographic signature that was successfully matched
+against the downloaded file. It is an array reference with a
+pair of values, the algorithm (typically something like
+&quot;SHA256&quot;) and the digest.</p>
+
+<p style="margin-left:17%;">download_detail.protocol</p>
+
+<p style="margin-left:23%;">This, if available, will be the
+<small>URL</small> protocol used to fetch the downloaded
+file.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>env</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Environment variables to override during the build
+stage. Plugins are free to set additional overrides using
+this hash.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">extract</p>
+
+<p style="margin-left:17%;">The location of the last source
+extraction. For a &quot;out-of-source&quot; build (see the
+&quot;out_of_source&quot; meta property above), this will
+only be set once. For other types of builds, the source code
+may be extracted multiple times, and thus this property may
+change.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>old</p></td>
+<td width="2%"></td>
+<td width="18%">
+
+
+<p>[deprecated]</p></td>
+<td width="65%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Hash containing
+information on a previously installed Alien of the same
+name, if available. This may be useful in cases where you
+want to reuse the previous install if it is still
+sufficient. <br>
+old.prefix</p>
+
+<p style="margin-left:23%;">[deprecated]</p>
+
+<p style="margin-left:23%; margin-top: 1em">The prefix for
+the previous install. Versions prior to 1.42 unfortunately
+had this in typo form of &quot;preifx&quot;.</p>
+
+<p style="margin-left:17%;">old.runtime</p>
+
+<p style="margin-left:23%;">[deprecated]</p>
+
+<p style="margin-left:23%; margin-top: 1em">The runtime
+properties from the previous install.</p>
+
+<p style="margin-left:11%;">patch</p>
+
+<p style="margin-left:17%;">Directory with patches, if
+available. This will be &quot;undef&quot; if there are no
+patches. When initially installing an alien this will
+usually be a sibling of the &quot;alienfile&quot;, a
+directory called &quot;patch&quot;. Once installed this will
+be in the share directory called &quot;_alien/patch&quot;.
+The former is useful for rebuilding an alienized package
+using af.</p>
+
+<p style="margin-left:11%;">prefix</p>
+
+<p style="margin-left:17%;">The install time prefix. Under
+a &quot;destdir&quot; install this is the same as the
+runtime or final install location. Under a
+non&minus;&quot;destdir&quot; install this is the
+&quot;stage&quot; directory (usually the appropriate share
+directory under &quot;blib&quot;).</p>
+
+<p style="margin-left:11%;">root</p>
+
+<p style="margin-left:17%;">The build root directory. This
+will be an absolute path. It is the absolute form of
+&quot;./_alien&quot; by default.</p>
+
+<p style="margin-left:11%;">stage</p>
+
+<p style="margin-left:17%;">The stage directory where files
+will be copied. This is usually the root of the blib share
+directory.</p>
+
+<p style="margin-left:11%;">system_probe_class</p>
+
+<p style="margin-left:17%;">After the probe step this
+property may contain the plugin class that performed the
+system probe. It shouldn&rsquo;t be filled in directly by
+the plugin (instead if should use the hook property
+&quot;probe_class&quot;, see below). This is optional, and
+not all probe plugins will provide this information.</p>
+
+<p style="margin-left:11%;">system_probe_instance_id</p>
+
+<p style="margin-left:17%;">After the probe step this
+property may contain the plugin instance id that performed
+the system probe. It shouldn&rsquo;t be filled in directly
+by the plugin (instead if should use the hook property
+&quot;probe_instance_id&quot;, see below). This is optional,
+and not all probe plugins will provide this information.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>plugin_instance_prop</b>
+<br>
+my $href =
+$build&minus;&gt;plugin_instance_prop($plugin);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns
+the private plugin instance properties for a given plugin.
+This method should usually only be called internally by
+plugins themselves to keep track of internal state. Because
+the content can be used arbitrarily by the owning plugin
+because it is private to the plugin, and thus is not part of
+the Alien::Build spec.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>runtime_prop</b>
+<br>
+my $href = $build&minus;&gt;runtime_prop;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Runtime
+properties are used during the install and runtime phases
+(either under &quot;share&quot; or &quot;system&quot;
+install). This should include anything that you will need to
+know to use the library or tool during runtime, and
+shouldn&rsquo;t include anything that is no longer relevant
+once the install process is complete. <br>
+alien_build_version</p>
+
+<p style="margin-left:17%;">The version of Alien::Build
+used to install the library or tool.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>alt</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Alternate configurations. If the alienized package has
+multiple libraries this could be used to store the different
+compiler or linker flags for each library. Typically this
+will be set by a plugin in the gather stage (for either
+share or system installs).</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">cflags</p>
+
+<p style="margin-left:17%;">The compiler flags. This is
+typically set by a plugin in the gather stage (for either
+share or system installs).</p>
+
+<p style="margin-left:11%;">cflags_static</p>
+
+<p style="margin-left:17%;">The static compiler flags. This
+is typically set by a plugin in the gather stage (for either
+share or system installs).</p>
+
+<p style="margin-left:11%;">command</p>
+
+<p style="margin-left:17%;">The command name for tools
+where the name my differ from platform to platform. For
+example, the <small>GNU</small> version of make is usually
+&quot;make&quot; in Linux and &quot;gmake&quot; on FreeBSD.
+This is typically set by a plugin in the gather stage (for
+either share or system installs).</p>
+
+<p style="margin-left:11%;">ffi_name</p>
+
+<p style="margin-left:17%;">The name <small>DLL</small> or
+shared object &quot;name&quot; to use when searching for
+dynamic libraries at runtime. This is passed into
+FFI::CheckLib, so if your library is something like
+&quot;libarchive.so&quot; or &quot;archive.dll&quot; you
+would set this to &quot;archive&quot;. This may be a string
+or an array of strings. This is typically set by a plugin in
+the gather stage (for either share or system installs).</p>
+
+<p style="margin-left:11%;">ffi_checklib</p>
+
+<p style="margin-left:17%;">This property contains two sub
+properties: <br>
+ffi_checklib.share</p>
+
+
+<p style="margin-left:23%;">$build&minus;&gt;runtime_prop&minus;&gt;{ffi_checklib}&minus;&gt;{share}
+= [ ... ];</p>
+
+<p style="margin-left:23%; margin-top: 1em">Array of
+additional FFI::CheckLib flags to pass in to
+&quot;find_lib&quot; for a &quot;share&quot; install.</p>
+
+<p style="margin-left:17%;">ffi_checklib.system</p>
+
+<p style="margin-left:23%;">Array of additional
+FFI::CheckLib flags to pass in to &quot;find_lib&quot; for a
+&quot;system&quot; install.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Among other
+things, useful for specifying the
+&quot;try_linker_script&quot; flag:</p>
+
+
+<p style="margin-left:23%; margin-top: 1em">$build&minus;&gt;runtime_prop&minus;&gt;{ffi_checklib}&minus;&gt;{system}
+= [ try_linker_script =&gt; 1 ];</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is
+typically set by a plugin in the gather stage (for either
+share or system installs).</p>
+
+<p style="margin-left:11%;">inline_auto_include</p>
+
+<p style="margin-left:17%;">[version 2.53]</p>
+
+<p style="margin-left:17%; margin-top: 1em">This property
+is an array reference of C code that will be passed into
+Inline::C to make sure that appropriate headers are
+automatically included. See &quot;auto_include&quot; in
+Inline::C for details.</p>
+
+<p style="margin-left:11%;">install_type</p>
+
+<p style="margin-left:17%;">The install type. This is set
+by <small>AB</small> core after the probe hook is executed.
+Is one of: <br>
+system</p>
+
+<p style="margin-left:23%;">For when the library or tool is
+provided by the operating system, can be detected by
+Alien::Build, and is considered satisfactory by the
+&quot;alienfile&quot; recipe.</p>
+
+<p style="margin-left:17%;">share</p>
+
+<p style="margin-left:23%;">For when a system install is
+not possible, the library source will be downloaded from the
+internet or retrieved in another appropriate fashion and
+built.</p>
+
+<p style="margin-left:11%;">libs</p>
+
+<p style="margin-left:17%;">The library flags. This is
+typically set by a plugin in the gather stage (for either
+share or system installs).</p>
+
+<p style="margin-left:11%;">libs_static</p>
+
+<p style="margin-left:17%;">The static library flags. This
+is typically set by a plugin in the gather stage (for either
+share or system installs).</p>
+
+<p style="margin-left:11%;">perl_module_version</p>
+
+<p style="margin-left:17%;">The version of the Perl module
+used to install the alien (if available). For example if
+Alien::curl is installing &quot;libcurl&quot; this would be
+the version of Alien::curl used during the install step.</p>
+
+<p style="margin-left:11%;">prefix</p>
+
+<p style="margin-left:17%;">The final install root. This is
+usually they share directory.</p>
+
+<p style="margin-left:11%;">version</p>
+
+<p style="margin-left:17%;">The version of the library or
+tool. This is typically set by a plugin in the gather stage
+(for either share or system installs).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>hook_prop</b>
+<br>
+my $href = $build&minus;&gt;hook_prop;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Hook properties
+are for the currently running (if any) hook. They are used
+only during the execution of each hook and are discarded
+after. If no hook is currently running then
+&quot;hook_prop&quot; will return &quot;undef&quot;. <br>
+name</p>
+
+<p style="margin-left:17%;">The name of the currently
+running hook.</p>
+
+<p style="margin-left:11%;">version (probe)</p>
+
+<p style="margin-left:17%;">Probe and PkgConfig plugins
+<i>may</i> set this property indicating the version of the
+alienized package. Not all plugins and configurations may be
+able to provide this.</p>
+
+<p style="margin-left:11%;">probe_class (probe)</p>
+
+<p style="margin-left:17%;">Probe and PkgConfig plugins
+<i>may</i> set this property indicating the plugin class
+that made the probe. If the probe results in a system
+install this will be propagated to
+&quot;system_probe_class&quot; for later use.</p>
+
+<p style="margin-left:11%;">probe_instance_id (probe)</p>
+
+<p style="margin-left:17%;">Probe and PkgConfig plugins
+<i>may</i> set this property indicating the plugin instance
+id that made the probe. If the probe results in a system
+install this will be propagated to
+&quot;system_probe_instance_id&quot; for later use.</p>
+
+<h2>METHODS
+<a name="METHODS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>checkpoint</b>
+<br>
+$build&minus;&gt;checkpoint;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Save any
+install or runtime properties so that they can be reloaded
+on a subsequent run in a separate process. This is useful if
+your build needs to be done in multiple stages from a
+&quot;Makefile&quot;, such as with ExtUtils::MakeMaker. Once
+checkpointed you can use the &quot;resume&quot; constructor
+(documented above) to resume the probe/build/install]
+process.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>root</b>
+<br>
+my $dir = $build&minus;&gt;root;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is just a
+shortcut for:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $root =
+$build&minus;&gt;install_prop&minus;&gt;{root};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Except that it
+will be created if it does not already exist.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>install_type</b>
+<br>
+my $type = $build&minus;&gt;install_type;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will
+return the install type. (See the like named install
+property above for details). This method will call
+&quot;probe&quot; if it has not already been called.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>download_rule</b>
+<br>
+my $rule = $build&minus;&gt;download_rule;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns
+install rule as a string. This is determined by the
+environment and should be one of: <br>
+&quot;warn&quot;</p>
+
+<p style="margin-left:17%;">Warn only if fetching via non
+secure source (secure sources include &quot;https&quot;, and
+bundled files, may include other encrypted protocols in the
+future).</p>
+
+<p style="margin-left:11%;">&quot;digest&quot;</p>
+
+<p style="margin-left:17%;">Require that any downloaded
+source package have a cryptographic signature in the
+alienfile and that signature matches what was
+downloaded.</p>
+
+<p style="margin-left:11%;">&quot;encrypt&quot;</p>
+
+<p style="margin-left:17%;">Require that any downloaded
+source package is fetched via secure source.</p>
+
+
+<p style="margin-left:11%;">&quot;digest_or_encrypt&quot;</p>
+
+<p style="margin-left:17%;">Require that any downloaded
+source package is <b>either</b> fetched via a secure source
+<b>or</b> has a cryptographic signature in the alienfile and
+that signature matches what was downloaded.</p>
+
+
+<p style="margin-left:11%;">&quot;digest_and_encrypt&quot;</p>
+
+<p style="margin-left:17%;">Require that any downloaded
+source package is <b>both</b> fetched via a secure source
+<b>and</b> has a cryptographic signature in the alienfile
+and that signature matches what was downloaded.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The current
+default is &quot;warn&quot;, but in the near future this
+will be upgraded to &quot;digest_or_encrypt&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>set_prefix</b>
+<br>
+$build&minus;&gt;set_prefix($prefix);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Set the final
+(unstaged) prefix. This is normally only called by
+Alien::Build::MM and similar modules. It is not intended for
+use from plugins or from an alienfile.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>set_stage</b>
+<br>
+$build&minus;&gt;set_stage($dir);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Sets the stage
+directory. This is normally only called by Alien::Build::MM
+and similar modules. It is not intended for use from plugins
+or from an alienfile.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>requires</b>
+<br>
+my $hash = $build&minus;&gt;requires($phase);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a hash
+reference of the modules required for the given phase.
+Phases include: <br>
+configure</p>
+
+<p style="margin-left:17%;">These modules must already be
+available when the alienfile is read.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>any</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>These modules are used during either a
+&quot;system&quot; or &quot;share&quot; install.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">share</p>
+
+<p style="margin-left:17%;">These modules are used during
+the build phase of a &quot;share&quot; install.</p>
+
+<p style="margin-left:11%;">system</p>
+
+<p style="margin-left:17%;">These modules are used during
+the build phase of a &quot;system&quot; install.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>load_requires</b>
+<br>
+$build&minus;&gt;load_requires($phase);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This loads the
+appropriate modules for the given phase (see
+&quot;requires&quot; above for a description of the
+phases).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>probe</b>
+<br>
+my $install_type = $build&minus;&gt;probe;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Attempts to
+determine if the operating system has the library or tool
+already installed. If so, then the string &quot;system&quot;
+will be returned and a system install will be performed. If
+not, then the string &quot;share&quot; will be installed and
+the tool or library will be downloaded and built from
+source.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+environment variable &quot;ALIEN_INSTALL_TYPE&quot; is set,
+then that will force a specific type of install. If the
+detection logic cannot accommodate the install type
+requested then it will fail with an exception.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>download</b>
+<br>
+$build&minus;&gt;download;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Download the
+source, usually as a tarball, usually from the internet.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Under a
+&quot;system&quot; install this does not do anything.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>fetch</b>
+<br>
+my $res = $build&minus;&gt;fetch; <br>
+my $res = $build&minus;&gt;fetch($url, %options);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Fetch a
+resource using the fetch hook. Returns the same hash
+structure described below in the fetch hook
+documentation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">[version
+2.39]</p>
+
+<p style="margin-left:11%; margin-top: 1em">As of
+Alien::Build 2.39, these options are supported: <br>
+http_headers</p>
+
+<p style="margin-left:17%;">my $res =
+$build&minus;&gt;fetch($url, http_headers =&gt; [ $key1
+=&gt; $value1, $key2 =&gt; $value 2, ... ]);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Set the
+<small>HTTP</small> request headers on all outgoing
+<small>HTTP</small> requests. Note that not all protocols or
+fetch plugins support setting request headers, but the ones
+that do not <i>should</i> issue a warning if you try to set
+request headers and they are not supported.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>check_digest</b>
+<br>
+[experimental]</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $bool =
+$build&minus;&gt;check_digest($path);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Checks any
+cryptographic signatures for the given file. The file is
+specified by $path which may be one of: <br>
+string</p>
+
+<p style="margin-left:17%;">Containing the path to the file
+to be checked.</p>
+
+<p style="margin-left:11%;">Path::Tiny</p>
+
+<p style="margin-left:17%;">Containing the path to the file
+to be checked.</p>
+
+<p style="margin-left:11%;">&quot;HASH&quot;</p>
+
+<p style="margin-left:17%;">A Hash reference containing
+information about a file. See the fetch hook for details on
+the format.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns true if
+the cryptographic signature matches, false if cryptographic
+signatures are disabled. Will throw an exception if the
+signature does not match, or if no plugin provides the
+correct algorithm for checking the signature.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>decode</b>
+<br>
+my $decoded_res = $build&minus;&gt;decode($res);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Decode the
+<small>HTML</small> or file listing returned by
+&quot;fetch&quot;. Returns the same hash structure described
+below in the decode hook documentation.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>prefer</b>
+<br>
+my $sorted_res = $build&minus;&gt;prefer($res);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Filter and sort
+candidates. The preferred candidate will be returned first
+in the list. The worst candidate will be returned last.
+Returns the same hash structure described below in the
+prefer hook documentation.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>extract</b>
+<br>
+my $dir = $build&minus;&gt;extract; <br>
+my $dir = $build&minus;&gt;extract($archive);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Extracts the
+given archive into a fresh directory. This is normally
+called internally to Alien::Build, and for normal usage is
+not needed from a plugin or alienfile.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>build</b>
+<br>
+$build&minus;&gt;build;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Run the build
+step. It is expected that &quot;probe&quot; and
+&quot;download&quot; have already been performed. What it
+actually does depends on the type of install: <br>
+share</p>
+
+<p style="margin-left:17%;">The source is extracted, and
+built as determined by the alienfile recipe. If there is a
+&quot;gather_share&quot; that will be executed last.</p>
+
+<p style="margin-left:11%;">system</p>
+
+<p style="margin-left:17%;">The gather_system hook will be
+executed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>test</b>
+<br>
+$build&minus;&gt;test;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Run the test
+phase</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>clean_install</b>
+<br>
+$build&minus;&gt;clean_install</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clean files
+from the final install location. The default implementation
+removes all files recursively except for the
+&quot;_alien&quot; directory. This is helpful when you have
+an old install with files that may break the new build.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For a non-share
+install this doesn&rsquo;t do anything.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>system</b>
+<br>
+$build&minus;&gt;system($command); <br>
+$build&minus;&gt;system($command, @args);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Interpolates
+the command and arguments and run the results using the Perl
+&quot;system&quot; command.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>log</b> <br>
+$build&minus;&gt;log($message);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Send a message
+to the log. By default this prints to
+&quot;STDOUT&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>meta</b>
+<br>
+my $meta = Alien::Build&minus;&gt;meta; <br>
+my $meta = $build&minus;&gt;meta;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+meta object for your Alien::Build class or instance. The
+meta object is a way to manipulate the recipe, and so any
+changes to the meta object should be made before the
+&quot;probe&quot;, &quot;download&quot; or &quot;build&quot;
+steps.</p>
+
+<h2>META METHODS
+<a name="META METHODS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>prop</b>
+<br>
+my $href = $build&minus;&gt;meta&minus;&gt;prop;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Meta
+properties. This is the same as calling
+&quot;meta_prop&quot; on the class or Alien::Build
+instance.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>add_requires</b>
+<br>
+Alien::Build&minus;&gt;meta&minus;&gt;add_requires($phase,
+$module =&gt; $version, ...);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Add the
+requirement to the given phase. Phase should be one of: <br>
+configure</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>any</p></td>
+<td width="85%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;">share <br>
+system</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>interpolator</b>
+<br>
+my $interpolator =
+$build&minus;&gt;meta&minus;&gt;interpolator; <br>
+my $interpolator = Alien::Build&minus;&gt;interpolator;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+Alien::Build::Interpolate instance for the Alien::Build
+class.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>has_hook</b>
+<br>
+my $bool = $build&minus;&gt;meta&minus;&gt;has_hook($name);
+<br>
+my $bool = Alien::Build&minus;&gt;has_hook($name);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns if
+there is a usable hook registered with the given name.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>register_hook</b>
+<br>
+$build&minus;&gt;meta&minus;&gt;register_hook($name,
+$instructions); <br>
+Alien::Build&minus;&gt;meta&minus;&gt;register_hook($name,
+$instructions);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Register a hook
+with the given name. $instruction should be either a code
+reference, or a command sequence, which is an array
+reference.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>default_hook</b>
+<br>
+$build&minus;&gt;meta&minus;&gt;default_hook($name,
+$instructions); <br>
+Alien::Build&minus;&gt;meta&minus;&gt;default_hook($name,
+$instructions);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Register a
+default hook, which will be used if the alienfile does not
+register its own hook with that name.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>around_hook</b>
+<br>
+$build&minus;&gt;meta&minus;&gt;around_hook($hook_name,
+$code); <br>
+
+Alien::Build&minus;&gt;meta&minus;&gt;around_hook($hook_name,
+$code);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Wrap the given
+hook with a code reference. This is similar to a Moose
+method modifier, except that it wraps around the given hook
+instead of a method. For example, this will add a probe
+system requirement:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$build&minus;&gt;meta&minus;&gt;around_hook(
+<br>
+probe =&gt; sub { <br>
+my $orig = shift; <br>
+my $build = shift; <br>
+my $type = $orig&minus;&gt;($build, @_); <br>
+return $type unless $type eq 'system'; <br>
+# also require a configuration file <br>
+if(&minus;f '/etc/foo.conf') <br>
+{ <br>
+return 'system'; <br>
+} <br>
+else <br>
+{ <br>
+return 'share'; <br>
+} <br>
+}, <br>
+);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>after_hook</b>
+<br>
+$build&minus;&gt;meta&minus;&gt;after_hook($hook_name, sub {
+<br>
+my(@args) = @_; <br>
+... <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">Execute the
+given code reference after the hook. The original arguments
+are passed into the code reference.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>before_hook</b>
+<br>
+$build&minus;&gt;meta&minus;&gt;before_hook($hook_name, sub
+{ <br>
+my(@args) = @_; <br>
+... <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">Execute the
+given code reference before the hook. The original arguments
+are passed into the code reference.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>apply_plugin</b>
+<br>
+Alien::Build&minus;&gt;meta&minus;&gt;apply_plugin($name);
+<br>
+Alien::Build&minus;&gt;meta&minus;&gt;apply_plugin($name,
+@args);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Apply the given
+plugin with the given arguments.</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Alien::Build
+responds to these environment variables: <small><br>
+ALIEN_BUILD_LOG</small></p>
+
+<p style="margin-left:17%;">The default log class used. See
+Alien::Build::Log and Alien::Build::Log::Default.</p>
+
+
+<p style="margin-left:11%;"><small>ALIEN_BUILD_PKG_CONFIG</small></p>
+
+<p style="margin-left:17%;">Override the logic in
+Alien::Build::Plugin::PkgConfig::Negotiate which chooses the
+best &quot;pkg&minus;config&quot; plugin.</p>
+
+
+<p style="margin-left:11%;"><small>ALIEN_BUILD_POSTLOAD</small></p>
+
+<p style="margin-left:17%;">semicolon separated list of
+plugins to automatically load after parsing your
+alienfile.</p>
+
+
+<p style="margin-left:11%;"><small>ALIEN_BUILD_PRELOAD</small></p>
+
+<p style="margin-left:17%;">semicolon separated list of
+plugins to automatically load before parsing your
+alienfile.</p>
+
+
+<p style="margin-left:11%;"><small>ALIEN_BUILD_RC</small></p>
+
+<p style="margin-left:17%;">Perl source file which can
+override some global defaults for Alien::Build, by, for
+example, setting preload and postload plugins.</p>
+
+
+<p style="margin-left:11%;"><small>ALIEN_DOWNLOAD_RULE</small></p>
+
+<p style="margin-left:17%;">This value determines the rules
+by which types of downloads are allowed. The legal values
+listed under &quot;download_rule&quot;, plus
+&quot;default&quot; which will be the default for the
+current version of Alien::Build. For this version that
+default is &quot;warn&quot;.</p>
+
+
+<p style="margin-left:11%;"><small>ALIEN_INSTALL_NETWORK</small></p>
+
+<p style="margin-left:17%;">If set to true (the default),
+then network fetch will be allowed. If set to false, then
+network fetch will not be allowed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">What
+constitutes a local vs. network fetch is determined based on
+the &quot;start_url&quot; and &quot;local_source&quot; meta
+properties. An alienfile or plugin &quot;could&quot;
+override this detection (possibly inappropriately), so this
+variable is not a substitute for properly auditing of Perl
+modules for environments that require that.</p>
+
+
+<p style="margin-left:11%;"><small>ALIEN_INSTALL_TYPE</small></p>
+
+<p style="margin-left:17%;">If set to &quot;share&quot; or
+&quot;system&quot;, it will override the system detection
+logic. If set to &quot;default&quot;, it will use the
+default setting for the alienfile. The behavior of other
+values is undefined.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Although the
+recommended way for a consumer to use an Alien::Base based
+Alien is to declare it as a static configure and build-time
+dependency, some consumers may prefer to fallback on using
+an Alien only when the consumer itself cannot detect the
+necessary package. In some cases the consumer may want the
+user to opt-in to using an Alien before requiring it.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To keep the
+interface consistent among Aliens, the consumer of the
+fallback opt-in Alien may fallback on the Alien if the
+environment variable &quot;ALIEN_INSTALL_TYPE&quot; is set
+to any value. The rationale is that by setting this
+environment variable the user is aware that Alien modules
+may be installed and have indicated consent. The actual
+implementation of this, by its nature would have to be in
+the consuming <small>CPAN</small> module.</p>
+
+<p style="margin-left:11%;"><small>DESTDIR</small></p>
+
+<p style="margin-left:17%;">This environment variable will
+be manipulated during a destdir install.</p>
+
+<p style="margin-left:11%;"><small>PKG_CONFIG</small></p>
+
+<p style="margin-left:17%;">This environment variable can
+be used to override the program name for
+&quot;pkg&minus;config&quot; when using the command line
+plugin: Alien::Build::Plugin::PkgConfig::CommandLine.</p>
+
+<p style="margin-left:11%;">ftp_proxy, all_proxy</p>
+
+<p style="margin-left:17%;">If these environment variables
+are set, it may influence the Download negotiation plugin
+Alien::Build::Plugin::Download::Negotiate. Other proxy
+variables may be used by some Fetch plugins, if they support
+it.</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The intent of
+the &quot;Alien&minus;Build&quot; team is to support the
+same versions of Perl that are supported by the Perl
+toolchain. As of this writing that means 5.16 and
+better.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Please feel
+encouraged to report issues that you encounter to the
+project GitHub Issue tracker: <br>
+
+&lt;https://github.com/PerlAlien/Alien&minus;Build/issues&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Better if you
+can fix the issue yourself, please feel encouraged to open
+pull-request on the project GitHub: <br>
+
+&lt;https://github.com/PerlAlien/Alien&minus;Build/pulls&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+confounded and have questions, join us on the
+&quot;#native&quot; channel on irc.perl.org. The
+&quot;Alien&minus;Build&quot; developers frequent this
+channel and can probably help point you in the right
+direction. If you don&rsquo;t have an <small>IRC</small>
+client handy, you can use this web interface: <br>
+
+&lt;https://chat.mibbit.com/?channel=%23native&amp;server=irc.perl.org&gt;</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Alien::Build::Manual::AlienAuthor,
+Alien::Build::Manual::AlienUser,
+Alien::Build::Manual::Contributing,
+Alien::Build::Manual::FAQ,
+Alien::Build::Manual::PluginAuthor</p>
+
+<p style="margin-left:11%; margin-top: 1em">alienfile,
+Alien::Build::MM, Alien::Build::Plugin, Alien::Base,
+Alien</p>
+
+<h2>THANKS
+<a name="THANKS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Alien::Base was
+originally written by Joel Berger, the rest of this project
+would not have been possible without him getting the project
+started. Thanks to his support I have been able to augment
+the original Alien::Base system with a reliable set of tools
+(Alien::Build, alienfile, Test::Alien), which make up this
+toolset.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The original
+Alien::Base is still copyright (c) 2012&minus;2020 Joel
+Berger. It has the same license as the rest of the
+Alien::Build and related tools distributed as
+&quot;Alien&minus;Build&quot;. Joel Berger thanked a number
+of people who helped in in the development of Alien::Base,
+in the documentation for that module.</p>
+
+<p style="margin-left:11%; margin-top: 1em">I would also
+like to acknowledge the other members of the PerlAlien
+github organization, Zakariyya Mughal (sivoais,
+<small>ZMUGHAL</small> ) and mohawk ( <small>ETJ</small> ).
+Also important in the early development of Alien::Build were
+the early adopters Chase Whitener (genio,
+<small>CAPOEIRAB,</small> author of Alien::libuv), William
+N. Braswell, Jr (willthechill, <small>WBRASWELL,</small>
+author of Alien::JPCRE2 and Alien::PCRE2) and Ahmad Fatoum
+(a3f, <small>ATHREEF,</small> author of Alien::libudev and
+Alien::LibUSB).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Alien
+ecosystem owes a debt to Dan Book, who goes by Grinnz on
+<small>IRC,</small> for answering question about how to use
+Alien::Build and friends.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Author: Graham
+Ollis &lt;plicease@cpan.org&gt;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Contributors:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Diab Jerius (
+<small>DJERIUS</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Roy Storey (
+<small>KIWIROY</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ilya Pavlov</p>
+
+<p style="margin-left:11%; margin-top: 1em">David Mertens
+(run4flat)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Mark Nunberg
+(mordy, mnunberg)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Christian Walde
+(Mithaldu)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Brian Wightman
+(MidLifeXis)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Zaki Mughal
+(zmughal)</p>
+
+<p style="margin-left:11%; margin-top: 1em">mohawk
+(mohawk2, <small>ETJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Vikas N Kumar
+(vikasnkumar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Flavio Poletti
+(polettix)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Salvador
+Fandi&Atilde;&plusmn;o (salva)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Gianni
+Ceccarelli (dakkar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Pavel Shaydo
+(zwon, trinitum)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Kang-min Liu
+(&aring;&aring;&ordm;&middot;&aelig;&deg;, gugod)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Nicholas Shipp
+(nshp)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Juan
+Juli&Atilde;&iexcl;n Merelo Guerv&Atilde;&sup3;s (
+<small>JJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Joel Berger (
+<small>JBERGER</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Petr
+P&Atilde;sa&Aring; (ppisar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Lance Wicks (
+<small>LANCEW</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ahmad Fatoum
+(a3f, <small>ATHREEF</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jos&Atilde;&copy;
+Joaqu&Atilde;n Atria ( <small>JJATRIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Duke Leto (
+<small>LETO</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shoichi Kaji (
+<small>SKAJI</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shawn Laffan (
+<small>SLAFFAN</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Paul Evans
+(leonerd, <small>PEVANS</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">H&Atilde;&yen;kon
+H&Atilde;&brvbar;gland (hakonhagland, <small>HAKONH</small>
+)</p>
+
+<p style="margin-left:11%; margin-top: 1em">nick
+nauwelaerts ( <small>INPHOBIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Florian
+Weimer</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2011&minus;2022 by Graham Ollis.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+<hr>
+</body>
+</html>

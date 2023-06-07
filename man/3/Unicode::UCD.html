@@ -1,0 +1,2403 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:24 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Unicode::UCD</title>
+
+</head>
+<body>
+<h1>Unicode::UCD</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Unicode::UCD
+&minus; Unicode character database</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Unicode::UCD 'charinfo'; <br>
+my $charinfo = charinfo($codepoint); <br>
+use Unicode::UCD 'charprop'; <br>
+my $value = charprop($codepoint, $property); <br>
+use Unicode::UCD 'charprops_all'; <br>
+my $all_values_hash_ref = charprops_all($codepoint); <br>
+use Unicode::UCD 'casefold'; <br>
+my $casefold = casefold($codepoint); <br>
+use Unicode::UCD 'all_casefolds'; <br>
+my $all_casefolds_ref = all_casefolds(); <br>
+use Unicode::UCD 'casespec'; <br>
+my $casespec = casespec($codepoint); <br>
+use Unicode::UCD 'charblock'; <br>
+my $charblock = charblock($codepoint); <br>
+use Unicode::UCD 'charscript'; <br>
+my $charscript = charscript($codepoint); <br>
+use Unicode::UCD 'charblocks'; <br>
+my $charblocks = charblocks(); <br>
+use Unicode::UCD 'charscripts'; <br>
+my $charscripts = charscripts(); <br>
+use Unicode::UCD qw(charscript charinrange); <br>
+my $range = charscript($script); <br>
+print &quot;looks like $script\n&quot; if
+charinrange($range, $codepoint); <br>
+use Unicode::UCD qw(general_categories bidi_types); <br>
+my $categories = general_categories(); <br>
+my $types = bidi_types(); <br>
+use Unicode::UCD 'prop_aliases'; <br>
+my @space_names = prop_aliases(&quot;space&quot;); <br>
+use Unicode::UCD 'prop_value_aliases'; <br>
+my @gc_punct_names = prop_value_aliases(&quot;Gc&quot;,
+&quot;Punct&quot;); <br>
+use Unicode::UCD 'prop_values'; <br>
+my @all_EA_short_names =
+prop_values(&quot;East_Asian_Width&quot;); <br>
+use Unicode::UCD 'prop_invlist'; <br>
+my @puncts = prop_invlist(&quot;gc=punctuation&quot;); <br>
+use Unicode::UCD 'prop_invmap'; <br>
+my ($list_ref, $map_ref, $format, $missing) <br>
+= prop_invmap(&quot;General Category&quot;); <br>
+use Unicode::UCD 'search_invlist'; <br>
+my $index = search_invlist(\@invlist, $code_point); <br>
+# The following function should be used only internally in
+<br>
+# implementations of the Unicode Normalization Algorithm,
+and there <br>
+# are better choices than it. <br>
+use Unicode::UCD 'compexcl'; <br>
+my $compexcl = compexcl($codepoint); <br>
+use Unicode::UCD 'namedseq'; <br>
+my $namedseq = namedseq($named_sequence_name); <br>
+my $unicode_version = Unicode::UCD::UnicodeVersion(); <br>
+my $convert_to_numeric = <br>
+Unicode::UCD::num(&quot;\N{RUMI DIGIT ONE}\N{RUMI DIGIT
+TWO}&quot;);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+Unicode::UCD module offers a series of functions that
+provide a simple interface to the Unicode Character
+Database.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>code point
+argument</b> <br>
+Some of the functions are called with a <i>code point
+argument</i>, which is either a decimal or a hexadecimal
+scalar designating a code point in the platform&rsquo;s
+native character set (extended to Unicode), or a string
+containing &quot;U+&quot; followed by hexadecimals
+designating a Unicode code point. A leading 0 will force a
+hexadecimal interpretation, as will a hexadecimal digit that
+isn&rsquo;t a decimal digit.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Examples:</p>
+
+<p style="margin-left:11%; margin-top: 1em">223 # Decimal
+223 in native character set <br>
+0223 # Hexadecimal 223, native (= 547 decimal) <br>
+0xDF # Hexadecimal DF, native (= 223 decimal) <br>
+'0xDF' # String form of hexadecimal (= 223 decimal) <br>
+'U+DF' # Hexadecimal DF, in Unicode's character set <br>
+(= LATIN SMALL LETTER SHARP S)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+largest code point in Unicode is U+10FFFF.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>charinfo()</b>
+<br>
+use Unicode::UCD 'charinfo'; <br>
+my $charinfo = charinfo(0x41);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns
+information about the input &quot;code point argument&quot;
+as a reference to a hash of fields as defined by the Unicode
+standard. If the &quot;code point argument&quot; is not
+assigned in the standard (i.e., has the general category
+&quot;Cn&quot; meaning &quot;Unassigned&quot;) or is a
+non-character (meaning it is guaranteed to never be assigned
+in the standard), &quot;undef&quot; is returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Fields that
+aren&rsquo;t applicable to the particular code point
+argument exist in the returned hash, and are empty.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For results
+that are less &quot;raw&quot; than this function returns, or
+to get the values for any property, not just the few covered
+by this function, use the &quot;<b>charprop()</b>&quot;
+function.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The keys in the
+hash with the meanings of their values are: <b><br>
+code</b></p>
+
+<p style="margin-left:17%;">the input native &quot;code
+point argument&quot; expressed in hexadecimal, with leading
+zeros added if necessary to make it contain at least four
+hexdigits</p>
+
+<p style="margin-left:11%;"><b>name</b></p>
+
+<p style="margin-left:17%;">name of <i>code</i>, all
+<small>IN UPPER CASE.</small> Some control-type code points
+do not have names. This field will be empty for
+&quot;Surrogate&quot; and &quot;Private Use&quot; code
+points, and for the others without a name, it will contain a
+description enclosed in angle brackets, like
+&quot;&lt;control&gt;&quot;.</p>
+
+<p style="margin-left:11%;"><b>category</b></p>
+
+<p style="margin-left:17%;">The short name of the general
+category of <i>code</i>. This will match one of the keys in
+the hash returned by
+&quot;<b>general_categories()</b>&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;<b>prop_value_aliases()</b>&quot; function can be used
+to get all the synonyms of the category name.</p>
+
+<p style="margin-left:11%;"><b>combining</b></p>
+
+<p style="margin-left:17%;">the combining class number for
+<i>code</i> used in the Canonical Ordering Algorithm. For
+Unicode 5.1, this is described in Section 3.11
+&quot;Canonical Ordering Behavior&quot; available at
+&lt;http://www.unicode.org/versions/Unicode5.1.0/&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;<b>prop_value_aliases()</b>&quot; function can be used
+to get all the synonyms of the combining class number.</p>
+
+<p style="margin-left:11%;"><b>bidi</b></p>
+
+<p style="margin-left:17%;">bidirectional type of
+<i>code</i>. This will match one of the keys in the hash
+returned by &quot;<b>bidi_types()</b>&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;<b>prop_value_aliases()</b>&quot; function can be used
+to get all the synonyms of the bidi type name.</p>
+
+<p style="margin-left:11%;"><b>decomposition</b></p>
+
+<p style="margin-left:17%;">is empty if <i>code</i> has no
+decomposition; or is one or more codes (separated by spaces)
+that, taken in order, represent a decomposition for
+<i>code</i>. Each has at least four hexdigits. The codes may
+be preceded by a word enclosed in angle brackets, then a
+space, like &quot;&lt;compat&gt; &quot;, giving the type of
+decomposition</p>
+
+<p style="margin-left:17%; margin-top: 1em">This
+decomposition may be an intermediate one whose components
+are also decomposable. Use Unicode::Normalize to get the
+final decomposition in one step.</p>
+
+<p style="margin-left:11%;"><b>decimal</b></p>
+
+<p style="margin-left:17%;">if <i>code</i> represents a
+decimal digit this is its integer numeric value</p>
+
+<p style="margin-left:11%;"><b>digit</b></p>
+
+<p style="margin-left:17%;">if <i>code</i> represents some
+other digit-like number, this is its integer numeric
+value</p>
+
+<p style="margin-left:11%;"><b>numeric</b></p>
+
+<p style="margin-left:17%;">if <i>code</i> represents a
+whole or rational number, this is its numeric value.
+Rational values are expressed as a string like
+&quot;1/4&quot;.</p>
+
+<p style="margin-left:11%;"><b>mirrored</b></p>
+
+<p style="margin-left:17%;">&quot;Y&quot; or &quot;N&quot;
+designating if <i>code</i> is mirrored in bidirectional
+text</p>
+
+<p style="margin-left:11%;"><b>unicode10</b></p>
+
+<p style="margin-left:17%;">name of <i>code</i> in the
+Unicode 1.0 standard if one existed for this code point and
+is different from the current name</p>
+
+<p style="margin-left:11%;"><b>comment</b></p>
+
+<p style="margin-left:17%;">As of Unicode 6.0, this is
+always empty.</p>
+
+<p style="margin-left:11%;"><b>upper</b></p>
+
+<p style="margin-left:17%;">is, if non-empty, the uppercase
+mapping for <i>code</i> expressed as at least four
+hexdigits. This indicates that the full uppercase mapping is
+a single character, and is identical to the simple
+(single-character only) mapping. When this field is empty,
+it means that the simple uppercase mapping is <i>code</i>
+itself; you&rsquo;ll need some other means, (like
+&quot;<b>charprop()</b>&quot; or
+&quot;<b>casespec()</b>&quot; to get the full mapping.</p>
+
+<p style="margin-left:11%;"><b>lower</b></p>
+
+<p style="margin-left:17%;">is, if non-empty, the lowercase
+mapping for <i>code</i> expressed as at least four
+hexdigits. This indicates that the full lowercase mapping is
+a single character, and is identical to the simple
+(single-character only) mapping. When this field is empty,
+it means that the simple lowercase mapping is <i>code</i>
+itself; you&rsquo;ll need some other means, (like
+&quot;<b>charprop()</b>&quot; or
+&quot;<b>casespec()</b>&quot; to get the full mapping.</p>
+
+<p style="margin-left:11%;"><b>title</b></p>
+
+<p style="margin-left:17%;">is, if non-empty, the titlecase
+mapping for <i>code</i> expressed as at least four
+hexdigits. This indicates that the full titlecase mapping is
+a single character, and is identical to the simple
+(single-character only) mapping. When this field is empty,
+it means that the simple titlecase mapping is <i>code</i>
+itself; you&rsquo;ll need some other means, (like
+&quot;<b>charprop()</b>&quot; or
+&quot;<b>casespec()</b>&quot; to get the full mapping.</p>
+
+<p style="margin-left:11%;"><b>block</b></p>
+
+<p style="margin-left:17%;">the block <i>code</i> belongs
+to (used in &quot;\p{Blk=...}&quot;). The
+&quot;<b>prop_value_aliases()</b>&quot; function can be used
+to get all the synonyms of the block name.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See
+&quot;Blocks versus Scripts&quot;.</p>
+
+<p style="margin-left:11%;"><b>script</b></p>
+
+<p style="margin-left:17%;">the script <i>code</i> belongs
+to. The &quot;<b>prop_value_aliases()</b>&quot; function can
+be used to get all the synonyms of the script name. Note
+that this is the older &quot;Script&quot; property value,
+and not the improved &quot;Script_Extensions&quot;
+value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See
+&quot;Blocks versus Scripts&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that you
+cannot do (de)composition and casing based solely on the
+<i>decomposition</i>, <i>combining</i>, <i>lower</i>,
+<i>upper</i>, and <i>title</i> fields; you will need also
+the &quot;<b>casespec()</b>&quot; function and the
+&quot;Composition_Exclusion&quot; property. (Or you could
+just use the <b>lc()</b>, <b>uc()</b>, and <b>ucfirst()</b>
+functions, and the Unicode::Normalize module.)</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>charprop()</b>
+<br>
+use Unicode::UCD 'charprop'; <br>
+print charprop(0x41, &quot;Gc&quot;), &quot;\n&quot;; <br>
+print charprop(0x61, &quot;General_Category&quot;),
+&quot;\n&quot;; <br>
+prints <br>
+Lu <br>
+Ll</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns
+the value of the Unicode property given by the second
+parameter for the &quot;code point argument&quot; given by
+the first.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The passed-in
+property may be specified as any of the synonyms returned by
+&quot;<b>prop_aliases()</b>&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The return
+value is always a scalar, either a string or a number. For
+properties where there are synonyms for the values, the
+synonym returned by this function is the longest, most
+descriptive form, the one returned by
+&quot;<b>prop_value_aliases()</b>&quot; when called in a
+scalar context. Of course, you can call
+&quot;<b>prop_value_aliases()</b>&quot; on the result to get
+other synonyms.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The return
+values are more &quot;cooked&quot; than the
+&quot;<b>charinfo()</b>&quot; ones. For example, the
+&quot;uc&quot; property value is the actual string
+containing the full uppercase mapping of the input code
+point. You have to go to extra trouble with
+&quot;charinfo&quot; to get this value from its
+&quot;upper&quot; hash element when the full mapping differs
+from the simple one.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Special note
+should be made of the return values for a few properties:
+<br>
+Block</p>
+
+<p style="margin-left:17%;">The value returned is the
+new-style (see &quot;Old-style versus new-style block
+names&quot;).</p>
+
+<p style="margin-left:11%;">Decomposition_Mapping</p>
+
+<p style="margin-left:17%;">Like
+&quot;<b>charinfo()</b>&quot;, the result may be an
+intermediate decomposition whose components are also
+decomposable. Use Unicode::Normalize to get the final
+decomposition in one step.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Unlike
+&quot;<b>charinfo()</b>&quot;, this does not include the
+decomposition type. Use the &quot;Decomposition_Type&quot;
+property to get that.</p>
+
+<p style="margin-left:11%;">Name_Alias</p>
+
+<p style="margin-left:17%;">If the input code point&rsquo;s
+name has more than one synonym, they are returned joined
+into a single comma-separated string.</p>
+
+<p style="margin-left:11%;">Numeric_Value</p>
+
+<p style="margin-left:17%;">If the result is a fraction, it
+is converted into a floating point number to the accuracy of
+your platform.</p>
+
+<p style="margin-left:11%;">Script_Extensions</p>
+
+<p style="margin-left:17%;">If the result is multiple
+script names, they are returned joined into a single
+comma-separated string.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When called
+with a property that is a Perl extension that isn&rsquo;t
+expressible in a compound form, this function currently
+returns &quot;undef&quot;, as the only two possible values
+are <i>true</i> or <i>false</i> (1 or 0 I suppose). This
+behavior may change in the future, so don&rsquo;t write code
+that relies on it. &quot;Present_In&quot; is a Perl
+extension that is expressible in a bipartite or compound
+form (for example, &quot;\p{Present_In=4.0}&quot;), so
+&quot;charprop&quot; accepts it. But &quot;Any&quot; is a
+Perl extension that isn&rsquo;t expressible that way, so
+&quot;charprop&quot; returns &quot;undef&quot; for it. Also
+&quot;charprop&quot; returns &quot;undef&quot; for all Perl
+extensions that are internal-only.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>charprops_all()</b>
+<br>
+use Unicode::UCD 'charprops_all'; <br>
+my $%properties_of_A_hash_ref =
+charprops_all(&quot;U+41&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns a
+reference to a hash whose keys are all the distinct Unicode
+(no Perl extension) properties, and whose values are the
+respective values for those properties for the input
+&quot;code point argument&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each key is the
+property name in its longest, most descriptive form. The
+values are what &quot;<b>charprop()</b>&quot; would
+return.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This function
+is expensive in time and memory.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>charblock()</b>
+<br>
+use Unicode::UCD 'charblock'; <br>
+my $charblock = charblock(0x41); <br>
+my $charblock = charblock(1234); <br>
+my $charblock = charblock(0x263a); <br>
+my $charblock = charblock(&quot;U+263a&quot;); <br>
+my $range = charblock('Armenian');</p>
+
+<p style="margin-left:11%; margin-top: 1em">With a
+&quot;code point argument&quot; &quot;charblock()&quot;
+returns the <i>block</i> the code point belongs to, e.g.
+&quot;Basic Latin&quot;. The old-style block name is
+returned (see &quot;Old-style versus new-style block
+names&quot;). The &quot;<b>prop_value_aliases()</b>&quot;
+function can be used to get all the synonyms of the block
+name.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the code
+point is unassigned, this returns the block it would belong
+to if it were assigned. (If the Unicode version being used
+is so early as to not have blocks, all code points are
+considered to be in &quot;No_Block&quot;.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also
+&quot;Blocks versus Scripts&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If supplied
+with an argument that can&rsquo;t be a code point,
+&quot;charblock()&quot; tries to do the opposite and
+interpret the argument as an old-style block name. On an
+<small>ASCII</small> platform, the return value is a
+<i>range set</i> with one range: an anonymous array with a
+single element that consists of another anonymous array
+whose first element is the first code point in the block,
+and whose second element is the final code point in the
+block. On an <small>EBCDIC</small> platform, the first two
+Unicode blocks are not contiguous. Their range sets are
+lists containing <i>start-of-range</i>, <i>end-of-range</i>
+code point pairs. You can test whether a code point is in a
+range set using the &quot;<b>charinrange()</b>&quot;
+function. (To be precise, each <i>range set</i> contains a
+third array element, after the range boundary ones: the
+old_style block name.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the argument
+to &quot;charblock()&quot; is not a known block,
+&quot;undef&quot; is returned.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>charscript()</b>
+<br>
+use Unicode::UCD 'charscript'; <br>
+my $charscript = charscript(0x41); <br>
+my $charscript = charscript(1234); <br>
+my $charscript = charscript(&quot;U+263a&quot;); <br>
+my $range = charscript('Thai');</p>
+
+<p style="margin-left:11%; margin-top: 1em">With a
+&quot;code point argument&quot;, &quot;charscript()&quot;
+returns the <i>script</i> the code point belongs to, e.g.,
+&quot;Latin&quot;, &quot;Greek&quot;, &quot;Han&quot;. If
+the code point is unassigned or the Unicode version being
+used is so early that it doesn&rsquo;t have scripts, this
+function returns &quot;Unknown&quot;. The
+&quot;<b>prop_value_aliases()</b>&quot; function can be used
+to get all the synonyms of the script name.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+Script_Extensions property is an improved version of the
+Script property, and you should probably be using that
+instead, with the &quot;<b>charprop()</b>&quot;
+function.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If supplied
+with an argument that can&rsquo;t be a code point,
+<b>charscript()</b> tries to do the opposite and interpret
+the argument as a script name. The return value is a
+<i>range set</i>: an anonymous array of arrays that contain
+<i>start-of-range</i>, <i>end-of-range</i> code point pairs.
+You can test whether a code point is in a range set using
+the &quot;<b>charinrange()</b>&quot; function. (To be
+precise, each <i>range set</i> contains a third array
+element, after the range boundary ones: the script
+name.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+&quot;charscript()&quot; argument is not a known script,
+&quot;undef&quot; is returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also
+&quot;Blocks versus Scripts&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>charblocks()</b>
+<br>
+use Unicode::UCD 'charblocks'; <br>
+my $charblocks = charblocks();</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;charblocks()&quot;
+returns a reference to a hash with the known block names as
+the keys, and the code point ranges (see
+&quot;<b>charblock()</b>&quot;) as the values.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The names are
+in the old-style (see &quot;Old-style versus new-style block
+names&quot;).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">prop_invmap(&quot;block&quot;)
+can be used to get this same data in a different type of
+data structure.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">prop_values(&quot;Block&quot;)
+can be used to get all the known new-style block names as a
+list, without the code point ranges.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also
+&quot;Blocks versus Scripts&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>charscripts()</b>
+<br>
+use Unicode::UCD 'charscripts'; <br>
+my $charscripts = charscripts();</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;charscripts()&quot;
+returns a reference to a hash with the known script names as
+the keys, and the code point ranges (see
+&quot;<b>charscript()</b>&quot;) as the values.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">prop_invmap(&quot;script&quot;)
+can be used to get this same data in a different type of
+data structure. Since the Script_Extensions property is an
+improved version of the Script property, you should instead
+use prop_invmap(&quot;scx&quot;).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;prop_values(&quot;Script&quot;)&quot;
+can be used to get all the known script names as a list,
+without the code point ranges.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also
+&quot;Blocks versus Scripts&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>charinrange()</b>
+<br>
+In addition to using the &quot;\p{Blk=...}&quot; and
+&quot;\P{Blk=...}&quot; constructs, you can also test
+whether a code point is in the <i>range</i> as returned by
+&quot;<b>charblock()</b>&quot; and
+&quot;<b>charscript()</b>&quot; or as the values of the hash
+returned by &quot;<b>charblocks()</b>&quot; and
+&quot;<b>charscripts()</b>&quot; by using
+&quot;charinrange()&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Unicode::UCD qw(charscript charinrange); <br>
+$range = charscript('Hiragana'); <br>
+print &quot;looks like hiragana\n&quot; if
+charinrange($range, $codepoint);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>general_categories()</b>
+<br>
+use Unicode::UCD 'general_categories'; <br>
+my $categories = general_categories();</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns a
+reference to a hash which has short general category names
+(such as &quot;Lu&quot;, &quot;Nd&quot;, &quot;Zs&quot;,
+&quot;S&quot;) as keys and long names (such as
+&quot;UppercaseLetter&quot;, &quot;DecimalNumber&quot;,
+&quot;SpaceSeparator&quot;, &quot;Symbol&quot;) as values.
+The hash is reversible in case you need to go from the long
+names to the short names. The general category is the one
+returned from &quot;<b>charinfo()</b>&quot; under the
+&quot;category&quot; key.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;<b>prop_values()</b>&quot; and
+&quot;<b>prop_value_aliases()</b>&quot; functions can be
+used as an alternative to this function; the first returning
+a simple list of the short category names; and the second
+gets all the synonyms of a given category name.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>bidi_types()</b>
+<br>
+use Unicode::UCD 'bidi_types'; <br>
+my $categories = bidi_types();</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns a
+reference to a hash which has the short bidi (bidirectional)
+type names (such as &quot;L&quot;, &quot;R&quot;) as keys
+and long names (such as
+&quot;Left&minus;to&minus;Right&quot;,
+&quot;Right&minus;to&minus;Left&quot;) as values. The hash
+is reversible in case you need to go from the long names to
+the short names. The bidi type is the one returned from
+&quot;<b>charinfo()</b>&quot; under the &quot;bidi&quot;
+key. For the exact meaning of the various bidi classes the
+Unicode <small>TR9</small> is recommended reading:
+&lt;http://www.unicode.org/reports/tr9/&gt; (as of Unicode
+5.0.0)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;<b>prop_values()</b>&quot; and
+&quot;<b>prop_value_aliases()</b>&quot; functions can be
+used as an alternative to this function; the first returning
+a simple list of the short bidi type names; and the second
+gets all the synonyms of a given bidi type name.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>compexcl()</b>
+<small><br>
+WARNING:</small> Unicode discourages the use of this
+function or any of the alternative mechanisms listed in this
+section (the documentation of &quot;compexcl()&quot;),
+except internally in implementations of the Unicode
+Normalization Algorithm. You should be using
+Unicode::Normalize directly instead of these. Using these
+will likely lead to half-baked results.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Unicode::UCD 'compexcl'; <br>
+my $compexcl = compexcl(0x09dc);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This routine
+returns &quot;undef&quot; if the Unicode version being used
+is so early that it doesn&rsquo;t have this property.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;compexcl()&quot;
+is included for backwards compatibility, but as of Perl 5.12
+and more modern Unicode versions, for most purposes it is
+probably more convenient to use one of the following
+instead:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $compexcl =
+chr(0x09dc) =~ /\p{Comp_Ex}; <br>
+my $compexcl = chr(0x09dc) =~
+/\p{Full_Composition_Exclusion};</p>
+
+<p style="margin-left:11%; margin-top: 1em">or even</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $compexcl =
+chr(0x09dc) =~ /\p{CE}; <br>
+my $compexcl = chr(0x09dc) =~
+/\p{Composition_Exclusion};</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first two
+forms return <b>true</b> if the &quot;code point
+argument&quot; should not be produced by composition
+normalization. For the final two forms to return
+<b>true</b>, it is additionally required that this fact not
+otherwise be determinable from the Unicode data base.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This routine
+behaves identically to the final two forms. That is, it does
+not return <b>true</b> if the code point has a decomposition
+consisting of another single code point, nor if its
+decomposition starts with a code point whose combining class
+is non-zero. Code points that meet either of these
+conditions should also not be produced by composition
+normalization, which is probably why you should use the
+&quot;Full_Composition_Exclusion&quot; property instead, as
+shown above.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The routine
+returns <b>false</b> otherwise.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>casefold()</b>
+<br>
+use Unicode::UCD 'casefold'; <br>
+my $casefold = casefold(0xDF); <br>
+if (defined $casefold) { <br>
+my @full_fold_hex = split / /, $casefold&minus;&gt;{'full'};
+<br>
+my $full_fold_string = <br>
+join &quot;&quot;, map {chr(hex($_))} @full_fold_hex; <br>
+my @turkic_fold_hex = <br>
+split / /, ($casefold&minus;&gt;{'turkic'} ne &quot;&quot;)
+<br>
+? $casefold&minus;&gt;{'turkic'} <br>
+: $casefold&minus;&gt;{'full'}; <br>
+my $turkic_fold_string = <br>
+join &quot;&quot;, map {chr(hex($_))} @turkic_fold_hex; <br>
+} <br>
+if (defined $casefold &amp;&amp;
+$casefold&minus;&gt;{'simple'} ne &quot;&quot;) { <br>
+my $simple_fold_hex = $casefold&minus;&gt;{'simple'}; <br>
+my $simple_fold_string = chr(hex($simple_fold_hex)); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns
+the (almost) locale-independent case folding of the
+character specified by the &quot;code point argument&quot;.
+(Starting in Perl v5.16, the core function &quot;fc()&quot;
+returns the &quot;full&quot; mapping (described below)
+faster than this does, and for entire strings.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If there is no
+case folding for the input code point, &quot;undef&quot; is
+returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If there is a
+case folding for that code point, a reference to a hash with
+the following fields is returned: <b><br>
+code</b></p>
+
+<p style="margin-left:17%;">the input native &quot;code
+point argument&quot; expressed in hexadecimal, with leading
+zeros added if necessary to make it contain at least four
+hexdigits</p>
+
+<p style="margin-left:11%;"><b>full</b></p>
+
+<p style="margin-left:17%;">one or more codes (separated by
+spaces) that, taken in order, give the code points for the
+case folding for <i>code</i>. Each has at least four
+hexdigits.</p>
+
+<p style="margin-left:11%;"><b>simple</b></p>
+
+<p style="margin-left:17%;">is empty, or is exactly one
+code with at least four hexdigits which can be used as an
+alternative case folding when the calling program cannot
+cope with the fold being a sequence of multiple code points.
+If <i>full</i> is just one code point, then <i>simple</i>
+equals <i>full</i>. If there is no single code point folding
+defined for <i>code</i>, then <i>simple</i> is the empty
+string. Otherwise, it is an inferior, but still
+better-than-nothing alternative folding to <i>full</i>.</p>
+
+<p style="margin-left:11%;"><b>mapping</b></p>
+
+<p style="margin-left:17%;">is the same as <i>simple</i> if
+<i>simple</i> is not empty, and it is the same as
+<i>full</i> otherwise. It can be considered to be the
+simplest possible folding for <i>code</i>. It is defined
+primarily for backwards compatibility.</p>
+
+<p style="margin-left:11%;"><b>status</b></p>
+
+<p style="margin-left:17%;">is &quot;C&quot; (for
+&quot;common&quot;) if the best possible fold is a single
+code point (<i>simple</i> equals <i>full</i> equals
+<i>mapping</i>). It is &quot;S&quot; if there are distinct
+folds, <i>simple</i> and <i>full</i> (<i>mapping</i> equals
+<i>simple</i>). And it is &quot;F&quot; if there is only a
+<i>full</i> fold (<i>mapping</i> equals <i>full</i>;
+<i>simple</i> is empty). Note that this describes the
+contents of <i>mapping</i>. It is defined primarily for
+backwards compatibility.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For Unicode
+versions between 3.1 and 3.1.1 inclusive, <i>status</i> can
+also be &quot;I&quot; which is the same as &quot;C&quot; but
+is a special case for dotted uppercase I and dotless
+lowercase i: <b><br>
+*</b> If you use this &quot;I&quot; mapping</p>
+
+<p style="margin-left:23%;">the result is case-insensitive,
+but dotless and dotted I&rsquo;s are not distinguished</p>
+
+<p style="margin-left:17%;"><b>*</b> If you exclude this
+&quot;I&quot; mapping</p>
+
+<p style="margin-left:23%;">the result is not fully
+case-insensitive, but dotless and dotted I&rsquo;s are
+distinguished</p>
+
+<p style="margin-left:11%;"><b>turkic</b></p>
+
+<p style="margin-left:17%;">contains any special folding
+for Turkic languages. For versions of Unicode starting with
+3.2, this field is empty unless <i>code</i> has a different
+folding in Turkic languages, in which case it is one or more
+codes (separated by spaces) that, taken in order, give the
+code points for the case folding for <i>code</i> in those
+languages. Each code has at least four hexdigits. Note that
+this folding does not maintain canonical equivalence without
+additional processing.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For Unicode
+versions between 3.1 and 3.1.1 inclusive, this field is
+empty unless there is a special folding for Turkic
+languages, in which case <i>status</i> is &quot;I&quot;, and
+<i>mapping</i>, <i>full</i>, <i>simple</i>, and
+<i>turkic</i> are all equal.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Programs that
+want complete generality and the best folding results should
+use the folding contained in the <i>full</i> field. But note
+that the fold for some code points will be a sequence of
+multiple code points.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Programs that
+can&rsquo;t cope with the fold mapping being multiple code
+points can use the folding contained in the <i>simple</i>
+field, with the loss of some generality. In Unicode 5.1,
+about 7% of the defined foldings have no single code point
+folding.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>mapping</i> and <i>status</i> fields are provided for
+backwards compatibility for existing programs. They contain
+the same values as in previous versions of this
+function.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Locale is not
+completely independent. The <i>turkic</i> field contains
+results to use when the locale is a Turkic language.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For more
+information about case mappings see
+&lt;http://www.unicode.org/reports/tr21&gt;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>all_casefolds()</b>
+<br>
+use Unicode::UCD 'all_casefolds'; <br>
+my $all_folds_ref = all_casefolds(); <br>
+foreach my $char_with_casefold (sort { $a &lt;=&gt; $b }
+<br>
+keys %$all_folds_ref) <br>
+{ <br>
+printf &quot;%04X:&quot;, $char_with_casefold; <br>
+my $casefold =
+$all_folds_ref&minus;&gt;{$char_with_casefold}; <br>
+# Get folds for $char_with_casefold <br>
+my @full_fold_hex = split / /, $casefold&minus;&gt;{'full'};
+<br>
+my $full_fold_string = <br>
+join &quot;&quot;, map {chr(hex($_))} @full_fold_hex; <br>
+print &quot; full=&quot;, join &quot; &quot;,
+@full_fold_hex; <br>
+my @turkic_fold_hex = <br>
+split / /, ($casefold&minus;&gt;{'turkic'} ne &quot;&quot;)
+<br>
+? $casefold&minus;&gt;{'turkic'} <br>
+: $casefold&minus;&gt;{'full'}; <br>
+my $turkic_fold_string = <br>
+join &quot;&quot;, map {chr(hex($_))} @turkic_fold_hex; <br>
+print &quot;; turkic=&quot;, join &quot; &quot;,
+@turkic_fold_hex; <br>
+if (defined $casefold &amp;&amp;
+$casefold&minus;&gt;{'simple'} ne &quot;&quot;) { <br>
+my $simple_fold_hex = $casefold&minus;&gt;{'simple'}; <br>
+my $simple_fold_string = chr(hex($simple_fold_hex)); <br>
+print &quot;; simple=$simple_fold_hex&quot;; <br>
+} <br>
+print &quot;\n&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns
+all the case foldings in the current version of Unicode in
+the form of a reference to a hash. Each key to the hash is
+the decimal representation of a Unicode character that has a
+casefold to other than itself. The casefold of a semi-colon
+is itself, so it isn&rsquo;t in the hash; likewise for a
+lowercase &quot;a&quot;, but there is an entry for a capital
+&quot;A&quot;. The hash value for each key is another hash,
+identical to what is returned by
+&quot;<b>casefold()</b>&quot; if called with that code point
+as its argument. So the value
+&quot;all_casefolds()&minus;&gt;{ord(&quot;A&quot;)}'&quot;
+is equivalent to
+&quot;casefold(ord(&quot;A&quot;))&quot;;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>casespec()</b>
+<br>
+use Unicode::UCD 'casespec'; <br>
+my $casespec = casespec(0xFB00);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns
+the potentially locale-dependent case mappings of the
+&quot;code point argument&quot;. The mappings may be longer
+than a single code point (which the basic Unicode case
+mappings as returned by &quot;<b>charinfo()</b>&quot; never
+are).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If there are no
+case mappings for the &quot;code point argument&quot;, or if
+all three possible mappings (<i>lower</i>, <i>title</i> and
+<i>upper</i>) result in single code points and are locale
+independent and unconditional, &quot;undef&quot; is returned
+(which means that the case mappings, if any, for the code
+point are those returned by
+&quot;<b>charinfo()</b>&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Otherwise, a
+reference to a hash giving the mappings (or a reference to a
+hash of such hashes, explained below) is returned with the
+following keys and their meanings:</p>
+
+<p style="margin-left:11%; margin-top: 1em">The keys in the
+bottom layer hash with the meanings of their values are:
+<b><br>
+code</b></p>
+
+<p style="margin-left:17%;">the input native &quot;code
+point argument&quot; expressed in hexadecimal, with leading
+zeros added if necessary to make it contain at least four
+hexdigits</p>
+
+<p style="margin-left:11%;"><b>lower</b></p>
+
+<p style="margin-left:17%;">one or more codes (separated by
+spaces) that, taken in order, give the code points for the
+lower case of <i>code</i>. Each has at least four
+hexdigits.</p>
+
+<p style="margin-left:11%;"><b>title</b></p>
+
+<p style="margin-left:17%;">one or more codes (separated by
+spaces) that, taken in order, give the code points for the
+title case of <i>code</i>. Each has at least four
+hexdigits.</p>
+
+<p style="margin-left:11%;"><b>upper</b></p>
+
+<p style="margin-left:17%;">one or more codes (separated by
+spaces) that, taken in order, give the code points for the
+upper case of <i>code</i>. Each has at least four
+hexdigits.</p>
+
+<p style="margin-left:11%;"><b>condition</b></p>
+
+<p style="margin-left:17%;">the conditions for the mappings
+to be valid. If &quot;undef&quot;, the mappings are always
+valid. When defined, this field is a list of conditions, all
+of which must be true for the mappings to be valid. The list
+consists of one or more <i>locales</i> (see below) and/or
+<i>contexts</i> (explained in the next paragraph), separated
+by spaces. (Other than as used to separate elements, spaces
+are to be ignored.) Case distinctions in the condition list
+are not significant. Conditions preceded by &quot;
+<small>NON_&quot;</small> represent the negation of the
+condition.</p>
+
+<p style="margin-left:17%; margin-top: 1em">A
+<i>context</i> is one of those defined in the Unicode
+standard. For Unicode 5.1, they are defined in Section 3.13
+&quot;Default Case Operations&quot; available at
+&lt;http://www.unicode.org/versions/Unicode5.1.0/&gt;. These
+are for context-sensitive casing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The hash
+described above is returned for locale-independent casing,
+where at least one of the mappings has length longer than
+one. If &quot;undef&quot; is returned, the code point may
+have mappings, but if so, all are length one, and are
+returned by &quot;<b>charinfo()</b>&quot;. Note that when
+this function does return a value, it will be for the
+complete set of mappings for a code point, even those whose
+length is one.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If there are
+additional casing rules that apply only in certain locales,
+an additional key for each will be defined in the returned
+hash. Each such key will be its locale name, defined as a
+2&minus;letter <small>ISO 3166</small> country code,
+possibly followed by a &quot;_&quot; and a 2&minus;letter
+<small>ISO</small> language code (possibly followed by a
+&quot;_&quot; and a variant code). You can find the lists of
+all possible locales, see Locale::Country and
+Locale::Language. (In Unicode 6.0, the only locales returned
+by this function are &quot;lt&quot;, &quot;tr&quot;, and
+&quot;az&quot;.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each locale key
+is a reference to a hash that has the form above, and gives
+the casing rules for that particular locale, which take
+precedence over the locale-independent ones when in that
+locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the only
+casing for a code point is locale-dependent, then the
+returned hash will not have any of the base keys, like
+&quot;code&quot;, &quot;upper&quot;, etc., but will contain
+only locale keys.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For more
+information about case mappings see
+&lt;http://www.unicode.org/reports/tr21/&gt;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>namedseq()</b>
+<br>
+use Unicode::UCD 'namedseq'; <br>
+my $namedseq = namedseq(&quot;KATAKANA LETTER AINU P&quot;);
+<br>
+my @namedseq = namedseq(&quot;KATAKANA LETTER AINU P&quot;);
+<br>
+my %namedseq = namedseq();</p>
+
+<p style="margin-left:11%; margin-top: 1em">If used with a
+single argument in a scalar context, returns the string
+consisting of the code points of the named sequence, or
+&quot;undef&quot; if no named sequence by that name exists.
+If used with a single argument in a list context, it returns
+the list of the ordinals of the code points.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If used with no
+arguments in a list context, it returns a hash with the
+names of all the named sequences as the keys and their
+sequences as strings as the values. Otherwise, it returns
+&quot;undef&quot; or an empty list depending on the
+context.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This function
+only operates on officially approved (not provisional) named
+sequences.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that as of
+Perl 5.14, &quot;\N{KATAKANA LETTER AINU P}&quot; will
+insert the named sequence into double-quoted strings, and
+&quot;charnames::string_vianame(&quot;KATAKANA LETTER AINU
+P&quot;)&quot; will return the same string this function
+does, but will also operate on character names that
+aren&rsquo;t named sequences, without you having to know
+which are which. See charnames.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>num()</b>
+<br>
+use Unicode::UCD 'num'; <br>
+my $val = num(&quot;123&quot;); <br>
+my $one_quarter = num(&quot;\N{VULGAR FRACTION ONE
+QUARTER}&quot;); <br>
+my $val = num(&quot;12a&quot;, \$valid_length); #
+$valid_length contains 2</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;num()&quot;
+returns the numeric value of the input Unicode string; or
+&quot;undef&quot; if it doesn&rsquo;t think the entire
+string has a completely valid, safe numeric value. If called
+with an optional second parameter, a reference to a scalar,
+&quot;num()&quot; will set the scalar to the length of any
+valid initial substring; or to 0 if none.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the string
+is just one character in length, the Unicode numeric value
+is returned if it has one, or &quot;undef&quot; otherwise.
+If the optional scalar ref is passed, it would be set to 1
+if the return is valid; or 0 if the return is
+&quot;undef&quot;. Note that the numeric value returned need
+not be a whole number. &quot;num(&quot;\N{TIBETAN DIGIT HALF
+ZERO}&quot;)&quot;, for example returns &minus;0.5.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the string
+is more than one character, &quot;undef&quot; is returned
+unless all its characters are decimal digits (that is, they
+would match &quot;\d+&quot;), from the same script. For
+example if you have an <small>ASCII</small> &rsquo;0&rsquo;
+and a Bengali &rsquo;3&rsquo;, mixed together, they
+aren&rsquo;t considered a valid number, and
+&quot;undef&quot; is returned. A further restriction is that
+the digits all have to be of the same form. A half-width
+digit mixed with a full-width one will return
+&quot;undef&quot;. The Arabic script has two sets of digits;
+&quot;num&quot; will return &quot;undef&quot; unless all the
+digits in the string come from the same set. In all cases,
+the optional scalar ref parameter is set to how long any
+valid initial substring of digits is; hence it will be set
+to the entire string length if the main return value is not
+&quot;undef&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;num&quot;
+errs on the side of safety, and there may be valid strings
+of decimal digits that it doesn&rsquo;t recognize. Note that
+Unicode defines a number of &quot;digit&quot; characters
+that aren&rsquo;t &quot;decimal digit&quot; characters.
+&quot;Decimal digits&quot; have the property that they have
+a positional value, i.e., there is a units position, a
+10&rsquo;s position, a 100&rsquo;s, etc, <small>AND</small>
+they are arranged in Unicode in blocks of 10 contiguous code
+points. The Chinese digits, for example, are not in such a
+contiguous block, and so Unicode doesn&rsquo;t view them as
+decimal digits, but merely digits, and so &quot;\d&quot;
+will not match them. A single-character string containing
+one of these digits will have its decimal value returned by
+&quot;num&quot;, but any longer string containing only these
+digits will return &quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Strings of
+multiple sub&minus; and superscripts are not recognized as
+numbers. You can use either of the compatibility
+decompositions in Unicode::Normalize to change these into
+digits, and then call &quot;num&quot; on the result.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>prop_aliases()</b>
+<br>
+use Unicode::UCD 'prop_aliases'; <br>
+my ($short_name, $full_name, @other_names) =
+prop_aliases(&quot;space&quot;); <br>
+my $same_full_name = prop_aliases(&quot;Space&quot;); #
+Scalar context <br>
+my ($same_short_name) = prop_aliases(&quot;Space&quot;); #
+gets 0th element <br>
+print &quot;The full name is $full_name\n&quot;; <br>
+print &quot;The short name is $short_name\n&quot;; <br>
+print &quot;The other aliases are: &quot;, join(&quot;,
+&quot;, @other_names), &quot;\n&quot;; <br>
+prints: <br>
+The full name is White_Space <br>
+The short name is WSpace <br>
+The other aliases are: Space</p>
+
+<p style="margin-left:11%; margin-top: 1em">Most Unicode
+properties have several synonymous names. Typically, there
+is at least a short name, convenient to type, and a long
+name that more fully describes the property, and hence is
+more easily understood.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you know one
+name for a Unicode property, you can use
+&quot;prop_aliases&quot; to find either the long name (when
+called in scalar context), or a list of all of the names,
+somewhat ordered so that the short name is in the 0th
+element, the long name in the next element, and any other
+synonyms are in the remaining elements, in no particular
+order.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The long name
+is returned in a form nicely capitalized, suitable for
+printing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The input
+parameter name is loosely matched, which means that white
+space, hyphens, and underscores are ignored (except for the
+trailing underscore in the old_form grandfathered-in
+&quot;L_&quot;, which is better written as &quot;LC&quot;,
+and both of which mean &quot;General_Category=Cased
+Letter&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the name is
+unknown, &quot;undef&quot; is returned (or an empty list in
+list context). Note that Perl typically recognizes property
+names in regular expressions with an optional
+&quot;&quot;Is_&quot;&quot; (with or without the underscore)
+prefixed to them, such as &quot;\p{isgc=punct}&quot;. This
+function does not recognize those in the input, returning
+&quot;undef&quot;. Nor are they included in the output as
+possible synonyms.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;prop_aliases&quot;
+does know about the Perl extensions to Unicode properties,
+such as &quot;Any&quot; and &quot;XPosixAlpha&quot;, and the
+single form equivalents to Unicode properties such as
+&quot;XDigit&quot;, &quot;Greek&quot;, &quot;In_Greek&quot;,
+and &quot;Is_Greek&quot;. The final example demonstrates
+that the &quot;Is_&quot; prefix is recognized for these
+extensions; it is needed to resolve ambiguities. For
+example, &quot;prop_aliases('lc')&quot; returns the list
+&quot;(lc, Lowercase_Mapping)&quot;, but
+&quot;prop_aliases('islc')&quot; returns &quot;(Is_LC,
+Cased_Letter)&quot;. This is because &quot;islc&quot; is a
+Perl extension which is short for
+&quot;General_Category=Cased Letter&quot;. The lists
+returned for the Perl extensions will not include the
+&quot;Is_&quot; prefix (whether or not the input had it)
+unless needed to resolve ambiguities, as shown in the
+&quot;islc&quot; example, where the returned list had one
+element containing &quot;Is_&quot;, and the other
+without.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is also
+possible for the reverse to happen:
+&quot;prop_aliases('isc')&quot; returns the list &quot;(isc,
+ISO_Comment)&quot;; whereas &quot;prop_aliases('c')&quot;
+returns &quot;(C, Other)&quot; (the latter being a Perl
+extension meaning &quot;General_Category=Other&quot;.
+&quot;Properties accessible through Unicode::UCD&quot; in
+perluniprops lists the available forms, including which ones
+are discouraged from use.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Those
+discouraged forms are accepted as input to
+&quot;prop_aliases&quot;, but are not returned in the lists.
+&quot;prop_aliases('isL&amp;')&quot; and
+&quot;prop_aliases('isL_')&quot;, which are old synonyms for
+&quot;Is_LC&quot; and should not be used in new code, are
+examples of this. These both return &quot;(Is_LC,
+Cased_Letter)&quot;. Thus this function allows you to take a
+discouraged form, and find its acceptable alternatives. The
+same goes with single-form Block property equivalences. Only
+the forms that begin with &quot;In_&quot; are not
+discouraged; if you pass &quot;prop_aliases&quot; a
+discouraged form, you will get back the equivalent ones that
+begin with &quot;In_&quot;. It will otherwise look like a
+new-style block name (see. &quot;Old-style versus new-style
+block names&quot;).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;prop_aliases&quot;
+does not know about any user-defined properties, and will
+return &quot;undef&quot; if called with one of those.
+Likewise for Perl internal properties, with the exception of
+&quot;Perl_Decimal_Digit&quot; which it does know about (and
+which is documented below in
+&quot;<b>prop_invmap()</b>&quot;).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>prop_values()</b>
+<br>
+use Unicode::UCD 'prop_values'; <br>
+print &quot;AHex values are: &quot;, join(&quot;, &quot;,
+prop_values(&quot;AHex&quot;)), <br>
+&quot;\n&quot;; <br>
+prints: <br>
+AHex values are: N, Y</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some Unicode
+properties have a restricted set of legal values. For
+example, all binary properties are restricted to just
+&quot;true&quot; or &quot;false&quot;; and there are only a
+few dozen possible General Categories. Use
+&quot;prop_values&quot; to find out if a given property is
+one such, and if so, to get a list of the values:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print join
+&quot;, &quot;, prop_values(&quot;NFC_Quick_Check&quot;);
+<br>
+prints: <br>
+M, N, Y</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the property
+doesn&rsquo;t have such a restricted set, &quot;undef&quot;
+is returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are
+usually several synonyms for each possible value. Use
+&quot;<b>prop_value_aliases()</b>&quot; to access those.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Case, white
+space, hyphens, and underscores are ignored in the input
+property name (except for the trailing underscore in the
+old-form grandfathered-in general category property value
+&quot;L_&quot;, which is better written as
+&quot;LC&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the property
+name is unknown, &quot;undef&quot; is returned. Note that
+Perl typically recognizes property names in regular
+expressions with an optional &quot;&quot;Is_&quot;&quot;
+(with or without the underscore) prefixed to them, such as
+&quot;\p{isgc=punct}&quot;. This function does not recognize
+those in the property parameter, returning
+&quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For the block
+property, new-style block names are returned (see
+&quot;Old-style versus new-style block names&quot;).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;prop_values&quot;
+does not know about any user-defined properties, and will
+return &quot;undef&quot; if called with one of those.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>prop_value_aliases()</b>
+<br>
+use Unicode::UCD 'prop_value_aliases'; <br>
+my ($short_name, $full_name, @other_names) <br>
+= prop_value_aliases(&quot;Gc&quot;, &quot;Punct&quot;);
+<br>
+my $same_full_name = prop_value_aliases(&quot;Gc&quot;,
+&quot;P&quot;); # Scalar cntxt <br>
+my ($same_short_name) = prop_value_aliases(&quot;Gc&quot;,
+&quot;P&quot;); # gets 0th <br>
+# element <br>
+print &quot;The full name is $full_name\n&quot;; <br>
+print &quot;The short name is $short_name\n&quot;; <br>
+print &quot;The other aliases are: &quot;, join(&quot;,
+&quot;, @other_names), &quot;\n&quot;; <br>
+prints: <br>
+The full name is Punctuation <br>
+The short name is P <br>
+The other aliases are: Punct</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some Unicode
+properties have a restricted set of legal values. For
+example, all binary properties are restricted to just
+&quot;true&quot; or &quot;false&quot;; and there are only a
+few dozen possible General Categories.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use
+&quot;<b>prop_values()</b>&quot; to find out if a given
+property is one which has a restricted set of values, and if
+so, what those values are. But usually each value actually
+has several synonyms. For example, in Unicode binary
+properties, <i>truth</i> can be represented by any of the
+strings &quot;Y&quot;, &quot;Yes&quot;, &quot;T&quot;, or
+&quot;True&quot;; and the General Category
+&quot;Punctuation&quot; by that string, or
+&quot;Punct&quot;, or simply &quot;P&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Like property
+names, there is typically at least a short name for each
+such property-value, and a long name. If you know any name
+of the property-value (which you can get by
+&quot;<b>prop_values()</b>&quot;, you can use
+&quot;prop_value_aliases&quot;() to get the long name (when
+called in scalar context), or a list of all the names, with
+the short name in the 0th element, the long name in the next
+element, and any other synonyms in the remaining elements,
+in no particular order, except that any all-numeric synonyms
+will be last.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The long name
+is returned in a form nicely capitalized, suitable for
+printing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Case, white
+space, hyphens, and underscores are ignored in the input
+parameters (except for the trailing underscore in the
+old-form grandfathered-in general category property value
+&quot;L_&quot;, which is better written as
+&quot;LC&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If either name
+is unknown, &quot;undef&quot; is returned. Note that Perl
+typically recognizes property names in regular expressions
+with an optional &quot;&quot;Is_&quot;&quot; (with or
+without the underscore) prefixed to them, such as
+&quot;\p{isgc=punct}&quot;. This function does not recognize
+those in the property parameter, returning
+&quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If called with
+a property that doesn&rsquo;t have synonyms for its values,
+it returns the input value, possibly normalized with
+capitalization and underscores, but not necessarily checking
+that the input value is valid.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For the block
+property, new-style block names are returned (see
+&quot;Old-style versus new-style block names&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To find the
+synonyms for single-forms, such as &quot;\p{Any}&quot;, use
+&quot;<b>prop_aliases()</b>&quot; instead.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;prop_value_aliases&quot;
+does not know about any user-defined properties, and will
+return &quot;undef&quot; if called with one of those.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>prop_invlist()</b>
+<br>
+&quot;prop_invlist&quot; returns an inversion list
+(described below) that defines all the code points for the
+binary Unicode property (or &quot;property=value&quot; pair)
+given by the input parameter string:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use feature
+'say'; <br>
+use Unicode::UCD 'prop_invlist'; <br>
+say join &quot;, &quot;, prop_invlist(&quot;Any&quot;); <br>
+prints: <br>
+0, 1114112</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the input is
+unknown &quot;undef&quot; is returned in scalar context; an
+empty-list in list context. If the input is known, the
+number of elements in the list is returned if called in
+scalar context.</p>
+
+<p style="margin-left:11%; margin-top: 1em">perluniprops
+gives the list of properties that this function accepts, as
+well as all the possible forms for them (including with the
+optional &quot;Is_&quot; prefixes). (Except this function
+doesn&rsquo;t accept any Perl-internal properties, some of
+which are listed there.) This function uses the same loose
+or tighter matching rules for resolving the input
+property&rsquo;s name as is done for regular expressions.
+These are also specified in perluniprops. Examples of using
+the &quot;property=value&quot; form are:</p>
+
+<p style="margin-left:11%; margin-top: 1em">say join
+&quot;, &quot;,
+prop_invlist(&quot;Script_Extensions=Shavian&quot;); <br>
+prints: <br>
+66640, 66688 <br>
+say join &quot;, &quot;,
+prop_invlist(&quot;ASCII_Hex_Digit=No&quot;); <br>
+prints: <br>
+0, 48, 58, 65, 71, 97, 103 <br>
+say join &quot;, &quot;,
+prop_invlist(&quot;ASCII_Hex_Digit=Yes&quot;); <br>
+prints: <br>
+48, 58, 65, 71, 97, 103</p>
+
+<p style="margin-left:11%; margin-top: 1em">Inversion lists
+are a compact way of specifying Unicode property-value
+definitions. The 0th item in the list is the lowest code
+point that has the property-value. The next item (item [1])
+is the lowest code point beyond that one that does
+<small>NOT</small> have the property-value. And the next
+item beyond that ([2]) is the lowest code point beyond that
+one that does have the property-value, and so on. Put
+another way, each element in the list gives the beginning of
+a range that has the property-value (for even numbered
+elements), or doesn&rsquo;t have the property-value (for odd
+numbered elements). The name for this data structure stems
+from the fact that each element in the list toggles (or
+inverts) whether the corresponding range is or isn&rsquo;t
+on the list.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the final
+example above, the first <small>ASCII</small> Hex digit is
+code point 48, the character &quot;0&quot;, and all code
+points from it through 57 (a &quot;9&quot;) are
+<small>ASCII</small> hex digits. Code points 58 through 64
+aren&rsquo;t, but 65 (an &quot;A&quot;) through 70 (an
+&quot;F&quot;) are, as are 97 (&quot;a&quot;) through 102
+(&quot;f&quot;). 103 starts a range of code points that
+aren&rsquo;t <small>ASCII</small> hex digits. That range
+extends to infinity, which on your computer can be found in
+the variable $Unicode::UCD::MAX_CP. (This variable is as
+close to infinity as Perl can get on your platform, and may
+be too high for some operations to work; you may wish to use
+a smaller number for your purposes.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+inversion lists returned by this function can possibly
+include non-Unicode code points, that is anything above
+0x10FFFF. Unicode properties are not defined on such code
+points. You might wish to change the output to not include
+these. Simply add 0x110000 at the end of the non-empty
+returned list if it isn&rsquo;t already that value; and pop
+that value if it is; like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @list =
+prop_invlist(&quot;foo&quot;); <br>
+if (@list) { <br>
+if ($list[&minus;1] == 0x110000) { <br>
+pop @list; # Defeat the turning on for above Unicode <br>
+} <br>
+else { <br>
+push @list, 0x110000; # Turn off for above Unicode <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is a simple
+matter to expand out an inversion list to a full list of all
+code points that have the property-value:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @invlist =
+prop_invlist($property_name); <br>
+die &quot;empty&quot; unless @invlist; <br>
+my @full_list; <br>
+for (my $i = 0; $i &lt; @invlist; $i += 2) { <br>
+my $upper = ($i + 1) &lt; @invlist <br>
+? $invlist[$i+1] &minus; 1 # In range <br>
+: $Unicode::UCD::MAX_CP; # To infinity. <br>
+for my $j ($invlist[$i] .. $upper) { <br>
+push @full_list, $j; <br>
+} <br>
+}</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;prop_invlist&quot;
+does not know about any user-defined nor Perl internal-only
+properties, and will return &quot;undef&quot; if called with
+one of those.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;<b>search_invlist()</b>&quot; function is provided for
+finding a code point within an inversion list.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>prop_invmap()</b>
+<br>
+use Unicode::UCD 'prop_invmap'; <br>
+my ($list_ref, $map_ref, $format, $default) <br>
+= prop_invmap(&quot;General Category&quot;);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;prop_invmap&quot;
+is used to get the complete mapping definition for a
+property, in the form of an inversion map. An inversion map
+consists of two parallel arrays. One is an ordered list of
+code points that mark range beginnings, and the other gives
+the value (or mapping) that all code points in the
+corresponding range have.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;prop_invmap&quot;
+is called with the name of the desired property. The name is
+loosely matched, meaning that differences in case,
+white-space, hyphens, and underscores are not meaningful
+(except for the trailing underscore in the old-form
+grandfathered-in property &quot;L_&quot;, which is better
+written as &quot;LC&quot;, or even better,
+&quot;Gc=LC&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Many Unicode
+properties have more than one name (or alias).
+&quot;prop_invmap&quot; understands all of these, including
+Perl extensions to them. Ambiguities are resolved as
+described above for &quot;<b>prop_aliases()</b>&quot;
+(except if a property has both a complete mapping, and a
+binary &quot;Y&quot;/&quot;N&quot; mapping, then specifying
+the property name prefixed by &quot;is&quot; causes the
+binary one to be returned). The Perl internal property
+&quot;Perl_Decimal_Digit, described below, is also accepted.
+An empty list is returned if the property name is unknown.
+See &quot;Properties accessible through Unicode::UCD&quot;
+in perluniprops for the properties acceptable as inputs to
+this function.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is a fatal
+error to call this function except in list context.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In addition to
+the two arrays that form the inversion map,
+&quot;prop_invmap&quot; returns two other values; one is a
+scalar that gives some details as to the format of the
+entries of the map array; the other is a default value,
+useful in maps whose format name begins with the letter
+&quot;a&quot;, as described below in its subsection; and for
+specialized purposes, such as converting to another data
+structure, described at the end of this main section.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This means that
+&quot;prop_invmap&quot; returns a 4 element list. For
+example,</p>
+
+<p style="margin-left:11%; margin-top: 1em">my
+($blocks_ranges_ref, $blocks_maps_ref, $format, $default)
+<br>
+= prop_invmap(&quot;Block&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this call,
+the two arrays will be populated as shown below (for Unicode
+6.0):</p>
+
+<p style="margin-left:11%; margin-top: 1em">Index
+@blocks_ranges @blocks_maps <br>
+0 0x0000 Basic Latin <br>
+1 0x0080 Latin&minus;1 Supplement <br>
+2 0x0100 Latin Extended&minus;A <br>
+3 0x0180 Latin Extended&minus;B <br>
+4 0x0250 IPA Extensions <br>
+5 0x02B0 Spacing Modifier Letters <br>
+6 0x0300 Combining Diacritical Marks <br>
+7 0x0370 Greek and Coptic <br>
+8 0x0400 Cyrillic <br>
+... <br>
+233 0x2B820 No_Block <br>
+234 0x2F800 CJK Compatibility Ideographs Supplement <br>
+235 0x2FA20 No_Block <br>
+236 0xE0000 Tags <br>
+237 0xE0080 No_Block <br>
+238 0xE0100 Variation Selectors Supplement <br>
+239 0xE01F0 No_Block <br>
+240 0xF0000 Supplementary Private Use Area&minus;A <br>
+241 0x100000 Supplementary Private Use Area&minus;B <br>
+242 0x110000 No_Block</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first line
+(with Index [0]) means that the value for code point 0 is
+&quot;Basic Latin&quot;. The entry &quot;0x0080&quot; in the
+@blocks_ranges column in the second line means that the
+value from the first line, &quot;Basic Latin&quot;, extends
+to all code points in the range from 0 up to but not
+including 0x0080, that is, through 127. In other words, the
+code points from 0 to 127 are all in the &quot;Basic
+Latin&quot; block. Similarly, all code points in the range
+from 0x0080 up to (but not including) 0x0100 are in the
+block named &quot;Latin&minus;1 Supplement&quot;, etc.
+(Notice that the return is the old-style block names; see
+&quot;Old-style versus new-style block names&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The final line
+(with Index [242]) means that the value for all code points
+above the legal Unicode maximum code point have the value
+&quot;No_Block&quot;, which is the term Unicode uses for a
+non-existing block.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The arrays
+completely specify the mappings for all possible code
+points. The final element in an inversion map returned by
+this function will always be for the range that consists of
+all the code points that aren&rsquo;t legal Unicode, but
+that are expressible on the platform. (That is, it starts
+with code point 0x110000, the first code point above the
+legal Unicode maximum, and extends to infinity.) The value
+for that range will be the same that any typical unassigned
+code point has for the specified property. (Certain
+unassigned code points are not &quot;typical&quot;; for
+example the non-character code points, or those in blocks
+that are to be written right-to-left. The above-Unicode
+range&rsquo;s value is not based on these atypical code
+points.) It could be argued that, instead of treating these
+as unassigned Unicode code points, the value for this range
+should be &quot;undef&quot;. If you wish, you can change the
+returned arrays accordingly.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The maps for
+almost all properties are simple scalars that should be
+interpreted as-is. These values are those given in the
+Unicode-supplied data files, which may be inconsistent as to
+capitalization and as to which synonym for a property-value
+is given. The results may be normalized by using the
+&quot;<b>prop_value_aliases()</b>&quot; function.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are
+exceptions to the simple scalar maps. Some properties have
+some elements in their map list that are themselves lists of
+scalars; and some special strings are returned that are not
+to be interpreted as-is. Element [2] (placed into $format in
+the example above) of the returned four element list tells
+you if the map has any of these special elements or not, as
+follows:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><b>&quot;s&quot;</b></p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>means all the elements of the map array are simple
+scalars, with no special elements. Almost all properties are
+like this, like the &quot;block&quot; example above.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>&quot;sl&quot;</b></p>
+
+<p style="margin-left:17%;">means that some of the map
+array elements have the form given by &quot;s&quot;, and the
+rest are lists of scalars. For example, here is a portion of
+the output of calling &quot;prop_invmap&quot;() with the
+&quot;Script Extensions&quot; property:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">@scripts_ranges
+@scripts_maps <br>
+... <br>
+0x0953 Devanagari <br>
+0x0964 [ Bengali, Devanagari, Gurumukhi, Oriya ] <br>
+0x0966 Devanagari <br>
+0x0970 Common</p>
+
+<p style="margin-left:17%; margin-top: 1em">Here, the code
+points 0x964 and 0x965 are both used in Bengali, Devanagari,
+Gurmukhi, and Oriya, but no other scripts.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The Name_Alias
+property is also of this form. But each scalar consists of
+two components: 1) the name, and 2) the type of alias this
+is. They are separated by a colon and a space. In Unicode
+6.1, there are several alias types: <br>
+&quot;correction&quot;</p>
+
+<p style="margin-left:23%;">indicates that the name is a
+corrected form for the original name (which remains valid)
+for the same code point.</p>
+
+<p style="margin-left:17%;">&quot;control&quot;</p>
+
+<p style="margin-left:23%;">adds a new name for a control
+character.</p>
+
+<p style="margin-left:17%;">&quot;alternate&quot;</p>
+
+<p style="margin-left:23%;">is an alternate name for a
+character</p>
+
+<p style="margin-left:17%;">&quot;figment&quot;</p>
+
+<p style="margin-left:23%;">is a name for a character that
+has been documented but was never in any actual
+standard.</p>
+
+<p style="margin-left:17%;">&quot;abbreviation&quot;</p>
+
+<p style="margin-left:23%;">is a common abbreviation for a
+character</p>
+
+<p style="margin-left:17%; margin-top: 1em">The lists are
+ordered (roughly) so the most preferred names come before
+less preferred ones.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For
+example,</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">@aliases_ranges
+@alias_maps <br>
+... <br>
+0x009E [ 'PRIVACY MESSAGE: control', 'PM: abbreviation' ]
+<br>
+0x009F [ 'APPLICATION PROGRAM COMMAND: control', <br>
+'APC: abbreviation' <br>
+] <br>
+0x00A0 'NBSP: abbreviation' <br>
+0x00A1 &quot;&quot; <br>
+0x00AD 'SHY: abbreviation' <br>
+0x00AE &quot;&quot; <br>
+0x01A2 'LATIN CAPITAL LETTER GHA: correction' <br>
+0x01A3 'LATIN SMALL LETTER GHA: correction' <br>
+0x01A4 &quot;&quot; <br>
+...</p>
+
+<p style="margin-left:17%; margin-top: 1em">A map to the
+empty string means that there is no alias defined for the
+code point.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><b>&quot;a&quot;</b></p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>is like &quot;s&quot; in that all the map array elements
+are scalars, but here they are restricted to all being
+integers, and some have to be adjusted (hence the name
+&quot;a&quot;) to get the correct result. For example,
+in:</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">my
+($uppers_ranges_ref, $uppers_maps_ref, $format, $default)
+<br>
+= prop_invmap(&quot;Simple_Uppercase_Mapping&quot;);</p>
+
+<p style="margin-left:17%; margin-top: 1em">the returned
+arrays look like this:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">@$uppers_ranges_ref
+@$uppers_maps_ref Note <br>
+0 0 <br>
+97 65 'a' maps to 'A', b =&gt; B ... <br>
+123 0 <br>
+181 924 MICRO SIGN =&gt; Greek Cap MU <br>
+182 0 <br>
+...</p>
+
+<p style="margin-left:17%; margin-top: 1em">and $default is
+0.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Let&rsquo;s
+start with the second line. It says that the uppercase of
+code point 97 is 65; or &quot;uc(&quot;a&quot;)&quot; ==
+&quot;A&quot;. But the line is for the entire range of code
+points 97 through 122. To get the mapping for any code point
+in this range, you take the offset it has from the beginning
+code point of the range, and add that to the mapping for
+that first code point. So, the mapping for 122
+(&quot;z&quot;) is derived by taking the offset of 122 from
+97 (=25) and adding that to 65, yielding 90 (&quot;Z&quot;).
+Likewise for everything in between.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Requiring this
+simple adjustment allows the returned arrays to be
+significantly smaller than otherwise, up to a factor of 10,
+speeding up searching through them.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Ranges that map
+to $default, &quot;0&quot;, behave somewhat differently. For
+these, each code point maps to itself. So, in the first line
+in the example, &quot;ord(uc(chr(0)))&quot; is 0,
+&quot;ord(uc(chr(1)))&quot; is 1, ..
+&quot;ord(uc(chr(96)))&quot; is 96.</p>
+
+<p style="margin-left:11%;"><b>&quot;al&quot;</b></p>
+
+<p style="margin-left:17%;">means that some of the map
+array elements have the form given by &quot;a&quot;, and the
+rest are ordered lists of code points. For example, in:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my
+($uppers_ranges_ref, $uppers_maps_ref, $format, $default)
+<br>
+= prop_invmap(&quot;Uppercase_Mapping&quot;);</p>
+
+<p style="margin-left:17%; margin-top: 1em">the returned
+arrays look like this:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">@$uppers_ranges_ref
+@$uppers_maps_ref <br>
+0 0 <br>
+97 65 <br>
+123 0 <br>
+181 924 <br>
+182 0 <br>
+... <br>
+0x0149 [ 0x02BC 0x004E ] <br>
+0x014A 0 <br>
+0x014B 330 <br>
+...</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is the
+full Uppercase_Mapping property (as opposed to the
+Simple_Uppercase_Mapping given in the example for format
+&quot;a&quot;). The only difference between the two in the
+ranges shown is that the code point at 0x0149 ( <small>LATIN
+SMALL LETTER N PRECEDED BY APOSTROPHE</small> ) maps to a
+string of two characters, 0x02BC ( <small>MODIFIER LETTER
+APOSTROPHE</small> ) followed by 0x004E ( <small>LATIN
+CAPITAL LETTER N</small> ).</p>
+
+<p style="margin-left:17%; margin-top: 1em">No adjustments
+are needed to entries that are references to arrays; each
+such entry will have exactly one element in its range, so
+the offset is always 0.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The fourth
+(index [3]) element ($default) in the list returned for this
+format is 0.</p>
+
+<p style="margin-left:11%;"><b>&quot;ae&quot;</b></p>
+
+<p style="margin-left:17%;">This is like &quot;a&quot;, but
+some elements are the empty string, and should not be
+adjusted. The one internal Perl property accessible by
+&quot;prop_invmap&quot; is of this type:
+&quot;Perl_Decimal_Digit&quot; returns an inversion map
+which gives the numeric values that are represented by the
+Unicode decimal digit characters. Characters that
+don&rsquo;t represent decimal digits map to the empty
+string, like so:</p>
+
+<p style="margin-left:17%; margin-top: 1em">@digits @values
+<br>
+0x0000 &quot;&quot; <br>
+0x0030 0 <br>
+0x003A: &quot;&quot; <br>
+0x0660: 0 <br>
+0x066A: &quot;&quot; <br>
+0x06F0: 0 <br>
+0x06FA: &quot;&quot; <br>
+0x07C0: 0 <br>
+0x07CA: &quot;&quot; <br>
+0x0966: 0 <br>
+...</p>
+
+<p style="margin-left:17%; margin-top: 1em">This means that
+the code points from 0 to 0x2F do not represent decimal
+digits; the code point 0x30 ( <small>DIGIT ZERO</small> )
+represents 0; code point 0x31, ( <small>DIGIT ONE</small> ),
+represents 0+1&minus;0 = 1; ... code point 0x39, (
+<small>DIGIT NINE</small> ), represents 0+9&minus;0 = 9; ...
+code points 0x3A through 0x65F do not represent decimal
+digits; 0x660 (ARABIC-INDIC <small>DIGIT ZERO</small> ),
+represents 0; ... 0x07C1 ( <small>NKO DIGIT ONE</small> ),
+represents 0+1&minus;0 = 1 ...</p>
+
+<p style="margin-left:17%; margin-top: 1em">The fourth
+(index [3]) element ($default) in the list returned for this
+format is the empty string.</p>
+
+<p style="margin-left:11%;"><b>&quot;ale&quot;</b></p>
+
+<p style="margin-left:17%;">is a combination of the
+&quot;al&quot; type and the &quot;ae&quot; type. Some of the
+map array elements have the forms given by &quot;al&quot;,
+and the rest are the empty string. The property
+&quot;NFKC_Casefold&quot; has this form. An example slice
+is:</p>
+
+<p style="margin-left:17%; margin-top: 1em">@$ranges_ref
+@$maps_ref Note <br>
+... <br>
+0x00AA 97 FEMININE ORDINAL INDICATOR =&gt; 'a' <br>
+0x00AB 0 <br>
+0x00AD SOFT HYPHEN =&gt; &quot;&quot; <br>
+0x00AE 0 <br>
+0x00AF [ 0x0020, 0x0304 ] MACRON =&gt; SPACE . COMBINING
+MACRON <br>
+0x00B0 0 <br>
+...</p>
+
+<p style="margin-left:17%; margin-top: 1em">The fourth
+(index [3]) element ($default) in the list returned for this
+format is 0.</p>
+
+<p style="margin-left:11%;"><b>&quot;ar&quot;</b></p>
+
+<p style="margin-left:17%;">means that all the elements of
+the map array are either rational numbers or the string
+&quot;NaN&quot;, meaning &quot;Not a Number&quot;. A
+rational number is either an integer, or two integers
+separated by a solidus (&quot;/&quot;). The second integer
+represents the denominator of the division implied by the
+solidus, and is actually always positive, so it is
+guaranteed not to be 0 and to not be signed. When the
+element is a plain integer (without the solidus), it may
+need to be adjusted to get the correct value by adding the
+offset, just as other &quot;a&quot; properties. No
+adjustment is needed for fractions, as the range is
+guaranteed to have just a single element, and so the offset
+is always 0.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you want to
+convert the returned map to entirely scalar numbers, you can
+use something like this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my
+($invlist_ref, $invmap_ref, $format) =
+prop_invmap($property); <br>
+if ($format &amp;&amp; $format eq &quot;ar&quot;) { <br>
+map { $_ = eval $_ if $_ ne 'NaN' } @$map_ref; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">Here&rsquo;s
+some entries from the output of the property &quot;Nv&quot;,
+which has format &quot;ar&quot;.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">@numerics_ranges
+@numerics_maps Note <br>
+0x00 &quot;NaN&quot; <br>
+0x30 0 DIGIT 0 .. DIGIT 9 <br>
+0x3A &quot;NaN&quot; <br>
+0xB2 2 SUPERSCRIPTs 2 and 3 <br>
+0xB4 &quot;NaN&quot; <br>
+0xB9 1 SUPERSCRIPT 1 <br>
+0xBA &quot;NaN&quot; <br>
+0xBC 1/4 VULGAR FRACTION 1/4 <br>
+0xBD 1/2 VULGAR FRACTION 1/2 <br>
+0xBE 3/4 VULGAR FRACTION 3/4 <br>
+0xBF &quot;NaN&quot; <br>
+0x660 0 ARABIC&minus;INDIC DIGIT ZERO .. NINE <br>
+0x66A &quot;NaN&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">The fourth
+(index [3]) element ($default) in the list returned for this
+format is &quot;NaN&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><b>&quot;n&quot;</b></p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>means the Name property. All the elements of the map
+array are simple scalars, but some of them contain special
+strings that require more work to get the actual name.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Entries such
+as:</p>
+
+<p style="margin-left:17%; margin-top: 1em">CJK UNIFIED
+IDEOGRAPH&minus;&lt;code point&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">mean that the
+name for the code point is &quot; <small>CJK UNIFIED
+IDEOGRAPH&minus;&quot;</small> with the code point
+(expressed in hexadecimal) appended to it, like &quot;
+<small>CJK UNIFIED IDEOGRAPH&minus;3403&quot;</small>
+(similarly for
+&quot;CJK&nbsp;COMPATIBILITY&nbsp;IDEOGRAPH&minus;&lt;code&nbsp;point&gt;&quot;).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Also, entries
+like</p>
+
+<p style="margin-left:17%; margin-top: 1em">&lt;hangul
+syllable&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">means that the
+name is algorithmically calculated. This is easily done by
+the function &quot;charnames::viacode(code)&quot; in
+charnames.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that for
+control characters (&quot;Gc=cc&quot;), Unicode&rsquo;s data
+files have the string
+&quot;&quot;&lt;control&gt;&quot;&quot;, but the real name
+of each of these characters is the empty string. This
+function returns that real name, the empty string. (There
+are names for these characters, but they are considered
+aliases, not the Name property name, and are contained in
+the &quot;Name_Alias&quot; property.)</p>
+
+<p style="margin-left:11%;"><b>&quot;ad&quot;</b></p>
+
+<p style="margin-left:17%;">means the Decomposition_Mapping
+property. This property is like &quot;al&quot; properties,
+except that one of the scalar elements is of the form:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&lt;hangul
+syllable&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">This signifies
+that this entry should be replaced by the decompositions for
+all the code points whose decomposition is algorithmically
+calculated. (All of them are currently in one range and no
+others outside the range are likely to ever be added to
+Unicode; the &quot;n&quot; format has this same entry.)
+These can be generated via the function
+<b>Unicode::Normalize::NFD()</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that the
+mapping is the one that is specified in the Unicode data
+files, and to get the final decomposition, it may need to be
+applied recursively. Unicode in fact discourages use of this
+property except internally in implementations of the Unicode
+Normalization Algorithm.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The fourth
+(index [3]) element ($default) in the list returned for this
+format is 0.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that a
+format begins with the letter &quot;a&quot; if and only the
+property it is for requires adjustments by adding the
+offsets in multi-element ranges. For all these properties,
+an entry should be adjusted only if the map is a scalar
+which is an integer. That is, it must match the regular
+expression:</p>
+
+<p style="margin-left:11%; margin-top: 1em">/ ^ &minus;?
+\d+ $ /xa</p>
+
+<p style="margin-left:11%; margin-top: 1em">Further, the
+first element in a range never needs adjustment, as the
+adjustment would be just adding 0.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A binary search
+such as that provided by
+&quot;<b>search_invlist()</b>&quot;, can be used to quickly
+find a code point in the inversion list, and hence its
+corresponding mapping.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The final,
+fourth element (index [3], assigned to $default in the
+&quot;block&quot; example) in the four element list returned
+by this function is used with the &quot;a&quot; format
+types; it may also be useful for applications that wish to
+convert the returned inversion map data structure into some
+other, such as a hash. It gives the mapping that most code
+points map to under the property. If you establish the
+convention that any code point not explicitly listed in your
+data structure maps to this value, you can potentially make
+your data structure much smaller. As you construct your data
+structure from the one returned by this function, simply
+ignore those ranges that map to this value. For example, to
+convert to the data structure searchable by
+&quot;<b>charinrange()</b>&quot;, you can follow this recipe
+for properties that don&rsquo;t require adjustments:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my ($list_ref,
+$map_ref, $format, $default) = prop_invmap($property); <br>
+my @range_list; <br>
+# Look at each element in the list, but the &minus;2 is
+needed because we <br>
+# look at $i+1 in the loop, and the final element is
+guaranteed to map <br>
+# to $default by prop_invmap(), so we would skip it anyway.
+<br>
+for my $i (0 .. @$list_ref &minus; 2) { <br>
+next if $map_ref&minus;&gt;[$i] eq $default; <br>
+push @range_list, [ $list_ref&minus;&gt;[$i], <br>
+$list_ref&minus;&gt;[$i+1], <br>
+$map_ref&minus;&gt;[$i] <br>
+]; <br>
+} <br>
+print charinrange(\@range_list, $code_point),
+&quot;\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">With this,
+&quot;charinrange()&quot; will return &quot;undef&quot; if
+its input code point maps to $default. You can avoid this by
+omitting the &quot;next&quot; statement, and adding a line
+after the loop to handle the final element of the inversion
+map.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Similarly, this
+recipe can be used for properties that do require
+adjustments:</p>
+
+<p style="margin-left:11%; margin-top: 1em">for my $i (0 ..
+@$list_ref &minus; 2) { <br>
+next if $map_ref&minus;&gt;[$i] eq $default; <br>
+# prop_invmap() guarantees that if the mapping is to an
+array, the <br>
+# range has just one element, so no need to worry about
+adjustments. <br>
+if (ref $map_ref&minus;&gt;[$i]) { <br>
+push @range_list, <br>
+[ $list_ref&minus;&gt;[$i], $list_ref&minus;&gt;[$i],
+$map_ref&minus;&gt;[$i] ]; <br>
+} <br>
+else { # Otherwise each element is actually mapped to a
+separate <br>
+# value, so the range has to be split into single code point
+<br>
+# ranges. <br>
+my $adjustment = 0; <br>
+# For each code point that gets mapped to something... <br>
+for my $j ($list_ref&minus;&gt;[$i] ..
+$list_ref&minus;&gt;[$i+1] &minus;1 ) { <br>
+# ... add a range consisting of just it mapping to the <br>
+# original plus the adjustment, which is incremented for the
+<br>
+# next time through the loop, as the offset increases by 1
+<br>
+# for each element in the range <br>
+push @range_list, <br>
+[ $j, $j, $map_ref&minus;&gt;[$i] + $adjustment++ ]; <br>
+} <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+inversion maps returned for the &quot;Case_Folding&quot; and
+&quot;Simple_Case_Folding&quot; properties do not include
+the Turkic-locale mappings. Use
+&quot;<b>casefold()</b>&quot; for these.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;prop_invmap&quot;
+does not know about any user-defined properties, and will
+return &quot;undef&quot; if called with one of those.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The returned
+values for the Perl extension properties, such as
+&quot;Any&quot; and &quot;Greek&quot; are somewhat
+misleading. The values are either &quot;Y&quot; or
+&quot;&quot;N&quot;&quot;. All Unicode properties are
+bipartite, so you can actually use the &quot;Y&quot; or
+&quot;&quot;N&quot;&quot; in a Perl regular expression for
+these, like &quot;qr/\p{ID_Start=Y/}&quot; or
+&quot;qr/\p{Upper=N/}&quot;. But the Perl extensions
+aren&rsquo;t specified this way, only like
+&quot;/qr/\p{Any}&quot;, <i>etc</i>. You can&rsquo;t
+actually use the &quot;Y&quot; and &quot;&quot;N&quot;&quot;
+in them.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Getting
+every available name</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Instead of
+reading the Unicode Database directly from files, as you
+were able to do for a long time, you are encouraged to use
+the supplied functions. So, instead of reading
+&quot;Name.pl&quot; directly, which changed formats in 5.32,
+and may do so again without notice in the future or even
+disappear, you ought to use &quot;<b>prop_invmap()</b>&quot;
+like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my (%name, %cp,
+%cps, $n); <br>
+# All codepoints <br>
+foreach my $cat (qw( Name Name_Alias )) { <br>
+my ($codepoints, $names, $format, $default) =
+prop_invmap($cat); <br>
+# $format =&gt; &quot;n&quot;, $default =&gt; &quot;&quot;
+<br>
+foreach my $i (0 .. @$codepoints &minus; 2) { <br>
+my ($cp, $n) = ($codepoints&minus;&gt;[$i],
+$names&minus;&gt;[$i]); <br>
+# If $n is a ref, the same codepoint has multiple names <br>
+foreach my $name (ref $n ? @$n : $n) { <br>
+$name{$cp} //= $name; <br>
+$cp{$name} //= $cp; <br>
+} <br>
+} <br>
+} <br>
+# Named sequences <br>
+{ my %ns = namedseq(); <br>
+foreach my $name (sort { $ns{$a} cmp $ns{$b} } keys %ns) {
+<br>
+$cp{$name} //= [ map { ord } split &quot;&quot; =&gt;
+$ns{$name} ]; <br>
+} <br>
+}</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>search_invlist()</b>
+<br>
+use Unicode::UCD qw(prop_invmap prop_invlist); <br>
+use Unicode::UCD 'search_invlist'; <br>
+my @invlist = prop_invlist($property_name); <br>
+print $code_point, ((search_invlist(\@invlist, $code_point)
+// &minus;1) % 2) <br>
+? &quot; isn't&quot; <br>
+: &quot; is&quot;, <br>
+&quot; in $property_name\n&quot;; <br>
+my ($blocks_ranges_ref, $blocks_map_ref) =
+prop_invmap(&quot;Block&quot;); <br>
+my $index = search_invlist($blocks_ranges_ref, $code_point);
+<br>
+print &quot;$code_point is in block &quot;,
+$blocks_map_ref&minus;&gt;[$index], &quot;\n&quot;;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;search_invlist&quot;
+is used to search an inversion list returned by
+&quot;prop_invlist&quot; or &quot;prop_invmap&quot; for a
+particular &quot;code point argument&quot;.
+&quot;undef&quot; is returned if the code point is not found
+in the inversion list (this happens only when it is not a
+legal &quot;code point argument&quot;, or is less than the
+list&rsquo;s first element). A warning is raised in the
+first instance.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Otherwise, it
+returns the index into the list of the range that contains
+the code point.; that is, find &quot;i&quot; such that</p>
+
+<p style="margin-left:11%; margin-top: 1em">list[i]&lt;=
+code_point &lt; list[i+1].</p>
+
+<p style="margin-left:11%; margin-top: 1em">As explained in
+&quot;<b>prop_invlist()</b>&quot;, whether a code point is
+in the list or not depends on if the index is even (in) or
+odd (not in). And as explained in
+&quot;<b>prop_invmap()</b>&quot;, the index is used with the
+returned parallel array to find the mapping.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Unicode::UCD::UnicodeVersion</b>
+<br>
+This returns the version of the Unicode Character Database,
+in other words, the version of the Unicode standard the
+database implements. The version is a string of numbers
+delimited by dots ('.').</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Blocks
+versus Scripts</b> <br>
+The difference between a block and a script is that scripts
+are closer to the linguistic notion of a set of code points
+required to represent languages, while block is more of an
+artifact of the Unicode code point numbering and separation
+into blocks of consecutive code points (so far the size of a
+block is some multiple of 16, like 128 or 256).</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example the
+Latin <b>script</b> is spread over several <b>blocks</b>,
+such as &quot;Basic Latin&quot;, &quot;Latin 1
+Supplement&quot;, &quot;Latin Extended&minus;A&quot;, and
+&quot;Latin Extended&minus;B&quot;. On the other hand, the
+Latin script does not contain all the characters of the
+&quot;Basic Latin&quot; block (also known as
+<small>ASCII</small> ): it includes only the letters, and
+not, for example, the digits nor the punctuation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For blocks see
+&lt;http://www.unicode.org/Public/UNIDATA/Blocks.txt&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">For scripts see
+<small>UTR</small> #24:
+&lt;http://www.unicode.org/reports/tr24/&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Matching
+Scripts and Blocks</b> <br>
+Scripts are matched with the regular-expression construct
+&quot;\p{...}&quot; (e.g. &quot;\p{Tibetan}&quot; matches
+characters of the Tibetan script), while
+&quot;\p{Blk=...}&quot; is used for blocks (e.g.
+&quot;\p{Blk=Tibetan}&quot; matches any of the 256 code
+points in the Tibetan block).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Old-style
+versus new-style block names</b> <br>
+Unicode publishes the names of blocks in two different
+styles, though the two are equivalent under Unicode&rsquo;s
+loose matching rules.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The original
+style uses blanks and hyphens in the block names (except for
+&quot;No_Block&quot;), like so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Miscellaneous
+Mathematical Symbols&minus;B</p>
+
+<p style="margin-left:11%; margin-top: 1em">The newer style
+replaces these with underscores, like this:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Miscellaneous_Mathematical_Symbols_B</p>
+
+<p style="margin-left:11%; margin-top: 1em">This newer
+style is consistent with the values of other Unicode
+properties. To preserve backward compatibility, all the
+functions in Unicode::UCD that return block names (except as
+noted) return the old-style ones.
+&quot;<b>prop_value_aliases()</b>&quot; returns the
+new-style and can be used to convert from old-style to
+new-style:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $new_style =
+prop_values_aliases(&quot;block&quot;, $old_style);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl also has
+single-form extensions that refer to blocks,
+&quot;In_Cyrillic&quot;, meaning &quot;Block=Cyrillic&quot;.
+These have always been written in the new style.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To convert from
+new-style to old-style, follow this recipe:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$old_style =
+charblock((prop_invlist(&quot;block=$new_style&quot;))[0]);</p>
+
+<p style="margin-left:11%; margin-top: 1em">(which finds
+the range of code points in the block using
+&quot;prop_invlist&quot;, gets the lower end of the range
+(0th element) and then looks up the old name for its block
+using &quot;charblock&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+starting in Unicode 6.1, many of the block names have
+shorter synonyms. These are always given in the new
+style.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Use with
+older Unicode versions</b> <br>
+The functions in this module work as well as can be expected
+when used on earlier Unicode versions. But, obviously, they
+use the available data from that Unicode version. For
+example, if the Unicode version predates the definition of
+the script property (Unicode 3.1), then any function that
+deals with scripts is going to return &quot;undef&quot; for
+the script portion of the return value.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jarkko
+Hietaniemi. Now maintained by perl5 porters.</p>
+<hr>
+</body>
+</html>

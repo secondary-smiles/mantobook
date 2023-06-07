@@ -1,0 +1,221 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:54 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>NDCTL&minus;CLEAR&minus;ERRORS</title>
+
+</head>
+<body>
+<h1>ndctl-clear-errors</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">ndctl-clear-errors
+&minus; clear all errors (badblocks) on the given
+namespace</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>ndctl
+clear&minus;errors</i> &lt;namespace&gt;
+[&lt;options&gt;]</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A namespace may
+have one or more <i>media errors</i>, either known to the
+kernel or in a latent state. These error locations, or
+<i>badblocks</i> can cause poison consumption events if read
+in an unsafe manner.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Moreover, these
+badblocks also indicate that due to media corruption, any
+data that may have been in these locations has been
+unrecoverably lost.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Normally, in
+the presence of such errors, the administrator is expected
+to recover the data from out of band means (such as
+backups), destroy the namespace, recreate it, and then
+restore the data. When the data is re&minus;written, the
+writes will allow any errors to be cleared as they are
+encountered. In such a workflow, one should <b>never</b>
+need to use the <i>clear&minus;errors</i> command.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, there
+may be special use cases, where the data currently on the
+namespace does not matter &minus; for example, if a
+<i>devdax</i> mode namespace is being prepared for use as
+<i>system&minus;ram</i>. In such cases, it may be desirable
+to clear any errors on the namespace prior to switching its
+mode to prevent disruptive machine checks due to poison
+consumption.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><big>Note</big>
+<br>
+Only</b> use this command when the data on the namespace is
+immaterial. For any blocks that are cleared via this
+command, any data on the blocks in question will be lost,
+and replaced with content that is implementation (platform)
+defined, and unpredictable.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><big>Warning</big></b>
+<br>
+This is a DANGEROUS command, and should only be used after
+fully understanding its implications and consequences. This
+WILL erase your data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For namespaces
+in one of <i>fsdax</i> or <i>devdax</i> modes, this command
+will only consider the <i>data</i> area for error clearing.
+Namespace metadata, such as info&minus;blocks, will not be
+touched. For namespaces in <i>raw</i> mode, the full
+available capacity of the namespace is considered for error
+clearing. Namespaces that are in <i>sector</i> mode are not
+supported, and will be skipped.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><big>Note</big></b>
+<br>
+It is expected that the command is run with the namespace
+<i>enabled</i>. A namespace in the <i>disabled</i> state
+will appear as, and will be treated as a <i>raw</i>
+namespace, and error clearing will be performed for the full
+available capacity of the namespace, including any potential
+metadata areas. If there happen to be errors in the metadata
+area, clearing them may result in unpredictable outcomes.
+You have been warned!</p>
+
+<p style="margin-left:11%; margin-top: 1em">Known errors
+are ones that the kernel has encountered before, either via
+a previous scrub, or by an attempted read from those
+locations. These can be listed by running <i>ndctl list
+&minus;&minus;media&minus;errors</i> for a given namespace.
+Latent errors, as the name indicates, are unknown to the
+kernel. These can be found by running a scrub operation on
+the NVDIMMs in question. By default, the
+ndctl&minus;clear&minus;errors command only clears known
+errors. This can be overridden using the
+<i>&minus;&minus;scrub</i> option to clear <b>all</b>
+errors.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><big>Note</big></b>
+<br>
+If a scrub is in progress when the command is called, it
+will unconditionally wait for it to complete.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>Clear
+errors on namespace 0.0</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>ndctl
+clear&minus;errors namespace0.0</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Clear
+errors on all namespaces belonging to region1, including
+scrubbing for latent errors</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>ndctl
+clear&minus;errors &minus;&minus;scrub
+&minus;&minus;region=region1 all</big></p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;s,
+&minus;&minus;scrub</big></p>
+
+<p style="margin-left:17%;"><big>Perform a <i>scrub</i> on
+the bus prior to clearing errors. This allows for the
+clearing of any latent media errors in addition to errors
+the kernel already knows about.</big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><b><big>Note</big></b>
+<br>
+This will cause the command to start and wait for a full
+scrub, and this can potentially be a very long&minus;running
+operation.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;v,
+&minus;&minus;verbose</big></p>
+
+<p style="margin-left:17%;"><big>Emit debug
+messages.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;r,
+&minus;&minus;region=</big></p>
+
+<p style="margin-left:17%;"><big>A <i>regionX</i> device
+name, or a region id number. Restrict the operation to the
+specified region(s). The keyword <i>all</i> can be specified
+to indicate the lack of any restriction, however this is the
+same as not supplying a &minus;&minus;region option at
+all.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;b,
+&minus;&minus;bus=</big></p>
+
+<p style="margin-left:17%;"><big>A bus id number, or a
+provider string (e.g. &quot;ACPI.NFIT&quot;). Restrict the
+operation to the specified bus(es). The keyword <i>all</i>
+can be specified to indicate the lack of any restriction,
+however this is the same as not supplying a
+&minus;&minus;bus option at all.</big></p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>Copyright
+&copy; 2016 &minus; 2022, Intel Corporation. License GPLv2:
+GNU GPL version 2 &lt;http://gnu.org/licenses/gpl.html&gt;.
+This is free software: you are free to change and
+redistribute it. There is NO WARRANTY, to the extent
+permitted by law.</big></big></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>ndctl&minus;start&minus;scrub(1),
+ndctl&minus;list(1)</big></big></p>
+<hr>
+</body>
+</html>

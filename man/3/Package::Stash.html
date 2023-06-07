@@ -1,0 +1,536 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:45 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Package::Stash</title>
+
+</head>
+<body>
+<h1>Package::Stash</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Package::Stash
+&minus; Routines for manipulating stashes</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+0.40</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">my $stash =
+Package::Stash&minus;&gt;new('Foo'); <br>
+$stash&minus;&gt;add_symbol('%foo', {bar =&gt; 1}); <br>
+# $Foo::foo{bar} == 1 <br>
+$stash&minus;&gt;has_symbol('$foo') # false <br>
+my $namespace = $stash&minus;&gt;namespace; <br>
+*{ $namespace&minus;&gt;{foo} }{HASH} # {bar =&gt; 1}</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Manipulating
+stashes (Perl&rsquo;s symbol tables) is occasionally
+necessary, but incredibly messy, and easy to get wrong. This
+module hides all of that behind a simple
+<small>API.</small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>NOTE:</small>
+Most methods in this class require a variable specification
+that includes a sigil. If this sigil is absent, it is
+assumed to represent the <small>IO</small> slot.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Due to
+limitations in the typeglob <small>API</small> available to
+perl code, and to typeglob manipulation in perl being quite
+slow, this module provides two implementations &minus; one
+in pure perl, and one using <small>XS.</small> The
+<small>XS</small> implementation is to be preferred for most
+usages; the pure perl one is provided for cases where
+<small>XS</small> modules are not a possibility. The current
+implementation in use can be set by setting
+$ENV{PACKAGE_STASH_IMPLEMENTATION} or
+$Package::Stash::IMPLEMENTATION before loading
+Package::Stash (with the environment variable taking
+precedence), otherwise, it will use the <small>XS</small>
+implementation if possible, falling back to the pure perl
+one.</p>
+
+<h2>METHODS
+<a name="METHODS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>new
+$package_name</b> <br>
+Creates a new &quot;Package::Stash&quot; object, for the
+package given as the only argument.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>name</b>
+<br>
+Returns the name of the package that this object
+represents.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>namespace</b>
+<br>
+Returns the raw stash itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>add_symbol
+$variable $value %opts</b> <br>
+Adds a new package symbol, for the symbol given as
+$variable, and optionally gives it an initial value of
+$value. $variable should be the name of variable including
+the sigil, so</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Package::Stash&minus;&gt;new('Foo')&minus;&gt;add_symbol('%foo')</p>
+
+<p style="margin-left:11%; margin-top: 1em">will create
+%Foo::foo.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Valid options
+(all optional) are &quot;filename&quot;,
+&quot;first_line_num&quot;, and
+&quot;last_line_num&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$opts{filename},
+$opts{first_line_num}, and $opts{last_line_num} can be used
+to indicate where the symbol should be regarded as having
+been defined. Currently these values are only used if the
+symbol is a subroutine (&rsquo;&quot;&amp;&quot;&rsquo;
+sigil) and only if &quot;$^P &amp; 0x10&quot; is true, in
+which case the special %DB::sub hash is updated to record
+the values of &quot;filename&quot;,
+&quot;first_line_num&quot;, and &quot;last_line_num&quot;
+for the subroutine. If these are not passed, their values
+are inferred (as much as possible) from &quot;caller&quot;
+information.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>remove_glob
+$name</b> <br>
+Removes all package variables with the given name,
+regardless of sigil.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>has_symbol
+$variable</b> <br>
+Returns whether or not the given package variable (including
+sigil) exists.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>get_symbol
+$variable</b> <br>
+Returns the value of the given package variable (including
+sigil).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>get_or_add_symbol
+$variable</b> <br>
+Like &quot;get_symbol&quot;, except that it will return an
+empty hashref or arrayref if the variable doesn&rsquo;t
+exist.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>remove_symbol
+$variable</b> <br>
+Removes the package variable described by $variable (which
+includes the sigil); other variables with the same name but
+different sigils will be untouched.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>list_all_symbols
+$type_filter</b> <br>
+Returns a list of package variable names in the package,
+without sigils. If a &quot;type_filter&quot; is passed, it
+is used to select package variables of a given type, where
+valid types are the slots of a typeglob (&rsquo;
+<small>SCALAR</small> &rsquo;, &rsquo; <small>CODE</small>
+&rsquo;, &rsquo; <small>HASH</small> &rsquo;, etc). Note
+that if the package contained any &quot;BEGIN&quot; blocks,
+perl will leave an empty typeglob in the &quot;BEGIN&quot;
+slot, so this will show up if no filter is used (and
+similarly for &quot;INIT&quot;, &quot;END&quot;, etc).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>get_all_symbols
+$type_filter</b> <br>
+Returns a hashref, keyed by the variable names in the
+package. If $type_filter is passed, the hash will contain
+every variable of that type in the package as values,
+otherwise, it will contain the typeglobs corresponding to
+the variable names (basically, a clone of the stash).</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is
+especially useful for debuggers and profilers, which use
+%DB::sub to determine where the source code for a subroutine
+can be found. See
+&lt;http://perldoc.perl.org/perldebguts.html#Debugger&minus;Internals&gt;
+for more information about %DB::sub.</p>
+
+<h2>WORKING WITH VARIABLES
+<a name="WORKING WITH VARIABLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">It is important
+to note, that when working with scalar variables, the
+default behavior is to <b>copy</b> values.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $stash =
+Package::Stash&minus;&gt;new('Some::Namespace'); <br>
+my $variable = 1; <br>
+# $Some::Namespace::name is a copy of $variable <br>
+$stash&minus;&gt;add_symbol('$name', $variable); <br>
+$variable++ <br>
+# $Some::Namespace::name == 1 , $variable == 2</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will
+likely confuse people who expect it to work the same as
+typeglob assignment, which simply creates new references to
+existing variables.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $variable =
+1; <br>
+{ <br>
+no strict 'refs'; <br>
+# assign $Package::Stash::name = $variable <br>
+*{'Package::Stash::name'} = \$variable; <br>
+} <br>
+$variable++ # affects both names</p>
+
+<p style="margin-left:11%; margin-top: 1em">If this
+behaviour is desired when working with Package::Stash,
+simply pass Package::Stash a scalar ref:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $stash =
+Package::Stash&minus;&gt;new('Some::Namespace'); <br>
+my $variable = 1; <br>
+# $Some::Namespace::name is now $variable <br>
+$stash&minus;&gt;add_symbol('$name', \$variable); <br>
+$variable++ <br>
+# $Some::Namespace::name == 2 , $variable == 2</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will be
+what you want as well if you&rsquo;re ever working with
+Readonly variables:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Readonly;
+<br>
+Readonly my $value, 'hello'; <br>
+$stash&minus;&gt;add_symbol('$name', \$value); # reference
+<br>
+print $Some::Namespace::name; # hello <br>
+# Tries to modify the read&minus;only 'hello' and dies. <br>
+$Some::Namespace::name .= &quot; world&quot;; <br>
+$stash&minus;&gt;add_symbol('$name', $value); # copy <br>
+print $Some::Namespace::name; # hello <br>
+# No problem, modifying a copy, not the original <br>
+$Some::Namespace::name .= &quot; world&quot;;</p>
+
+<h2>BUGS / CAVEATS
+<a name="BUGS / CAVEATS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Prior to perl 5.10, scalar slots
+are only considered to exist if they are defined</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This is due to
+a shortcoming within perl itself. See &quot;Making
+References&quot; in perlref point 7 for more
+information.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em"><small>GLOB</small> and
+<small>FORMAT</small> variables are not (yet) accessible
+through this module.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Also, see the <small>BUGS</small> section for the
+specific backends (Package::Stash::XS and
+Package::Stash::PP)</p> </td></tr>
+</table>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="29%">
+
+
+<p style="margin-top: 1em">Class::MOP::Package</p></td>
+<td width="54%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This module is
+a factoring out of code that used to live here</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Based on code
+from Class::MOP::Package, by Stevan Little and the Moose
+Cabal.</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Bugs may be
+submitted through the <small>RT</small> bug tracker
+&lt;https://rt.cpan.org/Public/Dist/Display.html?Name=Package-Stash&gt;
+(or bug&minus;Package&minus;Stash@rt.cpan.org
+&lt;mailto:bug-Package-Stash@rt.cpan.org&gt;).</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="71%">
+
+
+<p style="margin-top: 1em">Stevan Little
+&lt;stevan.little@iinteractive.com&gt;</p> </td>
+<td width="12%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="71%">
+
+
+<p>Jesse Luehrs &lt;doy@tozt.net&gt;</p></td>
+<td width="12%">
+</td></tr>
+</table>
+
+<h2>CONTRIBUTORS
+<a name="CONTRIBUTORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="74%">
+
+
+<p style="margin-top: 1em">Karen Etheridge
+&lt;ether@cpan.org&gt;</p> </td>
+<td width="9%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="74%">
+
+
+<p>Carlos Lima &lt;carlos@multi&gt;</p></td>
+<td width="9%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="74%">
+
+
+<p>Christian Walde
+&lt;walde.christian@googlemail.com&gt;</p> </td>
+<td width="9%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="74%">
+
+
+<p>Dave Rolsky &lt;autarch@urth.org&gt;</p></td>
+<td width="9%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="74%">
+
+
+<p>Justin Hunter &lt;justin.d.hunter@gmail.com&gt;</p></td>
+<td width="9%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="74%">
+
+
+<p>Kent Fredric &lt;kentfredric@gmail.com&gt;</p></td>
+<td width="9%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="74%">
+
+
+<p>Niko Tyni &lt;ntyni@debian.org&gt;</p></td>
+<td width="9%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="74%">
+
+
+<p>Renee &lt;reb@perl&minus;services.de&gt;</p></td>
+<td width="9%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="74%">
+
+
+<p>Tim Bunce &lt;Tim.Bunce@pobox.com&gt;</p></td>
+<td width="9%">
+</td></tr>
+</table>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2022 by Jesse Luehrs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+<hr>
+</body>
+</html>

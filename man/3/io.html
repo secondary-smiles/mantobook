@@ -1,0 +1,1006 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:21 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>io</title>
+
+</head>
+<body>
+<h1>io</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">io &minus;
+Asynchronous IO</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;errno.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;libaio.h&gt;</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>libaio</b> library defines a new set of I/O operations
+which can significantly reduce the time an application
+spends waiting at I/O. The new functions allow a program to
+initiate one or more I/O operations and then immediately
+resume normal work while the I/O operations are executed in
+parallel.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These functions
+are part of the library with realtime functions named
+<b>libaio</b>. They are not actually part of the <b>libc</b>
+binary. The implementation of these functions can be done
+using support in the kernel.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All IO
+operations operate on files which were opened previously.
+There might be arbitrarily many operations running for one
+file. The asynchronous I/O operations are controlled using a
+data structure named <b>struct iocb</b> It is defined in
+<i>libaio.h</i> as follows.</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef struct
+io_context *io_context_t;</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef enum
+io_iocb_cmd { <br>
+IO_CMD_PREAD = 0, <br>
+IO_CMD_PWRITE = 1,</p>
+
+<p style="margin-left:11%; margin-top: 1em">IO_CMD_FSYNC =
+2, <br>
+IO_CMD_FDSYNC = 3,</p>
+
+<p style="margin-left:11%; margin-top: 1em">IO_CMD_POLL =
+5, <br>
+IO_CMD_NOOP = 6, <br>
+} io_iocb_cmd_t;</p>
+
+<p style="margin-left:11%; margin-top: 1em">struct
+io_iocb_common { <br>
+void *buf; <br>
+unsigned __pad1; <br>
+long nbytes; <br>
+unsigned __pad2; <br>
+long long offset; <br>
+long long __pad3, __pad4; <br>
+}; /* result code is the amount read or -&rsquo;ve errno
+*/</p>
+
+<p style="margin-left:11%; margin-top: 1em">struct iocb {
+<br>
+void *data; <br>
+unsigned key; <br>
+short aio_lio_opcode; <br>
+short aio_reqprio; <br>
+int aio_fildes; <br>
+union { <br>
+struct io_iocb_common c; <br>
+struct io_iocb_vector v; <br>
+struct io_iocb_poll poll; <br>
+struct io_iocb_sockaddr saddr; <br>
+} u; <br>
+}; <b><br>
+int</b> <i>aio_fildes</i></p>
+
+<p style="margin-left:22%;">This element specifies the file
+descriptor to be used for the operation. It must be a legal
+descriptor, otherwise the operation will fail.</p>
+
+<p style="margin-left:22%; margin-top: 1em">The device on
+which the file is opened must allow the seek operation.
+I.e., it is not possible to use any of the IO operations on
+devices like terminals where an <b>lseek</b>(2) call would
+lead to an error.</p>
+
+<p style="margin-left:11%;"><b>long</b>
+<i>u.c.offset</i></p>
+
+<p style="margin-left:22%;">This element specifies the
+offset in the file at which the operation (input or output)
+is performed. Since the operations are carried out in
+arbitrary order and more than one operation for one file
+descriptor can be started, one cannot expect a current
+read/write position of the file descriptor.</p>
+
+<p style="margin-left:11%;"><b>void *</b><i>buf</i></p>
+
+<p style="margin-left:22%;">This is a pointer to the buffer
+with the data to be written or the place where the read data
+is stored.</p>
+
+<p style="margin-left:11%;"><b>long</b>
+<i>u.c.nbytes</i></p>
+
+<p style="margin-left:22%;">This element specifies the
+length of the buffer pointed to by <i>io_buf</i>.</p>
+
+<p style="margin-left:11%;"><b>int</b>
+<i>aio_reqprio</i></p>
+
+<p style="margin-left:22%;">Is not currently used.</p>
+
+<p style="margin-left:11%;"><b>IO_CMD_PREAD</b></p>
+
+<p style="margin-left:22%;">Start a read operation. Read
+from the file at position <i>u.c.offset</i> and store the
+next <i>u.c.nbytes</i> bytes in the buffer pointed to by
+<i>buf</i>.</p>
+
+<p style="margin-left:11%;"><b>IO_CMD_PWRITE</b></p>
+
+<p style="margin-left:22%;">Start a write operation. Write
+<i>u.c.nbytes</i> bytes starting at <i>buf</i> into the file
+starting at position <i>u.c.offset</i>.</p>
+
+<p style="margin-left:11%;"><b>IO_CMD_NOP</b></p>
+
+<p style="margin-left:22%;">Do nothing for this control
+block. This value is useful sometimes when an array of
+<b>struct iocb</b> values contains holes, i.e., some of the
+values must not be handled although the whole array is
+presented to the <b>io_submit</b>(3) function.</p>
+
+<p style="margin-left:11%;"><b>IO_CMD_FSYNC <br>
+IO_CMD_POLL</b></p>
+
+<p style="margin-left:22%;">This is experimental.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">/* <br>
+* Simplistic version of copy command using async i/o <br>
+*</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+
+
+<p>* From:</p><td width="12%"></td>
+<td width="-4%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="77%">
+
+
+<p>Stephen Hemminger &lt;shemminger@osdl.org&gt;</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">* Copy file by using a async
+I/O state machine. <br>
+* 1. Start read request <br>
+* 2. When read completes turn it into a write request <br>
+* 3. When write completes decrement counter and free
+resources <br>
+* <br>
+* <br>
+* Usage: aiocp file(s) desination <br>
+*/</p>
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;unistd.h&gt; <br>
+#include &lt;stdio.h&gt; <br>
+#include &lt;sys/types.h&gt; <br>
+#include &lt;sys/stat.h&gt; <br>
+#include &lt;sys/param.h&gt; <br>
+#include &lt;fcntl.h&gt; <br>
+#include &lt;errno.h&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;libaio.h&gt;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="-3%">
+
+
+<p>#define AIO_BLKSIZE</p></td>
+<td width="23%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>(64*1024)</p></td>
+<td width="8%"></td>
+<td width="46%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="-3%">
+
+
+<p>#define AIO_MAXIO</p></td>
+<td width="23%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>32</p></td>
+<td width="8%"></td>
+<td width="46%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="-3%">
+
+
+<p>static int busy = 0;</p></td>
+<td width="23%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+</td>
+<td width="46%">
+
+
+<p>// # of I/O&rsquo;s in flight</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="-3%">
+
+
+<p>static int tocopy = 0;</p></td>
+<td width="23%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+</td>
+<td width="46%">
+
+
+<p>// # of blocks left to copy</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="-3%">
+
+
+<p>static int dstfd = -1;</p></td>
+<td width="23%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+</td>
+<td width="46%">
+
+
+<p>// destination file descriptor</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">static const char *dstname =
+NULL; <br>
+static const char *srcname = NULL;</p>
+
+<p style="margin-left:11%; margin-top: 1em">/* Fatal error
+handler */ <br>
+static void io_error(const char *func, int rc) <br>
+{ <br>
+if (rc == -ENOSYS)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>fprintf(stderr, &quot;AIO not in this
+kernel\n&quot;);</p> </td></tr>
+</table>
+
+<p style="margin-left:11%;">else if (rc &lt; 0 &amp;&amp;
+-rc &lt; sys_nerr)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>fprintf(stderr, &quot;%s: %s\n&quot;, func,
+sys_errlist[-rc]);</p> </td></tr>
+</table>
+
+<p style="margin-left:11%;">else</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>fprintf(stderr, &quot;%s: error %d\n&quot;, func,
+rc);</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">if (dstfd &gt;
+0)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>close(dstfd);</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">if (dstname)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>unlink(dstname);</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">exit(1); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">/* <br>
+* Write complete callback. <br>
+* Adjust counts and free resources <br>
+*/ <br>
+static void wr_done(io_context_t ctx, struct iocb *iocb,
+long res, long res2) <br>
+{ <br>
+if (res2 != 0) {</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>io_error(&quot;aio write&quot;, res2);</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">} <br>
+if (res != iocb-&gt;u.c.nbytes) {</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>fprintf(stderr, &quot;write missed bytes expect %d got
+%d\n&quot;, iocb-&gt;u.c.nbytes, res2);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>exit(1);</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">} <br>
+--tocopy; <br>
+--busy; <br>
+free(iocb-&gt;u.c.buf);</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+
+
+<p>memset(iocb, 0xff, sizeof(iocb));</p><td width="17%"></td>
+<td width="-9%"></td>
+<td width="54%"></td>
+<td width="7%"></td>
+<td width="31%">
+
+
+<p>// paranoia</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">free(iocb); <br>
+write(2, &quot;w&quot;, 1); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">/* <br>
+* Read complete callback. <br>
+* Change read iocb into a write iocb and start it. <br>
+*/ <br>
+static void rd_done(io_context_t ctx, struct iocb *iocb,
+long res, long res2) <br>
+{ <br>
+/* library needs accessors to look at iocb? */ <br>
+int iosize = iocb-&gt;u.c.nbytes; <br>
+char *buf = iocb-&gt;u.c.buf; <br>
+off_t offset = iocb-&gt;u.c.offset;</p>
+
+<p style="margin-left:11%; margin-top: 1em">if (res2 !=
+0)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>io_error(&quot;aio read&quot;, res2);</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">if (res != iosize) {</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>fprintf(stderr, &quot;read missing bytes expect %d got
+%d\n&quot;, iocb-&gt;u.c.nbytes, res);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>exit(1);</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">}</p>
+
+<p style="margin-left:11%; margin-top: 1em">/* turn read
+into write */ <br>
+io_prep_pwrite(iocb, dstfd, buf, iosize, offset); <br>
+io_set_callback(iocb, wr_done); <br>
+if (1 != (res = io_submit(ctx, 1, &amp;iocb)))</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>io_error(&quot;io_submit write&quot;, res);</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">write(2, &quot;r&quot;, 1);
+<br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">int main(int
+argc, char *const *argv) <br>
+{ <br>
+int srcfd; <br>
+struct stat st; <br>
+off_t length = 0, offset = 0; <br>
+io_context_t myctx;</p>
+
+<p style="margin-left:11%; margin-top: 1em">if (argc != 3
+|| argv[1][0] == &rsquo;-&rsquo;) {</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>fprintf(stderr, &quot;Usage: aiocp SOURCE
+DEST&quot;);</p> </td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>exit(1);</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">} <br>
+if ((srcfd = open(srcname = argv[1], O_RDONLY)) &lt; 0)
+{</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>perror(srcname);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>exit(1);</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">} <br>
+if (fstat(srcfd, &amp;st) &lt; 0) {</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>perror(&quot;fstat&quot;);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>exit(1);</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">} <br>
+length = st.st_size;</p>
+
+<p style="margin-left:11%; margin-top: 1em">if ((dstfd =
+open(dstname = argv[2], O_WRONLY | O_CREAT, 0666)) &lt; 0)
+{</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>close(srcfd);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>perror(dstname);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>exit(1);</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">}</p>
+
+<p style="margin-left:11%; margin-top: 1em">/* initialize
+state machine */ <br>
+memset(&amp;myctx, 0, sizeof(myctx)); <br>
+io_queue_init(AIO_MAXIO, &amp;myctx); <br>
+tocopy = howmany(length, AIO_BLKSIZE);</p>
+
+<p style="margin-left:11%; margin-top: 1em">while (tocopy
+&gt; 0) {</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>int i, rc;</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>/* Submit as many reads as once as possible upto
+AIO_MAXIO */</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>int n = MIN(MIN(AIO_MAXIO - busy, AIO_MAXIO / 2),</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>howmany(length - offset, AIO_BLKSIZE));</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>if (n &gt; 0) {</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>struct iocb *ioq[n];</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>for (i = 0; i &lt; n; i++) {</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>struct iocb *io = (struct iocb *) malloc(sizeof(struct
+iocb));</p> </td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>int iosize = MIN(length - offset, AIO_BLKSIZE);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>char *buf = (char *) malloc(iosize);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>if (NULL == buf || NULL == io) {</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>fprintf(stderr, &quot;out of memory\n&quot;);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>exit(1);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>}</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>io_prep_pread(io, srcfd, buf, iosize, offset);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>io_set_callback(io, rd_done);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>ioq[i] = io;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>offset += iosize;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>}</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>rc = io_submit(myctx, n, ioq);</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>if (rc &lt; 0)</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>io_error(&quot;io_submit&quot;, rc);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>busy += n;</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>}</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>// Handle IO&rsquo;s that have completed</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>rc = io_queue_run(myctx);</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>if (rc &lt; 0)</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>io_error(&quot;io_queue_run&quot;, rc);</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>// if we have maximum number of i/o&rsquo;s in
+flight</p> </td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>// then wait for one to complete</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>if (busy == AIO_MAXIO) {</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>rc = io_queue_wait(myctx, NULL);</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>if (rc &lt; 0)</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>io_error(&quot;io_queue_wait&quot;, rc);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>}</p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">}</p>
+
+<p style="margin-left:11%; margin-top: 1em">close(srcfd);
+<br>
+close(dstfd); <br>
+exit(0); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">/* <br>
+* Results look like: <br>
+* [alanm@toolbox ~/MOT3]$ ../taio
+kernel-source-2.4.8-0.4g.ppc.rpm abc <br>
+*
+rrrrrrrrrrrrrrrwwwrwrrwwrrwrwwrrwrwrwwrrwrwrrrrwwrwwwrrwrrrwwwwwwwwwwwwwwwww
+<br>
+*
+rrrrrrrrrrrrrrwwwrrwrwrwrwrrwwwwwwwwwwwwwwrrrrrrrrrrrrrrrrrrwwwwrwrwwrwrwrwr
+<br>
+*
+wrrrrrrrwwwwwwwwwwwwwrrrwrrrwrrwrwwwwwwwwwwrrrrwwrwrrrrrrrrrrrwwwwwwwwwwwrww
+<br>
+*
+wwwrrrrrrrrwwrrrwwrwrwrwwwrrrrrrrwwwrrwwwrrwrwwwwwwwwrrrrrrrwwwrrrrrrrwwwwww
+<br>
+*
+wwwwwwwrwrrrrrrrrwrrwrrwrrwrwrrrwrrrwrrrwrwwwwwwwwwwwwwwwwwwrrrwwwrrrrrrrrrr
+<br>
+*
+rrwrrrrrrwrrwwwwwwwwwwwwwwwwrwwwrrwrwwrrrrrrrrrrrrrrrrrrrwwwwwwwwwwwwwwwwwww
+<br>
+*
+rrrrrwrrwrwrwrrwrrrwwwwwwwwrrrrwrrrwrwwrwrrrwrrwrrrrwwwwwwwrwrwwwwrwwrrrwrrr
+<br>
+*
+rrrwwwwwwwrrrrwwrrrrrrrrrrrrwrwrrrrwwwwwwwwwwwwwwrwrrrrwwwwrwrrrrwrwwwrrrwww
+<br>
+*
+rwwrrrrrrrwrrrrrrrrrrrrwwwwrrrwwwrwrrwwwwwwwwwwwwwwwwwwwwwrrrrrrrwwwwwwwrw
+<br>
+*/</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>io_cancel</b>(3),
+<b>io_fsync</b>(3), <b>io_getevents</b>(3),
+<b>io_prep_fsync</b>(3), <b>io_prep_pread</b>(3),
+<b>io_prep_pwrite</b>(3), <b>io_queue_init</b>(3),
+<b>io_queue_release</b>(3), <b>io_queue_run</b>(3),
+<b>io_queue_wait</b>(3), <b>io_set_callback</b>(3),
+<b>io_submit</b>(3), <b>errno</b>(3).</p>
+<hr>
+</body>
+</html>

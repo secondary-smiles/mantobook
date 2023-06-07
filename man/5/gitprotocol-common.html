@@ -1,0 +1,195 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:53 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GITPROTOCOL&minus;COMMON</title>
+
+</head>
+<body>
+<h1>gitprotocol-common</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">gitprotocol-common
+&minus; Things common to various protocols</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;over&minus;the&minus;wire&minus;protocol&gt;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+sets defines things common to various
+over&minus;the&minus;wire protocols and file formats used in
+Git.</p>
+
+<h2>ABNF NOTATION
+<a name="ABNF NOTATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">ABNF notation
+as described by RFC 5234 is used within the protocol
+documents, except the following replacement core rules are
+used:</p>
+
+<p style="margin-left:17%; margin-top: 1em">HEXDIG = DIGIT
+/ &quot;a&quot; / &quot;b&quot; / &quot;c&quot; /
+&quot;d&quot; / &quot;e&quot; / &quot;f&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">We also define
+the following common rules:</p>
+
+<p style="margin-left:17%; margin-top: 1em">NUL = %x00 <br>
+zero&minus;id = 40*&quot;0&quot; <br>
+obj&minus;id = 40*(HEXDIGIT)</p>
+
+<p style="margin-left:17%; margin-top: 1em">refname =
+&quot;HEAD&quot; <br>
+refname /= &quot;refs/&quot; &lt;see discussion
+below&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">A refname is a
+hierarchical octet string beginning with &quot;refs/&quot;
+and not violating the
+<i>git&minus;check&minus;ref&minus;format</i>
+command&rsquo;s validation rules. More specifically,
+they:</p>
+
+<p style="margin-left:17%; margin-top: 1em">1. They can
+include slash <b>/</b> for hierarchical (directory)
+grouping, but no slash&minus;separated component can begin
+with a dot <b>.</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">2. They must
+contain at least one <b>/</b>. This enforces the presence of
+a category like <b>heads/</b>, <b>tags/</b> etc. but the
+actual names are not restricted.</p>
+
+<p style="margin-left:17%; margin-top: 1em">3. They cannot
+have two consecutive dots <b>..</b> anywhere.</p>
+
+<p style="margin-left:17%; margin-top: 1em">4. They cannot
+have ASCII control characters (i.e. bytes whose values are
+lower than \040, or \177 <b>DEL</b>), space, tilde <b>~</b>,
+caret <b>^</b>, colon <b>:</b>, question&minus;mark
+<b>?</b>, asterisk <b>*</b>, or open bracket <b>[</b>
+anywhere.</p>
+
+<p style="margin-left:17%; margin-top: 1em">5. They cannot
+end with a slash <b>/</b> or a dot <b>.</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">6. They cannot
+end with the sequence <b>.lock</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">7. They cannot
+contain a sequence <b>@{</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">8. They cannot
+contain a <b>\\</b>.</p>
+
+<h2>PKT&minus;LINE FORMAT
+<a name="PKT&minus;LINE FORMAT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Much (but not
+all) of the payload is described around pkt&minus;lines.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A
+pkt&minus;line is a variable length binary string. The first
+four bytes of the line, the pkt&minus;len, indicates the
+total length of the line, in hexadecimal. The pkt&minus;len
+includes the 4 bytes used to contain the length&rsquo;s
+hexadecimal representation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A
+pkt&minus;line MAY contain binary data, so implementors MUST
+ensure pkt&minus;line parsing/formatting routines are
+8&minus;bit clean.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A
+non&minus;binary line SHOULD BE terminated by an LF, which
+if present MUST be included in the total length. Receivers
+MUST treat pkt&minus;lines with non&minus;binary data the
+same whether or not they contain the trailing LF (stripping
+the LF if present, and not complaining when it is
+missing).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The maximum
+length of a pkt&minus;line&rsquo;s data component is 65516
+bytes. Implementations MUST NOT send pkt&minus;line whose
+length exceeds 65520 (65516 bytes of payload + 4 bytes of
+length data).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Implementations
+SHOULD NOT send an empty pkt&minus;line
+(&quot;0004&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">A
+pkt&minus;line with a length field of 0 (&quot;0000&quot;),
+called a flush&minus;pkt, is a special case and MUST be
+handled differently than an empty pkt&minus;line
+(&quot;0004&quot;).</p>
+
+<p style="margin-left:17%; margin-top: 1em">pkt&minus;line
+= data&minus;pkt / flush&minus;pkt</p>
+
+<p style="margin-left:17%; margin-top: 1em">data&minus;pkt
+= pkt&minus;len pkt&minus;payload <br>
+pkt&minus;len = 4*(HEXDIG) <br>
+pkt&minus;payload = (pkt&minus;len &minus; 4)*(OCTET)</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">flush&minus;pkt
+= &quot;0000&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Examples (as
+C&minus;style strings):</p>
+
+<p style="margin-left:17%; margin-top: 1em">pkt&minus;line
+actual value <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+&quot;0006a\n&quot; &quot;a\n&quot; <br>
+&quot;0005a&quot; &quot;a&quot; <br>
+&quot;000bfoobar\n&quot; &quot;foobar\n&quot; <br>
+&quot;0004&quot; &quot;&quot;</p>
+
+<h2>GIT
+<a name="GIT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Part of the
+<b>git</b>(1) suite</p>
+<hr>
+</body>
+</html>

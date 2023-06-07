@@ -1,0 +1,876 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:59 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERLSEC</title>
+
+</head>
+<body>
+<h1>perlsec</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perlsec &minus;
+Perl security</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Perl is
+designed to make it easy to program securely even when
+running with extra privileges, like setuid or setgid
+programs. Unlike most command line shells, which are based
+on multiple substitution passes on each line of the script,
+Perl uses a more conventional evaluation scheme with fewer
+hidden snags. Additionally, because the language has more
+builtin functionality, it can rely less upon external (and
+possibly untrustworthy) programs to accomplish its
+purposes.</p>
+
+<h2>SECURITY VULNERABILITY CONTACT INFORMATION
+<a name="SECURITY VULNERABILITY CONTACT INFORMATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you believe
+you have found a security vulnerability in the Perl
+interpreter or modules maintained in the core Perl codebase,
+email the details to perl&minus;security@perl.org
+&lt;mailto:perl-security@perl.org&gt;. This address is a
+closed membership mailing list monitored by the Perl
+security team.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+perlsecpolicy for additional information.</p>
+
+<h2>SECURITY MECHANISMS AND CONCERNS
+<a name="SECURITY MECHANISMS AND CONCERNS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Taint
+mode</b> <br>
+By default, Perl automatically enables a set of special
+security checks, called <i>taint mode</i>, when it detects
+its program running with differing real and effective user
+or group IDs. The setuid bit in Unix permissions is mode
+04000, the setgid bit mode 02000; either or both may be set.
+You can also enable taint mode explicitly by using the
+<b>&minus;T</b> command line flag. This flag is
+<i>strongly</i> suggested for server programs and any
+program run on behalf of someone else, such as a
+<small>CGI</small> script. Once taint mode is on, it&rsquo;s
+on for the remainder of your script.</p>
+
+<p style="margin-left:11%; margin-top: 1em">While in this
+mode, Perl takes special precautions called <i>taint
+checks</i> to prevent both obvious and subtle traps. Some of
+these checks are reasonably simple, such as verifying that
+path directories aren&rsquo;t writable by others; careful
+programmers have always used checks like these. Other
+checks, however, are best supported by the language itself,
+and it is these checks especially that contribute to making
+a set-id Perl program more secure than the corresponding C
+program.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You may not use
+data derived from outside your program to affect something
+else outside your program--at least, not by accident. All
+command line arguments, environment variables, locale
+information (see perllocale), results of certain system
+calls (&quot;readdir()&quot;, &quot;readlink()&quot;, the
+variable of &quot;shmread()&quot;, the messages returned by
+&quot;msgrcv()&quot;, the password, gcos and shell fields
+returned by the &quot;getpwxxx()&quot; calls), and all file
+input are marked as &quot;tainted&quot;. Tainted data may
+not be used directly or indirectly in any command that
+invokes a sub-shell, nor in any command that modifies files,
+directories, or processes, <b>with the following
+exceptions</b>:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Support for
+taint checks adds an overhead to all Perl programs, whether
+or not you&rsquo;re using the taint features. Perl 5.18
+introduced C preprocessor symbols that can be used to
+disable the taint features.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Arguments to &quot;print&quot; and &quot;syswrite&quot;
+are <b>not</b> checked for taintedness.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Symbolic methods</p></td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em">$obj&minus;&gt;$method(@args);</p>
+
+<p style="margin-left:17%; margin-top: 1em">and symbolic
+sub references</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&amp;{$foo}(@args);
+<br>
+$foo&minus;&gt;(@args);</p>
+
+<p style="margin-left:17%; margin-top: 1em">are not checked
+for taintedness. This requires extra carefulness unless you
+want external data to affect your control flow. Unless you
+carefully limit what these symbolic values are, people are
+able to call functions <b>outside</b> your Perl code, such
+as POSIX::system, in which case they are able to run
+arbitrary external code.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="43%">
+
+
+<p style="margin-top: 1em">Hash keys are <b>never</b>
+tainted.</p> </td>
+<td width="40%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">For efficiency
+reasons, Perl takes a conservative view of whether data is
+tainted. If an expression contains tainted data, any
+subexpression may be considered tainted, even if the value
+of the subexpression is not itself affected by the tainted
+data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because
+taintedness is associated with each scalar value, some
+elements of an array or hash can be tainted and others not.
+The keys of a hash are <b>never</b> tainted.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$arg = shift; #
+$arg is tainted <br>
+$hid = $arg . 'bar'; # $hid is also tainted <br>
+$line = &lt;&gt;; # Tainted <br>
+$line = &lt;STDIN&gt;; # Also tainted <br>
+open FOO, &quot;/home/me/bar&quot; or die $!; <br>
+$line = &lt;FOO&gt;; # Still tainted <br>
+$path = $ENV{'PATH'}; # Tainted, but see below <br>
+$data = 'abc'; # Not tainted <br>
+system &quot;echo $arg&quot;; # Insecure <br>
+system &quot;/bin/echo&quot;, $arg; # Considered insecure
+<br>
+# (Perl doesn't know about /bin/echo) <br>
+system &quot;echo $hid&quot;; # Insecure <br>
+system &quot;echo $data&quot;; # Insecure until PATH set
+<br>
+$path = $ENV{'PATH'}; # $path now tainted <br>
+$ENV{'PATH'} = '/bin:/usr/bin'; <br>
+delete @ENV{'IFS', 'CDPATH', 'ENV', 'BASH_ENV'}; <br>
+$path = $ENV{'PATH'}; # $path now NOT tainted <br>
+system &quot;echo $data&quot;; # Is secure now! <br>
+open(FOO, &quot;&lt; $arg&quot;); # OK &minus;
+read&minus;only file <br>
+open(FOO, &quot;&gt; $arg&quot;); # Not OK &minus; trying to
+write <br>
+open(FOO,&quot;echo $arg|&quot;); # Not OK <br>
+open(FOO,&quot;&minus;|&quot;) <br>
+or exec 'echo', $arg; # Also not OK <br>
+$shout = `echo $arg`; # Insecure, $shout now tainted <br>
+unlink $data, $arg; # Insecure <br>
+umask $arg; # Insecure <br>
+exec &quot;echo $arg&quot;; # Insecure <br>
+exec &quot;echo&quot;, $arg; # Insecure <br>
+exec &quot;sh&quot;, '&minus;c', $arg; # Very insecure! <br>
+@files = &lt;*.c&gt;; # insecure (uses readdir() or similar)
+<br>
+@files = glob('*.c'); # insecure (uses readdir() or similar)
+<br>
+# In either case, the results of glob are tainted, since the
+list of <br>
+# filenames comes from outside of the program. <br>
+$bad = ($arg, 23); # $bad will be tainted <br>
+$arg, `true`; # Insecure (although it isn't really)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you try to
+do something insecure, you will get a fatal error saying
+something like &quot;Insecure dependency&quot; or
+&quot;Insecure $ENV{ <small>PATH</small> }&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The exception
+to the principle of &quot;one tainted value taints the whole
+expression&quot; is with the ternary conditional operator
+&quot;?:&quot;. Since code with a ternary conditional</p>
+
+<p style="margin-left:11%; margin-top: 1em">$result =
+$tainted_value ? &quot;Untainted&quot; : &quot;Also
+untainted&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">is
+effectively</p>
+
+<p style="margin-left:11%; margin-top: 1em">if (
+$tainted_value ) { <br>
+$result = &quot;Untainted&quot;; <br>
+} else { <br>
+$result = &quot;Also untainted&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">it
+doesn&rsquo;t make sense for $result to be tainted.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Laundering
+and Detecting Tainted Data</b> <br>
+To test whether a variable contains tainted data, and whose
+use would thus trigger an &quot;Insecure dependency&quot;
+message, you can use the &quot;tainted()&quot; function of
+the Scalar::Util module, available in your nearby
+<small>CPAN</small> mirror, and included in Perl starting
+from the release 5.8.0. Or you may be able to use the
+following &quot;is_tainted()&quot; function.</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub is_tainted
+{ <br>
+local $@; # Don't pollute caller's value. <br>
+return ! eval { eval(&quot;#&quot; .
+substr(join(&quot;&quot;, @_), 0, 0)); 1 }; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This function
+makes use of the fact that the presence of tainted data
+anywhere within an expression renders the entire expression
+tainted. It would be inefficient for every operator to test
+every argument for taintedness. Instead, the slightly more
+efficient and conservative approach is used that if any
+tainted value has been accessed within the same expression,
+the whole expression is considered tainted.</p>
+
+<p style="margin-left:11%; margin-top: 1em">But testing for
+taintedness gets you only so far. Sometimes you have just to
+clear your data&rsquo;s taintedness. Values may be untainted
+by using them as keys in a hash; otherwise the only way to
+bypass the tainting mechanism is by referencing subpatterns
+from a regular expression match. Perl presumes that if you
+reference a substring using $1, $2, etc. in a non-tainting
+pattern, that you knew what you were doing when you wrote
+that pattern. That means using a bit of thought--don&rsquo;t
+just blindly untaint anything, or you defeat the entire
+mechanism. It&rsquo;s better to verify that the variable has
+only good characters (for certain values of
+&quot;good&quot;) rather than checking whether it has any
+bad characters. That&rsquo;s because it&rsquo;s far too easy
+to miss bad characters that you never thought of.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s a
+test to make sure that the data contains nothing but
+&quot;word&quot; characters (alphabetics, numerics, and
+underscores), a hyphen, an at sign, or a dot.</p>
+
+<p style="margin-left:11%; margin-top: 1em">if ($data =~
+/^([&minus;\@\w.]+)$/) { <br>
+$data = $1; # $data now untainted <br>
+} else { <br>
+die &quot;Bad data in '$data'&quot;; # log this somewhere
+<br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is fairly
+secure because &quot;/\w+/&quot; doesn&rsquo;t normally
+match shell metacharacters, nor are dot, dash, or at going
+to mean something special to the shell. Use of
+&quot;/.+/&quot; would have been insecure in theory because
+it lets everything through, but Perl doesn&rsquo;t check for
+that. The lesson is that when untainting, you must be
+exceedingly careful with your patterns. Laundering data
+using regular expression is the <i>only</i> mechanism for
+untainting dirty data, unless you use the strategy detailed
+below to fork a child of lesser privilege.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The example
+does not untaint $data if &quot;use locale&quot; is in
+effect, because the characters matched by &quot;\w&quot; are
+determined by the locale. Perl considers that locale
+definitions are untrustworthy because they contain data from
+outside the program. If you are writing a locale-aware
+program, and want to launder data with a regular expression
+containing &quot;\w&quot;, put &quot;no locale&quot; ahead
+of the expression in the same block. See &quot;
+<small>SECURITY&quot;</small> in perllocale for further
+discussion and examples.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Switches On
+the &quot;#!&quot; Line</b> <br>
+When you make a script executable, in order to make it
+usable as a command, the system will pass switches to perl
+from the script&rsquo;s #! line. Perl checks that any
+command line switches given to a setuid (or setgid) script
+actually match the ones set on the #! line. Some Unix and
+Unix-like environments impose a one-switch limit on the #!
+line, so you may need to use something like
+&quot;&minus;wU&quot; instead of &quot;&minus;w
+&minus;U&quot; under such systems. (This issue should arise
+only in Unix or Unix-like environments that support #! and
+setuid or setgid scripts.)</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Taint mode
+and @INC</b> <br>
++When the taint mode (&quot;&minus;T&quot;) is in effect,
+the environment variables +&quot;PERL5LIB&quot;,
+&quot;PERLLIB&quot;, and &quot;PERL_USE_UNSAFE_INC&quot; are
+ignored by Perl. You can still adjust @INC from outside the
+program by using the &quot;&minus;I&quot; command line
+option as explained in perlrun. The two environment
+variables are ignored because they are obscured, and a user
+running a program could be unaware that they are set,
+whereas the &quot;&minus;I&quot; option is clearly visible
+and therefore permitted.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Another way to
+modify @INC without modifying the program, is to use the
+&quot;lib&quot; pragma, e.g.:</p>
+
+<p style="margin-left:11%; margin-top: 1em">perl
+&minus;Mlib=/foo program</p>
+
+<p style="margin-left:11%; margin-top: 1em">The benefit of
+using &quot;&minus;Mlib=/foo&quot; over
+&quot;&minus;I/foo&quot;, is that the former will
+automagically remove any duplicated directories, while the
+latter will not.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that if a
+tainted string is added to @INC, the following problem will
+be reported:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Insecure
+dependency in require while running with &minus;T switch</p>
+
+<p style="margin-left:11%; margin-top: 1em">On versions of
+Perl before 5.26, activating taint mode will also remove the
+current directory (&quot;.&quot;) from the default value of
+@INC. Since version 5.26, the current directory isn&rsquo;t
+included in @INC by default.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Cleaning Up
+Your Path</b> <br>
+For &quot;Insecure $ENV{PATH}&quot; messages, you need to
+set $ENV{'PATH'} to a known value, and each directory in the
+path must be absolute and non-writable by others than its
+owner and group. You may be surprised to get this message
+even if the pathname to your executable is fully qualified.
+This is <i>not</i> generated because you didn&rsquo;t supply
+a full path to the program; instead, it&rsquo;s generated
+because you never set your <small>PATH</small> environment
+variable, or you didn&rsquo;t set it to something that was
+safe. Because Perl can&rsquo;t guarantee that the executable
+in question isn&rsquo;t itself going to turn around and
+execute some other program that is dependent on your
+<small>PATH,</small> it makes sure you set the
+<small>PATH.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<small>PATH</small> isn&rsquo;t the only environment
+variable which can cause problems. Because some shells may
+use the variables <small>IFS, CDPATH, ENV,</small> and
+<small>BASH_ENV,</small> Perl checks that those are either
+empty or untainted when starting subprocesses. You may wish
+to add something like this to your setid and taint-checking
+scripts.</p>
+
+<p style="margin-left:11%; margin-top: 1em">delete
+@ENV{qw(IFS CDPATH ENV BASH_ENV)}; # Make %ENV safer</p>
+
+<p style="margin-left:11%; margin-top: 1em">It&rsquo;s also
+possible to get into trouble with other operations that
+don&rsquo;t care whether they use tainted values. Make
+judicious use of the file tests in dealing with any
+user-supplied filenames. When possible, do opens and such
+<b>after</b> properly dropping any special user (or group!)
+privileges. Perl doesn&rsquo;t prevent you from opening
+tainted filenames for reading, so be careful what you print
+out. The tainting mechanism is intended to prevent stupid
+mistakes, not to remove the need for thought.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl does not
+call the shell to expand wild cards when you pass
+&quot;system&quot; and &quot;exec&quot; explicit parameter
+lists instead of strings with possible shell wildcards in
+them. Unfortunately, the &quot;open&quot;, &quot;glob&quot;,
+and backtick functions provide no such alternate calling
+convention, so more subterfuge will be required.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl provides a
+reasonably safe way to open a file or pipe from a setuid or
+setgid program: just create a child process with reduced
+privilege who does the dirty work for you. First, fork a
+child using the special &quot;open&quot; syntax that
+connects the parent and child by a pipe. Now the child
+resets its <small>ID</small> set and any other per-process
+attributes, like environment variables, umasks, current
+working directories, back to the originals or known safe
+values. Then the child process, which no longer has any
+special permissions, does the &quot;open&quot; or other
+system call. Finally, the child passes the data it managed
+to access back to the parent. Because the file or pipe was
+opened in the child while running under less privilege than
+the parent, it&rsquo;s not apt to be tricked into doing
+something it shouldn&rsquo;t.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s a
+way to do backticks reasonably safely. Notice how the
+&quot;exec&quot; is not called with a string that the shell
+could expand. This is by far the best way to call something
+that might be subjected to shell escapes: just never call
+the shell at all.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use English;
+<br>
+die &quot;Can't fork: $!&quot; unless defined($pid =
+open(KID, &quot;&minus;|&quot;)); <br>
+if ($pid) { # parent <br>
+while (&lt;KID&gt;) { <br>
+# do something <br>
+} <br>
+close KID; <br>
+} else { <br>
+my @temp = ($EUID, $EGID); <br>
+my $orig_uid = $UID; <br>
+my $orig_gid = $GID; <br>
+$EUID = $UID; <br>
+$EGID = $GID; <br>
+# Drop privileges <br>
+$UID = $orig_uid; <br>
+$GID = $orig_gid; <br>
+# Make sure privs are really gone <br>
+($EUID, $EGID) = @temp; <br>
+die &quot;Can't drop privileges&quot; <br>
+unless $UID == $EUID &amp;&amp; $GID eq $EGID; <br>
+$ENV{PATH} = &quot;/bin:/usr/bin&quot;; # Minimal PATH. <br>
+# Consider sanitizing the environment even more. <br>
+exec 'myprog', 'arg1', 'arg2' <br>
+or die &quot;can't exec myprog: $!&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">A similar
+strategy would work for wildcard expansion via
+&quot;glob&quot;, although you can use &quot;readdir&quot;
+instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Taint checking
+is most useful when although you trust yourself not to have
+written a program to give away the farm, you don&rsquo;t
+necessarily trust those who end up using it not to try to
+trick it into doing something bad. This is the kind of
+security checking that&rsquo;s useful for set-id programs
+and programs launched on someone else&rsquo;s behalf, like
+<small>CGI</small> programs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is quite
+different, however, from not even trusting the writer of the
+code not to try to do something evil. That&rsquo;s the kind
+of trust needed when someone hands you a program
+you&rsquo;ve never seen before and says, &quot;Here, run
+this.&quot; For that kind of safety, you might want to check
+out the Safe module, included standard in the Perl
+distribution. This module allows the programmer to set up
+special compartments in which all system operations are
+trapped and namespace access is carefully controlled. Safe
+should not be considered bullet-proof, though: it will not
+prevent the foreign code to set up infinite loops, allocate
+gigabytes of memory, or even abusing perl bugs to make the
+host interpreter crash or behave in unpredictable ways. In
+any case it&rsquo;s better avoided completely if
+you&rsquo;re really concerned about security.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Shebang Race
+Condition</b> <br>
+Beyond the obvious problems that stem from giving special
+privileges to systems as flexible as scripts, on many
+versions of Unix, set-id scripts are inherently insecure
+right from the start. The problem is a race condition in the
+kernel. Between the time the kernel opens the file to see
+which interpreter to run and when the (now-set-id)
+interpreter turns around and reopens the file to interpret
+it, the file in question may have changed, especially if you
+have symbolic links on your system.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some Unixes,
+especially more recent ones, are free of this inherent
+security bug. On such systems, when the kernel passes the
+name of the set-id script to open to the interpreter, rather
+than using a pathname subject to meddling, it instead passes
+<i>/dev/fd/3</i>. This is a special file already opened on
+the script, so that there can be no race condition for evil
+scripts to exploit. On these systems, Perl should be
+compiled with
+&quot;&minus;DSETUID_SCRIPTS_ARE_SECURE_NOW&quot;. The
+<i>Configure</i> program that builds Perl tries to figure
+this out for itself, so you should never have to specify
+this yourself. Most modern releases of SysVr4 and <small>BSD
+4.4</small> use this approach to avoid the kernel race
+condition.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you
+don&rsquo;t have the safe version of set-id scripts, all is
+not lost. Sometimes this kernel &quot;feature&quot; can be
+disabled, so that the kernel either doesn&rsquo;t run set-id
+scripts with the set-id or doesn&rsquo;t run them at all.
+Either way avoids the exploitability of the race condition,
+but doesn&rsquo;t help in actually running scripts
+set-id.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the kernel
+set-id script feature isn&rsquo;t disabled, then any set-id
+script provides an exploitable vulnerability. Perl
+can&rsquo;t avoid being exploitable, but will point out
+vulnerable scripts where it can. If Perl detects that it is
+being applied to a set-id script then it will complain
+loudly that your set-id script is insecure, and won&rsquo;t
+run it. When Perl complains, you need to remove the set-id
+bit from the script to eliminate the vulnerability. Refusing
+to run the script doesn&rsquo;t in itself close the
+vulnerability; it is just Perl&rsquo;s way of encouraging
+you to do this.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To actually run
+a script set-id, if you don&rsquo;t have the safe version of
+set-id scripts, you&rsquo;ll need to put a C wrapper around
+the script. A C wrapper is just a compiled program that does
+nothing except call your Perl program. Compiled programs are
+not subject to the kernel bug that plagues set-id scripts.
+Here&rsquo;s a simple wrapper, written in C:</p>
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;unistd.h&gt; <br>
+#include &lt;stdio.h&gt; <br>
+#include &lt;string.h&gt; <br>
+#include &lt;errno.h&gt; <br>
+#define REAL_PATH &quot;/path/to/script&quot; <br>
+int main(int argc, char **argv) <br>
+{ <br>
+execv(REAL_PATH, argv); <br>
+fprintf(stderr, &quot;%s: %s: %s\n&quot;, <br>
+argv[0], REAL_PATH, strerror(errno)); <br>
+return 127; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Compile this
+wrapper into a binary executable and then make <i>it</i>
+rather than your script setuid or setgid. Note that this
+wrapper isn&rsquo;t doing anything to sanitise the execution
+environment other than ensuring that a safe path to the
+script is used. It only avoids the shebang race condition.
+It relies on Perl&rsquo;s own features, and on the script
+itself being careful, to make it safe enough to run the
+script set-id.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Protecting
+Your Programs</b> <br>
+There are a number of ways to hide the source to your Perl
+programs, with varying levels of &quot;security&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">First of all,
+however, you <i>can&rsquo;t</i> take away read permission,
+because the source code has to be readable in order to be
+compiled and interpreted. (That doesn&rsquo;t mean that a
+<small>CGI</small> script&rsquo;s source is readable by
+people on the web, though.) So you have to leave the
+permissions at the socially friendly 0755 level. This lets
+people on your local system only see your source.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some people
+mistakenly regard this as a security problem. If your
+program does insecure things, and relies on people not
+knowing how to exploit those insecurities, it is not secure.
+It is often possible for someone to determine the insecure
+things and exploit them without viewing the source. Security
+through obscurity, the name for hiding your bugs instead of
+fixing them, is little security indeed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can try
+using encryption via source filters (Filter::* from
+<small>CPAN,</small> or Filter::Util::Call and
+Filter::Simple since Perl 5.8). But crackers might be able
+to decrypt it. You can try using the byte code compiler and
+interpreter described below, but crackers might be able to
+de-compile it. You can try using the native-code compiler
+described below, but crackers might be able to disassemble
+it. These pose varying degrees of difficulty to people
+wanting to get at your code, but none can definitively
+conceal it (this is true of every language, not just
+Perl).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;re
+concerned about people profiting from your code, then the
+bottom line is that nothing but a restrictive license will
+give you legal security. License your software and pepper it
+with threatening statements like &quot;This is unpublished
+proprietary software of <small>XYZ</small> Corp. Your access
+to it does not give you permission to use it blah blah
+blah.&quot; You should see a lawyer to be sure your
+license&rsquo;s wording will stand up in court.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Unicode</b>
+<br>
+Unicode is a new and complex technology and one may easily
+overlook certain security pitfalls. See perluniintro for an
+overview and perlunicode for details, and &quot;Security
+Implications of Unicode&quot; in perlunicode for security
+implications in particular.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Algorithmic
+Complexity Attacks</b> <br>
+Certain internal algorithms used in the implementation of
+Perl can be attacked by choosing the input carefully to
+consume large amounts of either time or space or both. This
+can lead into the so-called <i>Denial of Service</i> (DoS)
+attacks.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Hash Algorithm &minus; Hash
+algorithms like the one used in Perl are well known to be
+vulnerable to collision attacks on their hash function. Such
+attacks involve constructing a set of keys which collide
+into the same bucket producing inefficient behavior. Such
+attacks often depend on discovering the seed of the hash
+function used to map the keys to buckets. That seed is then
+used to brute-force a key set which can be used to mount a
+denial of service attack. In Perl 5.8.1 changes were
+introduced to harden Perl to such attacks, and then later in
+Perl 5.18.0 these features were enhanced and additional
+protections added.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">At the time of
+this writing, Perl 5.18.0 is considered to be well-hardened
+against algorithmic complexity attacks on its hash
+implementation. This is largely owed to the following
+measures mitigate attacks: <br>
+Hash Seed Randomization</p>
+
+<p style="margin-left:23%;">In order to make it impossible
+to know what seed to generate an attack key set for, this
+seed is randomly initialized at process start. This may be
+overridden by using the <small>PERL_HASH_SEED</small>
+environment variable, see &quot;
+<small>PERL_HASH_SEED&quot;</small> in perlrun. This
+environment variable controls how items are actually stored,
+not how they are presented via &quot;keys&quot;,
+&quot;values&quot; and &quot;each&quot;.</p>
+
+<p style="margin-left:17%;">Hash Traversal
+Randomization</p>
+
+<p style="margin-left:23%;">Independent of which seed is
+used in the hash function, &quot;keys&quot;,
+&quot;values&quot;, and &quot;each&quot; return items in a
+per-hash randomized order. Modifying a hash by insertion
+will change the iteration order of that hash. This behavior
+can be overridden by using &quot;hash_traversal_mask()&quot;
+from Hash::Util or by using the
+<small>PERL_PERTURB_KEYS</small> environment variable, see
+&quot; <small>PERL_PERTURB_KEYS&quot;</small> in perlrun.
+Note that this feature controls the &quot;visible&quot;
+order of the keys, and not the actual order they are stored
+in.</p>
+
+<p style="margin-left:17%;">Bucket Order Perturbance</p>
+
+<p style="margin-left:23%;">When items collide into a given
+hash bucket the order they are stored in the chain is no
+longer predictable in Perl 5.18. This has the intention to
+make it harder to observe a collision. This behavior can be
+overridden by using the <small>PERL_PERTURB_KEYS</small>
+environment variable, see &quot;
+<small>PERL_PERTURB_KEYS&quot;</small> in perlrun.</p>
+
+<p style="margin-left:17%;">New Default Hash Function</p>
+
+<p style="margin-left:23%;">The default hash function has
+been modified with the intention of making it harder to
+infer the hash seed.</p>
+
+<p style="margin-left:17%;">Alternative Hash Functions</p>
+
+<p style="margin-left:23%;">The source code includes
+multiple hash algorithms to choose from. While we believe
+that the default perl hash is robust to attack, we have
+included the hash function Siphash as a fall-back option. At
+the time of release of Perl 5.18.0 Siphash is believed to be
+of cryptographic strength. This is not the default as it is
+much slower than the default hash.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Without
+compiling a special Perl, there is no way to get the exact
+same behavior of any versions prior to Perl 5.18.0. The
+closest one can get is by setting
+<small>PERL_PERTURB_KEYS</small> to 0 and setting the
+<small>PERL_HASH_SEED</small> to a known value. We do not
+advise those settings for production use due to the above
+security considerations.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Perl has
+never guaranteed any ordering of the hash keys</b>, and the
+ordering has already changed several times during the
+lifetime of Perl 5. Also, the ordering of hash keys has
+always been, and continues to be, affected by the insertion
+order and the history of changes made to the hash over its
+lifetime.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Also note that
+while the order of the hash elements might be randomized,
+this &quot;pseudo-ordering&quot; should <b>not</b> be used
+for applications like shuffling a list randomly (use
+&quot;List::Util::shuffle()&quot; for that, see List::Util,
+a standard core module since Perl 5.8.0; or the
+<small>CPAN</small> module
+&quot;Algorithm::Numerical::Shuffle&quot;), or for
+generating permutations (use e.g. the <small>CPAN</small>
+modules &quot;Algorithm::Permute&quot; or
+&quot;Algorithm::FastPermute&quot;), or for any
+cryptographic applications.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Tied hashes may
+have their own ordering and algorithmic complexity
+attacks.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Regular expressions &minus; Perl&rsquo;s regular
+expression engine is so called <small>NFA</small>
+(Non-deterministic Finite Automaton), which among other
+things means that it can rather easily consume large amounts
+of both time and space if the regular expression may match
+in several ways. Careful crafting of the regular expressions
+can help but quite often there really isn&rsquo;t much one
+can do (the book &quot;Mastering Regular Expressions&quot;
+is required reading, see perlfaq2). Running out of space
+manifests itself by Perl running out of memory.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Sorting &minus; the quicksort algorithm used in Perls
+before 5.8.0 to implement the <b>sort()</b> function was
+very easy to trick into misbehaving so that it consumes a
+lot of time. Starting from Perl 5.8.0 a different sorting
+algorithm, mergesort, is used by default. Mergesort cannot
+misbehave on any input.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">See
+&lt;https://www.usenix.org/legacy/events/sec03/tech/full_papers/crosby/crosby.pdf&gt;
+for more information, and any computer science textbook on
+algorithmic complexity.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Using
+Sudo</b> <br>
+The popular tool &quot;sudo&quot; provides a controlled way
+for users to be able to run programs as other users. It
+sanitises the execution environment to some extent, and will
+avoid the shebang race condition. If you don&rsquo;t have
+the safe version of set-id scripts, then &quot;sudo&quot;
+may be a more convenient way of executing a script as
+another user than writing a C wrapper would be.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However,
+&quot;sudo&quot; sets the real user or group
+<small>ID</small> to that of the target identity, not just
+the effective <small>ID</small> as set-id bits do. As a
+result, Perl can&rsquo;t detect that it is running under
+&quot;sudo&quot;, and so won&rsquo;t automatically take its
+own security precautions such as turning on taint mode.
+Where &quot;sudo&quot; configuration dictates exactly which
+command can be run, the approved command may include a
+&quot;&minus;T&quot; option to perl to enable taint
+mode.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In general, it
+is necessary to evaluate the suitability of a script to run
+under &quot;sudo&quot; specifically with that kind of
+execution environment in mind. It is neither necessary nor
+sufficient for the same script to be suitable to run in a
+traditional set-id arrangement, though many of the issues
+overlap.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;
+<small>ENVIRONMENT&quot;</small> in perlrun for its
+description of cleaning up environment variables.</p>
+<hr>
+</body>
+</html>

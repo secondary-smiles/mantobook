@@ -1,0 +1,293 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:18 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Test::Alien::Synthetic</title>
+
+</head>
+<body>
+<h1>Test::Alien::Synthetic</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Test::Alien::Synthetic
+&minus; A mock alien object for testing</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+2.80</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use Test2::V0;
+<br>
+use Test::Alien; <br>
+my $alien = synthetic { <br>
+cflags =&gt; '&minus;I/foo/bar/include', <br>
+libs =&gt; '&minus;L/foo/bar/lib &minus;lbaz', <br>
+}; <br>
+alien_ok $alien; <br>
+done_testing;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This class is
+used to model a synthetic Alien class that implements the
+minimum Alien::Base interface needed by Test::Alien.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It can be
+useful if you have a non&minus;Alien::Base based Alien
+distribution that you need to test.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>NOTE</small></b>
+: The name of this class may move in the future, so do not
+refer to this class name directly. Instead create instances
+of this class using the Test::Alien#synthetic function.</p>
+
+<h2>ATTRIBUTES
+<a name="ATTRIBUTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>cflags</b>
+<br>
+String containing the compiler flags</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>cflags_static</b>
+<br>
+String containing the static compiler flags</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>libs</b>
+<br>
+String containing the linker and library flags</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>libs_static</b>
+<br>
+String containing the static linker and library flags</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dynamic_libs</b>
+<br>
+List reference containing the dynamic libraries.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>bin_dir</b>
+<br>
+Tool binary directory.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>runtime_prop</b>
+<br>
+Runtime properties.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Here is a
+complete example using Alien::Libarchive which is a
+non&minus;Alien::Base based Alien distribution.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use strict;
+<br>
+use warnings; <br>
+use Test2::V0; <br>
+use Test::Alien; <br>
+use Alien::Libarchive; <br>
+my $real = Alien::Libarchive&minus;&gt;new; <br>
+my $alien = synthetic { <br>
+cflags =&gt; scalar $real&minus;&gt;cflags, <br>
+libs =&gt; scalar $real&minus;&gt;libs, <br>
+dynamic_libs =&gt; [$real&minus;&gt;dlls], <br>
+}; <br>
+alien_ok $alien; <br>
+xs_ok do { local $/; &lt;DATA&gt; }, with_subtest { <br>
+my($module) = @_; <br>
+my $ptr = $module&minus;&gt;archive_read_new; <br>
+like $ptr, qr{^[0&minus;9]+$}; <br>
+$module&minus;&gt;archive_read_free($ptr); <br>
+}; <br>
+ffi_ok { symbols =&gt; [qw( archive_read_new )] },
+with_subtest { <br>
+my($ffi) = @_; <br>
+my $new = $ffi&minus;&gt;function(archive_read_new =&gt; []
+=&gt; 'opaque'); <br>
+my $free = $ffi&minus;&gt;function(archive_read_close =&gt;
+['opaque'] =&gt; 'void'); <br>
+my $ptr = $new&minus;&gt;(); <br>
+like $ptr, qr{^[0&minus;9]+$}; <br>
+$free&minus;&gt;($ptr); <br>
+}; <br>
+done_testing; <br>
+__DATA__ <br>
+#include &quot;EXTERN.h&quot; <br>
+#include &quot;perl.h&quot; <br>
+#include &quot;XSUB.h&quot; <br>
+#include &lt;archive.h&gt; <br>
+MODULE = TA_MODULE PACKAGE = TA_MODULE <br>
+void *archive_read_new(class); <br>
+const char *class; <br>
+CODE: <br>
+RETVAL = (void*) archive_read_new(); <br>
+OUTPUT: <br>
+RETVAL <br>
+void archive_read_free(class, ptr); <br>
+const char *class; <br>
+void *ptr; <br>
+CODE: <br>
+archive_read_free(ptr);</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Test::Alien</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Author: Graham
+Ollis &lt;plicease@cpan.org&gt;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Contributors:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Diab Jerius (
+<small>DJERIUS</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Roy Storey (
+<small>KIWIROY</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ilya Pavlov</p>
+
+<p style="margin-left:11%; margin-top: 1em">David Mertens
+(run4flat)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Mark Nunberg
+(mordy, mnunberg)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Christian Walde
+(Mithaldu)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Brian Wightman
+(MidLifeXis)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Zaki Mughal
+(zmughal)</p>
+
+<p style="margin-left:11%; margin-top: 1em">mohawk
+(mohawk2, <small>ETJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Vikas N Kumar
+(vikasnkumar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Flavio Poletti
+(polettix)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Salvador
+Fandi&Atilde;&plusmn;o (salva)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Gianni
+Ceccarelli (dakkar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Pavel Shaydo
+(zwon, trinitum)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Kang-min Liu
+(&aring;&aring;&ordm;&middot;&aelig;&deg;, gugod)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Nicholas Shipp
+(nshp)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Juan
+Juli&Atilde;&iexcl;n Merelo Guerv&Atilde;&sup3;s (
+<small>JJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Joel Berger (
+<small>JBERGER</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Petr
+P&Atilde;sa&Aring; (ppisar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Lance Wicks (
+<small>LANCEW</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ahmad Fatoum
+(a3f, <small>ATHREEF</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jos&Atilde;&copy;
+Joaqu&Atilde;n Atria ( <small>JJATRIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Duke Leto (
+<small>LETO</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shoichi Kaji (
+<small>SKAJI</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shawn Laffan (
+<small>SLAFFAN</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Paul Evans
+(leonerd, <small>PEVANS</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">H&Atilde;&yen;kon
+H&Atilde;&brvbar;gland (hakonhagland, <small>HAKONH</small>
+)</p>
+
+<p style="margin-left:11%; margin-top: 1em">nick
+nauwelaerts ( <small>INPHOBIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Florian
+Weimer</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2011&minus;2022 by Graham Ollis.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+<hr>
+</body>
+</html>

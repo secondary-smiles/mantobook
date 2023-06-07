@@ -1,0 +1,252 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:48 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>ZMQ_POLL</title>
+
+</head>
+<body>
+<h1>zmq_poll</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">zmq_poll
+&minus; input/output multiplexing</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>int zmq_poll
+(zmq_pollitem_t</b> <i>*items</i><b>, int</b>
+<i>nitems</i><b>, long</b> <i>timeout</i><b>);</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>zmq_poll()</i> function provides a mechanism for
+applications to multiplex input/output events in a
+level&minus;triggered fashion over a set of sockets. Each
+member of the array pointed to by the <i>items</i> argument
+is a <b>zmq_pollitem_t</b> structure. The <i>nitems</i>
+argument specifies the number of items in the <i>items</i>
+array. The <b>zmq_pollitem_t</b> structure is defined as
+follows:</p>
+
+<p style="margin-left:17%; margin-top: 1em">typedef struct
+<br>
+{ <br>
+void <i>*socket</i>; <br>
+int <i>fd</i>; <br>
+short <i>events</i>; <br>
+short <i>revents</i>; <br>
+} zmq_pollitem_t;</p>
+
+<p style="margin-left:11%; margin-top: 1em">For each
+<b>zmq_pollitem_t</b> item, <i>zmq_poll()</i> shall examine
+either the 0MQ socket referenced by <i>socket</i> <b>or</b>
+the standard socket specified by the file descriptor
+<i>fd</i>, for the event(s) specified in <i>events</i>. If
+both <i>socket</i> and <i>fd</i> are set in a single
+<b>zmq_pollitem_t</b>, the 0MQ socket referenced by
+<i>socket</i> shall take precedence and the value of
+<i>fd</i> shall be ignored.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For each
+<b>zmq_pollitem_t</b> item, <i>zmq_poll()</i> shall first
+clear the <i>revents</i> member, and then indicate any
+requested events that have occurred by setting the bit
+corresponding to the event condition in the <i>revents</i>
+member.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If none of the
+requested events have occurred on any <b>zmq_pollitem_t</b>
+item, <i>zmq_poll()</i> shall wait <i>timeout</i>
+milliseconds for an event to occur on any of the requested
+items. If the value of <i>timeout</i> is 0,
+<i>zmq_poll()</i> shall return immediately. If the value of
+<i>timeout</i> is &minus;1, <i>zmq_poll()</i> shall block
+indefinitely until a requested event has occurred on at
+least one <b>zmq_pollitem_t</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>events</i> and <i>revents</i> members of
+<b>zmq_pollitem_t</b> are bit masks constructed by
+OR&rsquo;ing a combination of the following event flags:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ZMQ_POLLIN</b></p>
+
+<p style="margin-left:17%;">For 0MQ sockets, at least one
+message may be received from the <i>socket</i> without
+blocking. For standard sockets this is equivalent to the
+<i>POLLIN</i> flag of the <i>poll()</i> system call and
+generally means that at least one byte of data may be read
+from <i>fd</i> without blocking.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ZMQ_POLLOUT</b></p>
+
+<p style="margin-left:17%;">For 0MQ sockets, at least one
+message may be sent to the <i>socket</i> without blocking.
+For standard sockets this is equivalent to the
+<i>POLLOUT</i> flag of the <i>poll()</i> system call and
+generally means that at least one byte of data may be
+written to <i>fd</i> without blocking.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ZMQ_POLLERR</b></p>
+
+<p style="margin-left:17%;">For standard sockets, this flag
+is passed through <i>zmq_poll()</i> to the underlying
+<i>poll()</i> system call and generally means that some sort
+of error condition is present on the socket specified by
+<i>fd</i>. For 0MQ sockets this flag has no effect if set in
+<i>events</i>, and shall never be returned in <i>revents</i>
+by <i>zmq_poll()</i>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ZMQ_POLLPRI</b></p>
+
+<p style="margin-left:17%;">For 0MQ sockets this flags is
+of no use. For standard sockets this means there is urgent
+data to read. Refer to the POLLPRI flag for more
+informations. For file descriptor, refer to your use case:
+as an example, GPIO interrupts are signaled through a
+POLLPRI event. This flag has no effect on Windows.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><big>Note</big></b>
+<br>
+The <i>zmq_poll()</i> function may be implemented or
+emulated using operating system interfaces other than
+<i>poll()</i>, and as such may be subject to the limits of
+those interfaces in ways not defined in this
+documentation.</p>
+
+<h2>THREAD SAFETY
+<a name="THREAD SAFETY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>The
+<b>zmq_pollitem_t</b> array must only be used by the thread
+which will/is calling <i>zmq_poll</i>.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>If a
+socket is contained in multiple <b>zmq_pollitem_t</b>
+arrays, each owned by a different thread, the socket itself
+needs to be thead&minus;safe (Server, Client, ...).
+Otherwise, behaviour is undefined.</big></p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>Upon
+successful completion, the <i>zmq_poll()</i> function shall
+return the number of <b>zmq_pollitem_t</b> structures with
+events signaled in <i>revents</i> or 0 if no events have
+been signaled. Upon failure, <i>zmq_poll()</i> shall return
+&minus;1 and set <i>errno</i> to one of the values defined
+below.</big></p>
+
+<h2>ERRORS
+<a name="ERRORS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>ETERM</b></big></p>
+
+<p style="margin-left:17%;"><big>At least one of the
+members of the <i>items</i> array refers to a <i>socket</i>
+whose associated 0MQ <i>context</i> was
+terminated.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>EFAULT</b></big></p>
+
+<p style="margin-left:17%;"><big>The provided <i>items</i>
+was not valid (NULL).</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>EINTR</b></big></p>
+
+<p style="margin-left:17%;"><big>The operation was
+interrupted by delivery of a signal before any events were
+available.</big></p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>Polling
+indefinitely for input events on both a 0MQ socket and a
+standard socket.</b>.</big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big>zmq_pollitem_t
+items [2]; <br>
+/* First item refers to 0MQ socket 'socket' */ <br>
+items[0].socket = socket; <br>
+items[0].events = ZMQ_POLLIN; <br>
+/* Second item refers to standard socket 'fd' */ <br>
+items[1].socket = NULL; <br>
+items[1].fd = fd; <br>
+items[1].events = ZMQ_POLLIN; <br>
+/* Poll for events indefinitely */ <br>
+int rc = zmq_poll (items, 2, &minus;1); <br>
+assert (rc &gt;= 0); <br>
+/* Returned events will be stored in items[].revents
+*/</big></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>zmq_socket</b>(3)
+<b>zmq_send</b>(3) <b>zmq_recv</b>(3)
+<b>zmq</b>(7)</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Your
+operating system documentation for the <i>poll()</i> system
+call.</big></p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>This page
+was written by the 0MQ community. To make a change please
+read the 0MQ Contribution Policy at
+<b><font color="#0000FF">http://www.zeromq.org/docs:contributing</font></b><font color="#000000">.</font></big></p>
+<hr>
+</body>
+</html>

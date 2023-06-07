@@ -1,0 +1,279 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:31 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Appender::Synchronized</title>
+
+</head>
+<body>
+<h1>Log::Log4perl::Appender::Synchronized</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Log::Log4perl::Appender::Synchronized
+&minus; Synchronizing other appenders</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Log::Log4perl qw(:easy); <br>
+my $conf = qq( <br>
+log4perl.category = WARN, Syncer <br>
+# File appender (unsynchronized) <br>
+log4perl.appender.Logfile = Log::Log4perl::Appender::File
+<br>
+log4perl.appender.Logfile.autoflush = 1 <br>
+log4perl.appender.Logfile.filename = test.log <br>
+log4perl.appender.Logfile.mode = truncate <br>
+log4perl.appender.Logfile.layout = SimpleLayout <br>
+# Synchronizing appender, using the file appender above <br>
+log4perl.appender.Syncer =
+Log::Log4perl::Appender::Synchronized <br>
+log4perl.appender.Syncer.appender = Logfile <br>
+); <br>
+Log::Log4perl&minus;&gt;init(\$conf); <br>
+WARN(&quot;This message is guaranteed to be
+complete.&quot;);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If multiple
+processes are using the same &quot;Log::Log4perl&quot;
+appender without synchronization, overwrites might happen. A
+typical scenario for this would be a process spawning
+children, each of which inherits the parent&rsquo;s
+Log::Log4perl configuration.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In most cases,
+you won&rsquo;t need an external synchronisation tool like
+Log::Log4perl::Appender::Synchronized at all.
+Log4perl&rsquo;s file appender,
+Log::Log4perl::Appender::File, for example, provides the
+&quot;syswrite&quot; mechanism for making sure that even
+long log lines won&rsquo;t interleave. Short log lines
+won&rsquo;t interleave anyway, because the operating system
+makes sure the line gets written before a task switch
+occurs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In cases where
+you need additional synchronization, however, you can use
+&quot;Log::Log4perl::Appender::Synchronized&quot; as a
+gateway between your loggers and your appenders. An appender
+itself, &quot;Log::Log4perl::Appender::Synchronized&quot;
+just takes two additional arguments: <br>
+&quot;appender&quot;</p>
+
+<p style="margin-left:17%;">Specifies the name of the
+appender it synchronizes access to. The appender specified
+must be defined somewhere in the configuration file, not
+necessarily before the definition of
+&quot;Log::Log4perl::Appender::Synchronized&quot;.</p>
+
+<p style="margin-left:11%;">&quot;key&quot;</p>
+
+<p style="margin-left:17%;">This optional argument
+specifies the key for the semaphore that
+&quot;Log::Log4perl::Appender::Synchronized&quot; uses
+internally to ensure atomic operations. It defaults to
+&quot;_l4p&quot;. If you define more than one
+&quot;Log::Log4perl::Appender::Synchronized&quot; appender,
+it is important to specify different keys for them, as
+otherwise every new
+&quot;Log::Log4perl::Appender::Synchronized&quot; appender
+will nuke previously defined semaphores. The maximum key
+length is four characters, longer keys will be truncated to
+4 characters -- &quot;mylongkey1&quot; and
+&quot;mylongkey2&quot; are interpreted to be the same:
+&quot;mylo&quot; (thanks to David Viner
+&lt;dviner@yahoo&minus;inc.com&gt; for pointing this
+out).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Log::Log4perl::Appender::Synchronized&quot;
+uses Log::Log4perl::Util::Semaphore internally to perform
+locking with semaphores provided by the operating system
+used.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Performance
+tips</b> <br>
+The &quot;Log::Log4perl::Appender::Synchronized&quot;
+serializes access to a protected resource globally, slowing
+down actions otherwise performed in parallel.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unless
+specified otherwise, all instances of
+&quot;Log::Log4perl::Appender::Synchronized&quot; objects in
+the system will use the same global <small>IPC</small> key
+&quot;_l4p&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To control
+access to different appender instances, it often makes sense
+to define different keys for different synchronizing
+appenders. In this way, Log::Log4perl serializes access to
+each appender instance separately:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">log4perl.category
+= WARN, Syncer1, Syncer2 <br>
+# File appender 1 (unsynchronized) <br>
+log4perl.appender.Logfile1 = Log::Log4perl::Appender::File
+<br>
+log4perl.appender.Logfile1.filename = test1.log <br>
+log4perl.appender.Logfile1.layout = SimpleLayout <br>
+# File appender 2 (unsynchronized) <br>
+log4perl.appender.Logfile2 = Log::Log4perl::Appender::File
+<br>
+log4perl.appender.Logfile2.filename = test2.log <br>
+log4perl.appender.Logfile2.layout = SimpleLayout <br>
+# Synchronizing appender, using the file appender above <br>
+log4perl.appender.Syncer1 =
+Log::Log4perl::Appender::Synchronized <br>
+log4perl.appender.Syncer1.appender = Logfile1 <br>
+log4perl.appender.Syncer1.key = l4p1 <br>
+# Synchronizing appender, using the file appender above <br>
+log4perl.appender.Syncer2 =
+Log::Log4perl::Appender::Synchronized <br>
+log4perl.appender.Syncer2.appender = Logfile2 <br>
+log4perl.appender.Syncer2.key = l4p2</p>
+
+<p style="margin-left:11%; margin-top: 1em">Without the
+&quot;.key = l4p1&quot; and &quot;.key = l4p2&quot; lines,
+both Synchronized appenders would be using the default
+&quot;_l4p&quot; key, causing unnecessary serialization of
+output written to different files.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Advanced
+configuration</b> <br>
+To configure the underlying Log::Log4perl::Util::Semaphore
+module in a different way than with the default settings
+provided by Log::Log4perl::Appender::Synchronized, use the
+following parameters:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">log4perl.appender.Syncer1.destroy
+= 1 <br>
+log4perl.appender.Syncer1.mode = sub { 0775 } <br>
+log4perl.appender.Syncer1.uid = hugo <br>
+log4perl.appender.Syncer1.gid = 100</p>
+
+<p style="margin-left:11%; margin-top: 1em">Valid options
+are &quot;destroy&quot; (Remove the semaphore on exit),
+&quot;mode&quot; (permissions on the semaphore),
+&quot;uid&quot; (uid or user name the semaphore is owned
+by), and &quot;gid&quot; (group id the semaphore is owned
+by),</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+&quot;mode&quot; is usually given in octal and therefore
+needs to be specified as a perl sub {}, unless you want to
+calculate what 0755 means in decimal.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Changing
+ownership or group settings for a semaphore will obviously
+only work if the current user <small>ID</small> owns the
+semaphore already or if the current user is
+&quot;root&quot;. The &quot;destroy&quot; option causes the
+current process to destroy the semaphore on exit. Spawned
+children of the process won&rsquo;t inherit this
+behavior.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Semaphore
+user and group IDs with mod_perl</b> <br>
+Setting user and group IDs is especially important when the
+Synchronized appender is used with mod_perl. If Log4perl
+gets initialized by a startup handler, which runs as root,
+and not as the user who will later use the semaphore, the
+settings for uid, gid, and mode can help establish matching
+semaphore ownership and access rights.</p>
+
+<h2>DEVELOPMENT NOTES
+<a name="DEVELOPMENT NOTES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Log::Log4perl::Appender::Synchronized&quot;
+is a <i>composite</i> appender. Unlike other appenders, it
+doesn&rsquo;t log any messages, it just passes them on to
+its attached sub-appender. For this reason, it doesn&rsquo;t
+need a layout (contrary to regular appenders). If it defines
+none, messages are passed on unaltered.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Custom filters
+are also applied to the composite appender only. They are
+<i>not</i> applied to the sub-appender. Same applies to
+appender thresholds. This behaviour might change in the
+future.</p>
+
+<h2>LICENSE
+<a name="LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2002&minus;2013 by Mike Schilli &lt;m@perlmeister.com&gt;
+and Kevin Goess &lt;cpan@goess.org&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This library is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Please
+contribute patches to the project on Github:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">http://github.com/mschilli/log4perl</p>
+
+<p style="margin-left:11%; margin-top: 1em">Send bug
+reports or requests for enhancements to the authors via
+our</p>
+
+<p style="margin-left:11%; margin-top: 1em"><small>MAILING
+LIST</small> (questions, bug reports, suggestions/patches):
+log4perl&minus;devel@lists.sourceforge.net</p>
+
+<p style="margin-left:11%; margin-top: 1em">Authors (please
+contact them via the list above, not directly): Mike Schilli
+&lt;m@perlmeister.com&gt;, Kevin Goess
+&lt;cpan@goess.org&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Contributors
+(in alphabetical order): Ateeq Altaf, Cory Bennett, Jens
+Berthold, Jeremy Bopp, Hutton Davidson, Chris R. Donnelly,
+Matisse Enzer, Hugh Esco, Anthony Foiani, James FitzGibbon,
+Carl Franks, Dennis Gregorovic, Andy Grundman, Paul
+Harrington, Alexander Hartmaier David Hull, Robert Jacobson,
+Jason Kohles, Jeff Macdonald, Markus Peter, Brett Rann,
+Peter Rabbitson, Erik Selberg, Aaron Straup Cope, Lars
+Thegler, David Viner, Mac Yang.</p>
+<hr>
+</body>
+</html>

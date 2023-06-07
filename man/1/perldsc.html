@@ -1,0 +1,1083 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:58 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERLDSC</title>
+
+</head>
+<body>
+<h1>perldsc</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perldsc &minus;
+Perl Data Structures Cookbook</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Perl lets us
+have complex data structures. You can write something like
+this and all of a sudden, you&rsquo;d have an array with
+three dimensions!</p>
+
+<p style="margin-left:11%; margin-top: 1em">for my $x (1 ..
+10) { <br>
+for my $y (1 .. 10) { <br>
+for my $z (1 .. 10) { <br>
+$AoA[$x][$y][$z] = <br>
+$x ** $y + $z; <br>
+} <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alas, however
+simple this may appear, underneath it&rsquo;s a much more
+elaborate construct than meets the eye!</p>
+
+<p style="margin-left:11%; margin-top: 1em">How do you
+print it out? Why can&rsquo;t you say just &quot;print
+@AoA&quot;? How do you sort it? How can you pass it to a
+function or get one of these back from a function? Is it an
+object? Can you save it to disk to read back later? How do
+you access whole rows or columns of that matrix? Do all the
+values have to be numeric?</p>
+
+<p style="margin-left:11%; margin-top: 1em">As you see,
+it&rsquo;s quite easy to become confused. While some small
+portion of the blame for this can be attributed to the
+reference-based implementation, it&rsquo;s really more due
+to a lack of existing documentation with examples designed
+for the beginner.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This document
+is meant to be a detailed but understandable treatment of
+the many different sorts of data structures you might want
+to develop. It should also serve as a cookbook of examples.
+That way, when you need to create one of these complex data
+structures, you can just pinch, pilfer, or purloin a drop-in
+example from here.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Let&rsquo;s
+look at each of these possible constructs in detail. There
+are separate sections on each of the following:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="6%"></td>
+<td width="39%">
+
+
+<p>arrays of arrays</p></td>
+<td width="43%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="6%"></td>
+<td width="39%">
+
+
+<p>hashes of arrays</p></td>
+<td width="43%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="6%"></td>
+<td width="39%">
+
+
+<p>arrays of hashes</p></td>
+<td width="43%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="6%"></td>
+<td width="39%">
+
+
+<p>hashes of hashes</p></td>
+<td width="43%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="6%"></td>
+<td width="39%">
+
+
+<p>more elaborate constructs</p></td>
+<td width="43%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">But for now,
+let&rsquo;s look at general issues common to all these types
+of data structures.</p>
+
+<h2>REFERENCES
+<a name="REFERENCES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The most
+important thing to understand about all data structures in
+Perl--including multidimensional arrays--is that even though
+they might appear otherwise, Perl @ARRAYs and %HASHes are
+all internally one-dimensional. They can hold only scalar
+values (meaning a string, number, or a reference). They
+cannot directly contain other arrays or hashes, but instead
+contain <i>references</i> to other arrays or hashes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can&rsquo;t
+use a reference to an array or hash in quite the same way
+that you would a real array or hash. For C or C
+<small>++</small> programmers unused to distinguishing
+between arrays and pointers to the same, this can be
+confusing. If so, just think of it as the difference between
+a structure and a pointer to a structure.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can (and
+should) read more about references in perlref. Briefly,
+references are rather like pointers that know what they
+point to. (Objects are also a kind of reference, but we
+won&rsquo;t be needing them right away--if ever.) This means
+that when you have something which looks to you like an
+access to a two-or-more-dimensional array and/or hash,
+what&rsquo;s really going on is that the base type is merely
+a one-dimensional entity that contains references to the
+next level. It&rsquo;s just that you can <i>use</i> it as
+though it were a two-dimensional one. This is actually the
+way almost all C multidimensional arrays work as well.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$array[7][12] #
+array of arrays <br>
+$array[7]{string} # array of hashes <br>
+$hash{string}[7] # hash of arrays <br>
+$hash{string}{'another string'} # hash of hashes</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now, because
+the top level contains only references, if you try to print
+out your array in with a simple <b>print()</b> function,
+you&rsquo;ll get something that doesn&rsquo;t look very
+nice, like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @AoA = ( [2,
+3], [4, 5, 7], [0] ); <br>
+print $AoA[1][2]; <br>
+7 <br>
+print @AoA; <br>
+ARRAY(0x83c38)ARRAY(0x8b194)ARRAY(0x8b1d0)</p>
+
+<p style="margin-left:11%; margin-top: 1em">That&rsquo;s
+because Perl doesn&rsquo;t (ever) implicitly dereference
+your variables. If you want to get at the thing a reference
+is referring to, then you have to do this yourself using
+either prefix typing indicators, like &quot;${$blah}&quot;,
+&quot;@{$blah}&quot;, &quot;@{$blah[$i]}&quot;, or else
+postfix pointer arrows, like &quot;$a&minus;&gt;[3]&quot;,
+&quot;$h&minus;&gt;{fred}&quot;, or even
+&quot;$ob&minus;&gt;method()&minus;&gt;[3]&quot;.</p>
+
+<h2>COMMON MISTAKES
+<a name="COMMON MISTAKES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The two most
+common mistakes made in constructing something like an array
+of arrays is either accidentally counting the number of
+elements or else taking a reference to the same memory
+location repeatedly. Here&rsquo;s the case where you just
+get the count instead of a nested array:</p>
+
+<p style="margin-left:11%; margin-top: 1em">for my $i
+(1..10) { <br>
+my @array = somefunc($i); <br>
+$AoA[$i] = @array; # WRONG! <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">That&rsquo;s
+just the simple case of assigning an array to a scalar and
+getting its element count. If that&rsquo;s what you really
+and truly want, then you might do well to consider being a
+tad more explicit about it, like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">for my $i
+(1..10) { <br>
+my @array = somefunc($i); <br>
+$counts[$i] = scalar @array; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s
+the case of taking a reference to the same memory location
+again and again:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Either
+without strict or having an outer&minus;scope my @array;
+<br>
+# declaration. <br>
+for my $i (1..10) { <br>
+@array = somefunc($i); <br>
+$AoA[$i] = \@array; # WRONG! <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">So,
+what&rsquo;s the big problem with that? It looks right,
+doesn&rsquo;t it? After all, I just told you that you need
+an array of references, so by golly, you&rsquo;ve made me
+one!</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unfortunately,
+while this is true, it&rsquo;s still broken. All the
+references in @AoA refer to the <i>very same place</i>, and
+they will therefore all hold whatever was last in @array!
+It&rsquo;s similar to the problem demonstrated in the
+following C program:</p>
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;pwd.h&gt; <br>
+main() { <br>
+struct passwd *getpwnam(), *rp, *dp; <br>
+rp = getpwnam(&quot;root&quot;); <br>
+dp = getpwnam(&quot;daemon&quot;); <br>
+printf(&quot;daemon name is %s\nroot name is %s\n&quot;,
+<br>
+dp&minus;&gt;pw_name, rp&minus;&gt;pw_name); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Which will
+print</p>
+
+<p style="margin-left:11%; margin-top: 1em">daemon name is
+daemon <br>
+root name is daemon</p>
+
+<p style="margin-left:11%; margin-top: 1em">The problem is
+that both &quot;rp&quot; and &quot;dp&quot; are pointers to
+the same location in memory! In C, you&rsquo;d have to
+remember to <b>malloc()</b> yourself some new memory. In
+Perl, you&rsquo;ll want to use the array constructor
+&quot;[]&quot; or the hash constructor &quot;{}&quot;
+instead. Here&rsquo;s the right way to do the preceding
+broken code fragments:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Either
+without strict or having an outer&minus;scope my @array;
+<br>
+# declaration. <br>
+for my $i (1..10) { <br>
+@array = somefunc($i); <br>
+$AoA[$i] = [ @array ]; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The square
+brackets make a reference to a new array with a <i>copy</i>
+of what&rsquo;s in @array at the time of the assignment.
+This is what you want.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+will produce something similar:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Either
+without strict or having an outer&minus;scope my @array;
+<br>
+# declaration. <br>
+for my $i (1..10) { <br>
+@array = 0 .. $i; <br>
+$AoA[$i]&minus;&gt;@* = @array; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Is it the same?
+Well, maybe so--and maybe not. The subtle difference is that
+when you assign something in square brackets, you know for
+sure it&rsquo;s always a brand new reference with a new
+<i>copy</i> of the data. Something else could be going on in
+this new case with the &quot;$AoA[$i]&minus;&gt;@*&quot;
+dereference on the left-hand-side of the assignment. It all
+depends on whether $AoA[$i] had been undefined to start
+with, or whether it already contained a reference. If you
+had already populated @AoA with references, as in</p>
+
+<p style="margin-left:11%; margin-top: 1em">$AoA[3] =
+\@another_array;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Then the
+assignment with the indirection on the left-hand-side would
+use the existing reference that was already there:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$AoA[3]&minus;&gt;@*
+= @array;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Of course, this
+<i>would</i> have the &quot;interesting&quot; effect of
+clobbering @another_array. (Have you ever noticed how when a
+programmer says something is &quot;interesting&quot;, that
+rather than meaning &quot;intriguing&quot;, they&rsquo;re
+disturbingly more apt to mean that it&rsquo;s
+&quot;annoying&quot;, &quot;difficult&quot;, or both?
+:&minus;)</p>
+
+<p style="margin-left:11%; margin-top: 1em">So just
+remember always to use the array or hash constructors with
+&quot;[]&quot; or &quot;{}&quot;, and you&rsquo;ll be fine,
+although it&rsquo;s not always optimally efficient.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Surprisingly,
+the following dangerous-looking construct will actually work
+out fine:</p>
+
+<p style="margin-left:11%; margin-top: 1em">for my $i
+(1..10) { <br>
+my @array = somefunc($i); <br>
+$AoA[$i] = \@array; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">That&rsquo;s
+because <b>my()</b> is more of a run-time statement than it
+is a compile-time declaration <i>per se</i>. This means that
+the <b>my()</b> variable is remade afresh each time through
+the loop. So even though it <i>looks</i> as though you
+stored the same variable reference each time, you actually
+did not! This is a subtle distinction that can produce more
+efficient code at the risk of misleading all but the most
+experienced of programmers. So I usually advise against
+teaching it to beginners. In fact, except for passing
+arguments to functions, I seldom like to see the
+gimme-a-reference operator (backslash) used much at all in
+code. Instead, I advise beginners that they (and most of the
+rest of us) should try to use the much more easily
+understood constructors &quot;[]&quot; and &quot;{}&quot;
+instead of relying upon lexical (or dynamic) scoping and
+hidden reference-counting to do the right thing behind the
+scenes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note also that
+there exists another way to write a dereference! These two
+lines are equivalent:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$AoA[$i]&minus;&gt;@*
+= @array; <br>
+@{ $AoA[$i] } = @array;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first form,
+called <i>postfix dereference</i> is generally easier to
+read, because the expression can be read from left to right,
+and there are no enclosing braces to balance. On the other
+hand, it is also newer. It was added to the language in
+2014, so you will often encounter the other form,
+<i>circumfix dereference</i>, in older code.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In summary:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$AoA[$i] = [
+@array ]; # usually best <br>
+$AoA[$i] = \@array; # perilous; just how my() was that
+array? <br>
+$AoA[$i]&minus;&gt;@* = @array; # way too tricky for most
+programmers <br>
+@{ $AoA[$i] } = @array; # just as tricky, and also harder to
+read</p>
+
+<h2>CAVEAT ON PRECEDENCE
+<a name="CAVEAT ON PRECEDENCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Speaking of
+things like &quot;@{$AoA[$i]}&quot;, the following are
+actually the same thing:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$aref&minus;&gt;[2][2]
+# clear <br>
+$$aref[2][2] # confusing</p>
+
+<p style="margin-left:11%; margin-top: 1em">That&rsquo;s
+because Perl&rsquo;s precedence rules on its five prefix
+dereferencers (which look like someone swearing: &quot;$ @ *
+% &amp;&quot;) make them bind more tightly than the postfix
+subscripting brackets or braces! This will no doubt come as
+a great shock to the C or C <small>++</small> programmer,
+who is quite accustomed to using *a[i] to mean what&rsquo;s
+pointed to by the <i>i&rsquo;th</i> element of
+&quot;a&quot;. That is, they first take the subscript, and
+only then dereference the thing at that subscript.
+That&rsquo;s fine in C, but this isn&rsquo;t C.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The seemingly
+equivalent construct in Perl, $$aref[$i] first does the
+deref of $aref, making it take $aref as a reference to an
+array, and then dereference that, and finally tell you the
+<i>i&rsquo;th</i> value of the array pointed to by $AoA. If
+you wanted the C notion, you could write
+&quot;$AoA[$i]&minus;&gt;$*&quot; to explicitly dereference
+the <i>i&rsquo;th</i> item, reading left to right.</p>
+
+<h2>WHY YOU SHOULD ALWAYS &quot;use VERSION&quot;
+<a name="WHY YOU SHOULD ALWAYS &quot;use VERSION&quot;"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If this is
+starting to sound scarier than it&rsquo;s worth, relax. Perl
+has some features to help you avoid its most common
+pitfalls. One way to avoid getting confused is to start
+every program with:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use strict;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This way,
+you&rsquo;ll be forced to declare all your variables with
+<b>my()</b> and also disallow accidental &quot;symbolic
+dereferencing&quot;. Therefore if you&rsquo;d done this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $aref = [
+<br>
+[ &quot;fred&quot;, &quot;barney&quot;, &quot;pebbles&quot;,
+&quot;bambam&quot;, &quot;dino&quot;, ], <br>
+[ &quot;homer&quot;, &quot;bart&quot;, &quot;marge&quot;,
+&quot;maggie&quot;, ], <br>
+[ &quot;george&quot;, &quot;jane&quot;, &quot;elroy&quot;,
+&quot;judy&quot;, ], <br>
+]; <br>
+print $aref[2][2];</p>
+
+<p style="margin-left:11%; margin-top: 1em">The compiler
+would immediately flag that as an error <i>at compile
+time</i>, because you were accidentally accessing @aref, an
+undeclared variable, and it would thereby remind you to
+write instead:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print
+$aref&minus;&gt;[2][2]</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since Perl
+version 5.12, a &quot;use VERSION&quot; declaration will
+also enable the &quot;strict&quot; pragma. In addition, it
+will also enable a feature bundle, giving more useful
+features. Since version 5.36 it will also enable the
+&quot;warnings&quot; pragma. Often the best way to activate
+all these things at once is to start a file with:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use v5.36;</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this way,
+every file will start with &quot;strict&quot;,
+&quot;warnings&quot;, and many useful named features all
+switched on, as well as several older features being
+switched off (such as &quot;indirect&quot;). For more
+information, see &quot;use <small>VERSION&quot;</small> in
+perlfunc.</p>
+
+<h2>DEBUGGING
+<a name="DEBUGGING"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">You can use the
+debugger&rsquo;s &quot;x&quot; command to dump out complex
+data structures. For example, given the assignment to $AoA
+above, here&rsquo;s the debugger output:</p>
+
+<p style="margin-left:11%; margin-top: 1em">DB&lt;1&gt; x
+$AoA <br>
+$AoA = ARRAY(0x13b5a0) <br>
+0 ARRAY(0x1f0a24) <br>
+0 'fred' <br>
+1 'barney' <br>
+2 'pebbles' <br>
+3 'bambam' <br>
+4 'dino' <br>
+1 ARRAY(0x13b558) <br>
+0 'homer' <br>
+1 'bart' <br>
+2 'marge' <br>
+3 'maggie' <br>
+2 ARRAY(0x13b540) <br>
+0 'george' <br>
+1 'jane' <br>
+2 'elroy' <br>
+3 'judy'</p>
+
+<h2>CODE EXAMPLES
+<a name="CODE EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Presented with
+little comment here are short code examples illustrating
+access of various types of data structures.</p>
+
+<h2>ARRAYS OF ARRAYS
+<a name="ARRAYS OF ARRAYS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Declaration
+of an <small>ARRAY OF ARRAYS</small></b> <br>
+my @AoA = ( <br>
+[ &quot;fred&quot;, &quot;barney&quot; ], <br>
+[ &quot;george&quot;, &quot;jane&quot;, &quot;elroy&quot; ],
+<br>
+[ &quot;homer&quot;, &quot;marge&quot;, &quot;bart&quot; ],
+<br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Generation
+of an <small>ARRAY OF ARRAYS</small></b> <br>
+# reading from file <br>
+while ( &lt;&gt; ) { <br>
+push @AoA, [ split ]; <br>
+} <br>
+# calling a function <br>
+for my $i ( 1 .. 10 ) { <br>
+$AoA[$i] = [ somefunc($i) ]; <br>
+} <br>
+# using temp vars <br>
+for my $i ( 1 .. 10 ) { <br>
+my @tmp = somefunc($i); <br>
+$AoA[$i] = [ @tmp ]; <br>
+} <br>
+# add to an existing row <br>
+push $AoA[0]&minus;&gt;@*, &quot;wilma&quot;,
+&quot;betty&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Access and
+Printing of an <small>ARRAY OF ARRAYS</small></b> <br>
+# one element <br>
+$AoA[0][0] = &quot;Fred&quot;; <br>
+# another element <br>
+$AoA[1][1] =~ s/(\w)/\u$1/; <br>
+# print the whole thing with refs <br>
+for my $aref ( @AoA ) { <br>
+print &quot;\t [ @$aref ],\n&quot;; <br>
+} <br>
+# print the whole thing with indices <br>
+for my $i ( 0 .. $#AoA ) { <br>
+print &quot;\t [ $AoA[$i]&minus;&gt;@* ],\n&quot;; <br>
+} <br>
+# print the whole thing one at a time <br>
+for my $i ( 0 .. $#AoA ) { <br>
+for my $j ( 0 .. $AoA[$i]&minus;&gt;$#* ) { <br>
+print &quot;elem at ($i, $j) is $AoA[$i][$j]\n&quot;; <br>
+} <br>
+}</p>
+
+<h2>HASHES OF ARRAYS
+<a name="HASHES OF ARRAYS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Declaration
+of a <small>HASH OF ARRAYS</small></b> <br>
+my %HoA = ( <br>
+flintstones =&gt; [ &quot;fred&quot;, &quot;barney&quot; ],
+<br>
+jetsons =&gt; [ &quot;george&quot;, &quot;jane&quot;,
+&quot;elroy&quot; ], <br>
+simpsons =&gt; [ &quot;homer&quot;, &quot;marge&quot;,
+&quot;bart&quot; ], <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Generation
+of a <small>HASH OF ARRAYS</small></b> <br>
+# reading from file <br>
+# flintstones: fred barney wilma dino <br>
+while ( &lt;&gt; ) { <br>
+next unless s/^(.*?):\s*//; <br>
+$HoA{$1} = [ split ]; <br>
+} <br>
+# reading from file; more temps <br>
+# flintstones: fred barney wilma dino <br>
+while ( my $line = &lt;&gt; ) { <br>
+my ($who, $rest) = split /:\s*/, $line, 2; <br>
+my @fields = split ' ', $rest; <br>
+$HoA{$who} = [ @fields ]; <br>
+} <br>
+# calling a function that returns a list <br>
+for my $group ( &quot;simpsons&quot;, &quot;jetsons&quot;,
+&quot;flintstones&quot; ) { <br>
+$HoA{$group} = [ get_family($group) ]; <br>
+} <br>
+# likewise, but using temps <br>
+for my $group ( &quot;simpsons&quot;, &quot;jetsons&quot;,
+&quot;flintstones&quot; ) { <br>
+my @members = get_family($group); <br>
+$HoA{$group} = [ @members ]; <br>
+} <br>
+# append new members to an existing family <br>
+push $HoA{flintstones}&minus;&gt;@*, &quot;wilma&quot;,
+&quot;betty&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Access and
+Printing of a <small>HASH OF ARRAYS</small></b> <br>
+# one element <br>
+$HoA{flintstones}[0] = &quot;Fred&quot;; <br>
+# another element <br>
+$HoA{simpsons}[1] =~ s/(\w)/\u$1/; <br>
+# print the whole thing <br>
+foreach my $family ( keys %HoA ) { <br>
+print &quot;$family: $HoA{$family}&minus;&gt;@* \n&quot;
+<br>
+} <br>
+# print the whole thing with indices <br>
+foreach my $family ( keys %HoA ) { <br>
+print &quot;family: &quot;; <br>
+foreach my $i ( 0 .. $HoA{$family}&minus;&gt;$#* ) { <br>
+print &quot; $i = $HoA{$family}[$i]&quot;; <br>
+} <br>
+print &quot;\n&quot;; <br>
+} <br>
+# print the whole thing sorted by number of members <br>
+foreach my $family ( sort { $HoA{$b}&minus;&gt;@* &lt;=&gt;
+$HoA{$a}&minus;&gt;@* } keys %HoA ) { <br>
+print &quot;$family: $HoA{$family}&minus;&gt;@* \n&quot;
+<br>
+} <br>
+# print the whole thing sorted by number of members and name
+<br>
+foreach my $family ( sort { <br>
+$HoA{$b}&minus;&gt;@* &lt;=&gt; $HoA{$a}&minus;&gt;@* <br>
+|| <br>
+$a cmp $b <br>
+} keys %HoA ) <br>
+{ <br>
+print &quot;$family: &quot;, join(&quot;, &quot;, sort
+$HoA{$family}&minus;&gt;@* ), &quot;\n&quot;; <br>
+}</p>
+
+<h2>ARRAYS OF HASHES
+<a name="ARRAYS OF HASHES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Declaration
+of an <small>ARRAY OF HASHES</small></b> <br>
+my @AoH = ( <br>
+{ <br>
+Lead =&gt; &quot;fred&quot;, <br>
+Friend =&gt; &quot;barney&quot;, <br>
+}, <br>
+{ <br>
+Lead =&gt; &quot;george&quot;, <br>
+Wife =&gt; &quot;jane&quot;, <br>
+Son =&gt; &quot;elroy&quot;, <br>
+}, <br>
+{ <br>
+Lead =&gt; &quot;homer&quot;, <br>
+Wife =&gt; &quot;marge&quot;, <br>
+Son =&gt; &quot;bart&quot;, <br>
+} <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Generation
+of an <small>ARRAY OF HASHES</small></b> <br>
+# reading from file <br>
+# format: LEAD=fred FRIEND=barney <br>
+while ( &lt;&gt; ) { <br>
+my $rec = {}; <br>
+for my $field ( split ) { <br>
+my ($key, $value) = split /=/, $field; <br>
+$rec&minus;&gt;{$key} = $value; <br>
+} <br>
+push @AoH, $rec; <br>
+} <br>
+# reading from file <br>
+# format: LEAD=fred FRIEND=barney <br>
+# no temp <br>
+while ( &lt;&gt; ) { <br>
+push @AoH, { split /[\s+=]/ }; <br>
+} <br>
+# calling a function that returns a key/value pair list,
+like <br>
+#
+&quot;lead&quot;,&quot;fred&quot;,&quot;daughter&quot;,&quot;pebbles&quot;
+<br>
+while ( my %fields = getnextpairset() ) { <br>
+push @AoH, { %fields }; <br>
+} <br>
+# likewise, but using no temp vars <br>
+while (&lt;&gt;) { <br>
+push @AoH, { parsepairs($_) }; <br>
+} <br>
+# add key/value to an element <br>
+$AoH[0]{pet} = &quot;dino&quot;; <br>
+$AoH[2]{pet} = &quot;santa's little helper&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Access and
+Printing of an <small>ARRAY OF HASHES</small></b> <br>
+# one element <br>
+$AoH[0]{lead} = &quot;fred&quot;; <br>
+# another element <br>
+$AoH[1]{lead} =~ s/(\w)/\u$1/; <br>
+# print the whole thing with refs <br>
+for my $href ( @AoH ) { <br>
+print &quot;{ &quot;; <br>
+for my $role ( keys %$href ) { <br>
+print &quot;$role=$href&minus;&gt;{$role} &quot;; <br>
+} <br>
+print &quot;}\n&quot;; <br>
+} <br>
+# print the whole thing with indices <br>
+for my $i ( 0 .. $#AoH ) { <br>
+print &quot;$i is { &quot;; <br>
+for my $role ( keys $AoH[$i]&minus;&gt;%* ) { <br>
+print &quot;$role=$AoH[$i]{$role} &quot;; <br>
+} <br>
+print &quot;}\n&quot;; <br>
+} <br>
+# print the whole thing one at a time <br>
+for my $i ( 0 .. $#AoH ) { <br>
+for my $role ( keys $AoH[$i]&minus;&gt;%* ) { <br>
+print &quot;elem at ($i, $role) is $AoH[$i]{$role}\n&quot;;
+<br>
+} <br>
+}</p>
+
+<h2>HASHES OF HASHES
+<a name="HASHES OF HASHES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Declaration
+of a <small>HASH OF HASHES</small></b> <br>
+my %HoH = ( <br>
+flintstones =&gt; { <br>
+lead =&gt; &quot;fred&quot;, <br>
+pal =&gt; &quot;barney&quot;, <br>
+}, <br>
+jetsons =&gt; { <br>
+lead =&gt; &quot;george&quot;, <br>
+wife =&gt; &quot;jane&quot;, <br>
+&quot;his boy&quot; =&gt; &quot;elroy&quot;, <br>
+}, <br>
+simpsons =&gt; { <br>
+lead =&gt; &quot;homer&quot;, <br>
+wife =&gt; &quot;marge&quot;, <br>
+kid =&gt; &quot;bart&quot;, <br>
+}, <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Generation
+of a <small>HASH OF HASHES</small></b> <br>
+# reading from file <br>
+# flintstones: lead=fred pal=barney wife=wilma pet=dino <br>
+while ( &lt;&gt; ) { <br>
+next unless s/^(.*?):\s*//; <br>
+my $who = $1; <br>
+for my $field ( split ) { <br>
+my ($key, $value) = split /=/, $field; <br>
+$HoH{$who}{$key} = $value; <br>
+} <br>
+} <br>
+# reading from file; more temps <br>
+while ( &lt;&gt; ) { <br>
+next unless s/^(.*?):\s*//; <br>
+my $who = $1; <br>
+my $rec = {}; <br>
+$HoH{$who} = $rec; <br>
+for my $field ( split ) { <br>
+my ($key, $value) = split /=/, $field; <br>
+$rec&minus;&gt;{$key} = $value; <br>
+} <br>
+} <br>
+# calling a function that returns a key,value hash <br>
+for my $group ( &quot;simpsons&quot;, &quot;jetsons&quot;,
+&quot;flintstones&quot; ) { <br>
+$HoH{$group} = { get_family($group) }; <br>
+} <br>
+# likewise, but using temps <br>
+for my $group ( &quot;simpsons&quot;, &quot;jetsons&quot;,
+&quot;flintstones&quot; ) { <br>
+my %members = get_family($group); <br>
+$HoH{$group} = { %members }; <br>
+} <br>
+# append new members to an existing family <br>
+my %new_folks = ( <br>
+wife =&gt; &quot;wilma&quot;, <br>
+pet =&gt; &quot;dino&quot;, <br>
+); <br>
+for my $what (keys %new_folks) { <br>
+$HoH{flintstones}{$what} = $new_folks{$what}; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Access and
+Printing of a <small>HASH OF HASHES</small></b> <br>
+# one element <br>
+$HoH{flintstones}{wife} = &quot;wilma&quot;; <br>
+# another element <br>
+$HoH{simpsons}{lead} =~ s/(\w)/\u$1/; <br>
+# print the whole thing <br>
+foreach my $family ( keys %HoH ) { <br>
+print &quot;$family: { &quot;; <br>
+for my $role ( keys $HoH{$family}&minus;&gt;%* ) { <br>
+print &quot;$role=$HoH{$family}{$role} &quot;; <br>
+} <br>
+print &quot;}\n&quot;; <br>
+} <br>
+# print the whole thing somewhat sorted <br>
+foreach my $family ( sort keys %HoH ) { <br>
+print &quot;$family: { &quot;; <br>
+for my $role ( sort keys $HoH{$family}&minus;&gt;%* ) { <br>
+print &quot;$role=$HoH{$family}{$role} &quot;; <br>
+} <br>
+print &quot;}\n&quot;; <br>
+} <br>
+# print the whole thing sorted by number of members <br>
+foreach my $family ( sort { $HoH{$b}&minus;&gt;%* &lt;=&gt;
+$HoH{$a}&minus;&gt;%* } keys %HoH ) { <br>
+print &quot;$family: { &quot;; <br>
+for my $role ( sort keys $HoH{$family}&minus;&gt;%* ) { <br>
+print &quot;$role=$HoH{$family}{$role} &quot;; <br>
+} <br>
+print &quot;}\n&quot;; <br>
+} <br>
+# establish a sort order (rank) for each role <br>
+my $i = 0; <br>
+my %rank; <br>
+for ( qw(lead wife son daughter pal pet) ) { $rank{$_} =
+++$i } <br>
+# now print the whole thing sorted by number of members <br>
+foreach my $family ( sort { $HoH{$b}&minus;&gt;%* &lt;=&gt;
+$HoH{$a}&minus;&gt;%* } keys %HoH ) { <br>
+print &quot;$family: { &quot;; <br>
+# and print these according to rank order <br>
+for my $role ( sort { $rank{$a} &lt;=&gt; $rank{$b} } <br>
+keys $HoH{$family}&minus;&gt;%* ) <br>
+{ <br>
+print &quot;$role=$HoH{$family}{$role} &quot;; <br>
+} <br>
+print &quot;}\n&quot;; <br>
+}</p>
+
+<h2>MORE ELABORATE RECORDS
+<a name="MORE ELABORATE RECORDS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Declaration
+of <small>MORE ELABORATE RECORDS</small></b> <br>
+Here&rsquo;s a sample showing how to create and use a record
+whose fields are of many different sorts:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $rec = {
+<br>
+TEXT =&gt; $string, <br>
+SEQUENCE =&gt; [ @old_values ], <br>
+LOOKUP =&gt; { %some_table }, <br>
+THATCODE =&gt; \&amp;some_function, <br>
+THISCODE =&gt; sub { $_[0] ** $_[1] }, <br>
+HANDLE =&gt; \*STDOUT, <br>
+}; <br>
+print $rec&minus;&gt;{TEXT}; <br>
+print $rec&minus;&gt;{SEQUENCE}[0]; <br>
+my $last = pop $rec&minus;&gt;{SEQUENCE}&minus;&gt;@*; <br>
+print $rec&minus;&gt;{LOOKUP}{&quot;key&quot;}; <br>
+my ($first_k, $first_v) = each
+$rec&minus;&gt;{LOOKUP}&minus;&gt;%*; <br>
+my $answer = $rec&minus;&gt;{THATCODE}&minus;&gt;($arg);
+<br>
+$answer = $rec&minus;&gt;{THISCODE}&minus;&gt;($arg1,
+$arg2); <br>
+# careful of extra block braces on fh ref <br>
+print { $rec&minus;&gt;{HANDLE} } &quot;a string\n&quot;;
+<br>
+use FileHandle; <br>
+$rec&minus;&gt;{HANDLE}&minus;&gt;autoflush(1); <br>
+$rec&minus;&gt;{HANDLE}&minus;&gt;print(&quot; a
+string\n&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Declaration
+of a <small>HASH OF COMPLEX RECORDS</small></b> <br>
+my %TV = ( <br>
+flintstones =&gt; { <br>
+series =&gt; &quot;flintstones&quot;, <br>
+nights =&gt; [ qw(monday thursday friday) ], <br>
+members =&gt; [ <br>
+{ name =&gt; &quot;fred&quot;, role =&gt; &quot;lead&quot;,
+age =&gt; 36, }, <br>
+{ name =&gt; &quot;wilma&quot;, role =&gt; &quot;wife&quot;,
+age =&gt; 31, }, <br>
+{ name =&gt; &quot;pebbles&quot;, role =&gt;
+&quot;kid&quot;, age =&gt; 4, }, <br>
+], <br>
+}, <br>
+jetsons =&gt; { <br>
+series =&gt; &quot;jetsons&quot;, <br>
+nights =&gt; [ qw(wednesday saturday) ], <br>
+members =&gt; [ <br>
+{ name =&gt; &quot;george&quot;, role =&gt;
+&quot;lead&quot;, age =&gt; 41, }, <br>
+{ name =&gt; &quot;jane&quot;, role =&gt; &quot;wife&quot;,
+age =&gt; 39, }, <br>
+{ name =&gt; &quot;elroy&quot;, role =&gt; &quot;kid&quot;,
+age =&gt; 9, }, <br>
+], <br>
+}, <br>
+simpsons =&gt; { <br>
+series =&gt; &quot;simpsons&quot;, <br>
+nights =&gt; [ qw(monday) ], <br>
+members =&gt; [ <br>
+{ name =&gt; &quot;homer&quot;, role =&gt; &quot;lead&quot;,
+age =&gt; 34, }, <br>
+{ name =&gt; &quot;marge&quot;, role =&gt; &quot;wife&quot;,
+age =&gt; 37, }, <br>
+{ name =&gt; &quot;bart&quot;, role =&gt; &quot;kid&quot;,
+age =&gt; 11, }, <br>
+], <br>
+}, <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Generation
+of a <small>HASH OF COMPLEX RECORDS</small></b> <br>
+# reading from file <br>
+# this is most easily done by having the file itself be <br>
+# in the raw data format as shown above. perl is happy <br>
+# to parse complex data structures if declared as data, so
+<br>
+# sometimes it's easiest to do that <br>
+# here's a piece by piece build up <br>
+my $rec = {}; <br>
+$rec&minus;&gt;{series} = &quot;flintstones&quot;; <br>
+$rec&minus;&gt;{nights} = [ find_days() ]; <br>
+my @members = (); <br>
+# assume this file in field=value syntax <br>
+while (&lt;&gt;) { <br>
+my %fields = split /[\s=]+/; <br>
+push @members, { %fields }; <br>
+} <br>
+$rec&minus;&gt;{members} = [ @members ]; <br>
+# now remember the whole thing <br>
+$TV{ $rec&minus;&gt;{series} } = $rec; <br>
+###########################################################
+<br>
+# now, you might want to make interesting extra fields that
+<br>
+# include pointers back into the same data structure so if
+<br>
+# change one piece, it changes everywhere, like for example
+<br>
+# if you wanted a {kids} field that was a reference <br>
+# to an array of the kids' records without having duplicate
+<br>
+# records and thus update problems. <br>
+###########################################################
+<br>
+foreach my $family (keys %TV) { <br>
+my $rec = $TV{$family}; # temp pointer <br>
+my @kids = (); <br>
+for my $person ( $rec&minus;&gt;{members}&minus;&gt;@* ) {
+<br>
+if ($person&minus;&gt;{role} =~ /kid|son|daughter/) { <br>
+push @kids, $person; <br>
+} <br>
+} <br>
+# REMEMBER: $rec and $TV{$family} point to same data!! <br>
+$rec&minus;&gt;{kids} = [ @kids ]; <br>
+} <br>
+# you copied the array, but the array itself contains
+pointers <br>
+# to uncopied objects. this means that if you make bart get
+<br>
+# older via <br>
+$TV{simpsons}{kids}[0]{age}++; <br>
+# then this would also change in <br>
+print $TV{simpsons}{members}[2]{age}; <br>
+# because $TV{simpsons}{kids}[0] and
+$TV{simpsons}{members}[2] <br>
+# both point to the same underlying anonymous hash table
+<br>
+# print the whole thing <br>
+foreach my $family ( keys %TV ) { <br>
+print &quot;the $family&quot;; <br>
+print &quot; is on during
+$TV{$family}{nights}&minus;&gt;@*\n&quot;; <br>
+print &quot;its members are:\n&quot;; <br>
+for my $who ( $TV{$family}{members}&minus;&gt;@* ) { <br>
+print &quot; $who&minus;&gt;{name} ($who&minus;&gt;{role}),
+age $who&minus;&gt;{age}\n&quot;; <br>
+} <br>
+print &quot;it turns out that $TV{$family}{lead} has &quot;;
+<br>
+print scalar ( $TV{$family}{kids}&minus;&gt;@* ), &quot;
+kids named &quot;; <br>
+print join (&quot;, &quot;, map { $_&minus;&gt;{name} }
+$TV{$family}{kids}&minus;&gt;@* ); <br>
+print &quot;\n&quot;; <br>
+}</p>
+
+<h2>Database Ties
+<a name="Database Ties"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">You cannot
+easily tie a multilevel data structure (such as a hash of
+hashes) to a dbm file. The first problem is that all but
+<small>GDBM</small> and Berkeley <small>DB</small> have size
+limitations, but beyond that, you also have problems with
+how references are to be represented on disk. One
+experimental module that does partially attempt to address
+this need is the <small>MLDBM</small> module. Check your
+nearest <small>CPAN</small> site as described in perlmodlib
+for source code to <small>MLDBM.</small></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perlref,
+perllol, perldata, perlobj</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Tom
+Christiansen &lt;<i>tchrist@perl.com</i>&gt;</p>
+<hr>
+</body>
+</html>

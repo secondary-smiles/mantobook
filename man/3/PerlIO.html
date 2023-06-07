@@ -1,0 +1,534 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:49 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PerlIO</title>
+
+</head>
+<body>
+<h1>PerlIO</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">PerlIO &minus;
+On demand loader for PerlIO layers and root of PerlIO::*
+name space</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"># support
+platform&minus;native and CRLF text files <br>
+open(my $fh, &quot;&lt;:crlf&quot;, &quot;my.txt&quot;) or
+die &quot;open failed: $!&quot;; <br>
+# append UTF&minus;8 encoded text <br>
+open(my $fh, &quot;&gt;&gt;:encoding(UTF&minus;8)&quot;,
+&quot;some.log&quot;) <br>
+or die &quot;open failed: $!&quot;; <br>
+# portably open a binary file for reading <br>
+open(my $fh, &quot;&lt;&quot;, &quot;his.jpg&quot;) or die
+&quot;open failed: $!&quot;; <br>
+binmode($fh) or die &quot;binmode failed: $!&quot;; <br>
+Shell: <br>
+PERLIO=:perlio perl ....</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When an
+undefined layer &rsquo;foo&rsquo; is encountered in an
+&quot;open&quot; or &quot;binmode&quot; layer specification
+then C code performs the equivalent of:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use PerlIO
+'foo';</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Perl code
+in PerlIO.pm then attempts to locate a layer by doing</p>
+
+<p style="margin-left:11%; margin-top: 1em">require
+PerlIO::foo;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Otherwise the
+&quot;PerlIO&quot; package is a place holder for additional
+PerlIO related functions.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Layers</b>
+<br>
+Generally speaking, PerlIO layers (previously sometimes
+referred to as &quot;disciplines&quot;) are an ordered stack
+applied to a filehandle (specified as a space&minus; or
+colon-separated list, conventionally written with a leading
+colon). Each layer performs some operation on any input or
+output, except when bypassed such as with
+&quot;sysread&quot; or &quot;syswrite&quot;. Read operations
+go through the stack in the order they are set (left to
+right), and write operations in the reverse order.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are also
+layers which actually just set flags on lower layers, or
+layers that modify the current stack but don&rsquo;t persist
+on the stack themselves; these are referred to as
+pseudo-layers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When opening a
+handle, it will be opened with any layers specified
+explicitly in the <b>open()</b> call (or the platform
+defaults, if specified as a colon with no following
+layers).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If layers are
+not explicitly specified, the handle will be opened with the
+layers specified by the ${^OPEN} variable (usually set by
+using the open pragma for a lexical scope, or the
+&quot;&minus;C&quot; command-line switch or
+&quot;PERL_UNICODE&quot; environment variable for the main
+program scope).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If layers are
+not specified in the <b>open()</b> call or
+&quot;${^OPEN}&quot; variable, the handle will be opened
+with the default layer stack configured for that
+architecture; see &quot;Defaults and how to override
+them&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some layers
+will automatically insert required lower level layers if not
+present; for example &quot;:perlio&quot; will insert
+&quot;:unix&quot; below itself for low level
+<small>IO,</small> and &quot;:encoding&quot; will insert the
+platform defaults for buffered <small>IO.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;binmode&quot; function can be called on an opened
+handle to push additional layers onto the stack, which may
+also modify the existing layers. &quot;binmode&quot; called
+with no layers will remove or unset any existing layers
+which transform the byte stream, making the handle suitable
+for binary data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+layers are currently defined: <br>
+:unix</p>
+
+<p style="margin-left:17%;">Lowest level layer which
+provides basic PerlIO operations in terms of
+<small>UNIX/POSIX</small> numeric file descriptor calls
+(<b>open()</b>, <b>read()</b>, <b>write()</b>,
+<b>lseek()</b>, <b>close()</b>). It is used even on non-Unix
+architectures, and most other layers operate on top of
+it.</p>
+
+<p style="margin-left:11%;">:stdio</p>
+
+<p style="margin-left:17%;">Layer which calls
+&quot;fread&quot;, &quot;fwrite&quot; and
+&quot;fseek&quot;/&quot;ftell&quot; etc. Note that as this
+is &quot;real&quot; stdio it will ignore any layers beneath
+it and go straight to the operating system via the C library
+as usual. This layer implements both low level
+<small>IO</small> and buffering, but is rarely used on
+modern architectures.</p>
+
+<p style="margin-left:11%;">:perlio</p>
+
+<p style="margin-left:17%;">A from scratch implementation
+of buffering for PerlIO. Provides fast access to the buffer
+for &quot;sv_gets&quot; which implements Perl&rsquo;s
+readline/&lt;&gt; and in general attempts to minimize data
+copying.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;:perlio&quot;
+will insert a &quot;:unix&quot; layer below itself to do low
+level <small>IO.</small></p>
+
+<p style="margin-left:11%;">:crlf</p>
+
+<p style="margin-left:17%;">A layer that implements
+DOS/Windows like <small>CRLF</small> line endings. On read
+converts pairs of <small>CR,LF</small> to a single
+&quot;\n&quot; newline character. On write converts each
+&quot;\n&quot; to a <small>CR,LF</small> pair. Note that
+this layer will silently refuse to be pushed on top of
+itself.</p>
+
+<p style="margin-left:17%; margin-top: 1em">It currently
+does <i>not</i> mimic MS-DOS as far as treating of Control-Z
+as being an end-of-file marker.</p>
+
+<p style="margin-left:17%; margin-top: 1em">On DOS/Windows
+like architectures where this layer is part of the defaults,
+it also acts like the &quot;:perlio&quot; layer, and
+removing the <small>CRLF</small> translation (such as with
+&quot;:raw&quot;) will only unset the <small>CRLF</small>
+translation flag. Since Perl 5.14, you can also apply
+another &quot;:crlf&quot; layer later, such as when the
+<small>CRLF</small> translation must occur after an encoding
+layer. On other architectures, it is a mundane
+<small>CRLF</small> translation layer and can be added and
+removed normally.</p>
+
+<p style="margin-left:17%; margin-top: 1em"># translate
+CRLF after encoding on Perl 5.14 or newer <br>
+binmode $fh, &quot;:raw:encoding(UTF&minus;16LE):crlf&quot;
+<br>
+or die &quot;binmode failed: $!&quot;;</p>
+
+<p style="margin-left:11%;">:utf8</p>
+
+<p style="margin-left:17%;">Pseudo-layer that declares that
+the stream accepts Perl&rsquo;s <i>internal</i> upgraded
+encoding of characters, which is approximately
+<small>UTF&minus;8</small> on <small>ASCII</small> machines,
+but UTF-EBCDIC on <small>EBCDIC</small> machines. This
+allows any character Perl can represent to be read from or
+written to the stream.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This layer
+(which actually sets a flag on the preceding layer, and is
+implicitly set by any &quot;:encoding&quot; layer) does not
+translate or validate byte sequences. It instead indicates
+that the byte stream will have been arranged by other layers
+to be provided in Perl&rsquo;s internal upgraded encoding,
+which Perl code (and correctly written <small>XS</small>
+code) will interpret as decoded Unicode characters.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>CAUTION</small></b>
+: Do not use this layer to translate from
+<small>UTF&minus;8</small> bytes, as invalid
+<small>UTF&minus;8</small> or binary data will result in
+malformed Perl strings. It is unlikely to produce invalid
+<small>UTF&minus;8</small> when used for output, though it
+will instead produce UTF-EBCDIC on <small>EBCDIC</small>
+systems. The &quot;:encoding(UTF&minus;8)&quot; layer
+(hyphen is significant) is preferred as it will ensure
+translation between valid <small>UTF&minus;8</small> bytes
+and valid Unicode characters.</p>
+
+<p style="margin-left:11%;">:bytes</p>
+
+<p style="margin-left:17%;">This is the inverse of the
+&quot;:utf8&quot; pseudo-layer. It turns off the flag on the
+layer below so that data read from it is considered to be
+Perl&rsquo;s internal downgraded encoding, thus interpreted
+as the native single-byte encoding of Latin&minus;1 or
+<small>EBCDIC.</small> Likewise on output Perl will warn if
+a &quot;wide&quot; character (a codepoint not in the range
+0..255) is written to a such a stream.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is very
+dangerous to push on a handle using an &quot;:encoding&quot;
+layer, as such a layer assumes to be working with
+Perl&rsquo;s internal upgraded encoding, so you will likely
+get a mangled result. Instead use &quot;:raw&quot; or
+&quot;:pop&quot; to remove encoding layers.</p>
+
+<p style="margin-left:11%;">:raw</p>
+
+<p style="margin-left:17%;">The &quot;:raw&quot;
+pseudo-layer is <i>defined</i> as being identical to calling
+&quot;binmode($fh)&quot; &minus; the stream is made suitable
+for passing binary data, i.e. each byte is passed as-is. The
+stream will still be buffered (but this was not always true
+before Perl 5.14).</p>
+
+<p style="margin-left:17%; margin-top: 1em">In Perl 5.6 and
+some books the &quot;:raw&quot; layer is documented as the
+inverse of the &quot;:crlf&quot; layer. That is no longer
+the case &minus; other layers which would alter the binary
+nature of the stream are also disabled. If you want
+<small>UNIX</small> line endings on a platform that normally
+does <small>CRLF</small> translation, but still want
+<small>UTF&minus;8</small> or encoding defaults, the
+appropriate thing to do is to add &quot;:perlio&quot; to the
+<small>PERLIO</small> environment variable, or open the
+handle explicitly with that layer, to replace the platform
+default of &quot;:crlf&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+implementation of &quot;:raw&quot; is as a pseudo-layer
+which when &quot;pushed&quot; pops itself and then any
+layers which would modify the binary data stream. (Undoing
+&quot;:utf8&quot; and &quot;:crlf&quot; may be implemented
+by clearing flags rather than popping layers but that is an
+implementation detail.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">As a
+consequence of the fact that &quot;:raw&quot; normally pops
+layers, it usually only makes sense to have it as the only
+or first element in a layer specification. When used as the
+first element it provides a known base on which to build
+e.g.</p>
+
+<p style="margin-left:17%; margin-top: 1em">open(my
+$fh,&quot;&gt;:raw:encoding(UTF&minus;8)&quot;,...) <br>
+or die &quot;open failed: $!&quot;;</p>
+
+<p style="margin-left:17%; margin-top: 1em">will construct
+a &quot;binary&quot; stream regardless of the platform
+defaults, but then enable <small>UTF&minus;8</small>
+translation.</p>
+
+<p style="margin-left:11%;">:pop</p>
+
+<p style="margin-left:17%;">A pseudo-layer that removes the
+top-most layer. Gives Perl code a way to manipulate the
+layer stack. Note that &quot;:pop&quot; only works on real
+layers and will not undo the effects of pseudo-layers or
+flags like &quot;:utf8&quot;. An example of a possible use
+might be:</p>
+
+<p style="margin-left:17%; margin-top: 1em">open(my
+$fh,...) or die &quot;open failed: $!&quot;; <br>
+... <br>
+binmode($fh,&quot;:encoding(...)&quot;) or die &quot;binmode
+failed: $!&quot;; <br>
+# next chunk is encoded <br>
+... <br>
+binmode($fh,&quot;:pop&quot;) or die &quot;binmode failed:
+$!&quot;; <br>
+# back to un&minus;encoded</p>
+
+<p style="margin-left:17%; margin-top: 1em">A more elegant
+(and safer) interface is needed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Custom
+Layers</b> <br>
+It is possible to write custom layers in addition to the
+above builtin ones, both in C/XS and Perl, as a module named
+&quot;PerlIO::&lt;layer name&gt;&quot;. Some custom layers
+come with the Perl distribution. <br>
+:encoding</p>
+
+<p style="margin-left:17%;">Use
+&quot;:encoding(ENCODING)&quot; to transparently do
+character set and encoding transformations, for example from
+Shift-JIS to Unicode. Note that an &quot;:encoding&quot;
+also enables &quot;:utf8&quot;. See PerlIO::encoding for
+more information.</p>
+
+<p style="margin-left:11%;">:mmap</p>
+
+<p style="margin-left:17%;">A layer which implements
+&quot;reading&quot; of files by using &quot;mmap()&quot; to
+make a (whole) file appear in the process&rsquo;s address
+space, and then using that as PerlIO&rsquo;s
+&quot;buffer&quot;. This <i>may</i> be faster in certain
+circumstances for large files, and may result in less
+physical memory use when multiple processes are reading the
+same file.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Files which are
+not &quot;mmap()&quot;&minus;able revert to behaving like
+the &quot;:perlio&quot; layer. Writes also behave like the
+&quot;:perlio&quot; layer, as &quot;mmap()&quot; for write
+needs extra house-keeping (to extend the file) which negates
+any advantage.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;:mmap&quot; layer will not exist if the platform does
+not support &quot;mmap()&quot;. See PerlIO::mmap for more
+information.</p>
+
+<p style="margin-left:11%;">:via</p>
+
+<p style="margin-left:17%;">&quot;:via(MODULE)&quot; allows
+a transformation to be applied by an arbitrary Perl module,
+for example compression / decompression, encryption /
+decryption. See PerlIO::via for more information.</p>
+
+<p style="margin-left:11%;">:scalar</p>
+
+<p style="margin-left:17%;">A layer implementing &quot;in
+memory&quot; files using scalar variables, automatically
+used in place of the platform defaults for <small>IO</small>
+when opening such a handle. As such, the scalar is expected
+to act like a file, only containing or storing bytes. See
+PerlIO::scalar for more information.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Alternatives
+to raw</b> <br>
+To get a binary stream an alternate method is to use:</p>
+
+<p style="margin-left:11%; margin-top: 1em">open(my
+$fh,&quot;&lt;&quot;,&quot;whatever&quot;) or die &quot;open
+failed: $!&quot;; <br>
+binmode($fh) or die &quot;binmode failed: $!&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This has the
+advantage of being backward compatible with older versions
+of Perl that did not use PerlIO or where &quot;:raw&quot;
+was buggy (as it was before Perl 5.14).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To get an
+unbuffered stream specify an unbuffered layer (e.g.
+&quot;:unix&quot;) in the open call:</p>
+
+<p style="margin-left:11%; margin-top: 1em">open(my
+$fh,&quot;&lt;:unix&quot;,$path) or die &quot;open failed:
+$!&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Defaults and
+how to override them</b> <br>
+If the platform is MS-DOS like and normally does
+<small>CRLF</small> to &quot;\n&quot; translation for text
+files then the default layers are:</p>
+
+<p style="margin-left:11%; margin-top: 1em">:unix:crlf</p>
+
+<p style="margin-left:11%; margin-top: 1em">Otherwise if
+&quot;Configure&quot; found out how to do &quot;fast&quot;
+<small>IO</small> using the system&rsquo;s stdio (not common
+on modern architectures), then the default layers are:</p>
+
+<p style="margin-left:11%; margin-top: 1em">:stdio</p>
+
+<p style="margin-left:11%; margin-top: 1em">Otherwise the
+default layers are</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">:unix:perlio</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+&quot;default stack&quot; depends on the operating system
+and on the Perl version, and both the compile-time and
+runtime configurations of Perl. The default can be
+overridden by setting the environment variable
+<small>PERLIO</small> to a space or colon separated list of
+layers, however this cannot be used to set layers that
+require loading modules like &quot;:encoding&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This can be
+used to see the effect of/bugs in the various layers
+e.g.</p>
+
+<p style="margin-left:11%; margin-top: 1em">cd .../perl/t
+<br>
+PERLIO=:stdio ./perl harness <br>
+PERLIO=:perlio ./perl harness</p>
+
+<p style="margin-left:11%; margin-top: 1em">For the various
+values of <small>PERLIO</small> see &quot;
+<small>PERLIO&quot;</small> in perlrun.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+table summarizes the default layers on UNIX-like and
+DOS-like platforms and depending on the setting of
+$ENV{PERLIO}:</p>
+
+<p style="margin-left:11%; margin-top: 1em">PERLIO
+UNIX&minus;like DOS&minus;like <br>
+&minus;&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+unset / &quot;&quot; :unix:perlio / :stdio [1] :unix:crlf
+<br>
+:stdio :stdio :stdio <br>
+:perlio :unix:perlio :unix:perlio <br>
+# [1] &quot;:stdio&quot; if Configure found out how to do
+&quot;fast stdio&quot; (depends <br>
+# on the stdio implementation) and in Perl 5.8, else
+&quot;:unix:perlio&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Querying the
+layers of filehandles</b> <br>
+The following returns the <b>names</b> of the PerlIO layers
+on a filehandle.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @layers =
+PerlIO::get_layers($fh); # Or FH, *FH, &quot;FH&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The layers are
+returned in the order an <b>open()</b> or <b>binmode()</b>
+call would use them, and without colons.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default the
+layers from the input side of the filehandle are returned;
+to get the output side, use the optional &quot;output&quot;
+argument:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @layers =
+PerlIO::get_layers($fh, output =&gt; 1);</p>
+
+<p style="margin-left:11%; margin-top: 1em">(Usually the
+layers are identical on either side of a filehandle but for
+example with sockets there may be differences.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">There is no
+<b>set_layers()</b>, nor does <b>get_layers()</b> return a
+tied array mirroring the stack, or anything fancy like that.
+This is not accidental or unintentional. The PerlIO layer
+stack is a bit more complicated than just a stack (see for
+example the behaviour of &quot;:raw&quot;). You are supposed
+to use <b>open()</b> and <b>binmode()</b> to manipulate the
+stack.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Implementation
+details follow, please close your eyes.</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">The arguments
+to layers are by default returned in parentheses after the
+name of the layer, and certain layers (like
+&quot;:utf8&quot;) are not real layers but instead flags on
+real layers; to get all of these returned separately, use
+the optional &quot;details&quot; argument:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my
+@layer_and_args_and_flags = PerlIO::get_layers($fh, details
+=&gt; 1);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The result will
+be up to be three times the number of layers: the first
+element will be a name, the second element the arguments
+(unspecified arguments will be &quot;undef&quot;), the third
+element the flags, the fourth element a name again, and so
+forth.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>You may open
+your eyes now.</b></p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Nick
+Ing-Simmons &lt;nick@ing&minus;simmons.net&gt;</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;binmode&quot;
+in perlfunc, &quot;open&quot; in perlfunc, perlunicode,
+perliol, Encode</p>
+<hr>
+</body>
+</html>

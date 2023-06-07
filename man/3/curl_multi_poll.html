@@ -1,0 +1,194 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:28 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>curl_multi_poll</title>
+
+</head>
+<body>
+<h1>curl_multi_poll</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">curl_multi_poll
+- polls on all easy handles in a multi handle</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;curl/curl.h&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">CURLMcode
+curl_multi_poll(CURLM *multi_handle, <br>
+struct curl_waitfd extra_fds[], <br>
+unsigned int extra_nfds, <br>
+int timeout_ms, <br>
+int *numfds);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>curl_multi_poll(3)</i>
+polls all file descriptors used by the curl easy handles
+contained in the given multi handle set. It will block until
+activity is detected on at least one of the handles or
+<i>timeout_ms</i> has passed. Alternatively, if the multi
+handle has a pending internal timeout that has a shorter
+expiry time than <i>timeout_ms</i>, that shorter time will
+be used instead to make sure timeout accuracy is reasonably
+kept.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The calling
+application may pass additional curl_waitfd structures which
+are similar to <i>poll(2)</i>&rsquo;s <i>pollfd</i>
+structure to be waited on in the same call.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On completion,
+if <i>numfds</i> is non-NULL, it will be populated with the
+total number of file descriptors on which interesting events
+occurred. This number can include both libcurl internal
+descriptors as well as descriptors provided in
+<i>extra_fds</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>curl_multi_wakeup(3)</i> function can be used from
+another thread to wake up this function and return faster.
+This is one of the details that makes this function
+different than <i>curl_multi_wait(3)</i> which cannot be
+woken up this way.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no extra
+file descriptors are provided and libcurl has no file
+descriptor to offer to wait for, this function will instead
+wait during <i>timeout_ms</i> milliseconds (or shorter if an
+internal timer indicates so). This is the other detail that
+makes this function different than
+<i>curl_multi_wait(3)</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This function
+is encouraged to be used instead of select(3) when using the
+multi interface to allow applications to easier circumvent
+the common problem with 1024 maximum file descriptors.</p>
+
+<h2>curl_waitfd
+<a name="curl_waitfd"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">struct
+curl_waitfd { <br>
+curl_socket_t fd; <br>
+short events; <br>
+short revents; <br>
+}; <br>
+CURL_WAIT_POLLIN</p>
+
+<p style="margin-left:22%;">Bit flag to curl_waitfd.events
+indicating the socket should poll on read events such as new
+data received.</p>
+
+<p style="margin-left:11%;">CURL_WAIT_POLLPRI</p>
+
+<p style="margin-left:22%;">Bit flag to curl_waitfd.events
+indicating the socket should poll on high priority read
+events such as out of band data.</p>
+
+<p style="margin-left:11%;">CURL_WAIT_POLLOUT</p>
+
+<p style="margin-left:22%;">Bit flag to curl_waitfd.events
+indicating the socket should poll on write events such as
+the socket being clear to write without blocking.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">CURL
+*easy_handle; <br>
+CURLM *multi_handle;</p>
+
+<p style="margin-left:11%; margin-top: 1em">/* add the
+individual easy handle */ <br>
+curl_multi_add_handle(multi_handle, easy_handle);</p>
+
+<p style="margin-left:11%; margin-top: 1em">do { <br>
+CURLMcode mc; <br>
+int numfds;</p>
+
+<p style="margin-left:11%; margin-top: 1em">mc =
+curl_multi_perform(multi_handle, &amp;still_running);</p>
+
+<p style="margin-left:11%; margin-top: 1em">if(mc ==
+CURLM_OK) { <br>
+/* wait for activity or timeout */ <br>
+mc = curl_multi_poll(multi_handle, NULL, 0, 1000,
+&amp;numfds); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">if(mc !=
+CURLM_OK) { <br>
+fprintf(stderr, &quot;curl_multi failed, code %d.\n&quot;,
+mc); <br>
+break; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">}
+while(still_running);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">curl_multi_remove_handle(multi_handle,
+easy_handle);</p>
+
+<h2>AVAILABILITY
+<a name="AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Added in
+7.66.0.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">CURLMcode type,
+general libcurl multi interface error code. See
+<i>libcurl-errors(3)</i></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i><b>curl_multi_fdset</b></i>(3),
+<b>curl_multi_perform</b>(3), <b>curl_multi_wait</b>(3),
+<b>curl_multi_wakeup</b>(3)</p>
+<hr>
+</body>
+</html>

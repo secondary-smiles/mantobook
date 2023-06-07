@@ -1,0 +1,308 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:02 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>ZMQ_PGM</title>
+
+</head>
+<body>
+<h1>zmq_pgm</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">zmq_pgm &minus;
+0MQ reliable multicast transport using PGM</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">PGM (Pragmatic
+General Multicast) is a protocol for reliable multicast
+transport of data over IP networks.</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">0MQ implements
+two variants of PGM, the standard protocol where PGM
+datagrams are layered directly on top of IP datagrams as
+defined by RFC 3208 (the <i>pgm</i> transport) and
+&quot;Encapsulated PGM&quot; or EPGM where PGM datagrams are
+encapsulated inside UDP datagrams (the <i>epgm</i>
+transport).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The <i>pgm</i>
+and <i>epgm</i> transports can only be used with the
+<i>ZMQ_PUB</i> and <i>ZMQ_SUB</i> socket types.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Further, PGM
+sockets are rate limited by default. For details, refer to
+the <i>ZMQ_RATE</i>, and <i>ZMQ_RECOVERY_IVL</i> options
+documented in <b>zmq_setsockopt</b>(3).</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><big>Caution</big></b>
+<br>
+The <i>pgm</i> transport implementation requires access to
+raw IP sockets. Additional privileges may be required on
+some operating systems for this operation. Applications not
+requiring direct interoperability with other PGM
+implementations are encouraged to use the <i>epgm</i>
+transport instead which does not require any special
+privileges.</p>
+
+<h2>ADDRESSING
+<a name="ADDRESSING"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>A 0MQ
+endpoint is a string consisting of a <i>transport</i>://
+followed by an <i>address</i>. The <i>transport</i>
+specifies the underlying protocol to use. The <i>address</i>
+specifies the transport&minus;specific address to connect
+to.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>For the
+PGM transport, the transport is pgm, and for the EPGM
+protocol the transport is epgm. The meaning of the
+<i>address</i> part is defined below.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>Connecting
+a socket</b> <br>
+When connecting a socket to a peer address using
+<i>zmq_connect()</i> with the <i>pgm</i> or <i>epgm</i>
+transport, the <i>endpoint</i> shall be interpreted as an
+<i>interface</i> followed by a semicolon, followed by a
+<i>multicast address</i>, followed by a colon and a port
+number.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>An
+<i>interface</i> may be specified by either of the
+following:</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull; The
+interface name as defined by the operating system.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull; The
+primary IPv4 address assigned to the interface, in its
+numeric representation.</big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><b><big>Note</big></b>
+<br>
+Interface names are not standardised in any way and should
+be assumed to be arbitrary and platform dependent. On Win32
+platforms no short interface names exist, thus only the
+primary IPv4 address may be used to specify an
+<i>interface</i>. The <i>interface</i> part can be omitted,
+in that case the default one will be selected.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>A
+<i>multicast address</i> is specified by an IPv4 multicast
+address in its numeric representation.</big></p>
+
+<h2>WIRE FORMAT
+<a name="WIRE FORMAT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>Consecutive
+PGM datagrams are interpreted by 0MQ as a single continuous
+stream of data where 0MQ messages are not necessarily
+aligned with PGM datagram boundaries and a single 0MQ
+message may span several PGM datagrams. This stream of data
+consists of 0MQ messages encapsulated in <i>frames</i> as
+described in <b>zmq_tcp</b>(7).</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><b>PGM
+datagram payload</b> <br>
+The following ABNF grammar represents the payload of a
+single PGM datagram as used by 0MQ:</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>datagram
+= (offset data) <br>
+offset = 2OCTET <br>
+data = *OCTET</big></big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>In
+order for late joining consumers to be able to identify
+message boundaries, each PGM datagram payload starts with a
+16&minus;bit unsigned integer in network byte order
+specifying either the offset of the first message
+<i>frame</i> in the datagram or containing the value 0xFFFF
+if the datagram contains solely an intermediate part of a
+larger message.</big></big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>Note
+that offset specifies where the first message begins rather
+than the first message part. Thus, if there are trailing
+message parts at the beginning of the packet the offset
+ignores them and points to first initial message part in the
+packet.</big></big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>The
+following diagram illustrates the layout of a single PGM
+datagram payload:</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| offset (16 bits) | data | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+</big></big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>The
+following diagram further illustrates how three example 0MQ
+frames are laid out in consecutive PGM datagram
+payloads:</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>First
+datagram payload <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| Frame offset | Frame 1 | Frame 2, part 1 | <br>
+| 0x0000 | (Message 1) | (Message 2, part 1) | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>Second
+datagram payload <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| Frame offset | Frame 2, part 2 | <br>
+| 0xFFFF | (Message 2, part 2) | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>Third
+datagram payload <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| Frame offset | Frame 2, final 8 bytes | Frame 3 | <br>
+| 0x0008 | (Message 2, final 8 bytes) | (Message 3) | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+</big></big></p>
+
+<h2>CONFIGURATION
+<a name="CONFIGURATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>The
+PGM is protocol is capable of multicasting data at high
+rates (500Mbps+) with large messages (1MB+), however it
+requires setting the relevent ZMQ socket options that are
+documented in <b>zmq_setsockopt</b>(3):</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+The <i>ZMQ_RATE</i> should be set sufficiently high, e.g.
+1Gbps</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+The <i>ZMQ_RCVBUF</i> should be increased on the subscriber,
+e.g. 4MB</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+The <i>ZMQ_SNDBUF</i> should be increased on the publisher,
+e.g. 4MB</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>It&rsquo;s
+important to note that the <i>ZMQ_RCVBUF</i> and
+<i>ZMQ_SNDBUF</i> options are limited by the underlying host
+OS tx/rx buffer size limit. On linux, these can be increased
+for the current session with the following
+commands:</big></big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big><big># set
+tx/rx buffers to 4MB (default can also be read as the
+initial buffer size) <br>
+sudo sysctl &minus;w net.core.rmem_max=4194304 <br>
+sudo sysctl &minus;w net.core.wmem_max=4194304 <br>
+sudo sysctl &minus;w net.core.rmem_default=4194304 <br>
+sudo sysctl &minus;w
+net.core.wmem_default=4194304</big></big></p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><b>Connecting
+a socket</b>.</big></big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>//
+Connecting to the multicast address 239.192.1.1, port 5555,
+<br>
+// using the first Ethernet network interface on Linux <br>
+// and the Encapsulated PGM protocol <br>
+rc = zmq_connect(socket,
+&quot;epgm://eth0;239.192.1.1:5555&quot;); <br>
+assert (rc == 0); <br>
+// Connecting to the multicast address 239.192.1.1, port
+5555, <br>
+// using the network interface with the address 192.168.1.1
+<br>
+// and the standard PGM protocol <br>
+rc = zmq_connect(socket,
+&quot;pgm://192.168.1.1;239.192.1.1:5555&quot;); <br>
+assert (rc == 0);</big></big></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><b>zmq_connect</b>(3)
+<b>zmq_setsockopt</b>(3) <b>zmq_tcp</b>(7) <b>zmq_ipc</b>(7)
+<b>zmq_inproc</b>(7) <b>zmq_vmci</b>(7)
+<b>zmq</b>(7)</big></big></p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>This
+page was written by the 0MQ community. To make a change
+please read the 0MQ Contribution Policy at
+<b><font color="#0000FF">http://www.zeromq.org/docs:contributing</font></b><font color="#000000">.</font></big></big></p>
+<hr>
+</body>
+</html>

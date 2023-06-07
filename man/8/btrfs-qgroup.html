@@ -1,0 +1,506 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:04 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>BTRFS-QGROUP</title>
+
+</head>
+<body>
+<h1>btrfs-qgroup</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">btrfs-qgroup
+&minus; control the quota group of a btrfs filesystem</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>btrfs
+qgroup</b> &lt;subcommand&gt; &lt;args&gt;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>btrfs
+qgroup</b> is used to control quota group (qgroup) of a
+btrfs filesystem.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>NOTE:</b></p>
+
+<p style="margin-left:15%;">To use qgroup you need to
+enable quota first using <b>btrfs quota enable</b>
+command.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>WARNING:</b></p>
+
+<p style="margin-left:15%;">Qgroup is not stable yet and
+will impact performance in current mainline kernel
+(v4.14).</p>
+
+<h2>QGROUP
+<a name="QGROUP"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Quota groups or
+qgroup in btrfs make a tree hierarchy, the leaf qgroups are
+attached to subvolumes. The size limits are set per qgroup
+and apply when any limit is reached in tree that contains a
+given subvolume.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The limits are
+separated between shared and exclusive and reflect the
+extent ownership. For example a fresh snapshot shares almost
+all the blocks with the original subvolume, new writes to
+either subvolume will raise towards the exclusive limit.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The qgroup
+identifiers conform to <i>level/id</i> where level 0 is
+reserved to the qgroups associated with subvolumes. Such
+qgroups are created automatically.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The qgroup
+hierarchy is built by commands <b>create</b> and
+<b>assign</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>NOTE:</b></p>
+
+<p style="margin-left:15%;">If the qgroup of a subvolume is
+destroyed, quota about the subvolume will not be functional
+until qgroup <i>0/&lt;subvolume id&gt;</i> is created
+again.</p>
+
+<h2>SUBCOMMAND
+<a name="SUBCOMMAND"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>assign
+[options] &lt;src&gt; &lt;dst&gt; &lt;path&gt;</b></p>
+
+<p style="margin-left:22%;">Assign qgroup <i>src</i> as the
+child qgroup of <i>dst</i> in the btrfs filesystem
+identified by <i>path</i>.</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>Options <br>
+&minus;&minus;rescan</b></p>
+
+<p style="margin-left:32%;">(default since: 4.19)
+Automatically schedule quota rescan if the new qgroup
+assignment would lead to quota inconsistency. See <i>QUOTA
+RESCAN</i> for more information.</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;no&minus;rescan</b></p>
+
+<p style="margin-left:32%;">Explicitly ask not to do a
+rescan, even if the assignment will make the quotas
+inconsistent. This may be useful for repeated calls where
+the rescan would add unnecessary overhead.</p>
+
+<p style="margin-left:11%;"><b>create &lt;qgroupid&gt;
+&lt;path&gt;</b></p>
+
+<p style="margin-left:22%;">Create a subvolume quota
+group.</p>
+
+<p style="margin-left:22%; margin-top: 1em">For the
+<i>0/&lt;subvolume id&gt;</i> qgroup, a qgroup can be
+created even before the subvolume is created.</p>
+
+<p style="margin-left:11%;"><b>destroy &lt;qgroupid&gt;
+&lt;path&gt;</b></p>
+
+<p style="margin-left:22%;">Destroy a qgroup.</p>
+
+<p style="margin-left:22%; margin-top: 1em">If a qgroup is
+not isolated, meaning it is a parent or child qgroup, then
+it can only be destroyed after the relationship is
+removed.</p>
+
+<p style="margin-left:11%;"><b>clear&minus;stale
+&lt;path&gt;</b></p>
+
+<p style="margin-left:22%;">Clear all stale qgroups whose
+subvolume does not exist anymore, this is the level 0 qgroup
+like 0/subvolid. Higher level qgroups are not deleted even
+if they don't have any child qgroups.</p>
+
+<p style="margin-left:11%;"><b>limit [options]
+&lt;size&gt;|none [&lt;qgroupid&gt;] &lt;path&gt;</b></p>
+
+<p style="margin-left:22%;">Limit the size of a qgroup to
+<i>size</i> or no limit in the btrfs filesystem identified
+by <i>path</i>.</p>
+
+<p style="margin-left:22%; margin-top: 1em">If
+<i>qgroupid</i> is not given, qgroup of the subvolume
+identified by <i>path</i> is used if possible.</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><b>Options</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;c</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>limit amount of data after compression. This is the
+default, it is currently not possible to turn off this
+option.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;e</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>limit space exclusively assigned to this qgroup.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>remove &lt;src&gt;
+&lt;dst&gt; &lt;path&gt;</b></p>
+
+<p style="margin-left:22%;">Remove the relationship between
+child qgroup <i>src</i> and parent qgroup <i>dst</i> in the
+btrfs filesystem identified by <i>path</i>.</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>Options <br>
+&minus;&minus;rescan</b></p>
+
+<p style="margin-left:32%;">(default since: 4.19)
+Automatically schedule quota rescan if the removed qgroup
+relation would lead to quota inconsistency. See <i>QUOTA
+RESCAN</i> for more information.</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;no&minus;rescan</b></p>
+
+<p style="margin-left:32%;">Explicitly ask not to do a
+rescan, even if the removal will make the quotas
+inconsistent. This may be useful for repeated calls where
+the rescan would add unnecessary overhead.</p>
+
+<p style="margin-left:11%;"><b>show [options]
+&lt;path&gt;</b></p>
+
+<p style="margin-left:22%;">Show all qgroups in the btrfs
+filesystem identified by &lt;path&gt;.</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><b>Options</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;p</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>print parent qgroup id.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;c</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>print child qgroup id.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;r</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>print limit of referenced size of qgroup.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;e</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>print limit of exclusive size of qgroup.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;F</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>list all qgroups which impact the given path(include
+ancestral qgroups)</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;f</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>list all qgroups which impact the given path(exclude
+ancestral qgroups)</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;raw</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>raw numbers in bytes, without the <i>B</i> suffix.</p></td></tr>
+</table>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;human&minus;readable</b></p>
+
+<p style="margin-left:32%;">print human friendly numbers,
+base 1024, this is the default</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;iec</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>select the 1024 base for the following options,
+according to the IEC standard.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;si</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>select the 1000 base for the following options,
+according to the SI standard.</p></td></tr>
+</table>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;kbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in KiB, or kB with
+&minus;&minus;si.</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;mbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in MiB, or MB with
+&minus;&minus;si.</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;gbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in GiB, or GB with
+&minus;&minus;si.</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;tbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in TiB, or TB with
+&minus;&minus;si.</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;sort=[+/&minus;]&lt;attr&gt;[,[+/&minus;]&lt;attr&gt;]...</b></p>
+
+<p style="margin-left:32%;">list qgroups in order of
+&lt;attr&gt;.</p>
+
+<p style="margin-left:32%; margin-top: 1em">&lt;attr&gt;
+can be one or more of
+qgroupid,rfer,excl,max_rfer,max_excl.</p>
+
+<p style="margin-left:32%; margin-top: 1em">Prefix <i>+</i>
+means ascending order and <i>&minus;</i> means descending
+order of <i>attr</i>. If no prefix is given, use ascending
+order by default.</p>
+
+<p style="margin-left:32%; margin-top: 1em">If multiple
+<i>attr</i> values are given, use comma to separate.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="9%">
+
+
+<p><b>&minus;&minus;sync</b></p></td>
+<td width="1%"></td>
+<td width="68%">
+
+
+<p>To retrieve information after updating the state of
+qgroups, force sync of the filesystem identified by
+<i>path</i> before getting information.</p></td></tr>
+</table>
+
+<h2>QUOTA RESCAN
+<a name="QUOTA RESCAN"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The rescan
+reads all extent sharing metadata and updates the respective
+qgroups accordingly.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The information
+consists of bytes owned exclusively (<i>excl</i>) or
+shared/referred to (<i>rfer</i>). There's no explicit
+information about which extents are shared or owned
+exclusively. This means when qgroup relationship changes,
+extent owners change and qgroup numbers are no longer
+consistent unless we do a full rescan.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However there
+are cases where we can avoid a full rescan, if a subvolume
+whose <i>rfer</i> number equals its <i>excl</i> number,
+which means all bytes are exclusively owned, then
+assigning/removing this subvolume only needs to add/subtract
+<i>rfer</i> number from its parent qgroup. This can speed up
+the rescan.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Make a
+parent group that has two quota group children</b> <br>
+Given the following filesystem mounted at
+<i>/mnt/my&minus;vault</i></p>
+
+<pre style="margin-left:15%; margin-top: 1em">Label: none  uuid: 60d2ab3b&minus;941a&minus;4f22&minus;8d1a&minus;315f329797b2
+       Total devices 1 FS bytes used 128.00KiB
+       devid    1 size 5.00GiB used 536.00MiB path /dev/vdb</pre>
+
+
+<p style="margin-left:11%; margin-top: 1em">Enable quota
+and create subvolumes. Check subvolume ids.</p>
+<pre style="margin-left:15%; margin-top: 1em">$ cd /mnt/my&minus;vault
+$ btrfs quota enable .
+$ btrfs subvolume create a
+$ btrfs subvolume create b
+$ btrfs subvolume list .
+
+
+ID 261 gen 61 top level 5 path a
+ID 262 gen 62 top level 5 path b</pre>
+
+
+<p style="margin-left:11%; margin-top: 1em">Create qgroup
+and set limit to 10MiB.</p>
+
+<pre style="margin-left:15%; margin-top: 1em">$ btrfs qgroup create 1/100 .
+$ btrfs qgroup limit 10M 1/100 .
+$ btrfs qgroup assign 0/261 1/100 .
+$ btrfs qgroup assign 0/262 1/100 .</pre>
+
+
+<p style="margin-left:11%; margin-top: 1em">And check
+qgroups.</p>
+<pre style="margin-left:15%; margin-top: 1em">$ btrfs qgroup show .
+
+
+qgroupid         rfer         excl
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;         &minus;&minus;&minus;&minus;         &minus;&minus;&minus;&minus;
+0/5          16.00KiB     16.00KiB
+0/261        16.00KiB     16.00KiB
+0/262        16.00KiB     16.00KiB
+1/100        32.00KiB     32.00KiB</pre>
+
+
+<h2>EXIT STATUS
+<a name="EXIT STATUS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>btrfs
+qgroup</b> returns a zero exit status if it succeeds. Non
+zero is returned in case of failure.</p>
+
+<h2>AVAILABILITY
+<a name="AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>btrfs</b> is
+part of btrfs&minus;progs. Please refer to the documentation
+at <i>https://btrfs.readthedocs.io</i>.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>btrfs&minus;quota(8)</i>,
+<i>btrfs&minus;subvolume(8)</i>, <i>mkfs.btrfs(8)</i>,</p>
+<hr>
+</body>
+</html>

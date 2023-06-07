@@ -1,0 +1,405 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:43 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>BT_LANGUAGE</title>
+
+</head>
+<body>
+<h1>bt_language</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">bt_language
+&minus; the BibTeX data language, as recognized by
+btparse</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"># Lexical
+grammar, mode 1: top&minus;level <br>
+AT \@ <br>
+NEWLINE \n <br>
+COMMENT \%~[\n]*\n <br>
+WHITESPACE [\ \r\t]+ <br>
+JUNK ~[\@\n\ \r\t]+ <br>
+# Lexical grammar, mode 2: in&minus;entry <br>
+NEWLINE \n <br>
+COMMENT \%~[\n]*\n <br>
+WHITESPACE [\ \r\t]+ <br>
+NUMBER [0&minus;9]+ <br>
+NAME
+[a&minus;z0&minus;9\!\$\&amp;\*\+\&minus;\.\/\:\;\&lt;\&gt;\?\[\]\^\_\`\|]+
+<br>
+LBRACE \{ <br>
+RBRACE \} <br>
+LPAREN \( <br>
+RPAREN \) <br>
+EQUALS = <br>
+HASH \# <br>
+COMMA , <br>
+QUOTE \&quot; <br>
+# Lexical grammar, mode 3: strings <br>
+# (very hairy &minus;&minus; see text) <br>
+# Syntactic grammar: <br>
+bibfile : ( entry )* <br>
+entry : AT NAME body <br>
+body : STRING # for comment entries <br>
+| ENTRY_OPEN contents ENTRY_CLOSE <br>
+contents : ( NAME | NUMBER ) COMMA fields # for regular
+entries <br>
+| fields # for macro definition entries <br>
+| value # for preamble entries <br>
+fields : field { COMMA fields } <br>
+| <br>
+field : NAME EQUALS value <br>
+value : simple_value ( HASH simple_value )* <br>
+simple_value : STRING <br>
+| NUMBER <br>
+| NAME</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">One of the
+problems with BibTeX is that there is no formal
+specification of the language. This means that users
+exploring the arcane corners of the language are largely on
+their own, and programmers implementing their own parsers
+are completely on their own&minus;&minus;&minus;except for
+observing the behaviour of the original implementation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Other parser
+implementors (Nelson Beebe of &quot;bibclean&quot; fame, in
+particular) have taken the trouble to explain the language
+accepted by their parser, and in that spirit the following
+is presented.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+unfamiliar with the arcana of regular and context-free
+languages, you will not have any easy time understanding
+this. This is <i>not</i> an introduction to the BibTeX
+language; any LaTeX book would be more suitable for learning
+the data language itself.</p>
+
+<h2>LEXICAL GRAMMAR
+<a name="LEXICAL GRAMMAR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The lexical
+scanner has three distinct modes: top-level, in-entry, and
+string. Roughly speaking, top-level is the initial mode; we
+enter in-entry mode on seeing an &quot;@&quot; at top-level;
+and on seeing the &quot;}&quot; or &quot;)&quot; that ends
+the entry, we return to top-level. We enter string mode on
+seeing a &quot;&quot;&quot; or non-entry-delimiting
+&quot;{&quot; from in-entry mode. Note that the lexical
+language is both non-regular (because braces must balance)
+and context-sensitive (because &quot;{&quot; can mean
+different things depending on its syntactic context). That
+said, we will use regular expressions to describe the
+lexical elements, because they are the starting point used
+by the lexical scanner itself. The rest of the lexical
+grammar will be informally explained in the text.</p>
+
+<p style="margin-left:11%; margin-top: 1em">From top-level,
+the following tokens are recognized according to the regular
+expressions on the right:</p>
+
+<p style="margin-left:11%; margin-top: 1em">AT \@ <br>
+NEWLINE \n <br>
+COMMENT \%~[\n]*\n <br>
+WHITESPACE [\ \r\t]+ <br>
+JUNK ~[\@\n\ \r\t]+</p>
+
+<p style="margin-left:11%; margin-top: 1em">(Note that this
+is <small>PCCTS</small> regular expression syntax, which
+should be fairly familiar to users of other regex engines.
+One oddity is that a character class is negated as
+&quot;~[...]&quot; rather than &quot;[^...]&quot;.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">On seeing
+&quot;at&quot; at top-level, we enter in-entry mode.
+Whitespace, junk, newlines, and comments are all skipped,
+with the latter two incrementing a line counter. (Junk is
+explicitly recognized to allow for
+&quot;bibtex&quot;&rsquo;s &quot;implicit comment&quot;
+scheme.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">From in-entry
+mode, we recognize newline, comment, and whitespace
+identically to top-level mode. In addition, the following
+tokens are recognized:</p>
+
+<p style="margin-left:11%; margin-top: 1em">NUMBER
+[0&minus;9]+ <br>
+NAME
+[a&minus;z0&minus;9\!\$\&amp;\*\+\&minus;\.\/\:\;\&lt;\&gt;\?\[\]\^\_\`\|]+
+<br>
+LBRACE \{ <br>
+RBRACE \} <br>
+LPAREN \( <br>
+RPAREN \) <br>
+EQUALS = <br>
+HASH \# <br>
+COMMA , <br>
+QUOTE \&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">At this point,
+the lexical scanner starts to sound suspiciously like a
+context-free grammar, rather than a collection of
+independent regular expressions. However, it is necessary to
+keep this complexity in the scanner because certain
+characters (&quot;{&quot; and &quot;(&quot; in particular)
+have very different lexical meanings depending on the tokens
+that have preceded them in the input stream.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In particular,
+&quot;{&quot; and &quot;(&quot; are treated as &quot;entry
+openers&quot; if they follow one &quot;at&quot; and one
+&quot;name&quot; token, unless the value of the
+&quot;name&quot; token is &quot;comment&quot;. (Note the
+switch from top-level to in-entry between the two tokens.)
+In the @comment case, the delimiter is considered as
+starting a string, and we enter string mode. Otherwise, the
+delimiter is saved, and when we see a corresponding
+&quot;}&quot; or &quot;)&quot; it is considered an
+&quot;entry closer&quot;. (Braces are balanced for free here
+because the string lexer takes care of counting
+brace-depth.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Anywhere else,
+&quot;{&quot; is considered as starting a string, and we
+enter string mode. &quot;&quot;&quot; always starts a
+string, regardless of context. The other tokens
+(&quot;name&quot;, &quot;number&quot;, &quot;equals&quot;,
+&quot;hash&quot;, and &quot;comma&quot;) are recognized
+unconditionally.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+&quot;name&quot; is a catch-all token used for entry types,
+citation keys, field names, and macro names; because BibTeX
+has slightly different (largely undocumented) rules for
+these various elements, a bit of trickery is needed to make
+things work. As a starting point, consider BibTeX&rsquo;s
+definition of what&rsquo;s allowed for an entry key: a
+sequence of any characters <i>except</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot; # % ' (
+) , = { }</p>
+
+<p style="margin-left:11%; margin-top: 1em">plus space.
+There are a couple of problems with this scheme. First,
+without specifying the character set from which those
+&quot;magic 10&quot; characters are drawn, it&rsquo;s a bit
+hard to know just what is allowed. Second, allowing
+&quot;@&quot; characters could lead to confusing BibTeX
+syntax (it doesn&rsquo;t confuse BibTeX, but it might
+confuse a human reader). Finally, allowing certain
+characters that are special to TeX means that BibTeX can
+generate bogus TeX code: try putting a backslash
+(&quot;\&quot;) or tilde (&quot;~&quot;) in a citation key.
+(This last exception is rather specific to the
+&quot;generating (La)TeX code from a BibTeX database&quot;
+application, but since that&rsquo;s the major application
+for BibTeX databases, then it will presumably be the major
+application for <b>btparse</b>, at least initially. Thus, it
+makes sense to pay attention to this problem.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">In
+<b>btparse</b>, then, a name is defined as any sequence of
+letters, digits, underscores, and the following
+characters:</p>
+
+<p style="margin-left:11%; margin-top: 1em">! $ &amp; * +
+&minus; . / : ; &lt; &gt; ? [ ] ^ _ ` |</p>
+
+<p style="margin-left:11%; margin-top: 1em">This list was
+derived by removing BibTeX&rsquo;s &quot;magic 10&quot; from
+the set of printable 7&minus;bit <small>ASCII</small>
+characters (32&minus;126), and then further removing
+&quot;@&quot;, &quot;\&quot;, and &quot;~&quot;. This means
+that <b>btparse</b> disallows some of the weirder entry keys
+that BibTeX would accept, such as &quot;\foo@bar&quot;, but
+still allows a string with initial digits. In fact, from the
+above definition it appears that <b>btparse</b> would accept
+a string of all digits as a &quot;name;&quot; this is not
+the case, though, as the lexical scanner recognizes such a
+digit string as a number first. There are two problems here:
+BibTeX entry keys may in fact be entirely numeric, and field
+names may not begin with a digit. (Those are two of the
+not-so-obvious differences in BibTeX&rsquo;s handling of
+keys and field names.) The tricks used to deal with these
+problems are implemented in the parser rather than the
+lexical scanner, so are described in &quot; <small>SYNTACTIC
+GRAMMAR&quot;</small> below.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The string
+lexer recognizes &quot;lbrace&quot;, &quot;rbrace&quot;,
+&quot;lparen&quot;, and &quot;rparen&quot; tokens in order
+to count brace&minus; or parenthesis-depth. This is
+necessary so it knows when to accept a string delimited by
+braces or parentheses. (Note that a parenthesis-delimited
+string is only allowed after
+@comment&minus;&minus;&minus;this is not a normal BibTeX
+construct.) In addition, it converts each non-space
+whitespace character (newline, carriage-return, and tab) to
+a single space. (Sequences of whitespace are not collapsed;
+that&rsquo;s the domain of string post-processing, which is
+well removed from the scanner or parser.) Finally, it
+accepts &quot;&quot;&quot; to delimit quote-delimited
+strings. Apart from those restrictions, the string lexer
+accepts anything up to the end-of-string delimiter.</p>
+
+<h2>SYNTACTIC GRAMMAR
+<a name="SYNTACTIC GRAMMAR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">(The language
+used to describe the grammar here is the extended
+Backus-Naur Form ( <small>EBNF</small> ) used by
+<small>PCCTS.</small> Terminals are represented by uppercase
+strings, non-terminals by lowercase strings; terminal names
+are the same as those given in the lexical grammar above.
+&quot;( foo )*&quot; means zero or more repetitions of the
+&quot;foo&quot; production, and &quot;{ foo }&quot; means an
+optional &quot;foo&quot;.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">A file is just
+a sequence of zero or more entries:</p>
+
+<p style="margin-left:11%; margin-top: 1em">bibfile : (
+entry )*</p>
+
+<p style="margin-left:11%; margin-top: 1em">An entry is an
+at-sign, a name (the &quot;entry type&quot;), and the entry
+body:</p>
+
+<p style="margin-left:11%; margin-top: 1em">entry : AT NAME
+body</p>
+
+<p style="margin-left:11%; margin-top: 1em">A body is
+either a string (this alternative is only tried if the entry
+type is &quot;comment&quot;) or the entry contents:</p>
+
+<p style="margin-left:11%; margin-top: 1em">body : STRING #
+for comment entries <br>
+| ENTRY_OPEN contents ENTRY_CLOSE</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">(&quot;ENTRY_OPEN&quot;
+and &quot;ENTRY_CLOSE&quot; are either &quot;{&quot; and
+&quot;}&quot; or &quot;(&quot; and &quot;)&quot;, depending
+what is seen in the input for a particular entry.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are three
+possible productions for the &quot;contents&quot;
+non-terminal. Only one applies to any given entry, depending
+on the entry metatype (which in turn depends on the entry
+type). Currently, <b>btparse</b> supports four entry
+metatypes: comment, preamble, macro definition, and regular.
+The first two correspond to @comment and @preamble entries;
+&quot;macro definition&quot; is for @string entries; and
+&quot;regular&quot; is for all other entry types. (The
+library will be extended to handle @modify and @alias entry
+types, and corresponding &quot;modify&quot; and
+&quot;alias&quot; metatypes, when BibTeX 1.0 is released and
+the exact syntax is known.) The &quot;metatype&quot; concept
+is necessary so that all entry types that aren&rsquo;t
+specifically recognized fall into the &quot;regular&quot;
+metatype. It&rsquo;s also convenient not to have to
+&quot;strcmp&quot; the entry type all the time.</p>
+
+<p style="margin-left:11%; margin-top: 1em">contents : (
+NAME | NUMBER ) COMMA fields # for regular entries <br>
+| fields # for macro definition entries <br>
+| value # for preamble entries</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+entry key is not just a &quot;NAME&quot;, but &quot;( NAME |
+NUMBER)&quot;. This is necessary because BibTeX allows
+all-numeric entry keys, but <b>btparse</b>&rsquo;s lexical
+scanner recognizes such digit strings as &quot;NUMBER&quot;
+tokens.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;fields&quot;
+is a comma-separated list of fields, with an optional single
+trailing comma:</p>
+
+<p style="margin-left:11%; margin-top: 1em">fields : field
+{ COMMA fields } <br>
+|</p>
+
+<p style="margin-left:11%; margin-top: 1em">A
+&quot;field&quot; is a single &quot;field = value&quot;
+assignment:</p>
+
+<p style="margin-left:11%; margin-top: 1em">field : NAME
+EQUALS value</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+&quot;NAME&quot; here is a restricted version of the
+&quot;name&quot; token described in &quot; <small>LEXICAL
+GRAMMAR&quot;</small> above. Any &quot;name&quot; token will
+be accepted by the parser, but it is immediately checked to
+ensure that it doesn&rsquo;t begin with a digit; if so, an
+artificial syntax error is triggered. (This is for
+compatibility with BibTeX, which doesn&rsquo;t allow field
+names to start with a digit.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">A
+&quot;value&quot; is a series of simple values joined by '#'
+characters:</p>
+
+<p style="margin-left:11%; margin-top: 1em">value :
+simple_value ( HASH simple_value )*</p>
+
+<p style="margin-left:11%; margin-top: 1em">A simple value
+is a string, number, or name (for macro invocations):</p>
+
+<p style="margin-left:11%; margin-top: 1em">simple_value :
+STRING <br>
+| NUMBER <br>
+| NAME</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">btparse</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Greg Ward
+&lt;gward@python.net&gt;</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:09 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SSL_SHUTDOWN</title>
+
+</head>
+<body>
+<h1>SSL_shutdown</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">SSL_shutdown
+&minus; shut down a TLS/SSL connection</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;openssl/ssl.h&gt; <br>
+int SSL_shutdown(SSL *ssl);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_shutdown()</b>
+shuts down an active <small>TLS/SSL</small> connection. It
+sends the close_notify shutdown alert to the peer.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_shutdown()</b>
+tries to send the close_notify shutdown alert to the peer.
+Whether the operation succeeds or not, the
+<small>SSL_SENT_SHUTDOWN</small> flag is set and a currently
+open session is considered closed and good and will be kept
+in the session cache for further reuse.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+<b>SSL_shutdown()</b> must not be called if a previous fatal
+error has occurred on a connection i.e. if
+<b>SSL_get_error()</b> has returned
+<small>SSL_ERROR_SYSCALL</small> or
+<small>SSL_ERROR_SSL.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">The shutdown
+procedure consists of two steps: sending of the close_notify
+shutdown alert, and reception of the peer&rsquo;s
+close_notify shutdown alert. The order of those two steps
+depends on the application.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is
+acceptable for an application to only send its shutdown
+alert and then close the underlying connection without
+waiting for the peer&rsquo;s response. This way resources
+can be saved, as the process can already terminate or serve
+another connection. This should only be done when it is
+known that the other side will not send more data, otherwise
+there is a risk of a truncation attack.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When a client
+only writes and never reads from the connection, and the
+server has sent a session ticket to establish a session, the
+client might not be able to resume the session because it
+did not received and process the session ticket from the
+server. In case the application wants to be able to resume
+the session, it is recommended to do a complete shutdown
+procedure (bidirectional close_notify alerts).</p>
+
+<p style="margin-left:11%; margin-top: 1em">When the
+underlying connection shall be used for more communications,
+the complete shutdown procedure must be performed, so that
+the peers stay synchronized.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_shutdown()</b>
+only closes the write direction. It is not possible to call
+<b>SSL_write()</b> after calling <b>SSL_shutdown()</b>. The
+read direction is closed by the peer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The behaviour
+of <b>SSL_shutdown()</b> additionally depends on the
+underlying <small>BIO.</small> If the underlying
+<small>BIO</small> is <b>blocking</b>, <b>SSL_shutdown()</b>
+will only return once the handshake step has been finished
+or an error occurred.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+underlying <small>BIO</small> is <b>nonblocking</b>,
+<b>SSL_shutdown()</b> will also return when the underlying
+<small>BIO</small> could not satisfy the needs of
+<b>SSL_shutdown()</b> to continue the handshake. In this
+case a call to <b>SSL_get_error()</b> with the return value
+of <b>SSL_shutdown()</b> will yield
+<b><small>SSL_ERROR_WANT_READ</small></b> or
+<b><small>SSL_ERROR_WANT_WRITE</small></b> . The calling
+process then must repeat the call after taking appropriate
+action to satisfy the needs of <b>SSL_shutdown()</b>. The
+action depends on the underlying <small>BIO.</small> When
+using a nonblocking socket, nothing is to be done, but
+<b>select()</b> can be used to check for the required
+condition. When using a buffering <small>BIO,</small> like a
+<small>BIO</small> pair, data must be written into or
+retrieved out of the <small>BIO</small> before being able to
+continue.</p>
+
+<p style="margin-left:11%; margin-top: 1em">After
+<b>SSL_shutdown()</b> returned 0, it is possible to call
+<b>SSL_shutdown()</b> again to wait for the peer&rsquo;s
+close_notify alert. <b>SSL_shutdown()</b> will return 1 in
+that case. However, it is recommended to wait for it using
+<b>SSL_read()</b> instead.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_shutdown()</b>
+can be modified to only set the connection to
+&quot;shutdown&quot; state but not actually send the
+close_notify alert messages, see
+<b>SSL_CTX_set_quiet_shutdown</b>(3). When &quot;quiet
+shutdown&quot; is enabled, <b>SSL_shutdown()</b> will always
+succeed and return 1. Note that this is not standard
+compliant behaviour. It should only be done when the peer
+has a way to make sure all data has been received and
+doesn&rsquo;t wait for the close_notify alert message,
+otherwise an unexpected <small>EOF</small> will be
+reported.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are
+implementations that do not send the required close_notify
+alert. If there is a need to communicate with such an
+implementation, and it&rsquo;s clear that all data has been
+received, do not wait for the peer&rsquo;s close_notify
+alert. Waiting for the close_notify alert when the peer just
+closes the connection will result in an error being
+generated. The error can be ignored using the
+<b><small>SSL_OP_IGNORE_UNEXPECTED_EOF</small></b> . For
+more information see <b>SSL_CTX_set_options</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>First to
+close the connection</b> <br>
+When the application is the first party to send the
+close_notify alert, <b>SSL_shutdown()</b> will only send the
+alert and then set the <small>SSL_SENT_SHUTDOWN</small> flag
+(so that the session is considered good and will be kept in
+the cache). If successful, <b>SSL_shutdown()</b> will return
+0.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a
+unidirectional shutdown is enough (the underlying connection
+shall be closed anyway), this first successful call to
+<b>SSL_shutdown()</b> is sufficient.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In order to
+complete the bidirectional shutdown handshake, the peer
+needs to send back a close_notify alert. The
+<small>SSL_RECEIVED_SHUTDOWN</small> flag will be set after
+receiving and processing it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The peer is
+still allowed to send data after receiving the close_notify
+event. When it is done sending data, it will send the
+close_notify alert. <b>SSL_read()</b> should be called until
+all data is received. <b>SSL_read()</b> will indicate the
+end of the peer data by returning &lt;= 0 and
+<b>SSL_get_error()</b> returning
+<small>SSL_ERROR_ZERO_RETURN.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Peer closes
+the connection</b> <br>
+If the peer already sent the close_notify alert <b>and</b>
+it was already processed implicitly inside another function
+(<b>SSL_read</b>(3)), the
+<small>SSL_RECEIVED_SHUTDOWN</small> flag is set.
+<b>SSL_read()</b> will return &lt;= 0 in that case, and
+<b>SSL_get_error()</b> will return
+<small>SSL_ERROR_ZERO_RETURN.</small> <b>SSL_shutdown()</b>
+will send the close_notify alert, set the
+<small>SSL_SENT_SHUTDOWN</small> flag. If successful,
+<b>SSL_shutdown()</b> will return 1.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Whether
+<small>SSL_RECEIVED_SHUTDOWN</small> is already set can be
+checked using the <b>SSL_get_shutdown()</b> (see also
+<b>SSL_set_shutdown</b>(3) call.</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+return values can occur:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>0</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The shutdown is not yet finished: the close_notify was
+sent but the peer did not send it back yet. Call
+<b>SSL_read()</b> to do a bidirectional shutdown.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Unlike most
+other function, returning 0 does not indicate an error.
+<b>SSL_get_error</b>(3) should not get called, it may
+misleadingly indicate an error even though no error
+occurred.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">1</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">The shutdown was successfully
+completed. The close_notify alert was sent and the
+peer&rsquo;s close_notify alert was received.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>&lt;0</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>The shutdown was not successful. Call
+<b>SSL_get_error</b>(3) with the return value <b>ret</b> to
+find out the reason. It can occur if an action is needed to
+continue the operation for nonblocking BIOs.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">It can also
+occur when not all data was read using
+<b>SSL_read()</b>.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_get_error</b>(3),
+<b>SSL_connect</b>(3), <b>SSL_accept</b>(3),
+<b>SSL_set_shutdown</b>(3),
+<b>SSL_CTX_set_quiet_shutdown</b>(3),
+<b>SSL_CTX_set_options</b>(3) <b>SSL_clear</b>(3),
+<b>SSL_free</b>(3), <b>ssl</b>(7), <b>bio</b>(7)</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2000&minus;2020 The OpenSSL Project Authors. All Rights
+Reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Licensed under
+the Apache License 2.0 (the &quot;License&quot;). You may
+not use this file except in compliance with the License. You
+can obtain a copy in the file <small>LICENSE</small> in the
+source distribution or at
+&lt;https://www.openssl.org/source/license.html&gt;.</p>
+<hr>
+</body>
+</html>

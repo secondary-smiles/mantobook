@@ -1,0 +1,157 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:46 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PCAP_GET_REQUIRED_SELECT_TIMEOUT</title>
+
+</head>
+<body>
+<h1>pcap_get_required_select_timeout</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">pcap_get_required_select_timeout
+&minus; get a timeout to be used when doing select() for a
+live capture</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;pcap/pcap.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>const struct
+timeval *pcap_get_required_select_timeout(pcap_t
+*p);</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pcap_get_required_select_timeout</b>()
+returns, on UNIX, a pointer to a <b>struct timeval</b>
+containing a value that must be used as the minimum timeout
+in <b>select</b>(2), <b>poll</b>(2), <b>epoll_wait</b>(2),
+and <b>kevent</b>(2) calls, or <b>NULL</b> if there is no
+such timeout. If a non-<b>NULL</b> value is returned, it
+must be used regardless of whether
+<b>pcap_get_selectable_fd</b>(3PCAP) returns <b>&minus;1</b>
+for any descriptor on which those calls are being done.
+<b>pcap_get_required_select_timeout</b>() should be called
+for all <b>pcap_t</b>s before a call to <b>select</b>(),
+<b>poll</b>(), <b>epoll_wait</b>(), or <b>kevent</b>(), and
+any timeouts used for those calls should be updated as
+appropriate given the new value of the timeout.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+<b>kevent</b>(), one <b>EVFILT_TIMER</b> filter per
+selectable descriptor can be used, rather than using the
+timeout argument to <b>kevent</b>(); if the
+<b>EVFILT_TIMER</b> event for a particular selectable
+descriptor signals an event, <b>pcap_dispatch</b>(3PCAP)
+should be called for the corresponding <b>pcap_t</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On Linux
+systems with <b>timerfd_create</b>(2), one timer object
+created by <b>timerfd_create</b>() per selectable descriptor
+can be used, rather than using the timeout argument to
+<b>epoll_wait</b>(); if the timer object for a particular
+selectable descriptor signals an event,
+<b>pcap_dispatch</b>(3PCAP) should be called for the
+corresponding <b>pcap_t</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Otherwise, a
+timeout value no larger than the smallest of all timeouts
+returned by <b>pcap_get_required_select_timeout</b>() for
+devices from which packets will be captured and any other
+timeouts to be used in the call should be used as the
+timeout for the call, and, when the call returns,
+<b>pcap_dispatch</b>(3PCAP) should be called for all
+<b>pcap_t</b>s for which a non-<b>NULL</b> timeout was
+returned, regardless of whether it&rsquo;s indicated as
+having anything to read from it or not.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All devices
+with a non-<b>NULL</b> timeout must be put in non-blocking
+mode with <b>pcap_setnonblock</b>(3PCAP).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that a
+device on which a read can be done without blocking may, on
+some platforms, not have any packets to read if the packet
+buffer timeout has expired. A call to <b>pcap_dispatch</b>()
+or <b>pcap_next_ex</b>(3PCAP) will return <b>0</b> in this
+case, but will not block.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pcap_get_required_select_timeout</b>()
+is not available on Windows.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A pointer to a
+<b>struct timeval</b> is returned if the timeout is
+required; otherwise <b>NULL</b> is returned.</p>
+
+<h2>BACKWARD COMPATIBILITY
+<a name="BACKWARD COMPATIBILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This function
+became available in libpcap release 1.9.0. In previous
+releases, <b>select</b>(), <b>poll</b>(),
+<b>epoll_wait</b>(), and <b>kevent</b>() could not be used
+for devices that don&rsquo;t provide a selectable file
+descriptor (in other words, on any capture source for that
+<b>pcap_get_selectable_fd</b>() returns
+<b>&minus;1</b>).</p>
+
+<p style="margin-left:11%; margin-top: 1em">In libpcap
+release 1.10.0 and later, the timeout value can change from
+call to call, so <b>pcap_get_required_select_timeout</b>()
+must be called before each call to <b>select</b>(),
+<b>poll</b>(), <b>epoll_wait</b>(), or <b>kevent</b>(), and
+the new value must be used to calculate timeouts for the
+call. Code that does that will also work with libpcap 1.9.x
+releases, so code using
+<b>pcap_get_required_select_timeout</b>() should be changed
+to call it for each call to <b>select</b>(), <b>poll</b>(),
+<b>epoll_wait</b>(), or <b>kevent</b>() even if the code
+must also work with libpcap 1.9.x.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pcap</b>(3PCAP),
+<b>pcap_get_selectable_fd</b>(3PCAP), <b>select</b>(2),
+<b>poll</b>(2), <b>epoll_wait</b>(2), <b>kqueue</b>(2)</p>
+<hr>
+</body>
+</html>

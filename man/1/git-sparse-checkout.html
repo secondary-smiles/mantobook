@@ -1,0 +1,663 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:49 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GIT&minus;SPARSE&minus;CHECKOU</title>
+
+</head>
+<body>
+<h1>git-sparse-checkout</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">git-sparse-checkout
+&minus; Reduce your working tree to a subset of tracked
+files</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>git
+sparse&minus;checkout</i> (init | list | set | add | reapply
+| disable) [&lt;options&gt;]</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This command is
+used to create sparse checkouts, which change the working
+tree from having all tracked files present to only having a
+subset of those files. It can also switch which subset of
+files are present, or undo and go back to having all tracked
+files present in the working copy.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The subset of
+files is chosen by providing a list of directories in cone
+mode (the default), or by providing a list of patterns in
+non&minus;cone mode.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When in a
+sparse&minus;checkout, other Git commands behave a bit
+differently. For example, switching branches will not update
+paths outside the sparse&minus;checkout
+directories/patterns, and <b>git commit &minus;a</b> will
+not record paths outside the sparse&minus;checkout
+directories/patterns as deleted.</p>
+
+<p style="margin-left:11%; margin-top: 1em">THIS COMMAND IS
+EXPERIMENTAL. ITS BEHAVIOR, AND THE BEHAVIOR OF OTHER
+COMMANDS IN THE PRESENCE OF SPARSE&minus;CHECKOUTS, WILL
+LIKELY CHANGE IN THE FUTURE.</p>
+
+<h2>COMMANDS
+<a name="COMMANDS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>list</i></p>
+
+<p style="margin-left:17%;">Describe the directories or
+patterns in the sparse&minus;checkout file.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>set</i></p>
+
+<p style="margin-left:17%;">Enable the necessary
+sparse&minus;checkout config settings
+(<b>core.sparseCheckout</b>, <b>core.sparseCheckoutCone</b>,
+and <b>index.sparse</b>) if they are not already set to the
+desired values, populate the sparse&minus;checkout file from
+the list of arguments following the <i>set</i> subcommand,
+and update the working directory to match.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To ensure that
+adjusting the sparse&minus;checkout settings within a
+worktree does not alter the sparse&minus;checkout settings
+in other worktrees, the <i>set</i> subcommand will upgrade
+your repository config to use worktree&minus;specific config
+if not already present. The sparsity defined by the
+arguments to the <i>set</i> subcommand are stored in the
+worktree&minus;specific sparse&minus;checkout file. See
+<b>git-worktree</b>(1) and the documentation of
+<b>extensions.worktreeConfig</b> in <b>git-config</b>(1) for
+more details.</p>
+
+<p style="margin-left:17%; margin-top: 1em">When the
+<b>&minus;&minus;stdin</b> option is provided, the
+directories or patterns are read from standard in as a
+newline&minus;delimited list instead of from the
+arguments.</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default, the
+input list is considered a list of directories, matching the
+output of <b>git ls&minus;tree &minus;d
+&minus;&minus;name&minus;only</b>. This includes
+interpreting pathnames that begin with a double quote
+(&quot;) as C&minus;style quoted strings. Note that all
+files under the specified directories (at any depth) will be
+included in the sparse checkout, as well as files that are
+siblings of either the given directory or any of its
+ancestors (see <i>CONE PATTERN SET</i> below for more
+details). In the past, this was not the default, and
+<b>&minus;&minus;cone</b> needed to be specified or
+<b>core.sparseCheckoutCone</b> needed to be enabled.</p>
+
+<p style="margin-left:17%; margin-top: 1em">When
+<b>&minus;&minus;no&minus;cone</b> is passed, the input list
+is considered a list of patterns. This mode has a number of
+drawbacks, including not working with some options like
+<b>&minus;&minus;sparse&minus;index</b>. As explained in the
+&quot;Non&minus;cone Problems&quot; section below, we do not
+recommend using it.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Use the
+<b>&minus;&minus;[no&minus;]sparse&minus;index</b> option to
+use a sparse index (the default is to not use it). A sparse
+index reduces the size of the index to be more closely
+aligned with your sparse&minus;checkout definition. This can
+have significant performance advantages for commands such as
+<b>git status</b> or <b>git add</b>. This feature is still
+experimental. Some commands might be slower with a sparse
+index until they are properly integrated with the
+feature.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>WARNING:</b>
+Using a sparse index requires modifying the index in a way
+that is not completely understood by external tools. If you
+have trouble with this compatibility, then run <b>git
+sparse&minus;checkout init
+&minus;&minus;no&minus;sparse&minus;index</b> to rewrite
+your index to not be sparse. Older versions of Git will not
+understand the sparse directory entries index extension and
+may fail to interact with your repository until it is
+disabled.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>add</i></p>
+
+<p style="margin-left:17%;">Update the
+sparse&minus;checkout file to include additional directories
+(in cone mode) or patterns (in non&minus;cone mode). By
+default, these directories or patterns are read from the
+command&minus;line arguments, but they can be read from
+stdin using the <b>&minus;&minus;stdin</b> option.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>reapply</i></p>
+
+<p style="margin-left:17%;">Reapply the sparsity pattern
+rules to paths in the working tree. Commands like merge or
+rebase can materialize paths to do their work (e.g. in order
+to show you a conflict), and other sparse&minus;checkout
+commands might fail to sparsify an individual file (e.g.
+because it has unstaged changes or conflicts). In such
+cases, it can make sense to run <b>git sparse&minus;checkout
+reapply</b> later after cleaning up affected paths (e.g.
+resolving conflicts, undoing or committing changes,
+etc.).</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+<b>reapply</b> command can also take
+<b>&minus;&minus;[no&minus;]cone</b> and
+<b>&minus;&minus;[no&minus;]sparse&minus;index</b> flags,
+with the same meaning as the flags from the <b>set</b>
+command, in order to change which sparsity mode you are
+using without needing to also respecify all sparsity
+paths.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>disable</i></p>
+
+<p style="margin-left:17%;">Disable the
+<b>core.sparseCheckout</b> config setting, and restore the
+working directory to include all files.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>init</i></p>
+
+<p style="margin-left:17%;">Deprecated command that behaves
+like <b>set</b> with no specified paths. May be removed in
+the future.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Historically,
+<b>set</b> did not handle all the necessary config settings,
+which meant that both <b>init</b> and <b>set</b> had to be
+called. Invoking both meant the <b>init</b> step would first
+remove nearly all tracked files (and in cone mode, ignored
+files too), then the <b>set</b> step would add many of the
+tracked files (but not ignored files) back. In addition to
+the lost files, the performance and UI of this combination
+was poor.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Also,
+historically, <b>init</b> would not actually initialize the
+sparse&minus;checkout file if it already existed. This meant
+it was possible to return to a sparse&minus;checkout without
+remembering which paths to pass to a subsequent <i>set</i>
+or <i>add</i> command. However, <b>&minus;&minus;cone</b>
+and <b>&minus;&minus;sparse&minus;index</b> options would
+not be remembered across the disable command, so the easy
+restore of calling a plain <b>init</b> decreased in
+utility.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>git
+sparse&minus;checkout set MY/DIR1 SUB/DIR2</b></p>
+
+<p style="margin-left:17%;">Change to a sparse checkout
+with all files (at any depth) under MY/DIR1/ and SUB/DIR2/
+present in the working copy (plus all files immediately
+under MY/ and SUB/ and the toplevel directory). If already
+in a sparse checkout, change which files are present in the
+working copy to this new selection. Note that this command
+will also delete all ignored files in any directory that no
+longer has either tracked or
+non&minus;ignored&minus;untracked files present.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>git
+sparse&minus;checkout disable</b></p>
+
+<p style="margin-left:17%;">Repopulate the working
+directory with all files, disabling sparse checkouts.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>git
+sparse&minus;checkout add SOME/DIR/ECTORY</b></p>
+
+<p style="margin-left:17%;">Add all files under
+SOME/DIR/ECTORY/ (at any depth) to the sparse checkout, as
+well as all files immediately under SOME/DIR/ and
+immediately under SOME/. Must already be in a sparse
+checkout before using this command.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>git
+sparse&minus;checkout reapply</b></p>
+
+<p style="margin-left:17%;">It is possible for commands to
+update the working tree in a way that does not respect the
+selected sparsity directories. This can come from tools
+external to Git writing files, or even affect Git commands
+because of either special cases (such as hitting conflicts
+when merging/rebasing), or because some commands
+didn&rsquo;t fully support sparse checkouts (e.g. the old
+<b>recursive</b> merge backend had only limited support).
+This command reapplies the existing sparse directory
+specifications to make the working directory match.</p>
+
+<h2>INTERNALS &mdash; SPARSE CHECKOUT
+<a name="INTERNALS &mdash; SPARSE CHECKOUT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Sparse
+checkout&quot; allows populating the working directory
+sparsely. It uses the skip&minus;worktree bit (see
+<b>git-update-index</b>(1)) to tell Git whether a file in
+the working directory is worth looking at. If the
+skip&minus;worktree bit is set, and the file is not present
+in the working tree, then its absence is ignored. Git will
+avoid populating the contents of those files, which makes a
+sparse checkout helpful when working in a repository with
+many files, but only a few are important to the current
+user.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>$GIT_DIR/info/sparse&minus;checkout</b> file is used to
+define the skip&minus;worktree reference bitmap. When Git
+updates the working directory, it updates the
+skip&minus;worktree bits in the index based on this file.
+The files matching the patterns in the file will appear in
+the working directory, and the rest will not.</p>
+
+<h2>INTERNALS &mdash; NON&minus;CONE PROBLEMS
+<a name="INTERNALS &mdash; NON&minus;CONE PROBLEMS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>$GIT_DIR/info/sparse&minus;checkout</b> file populated by
+the <b>set</b> and <b>add</b> subcommands is defined to be a
+bunch of patterns (one per line) using the same syntax as
+<b>.gitignore</b> files. In cone mode, these patterns are
+restricted to matching directories (and users only ever need
+supply or see directory names), while in non&minus;cone mode
+any gitignore&minus;style pattern is permitted. Using the
+full gitignore&minus;style patterns in non&minus;cone mode
+has a number of shortcomings:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+Fundamentally, it makes various worktree&minus;updating
+processes (pull, merge, rebase, switch, reset, checkout,
+etc.) require O(N*M) pattern matches, where N is the number
+of patterns and M is the number of paths in the index. This
+scales poorly.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; Avoiding
+the scaling issue has to be done via limiting the number of
+patterns via specifying leading directory name or glob.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; Passing
+globs on the command line is error&minus;prone as users may
+forget to quote the glob, causing the shell to expand it
+into all matching files and pass them all individually along
+to sparse&minus;checkout set/add. While this could also be a
+problem with e.g. &quot;git grep &mdash; *.c&quot;, mistakes
+with grep/log/status appear in the immediate output. With
+sparse&minus;checkout, the mistake gets recorded at the time
+the sparse&minus;checkout command is run and might not be
+problematic until the user later switches branches or
+rebases or merges, thus putting a delay between the
+user&rsquo;s error and when they have a chance to
+catch/notice it.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; Related
+to the previous item, sparse&minus;checkout has an
+<i>add</i> subcommand but no <i>remove</i> subcommand. Even
+if a <i>remove</i> subcommand were added, undoing an
+accidental unquoted glob runs the risk of &quot;removing too
+much&quot;, as it may remove entries that had been included
+before the accidental add.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+Non&minus;cone mode uses gitignore&minus;style patterns to
+select what to <b>include</b> (with the exception of negated
+patterns), while .gitignore files use gitignore&minus;style
+patterns to select what to <b>exclude</b> (with the
+exception of negated patterns). The documentation on
+gitignore&minus;style patterns usually does not talk in
+terms of matching or non&minus;matching, but on what the
+user wants to &quot;exclude&quot;. This can cause confusion
+for users trying to learn how to specify
+sparse&minus;checkout patterns to get their desired
+behavior.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; Every
+other git subcommand that wants to provide &quot;special
+path pattern matching&quot; of some sort uses pathspecs, but
+non&minus;cone mode for sparse&minus;checkout uses gitignore
+patterns, which feels inconsistent.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; It has
+edge cases where the &quot;right&quot; behavior is unclear.
+Two examples:</p>
+
+<p style="margin-left:23%; margin-top: 1em">First, two
+users are in a subdirectory, and the first runs <br>
+git sparse&minus;checkout set '/toplevel&minus;dir/*.c' <br>
+while the second runs <br>
+git sparse&minus;checkout set relative&minus;dir <br>
+Should those arguments be transliterated into <br>
+current/subdirectory/toplevel&minus;dir/*.c <br>
+and <br>
+current/subdirectory/relative&minus;dir <br>
+before inserting into the sparse&minus;checkout file? The
+user who typed <br>
+the first command is probably aware that arguments to
+set/add are <br>
+supposed to be patterns in non&minus;cone mode, and probably
+would not be <br>
+happy with such a transliteration. However, many
+gitignore&minus;style <br>
+patterns are just paths, which might be what the user who
+typed the <br>
+second command was thinking, and they'd be upset if their
+argument <br>
+wasn't transliterated.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Second, what
+should bash&minus;completion complete on for set/add
+commands <br>
+for non&minus;cone users? If it suggests paths, is it
+exacerbating the <br>
+problem above? Also, if it suggests paths, what if the user
+has a <br>
+file or directory that begins with either a '!' or '#' or
+has a '*', <br>
+'\', '?', '[', or ']' in its name? And if it suggests paths,
+will <br>
+it complete &quot;/pro&quot; to &quot;/proc&quot; (in the
+root filesytem) rather than to <br>
+&quot;/progress.txt&quot; in the current directory? (Note
+that users are <br>
+likely to want to start paths with a leading '/' in
+non&minus;cone mode, <br>
+for the same reason that .gitignore files often have one.)
+<br>
+Completing on files or directories might give nasty
+surprises in <br>
+all these cases.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+excessive flexibility made other extensions essentially
+impractical. <b>&minus;&minus;sparse&minus;index</b> is
+likely impossible in non&minus;cone mode; even if it is
+somehow feasible, it would have been far more work to
+implement and may have been too slow in practice. Some ideas
+for adding coupling between partial clones and sparse
+checkouts are only practical with a more restricted set of
+paths as well.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For all these
+reasons, non&minus;cone mode is deprecated. Please switch to
+using cone mode.</p>
+
+<h2>INTERNALS &mdash; CONE MODE HANDLING
+<a name="INTERNALS &mdash; CONE MODE HANDLING"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The &quot;cone
+mode&quot;, which is the default, lets you specify only what
+directories to include. For any directory specified, all
+paths below that directory will be included, and any paths
+immediately under leading directories (including the
+toplevel directory) will also be included. Thus, if you
+specified the directory Documentation/technical/ then your
+sparse checkout would contain:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; all
+files in the toplevel&minus;directory</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; all
+files immediately under Documentation/</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; all
+files at any depth under Documentation/technical/</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also, in cone
+mode, even if no directories are specified, then the files
+in the toplevel directory will be included.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When changing
+the sparse&minus;checkout patterns in cone mode, Git will
+inspect each tracked directory that is not within the
+sparse&minus;checkout cone to see if it contains any
+untracked files. If all of those files are ignored due to
+the <b>.gitignore</b> patterns, then the directory will be
+deleted. If any of the untracked files within that directory
+is not ignored, then no deletions will occur within that
+directory and a warning message will appear. If these files
+are important, then reset your sparse&minus;checkout
+definition so they are included, use <b>git add</b> and
+<b>git commit</b> to store them, then remove any remaining
+files manually to ensure Git can behave optimally.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also the
+&quot;Internals &mdash; Cone Pattern Set&quot; section to
+learn how the directories are transformed under the hood
+into a subset of the Full Pattern Set of
+sparse&minus;checkout.</p>
+
+<h2>INTERNALS &mdash; FULL PATTERN SET
+<a name="INTERNALS &mdash; FULL PATTERN SET"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The full
+pattern set allows for arbitrary pattern matches and
+complicated inclusion/exclusion rules. These can result in
+O(N*M) pattern matches when updating the index, where N is
+the number of patterns and M is the number of paths in the
+index. To combat this performance issue, a more restricted
+pattern set is allowed when <b>core.sparseCheckoutCone</b>
+is enabled.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+sparse&minus;checkout file uses the same syntax as
+<b>.gitignore</b> files; see <b>gitignore</b>(5) for
+details. Here, though, the patterns are usually being used
+to select which files to include rather than which files to
+exclude. (However, it can get a bit confusing since
+gitignore&minus;style patterns have negations defined by
+patterns which begin with a <i>!</i>, so you can also select
+files to <i>not</i> include.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example, to
+select everything, and then to remove the file
+<b>unwanted</b> (so that every file will appear in your
+working tree except the file named <b>unwanted</b>):</p>
+
+<p style="margin-left:17%; margin-top: 1em">git
+sparse&minus;checkout set &minus;&minus;no&minus;cone '/*'
+'!unwanted'</p>
+
+<p style="margin-left:11%; margin-top: 1em">These patterns
+are just placed into the
+<b>$GIT_DIR/info/sparse&minus;checkout</b> as&minus;is, so
+the contents of that file at this point would be</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* <br>
+!unwanted</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also the
+&quot;Sparse Checkout&quot; section of
+<b>git-read-tree</b>(1) to learn more about the
+gitignore&minus;style patterns used in sparse checkouts.</p>
+
+<h2>INTERNALS &mdash; CONE PATTERN SET
+<a name="INTERNALS &mdash; CONE PATTERN SET"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">In cone mode,
+only directories are accepted, but they are translated into
+the same gitignore&minus;style patterns used in the full
+pattern set. We refer to the particular patterns used in
+those mode as being of one of two types:</p>
+
+<p style="margin-left:17%; margin-top: 1em">1.
+<b>Recursive:</b> All paths inside a directory are
+included.</p>
+
+<p style="margin-left:17%; margin-top: 1em">2.
+<b>Parent:</b> All files immediately inside a directory are
+included.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since cone mode
+always includes files at the toplevel, when running <b>git
+sparse&minus;checkout set</b> with no directories specified,
+the toplevel directory is added as a parent pattern. At this
+point, the sparse&minus;checkout file contains the following
+patterns:</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* <br>
+!/*/</p>
+
+<p style="margin-left:11%; margin-top: 1em">This says
+&quot;include everything immediately under the toplevel
+directory, but nothing at any level below that.&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">When in cone
+mode, the <b>git sparse&minus;checkout set</b> subcommand
+takes a list of directories. The command <b>git
+sparse&minus;checkout set A/B/C</b> sets the directory
+<b>A/B/C</b> as a recursive pattern, the directories
+<b>A</b> and <b>A/B</b> are added as parent patterns. The
+resulting sparse&minus;checkout file is now</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* <br>
+!/*/ <br>
+/A/ <br>
+!/A/*/ <br>
+/A/B/ <br>
+!/A/B/*/ <br>
+/A/B/C/</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here, order
+matters, so the negative patterns are overridden by the
+positive patterns that appear lower in the file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unless
+<b>core.sparseCheckoutCone</b> is explicitly set to
+<b>false</b>, Git will parse the sparse&minus;checkout file
+expecting patterns of these types. Git will warn if the
+patterns do not match. If the patterns do match the expected
+format, then Git will use faster hash&minus;based algorithms
+to compute inclusion in the sparse&minus;checkout. If they
+do not match, git will behave as though
+<b>core.sparseCheckoutCone</b> was false, regardless of its
+setting.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the cone
+mode case, despite the fact that full patterns are written
+to the $GIT_DIR/info/sparse&minus;checkout file, the <b>git
+sparse&minus;checkout list</b> subcommand will list the
+directories that define the recursive patterns. For the
+example sparse&minus;checkout file above, the output is as
+follows:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$ git
+sparse&minus;checkout list <br>
+A/B/C</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<b>core.ignoreCase=true</b>, then the pattern&minus;matching
+algorithm will use a case&minus;insensitive check. This
+corrects for case mismatched filenames in the <i>git
+sparse&minus;checkout set</i> command to reflect the
+expected cone in the working directory.</p>
+
+<h2>INTERNALS &mdash; SUBMODULES
+<a name="INTERNALS &mdash; SUBMODULES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If your
+repository contains one or more submodules, then submodules
+are populated based on interactions with the <b>git
+submodule</b> command. Specifically, <b>git submodule init
+&minus;&minus; &lt;path&gt;</b> will ensure the submodule at
+<b>&lt;path&gt;</b> is present, while <b>git submodule
+deinit [&minus;f] &minus;&minus; &lt;path&gt;</b> will
+remove the files for the submodule at <b>&lt;path&gt;</b>
+(including any untracked files, uncommitted changes, and
+unpushed history). Similar to how sparse&minus;checkout
+removes files from the working tree but still leaves entries
+in the index, deinitialized submodules are removed from the
+working directory but still have an entry in the index.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since
+submodules may have unpushed changes or untracked files,
+removing them could result in data loss. Thus, changing
+sparse inclusion/exclusion rules will not cause an already
+checked out submodule to be removed from the working copy.
+Said another way, just as <b>checkout</b> will not cause
+submodules to be automatically removed or initialized even
+when switching between branches that remove or add
+submodules, using <b>sparse&minus;checkout</b> to reduce or
+expand the scope of &quot;interesting&quot; files will not
+cause submodules to be automatically deinitialized or
+initialized either.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Further, the
+above facts mean that there are multiple reasons that
+&quot;tracked&quot; files might not be present in the
+working copy: sparsity pattern application from
+sparse&minus;checkout, and submodule initialization state.
+Thus, commands like <b>git grep</b> that work on tracked
+files in the working copy may return results that are
+limited by either or both of these restrictions.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>git-read-tree</b>(1)
+<b>gitignore</b>(5)</p>
+
+<h2>GIT
+<a name="GIT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Part of the
+<b>git</b>(1) suite</p>
+<hr>
+</body>
+</html>

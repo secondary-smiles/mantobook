@@ -1,0 +1,208 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:29 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>CURLMOPT_SOCKETFUNCTION</title>
+
+</head>
+<body>
+<h1>CURLMOPT_SOCKETFUNCTION</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">CURLMOPT_SOCKETFUNCTION
+&minus; callback informed about what to wait for</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;curl/curl.h&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">int
+socket_callback(CURL *easy, /* easy handle */ <br>
+curl_socket_t s, /* socket */ <br>
+int what, /* describes the socket */ <br>
+void *clientp, /* private callback pointer */ <br>
+void *socketp); /* private socket pointer */</p>
+
+<p style="margin-left:11%; margin-top: 1em">CURLMcode
+curl_multi_setopt(CURLM *handle, CURLMOPT_SOCKETFUNCTION,
+socket_callback);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Pass a pointer
+to your callback function, which should match the prototype
+shown above.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When the
+<i>curl_multi_socket_action(3)</i> function is called, it
+uses this callback to inform the application about updates
+in the socket (file descriptor) status by doing none, one,
+or multiple calls to the <b>socket_callback</b>. The
+callback function gets status updates with changes since the
+previous time the callback was called. If the given callback
+pointer is set to NULL, no callback will be called.</p>
+
+<p style="margin-left:11%; margin-top: 1em">libcurl then
+expects the application to monitor the sockets for the
+specific activities and tell libcurl again when something
+happens on one of them. Tell libcurl by calling
+<i>curl_multi_socket_action(3)</i>.</p>
+
+<h2>CALLBACK ARGUMENTS
+<a name="CALLBACK ARGUMENTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>easy</i>
+identifies the specific transfer for which this update is
+related.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>s</i> is the
+specific socket this function invocation concerns. If the
+<b>what</b> argument is not CURL_POLL_REMOVE then it holds
+information about what activity on this socket the
+application is supposed to monitor. Subsequent calls to this
+callback might update the <b>what</b> bits for a socket that
+is already monitored.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The socket
+callback should return 0 on success, and -1 on error. If
+this callback returns error, <b>all</b> transfers currently
+in progress in this multi handle will be aborted and
+fail.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>clientp</b>
+is set with <i>CURLMOPT_SOCKETDATA(3)</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>socketp</b>
+is set with <i>curl_multi_assign(3)</i> or will be NULL.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The <b>what</b>
+parameter informs the callback on the status of the given
+socket. It can hold one of these values: <br>
+CURL_POLL_IN</p>
+
+<p style="margin-left:22%;">Wait for incoming data. For the
+socket to become readable.</p>
+
+<p style="margin-left:11%;">CURL_POLL_OUT</p>
+
+<p style="margin-left:22%;">Wait for outgoing data. For the
+socket to become writable.</p>
+
+<p style="margin-left:11%;">CURL_POLL_INOUT</p>
+
+<p style="margin-left:22%;">Wait for incoming and outgoing
+data. For the socket to become readable or writable.</p>
+
+<p style="margin-left:11%;">CURL_POLL_REMOVE</p>
+
+<p style="margin-left:22%;">The specified socket/file
+descriptor is no longer used by libcurl for any active
+transfer. It might soon be added again.</p>
+
+<h2>DEFAULT
+<a name="DEFAULT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">NULL (no
+callback)</p>
+
+<h2>PROTOCOLS
+<a name="PROTOCOLS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">All</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">static int
+sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void
+*sockp) <br>
+{ <br>
+GlobalInfo *g = cbp; <br>
+SockInfo *fdp = sockp;</p>
+
+<p style="margin-left:11%; margin-top: 1em">if(what ==
+CURL_POLL_REMOVE) { <br>
+remsock(fdp); <br>
+} <br>
+else { <br>
+if(!fdp) { <br>
+addsock(s, e, what, g); <br>
+} <br>
+else { <br>
+setsock(fdp, s, e, what, g); <br>
+} <br>
+} <br>
+return 0; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">main() <br>
+{ <br>
+GlobalInfo setup; <br>
+/* ... use socket callback and custom pointer */ <br>
+curl_multi_setopt(multi, CURLMOPT_SOCKETFUNCTION, sock_cb);
+<br>
+curl_multi_setopt(multi, CURLMOPT_SOCKETDATA, &amp;setup);
+<br>
+}</p>
+
+<h2>AVAILABILITY
+<a name="AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Added in
+7.15.4</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Returns
+CURLM_OK.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>CURLMOPT_SOCKETDATA</b>(3),
+<b>curl_multi_socket_action</b>(3),
+<b>CURLMOPT_TIMERFUNCTION</b>(3)</p>
+<hr>
+</body>
+</html>

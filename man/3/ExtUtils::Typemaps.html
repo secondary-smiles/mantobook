@@ -1,0 +1,498 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:00 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>ExtUtils::Typemaps</title>
+
+</head>
+<body>
+<h1>ExtUtils::Typemaps</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">ExtUtils::Typemaps
+&minus; Read/Write/Modify Perl/XS typemap files</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"># read/create
+file <br>
+my $typemap = ExtUtils::Typemaps&minus;&gt;new(file =&gt;
+'typemap'); <br>
+# alternatively create an in&minus;memory typemap <br>
+# $typemap = ExtUtils::Typemaps&minus;&gt;new(); <br>
+# alternatively create an in&minus;memory typemap by parsing
+a string <br>
+# $typemap = ExtUtils::Typemaps&minus;&gt;new(string =&gt;
+$sometypemap); <br>
+# add a mapping <br>
+$typemap&minus;&gt;add_typemap(ctype =&gt; 'NV', xstype
+=&gt; 'T_NV'); <br>
+$typemap&minus;&gt;add_inputmap( <br>
+xstype =&gt; 'T_NV', code =&gt; '$var = ($type)SvNV($arg);'
+<br>
+); <br>
+$typemap&minus;&gt;add_outputmap( <br>
+xstype =&gt; 'T_NV', code =&gt; 'sv_setnv($arg, (NV)$var);'
+<br>
+); <br>
+$typemap&minus;&gt;add_string(string =&gt; $typemapstring);
+<br>
+# will be parsed and merged <br>
+# remove a mapping (same for remove_typemap and
+remove_outputmap...) <br>
+$typemap&minus;&gt;remove_inputmap(xstype =&gt; 'SomeType');
+<br>
+# save a typemap to a file <br>
+$typemap&minus;&gt;write(file =&gt; 'anotherfile.map'); <br>
+# merge the other typemap into this one <br>
+$typemap&minus;&gt;merge(typemap =&gt;
+$another_typemap);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module can
+read, modify, create and write Perl <small>XS</small>
+typemap files. If you don&rsquo;t know what a typemap is,
+please confer the perlxstut and perlxs manuals.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The module is
+not entirely round-trip safe: For example it currently
+simply strips all comments. The order of entries in the maps
+is, however, preserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">We check for
+duplicate entries in the typemap, but do not check for
+missing &quot;TYPEMAP&quot; entries for &quot;INPUTMAP&quot;
+or &quot;OUTPUTMAP&quot; entries since these might be hidden
+in a different typemap.</p>
+
+<h2>METHODS
+<a name="METHODS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>new</b> <br>
+Returns a new typemap object. Takes an optional
+&quot;file&quot; parameter. If set, the given file will be
+read. If the file doesn&rsquo;t exist, an empty typemap is
+returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+if the &quot;string&quot; parameter is given, the supplied
+string will be parsed instead of a file.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>file</b>
+<br>
+Get/set the file that the typemap is written to when the
+&quot;write&quot; method is called.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>add_typemap</b>
+<br>
+Add a &quot;TYPEMAP&quot; entry to the typemap.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Required named
+arguments: The &quot;ctype&quot; (e.g. &quot;ctype =&gt;
+'double'&quot;) and the &quot;xstype&quot; (e.g.
+&quot;xstype =&gt; 'T_NV'&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Optional named
+arguments: &quot;replace =&gt; 1&quot; forces
+removal/replacement of existing &quot;TYPEMAP&quot; entries
+of the same &quot;ctype&quot;. &quot;skip =&gt; 1&quot;
+triggers a <i>&quot;first come first serve&quot;</i> logic
+by which new entries that conflict with existing entries are
+silently ignored.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As an
+alternative to the named parameters usage, you may pass in
+an &quot;ExtUtils::Typemaps::Type&quot; object as first
+argument, a copy of which will be added to the typemap. In
+that case, only the &quot;replace&quot; or &quot;skip&quot;
+named parameters may be used after the object. Example:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$map&minus;&gt;add_typemap($type_obj,
+replace =&gt; 1);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>add_inputmap</b>
+<br>
+Add an &quot;INPUT&quot; entry to the typemap.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Required named
+arguments: The &quot;xstype&quot; (e.g. &quot;xstype =&gt;
+'T_NV'&quot;) and the &quot;code&quot; to associate with it
+for input.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Optional named
+arguments: &quot;replace =&gt; 1&quot; forces
+removal/replacement of existing &quot;INPUT&quot; entries of
+the same &quot;xstype&quot;. &quot;skip =&gt; 1&quot;
+triggers a <i>&quot;first come first serve&quot;</i> logic
+by which new entries that conflict with existing entries are
+silently ignored.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As an
+alternative to the named parameters usage, you may pass in
+an &quot;ExtUtils::Typemaps::InputMap&quot; object as first
+argument, a copy of which will be added to the typemap. In
+that case, only the &quot;replace&quot; or &quot;skip&quot;
+named parameters may be used after the object. Example:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$map&minus;&gt;add_inputmap($type_obj,
+replace =&gt; 1);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>add_outputmap</b>
+<br>
+Add an &quot;OUTPUT&quot; entry to the typemap. Works
+exactly the same as &quot;add_inputmap&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>add_string</b>
+<br>
+Parses a string as a typemap and merge it into the typemap
+object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Required named
+argument: &quot;string&quot; to specify the string to
+parse.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>remove_typemap</b>
+<br>
+Removes a &quot;TYPEMAP&quot; entry from the typemap.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Required named
+argument: &quot;ctype&quot; to specify the entry to remove
+from the typemap.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+you may pass a single &quot;ExtUtils::Typemaps::Type&quot;
+object.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>remove_inputmap</b>
+<br>
+Removes an &quot;INPUT&quot; entry from the typemap.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Required named
+argument: &quot;xstype&quot; to specify the entry to remove
+from the typemap.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+you may pass a single
+&quot;ExtUtils::Typemaps::InputMap&quot; object.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>remove_inputmap</b>
+<br>
+Removes an &quot;OUTPUT&quot; entry from the typemap.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Required named
+argument: &quot;xstype&quot; to specify the entry to remove
+from the typemap.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+you may pass a single
+&quot;ExtUtils::Typemaps::OutputMap&quot; object.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>get_typemap</b>
+<br>
+Fetches an entry of the <small>TYPEMAP</small> section of
+the typemap.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Mandatory named
+arguments: The &quot;ctype&quot; of the entry.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+&quot;ExtUtils::Typemaps::Type&quot; object for the entry if
+found.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>get_inputmap</b>
+<br>
+Fetches an entry of the <small>INPUT</small> section of the
+typemap.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Mandatory named
+arguments: The &quot;xstype&quot; of the entry or the
+&quot;ctype&quot; of the typemap that can be used to find
+the &quot;xstype&quot;. To wit, the following pieces of code
+are equivalent:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $type =
+$typemap&minus;&gt;get_typemap(ctype =&gt; $ctype) <br>
+my $input_map = $typemap&minus;&gt;get_inputmap(xstype =&gt;
+$type&minus;&gt;xstype); <br>
+my $input_map = $typemap&minus;&gt;get_inputmap(ctype =&gt;
+$ctype);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+&quot;ExtUtils::Typemaps::InputMap&quot; object for the
+entry if found.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>get_outputmap</b>
+<br>
+Fetches an entry of the <small>OUTPUT</small> section of the
+typemap.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Mandatory named
+arguments: The &quot;xstype&quot; of the entry or the
+&quot;ctype&quot; of the typemap that can be used to resolve
+the &quot;xstype&quot;. (See above for an example.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+&quot;ExtUtils::Typemaps::InputMap&quot; object for the
+entry if found.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>write</b>
+<br>
+Write the typemap to a file. Optionally takes a
+&quot;file&quot; argument. If given, the typemap will be
+written to the specified file. If not, the typemap is
+written to the currently stored file name (see
+&quot;file&quot; above, this defaults to the file it was
+read from if any).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>as_string</b>
+<br>
+Generates and returns the string form of the typemap.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>as_embedded_typemap</b>
+<br>
+Generates and returns the string form of the typemap with
+the appropriate prefix around it for verbatim inclusion into
+an <small>XS</small> file as an embedded typemap. This will
+return a string like</p>
+
+<p style="margin-left:11%; margin-top: 1em">TYPEMAP:
+&lt;&lt;END_OF_TYPEMAP <br>
+... typemap here (see as_string) ... <br>
+END_OF_TYPEMAP</p>
+
+<p style="margin-left:11%; margin-top: 1em">The method
+takes care not to use a HERE-doc end marker that appears in
+the typemap string itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>merge</b>
+<br>
+Merges a given typemap into the object. Note that a failed
+merge operation leaves the object in an inconsistent state
+so clone it if necessary.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Mandatory named
+arguments: Either &quot;typemap =&gt;
+$another_typemap_obj&quot; or &quot;file =&gt;
+$path_to_typemap_file&quot; but not both.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Optional
+arguments: &quot;replace =&gt; 1&quot; to force replacement
+of existing typemap entries without warning or &quot;skip
+=&gt; 1&quot; to skip entries that exist already in the
+typemap.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>is_empty</b>
+<br>
+Returns a bool indicating whether this typemap is entirely
+empty.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>list_mapped_ctypes</b>
+<br>
+Returns a list of the C types that are mappable by this
+typemap object.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>_get_typemap_hash</b>
+<br>
+Returns a hash mapping the C types to the <small>XS</small>
+types:</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ <br>
+'char **' =&gt; 'T_PACKEDARRAY', <br>
+'bool_t' =&gt; 'T_IV', <br>
+'AV *' =&gt; 'T_AVREF', <br>
+'InputStream' =&gt; 'T_IN', <br>
+'double' =&gt; 'T_DOUBLE', <br>
+# ... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is
+documented because it is used by
+&quot;ExtUtils::ParseXS&quot;, but it&rsquo;s not intended
+for general consumption. May be removed at any time.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>_get_inputmap_hash</b>
+<br>
+Returns a hash mapping the <small>XS</small> types
+(identifiers) to the corresponding <small>INPUT</small>
+code:</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ <br>
+'T_CALLBACK' =&gt; ' $var = make_perl_cb_$type($arg) <br>
+', <br>
+'T_OUT' =&gt; ' $var = IoOFP(sv_2io($arg)) <br>
+', <br>
+'T_REF_IV_PTR' =&gt; ' if (sv_isa($arg,
+\\&quot;${ntype}\\&quot;)) { <br>
+# ... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is
+documented because it is used by
+&quot;ExtUtils::ParseXS&quot;, but it&rsquo;s not intended
+for general consumption. May be removed at any time.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>_get_outputmap_hash</b>
+<br>
+Returns a hash mapping the <small>XS</small> types
+(identifiers) to the corresponding <small>OUTPUT</small>
+code:</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ <br>
+'T_CALLBACK' =&gt; ' sv_setpvn($arg,
+$var.context.value().chp(), <br>
+$var.context.value().size()); <br>
+', <br>
+'T_OUT' =&gt; ' { <br>
+GV *gv = (GV *)sv_newmortal(); <br>
+gv_init_pvn(gv, gv_stashpvs(&quot;$Package&quot;,1), <br>
+&quot;__ANONIO__&quot;,10,0); <br>
+if ( do_open(gv, &quot;+&gt;&amp;&quot;, 3, FALSE, 0, 0,
+$var) ) <br>
+sv_setsv( <br>
+$arg, <br>
+sv_bless(newRV((SV*)gv), gv_stashpv(&quot;$Package&quot;,1))
+<br>
+); <br>
+else <br>
+$arg = &amp;PL_sv_undef; <br>
+} <br>
+', <br>
+# ... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is
+documented because it is used by
+&quot;ExtUtils::ParseXS&quot;, but it&rsquo;s not intended
+for general consumption. May be removed at any time.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>_get_prototype_hash</b>
+<br>
+Returns a hash mapping the C types of the typemap to their
+corresponding prototypes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ <br>
+'char **' =&gt; '$', <br>
+'bool_t' =&gt; '$', <br>
+'AV *' =&gt; '$', <br>
+'InputStream' =&gt; '$', <br>
+'double' =&gt; '$', <br>
+# ... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is
+documented because it is used by
+&quot;ExtUtils::ParseXS&quot;, but it&rsquo;s not intended
+for general consumption. May be removed at any time.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>clone</b>
+<br>
+Creates and returns a clone of a full typemaps object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Takes named
+parameters: If &quot;shallow&quot; is true, the clone will
+share the actual individual type/input/outputmap objects,
+but not share their storage. Use with caution. Without
+&quot;shallow&quot;, the clone will be fully
+independent.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tidy_type</b>
+<br>
+Function to (heuristically) canonicalize a C type. Works to
+some degree with C <small>++</small> types.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$halfway_canonical_type
+= tidy_type($ctype);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Moved from
+&quot;ExtUtils::ParseXS&quot;.</p>
+
+<h2>CAVEATS
+<a name="CAVEATS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Inherits some
+evil code from &quot;ExtUtils::ParseXS&quot;.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The parser is
+heavily inspired from the one in ExtUtils::ParseXS.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For details on
+typemaps: perlxstut, perlxs.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Steffen Mueller
+&quot;&lt;smueller@cpan.org&quot;&gt;</p>
+
+<h2>COPYRIGHT &amp; LICENSE
+<a name="COPYRIGHT &amp; LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright 2009,
+2010, 2011, 2012, 2013 Steffen Mueller</p>
+
+<p style="margin-left:11%; margin-top: 1em">This program is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+<hr>
+</body>
+</html>

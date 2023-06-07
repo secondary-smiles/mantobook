@@ -1,0 +1,710 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:43 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>XML::NamespaceSupport</title>
+
+</head>
+<body>
+<h1>XML::NamespaceSupport</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">XML::NamespaceSupport
+&minus; A simple generic namespace processor</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+1.12</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+XML::NamespaceSupport; <br>
+my $nsup = XML::NamespaceSupport&minus;&gt;new; <br>
+# add a new empty context <br>
+$nsup&minus;&gt;push_context; <br>
+# declare a few prefixes <br>
+$nsup&minus;&gt;declare_prefix($prefix1, $uri1); <br>
+$nsup&minus;&gt;declare_prefix($prefix2, $uri2); <br>
+# the same shorter <br>
+$nsup&minus;&gt;declare_prefixes($prefix1 =&gt; $uri1,
+$prefix2 =&gt; $uri2); <br>
+# get a single prefix for a URI (randomly) <br>
+$prefix = $nsup&minus;&gt;get_prefix($uri); <br>
+# get all prefixes for a URI (probably better) <br>
+@prefixes = $nsup&minus;&gt;get_prefixes($uri); <br>
+# get all prefixes in scope <br>
+@prefixes = $nsup&minus;&gt;get_prefixes(); <br>
+# get all prefixes that were declared for the current scope
+<br>
+@prefixes = $nsup&minus;&gt;get_declared_prefixes; <br>
+# get a URI for a given prefix <br>
+$uri = $nsup&minus;&gt;get_uri($prefix); <br>
+# get info on a qname (java&minus;ish way, it's a bit weird)
+<br>
+($ns_uri, $local_name, $qname) =
+$nsup&minus;&gt;process_name($qname, $is_attr); <br>
+# the same, more perlish <br>
+($ns_uri, $prefix, $local_name) =
+$nsup&minus;&gt;process_element_name($qname); <br>
+($ns_uri, $prefix, $local_name) =
+$nsup&minus;&gt;process_attribute_name($qname); <br>
+# remove the current context <br>
+$nsup&minus;&gt;pop_context; <br>
+# reset the object for reuse in another document <br>
+$nsup&minus;&gt;reset; <br>
+# a simple helper to process Clarkian Notation <br>
+my ($ns, $lname) =
+$nsup&minus;&gt;parse_jclark_notation('{http://foo}bar');
+<br>
+# or (given that it doesn't care about the object <br>
+my ($ns, $lname) =
+XML::NamespaceSupport&minus;&gt;parse_jclark_notation('{http://foo}bar');</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+offers a simple to process namespaced <small>XML</small>
+names (unames) from within any application that may need
+them. It also helps maintain a prefix to namespace
+<small>URI</small> map, and provides a number of basic
+checks.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The model for
+this module is <small>SAX2</small> &rsquo;s NamespaceSupport
+class, readable at http://www.saxproject.org/namespaces.html
+It adds a few perlisations where we thought it
+appropriate.</p>
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">XML::NamespaceSupport
+&minus; a simple generic namespace support class</p>
+
+<h2>METHODS
+<a name="METHODS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="57%">
+
+
+
+<p style="margin-top: 1em">XML::NamespaceSupport&minus;&gt;new(\%options)</p> </td>
+<td width="26%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">A simple
+constructor.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The options are
+&quot;xmlns&quot;, &quot;fatal_errors&quot;, and
+&quot;auto_prefix&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;xmlns&quot; is turned on (it is off by default) the
+mapping from the xmlns prefix to the <small>URI</small>
+defined for it in <small>DOM</small> level 2 is added to the
+list of predefined mappings (which normally only contains
+the xml prefix mapping).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;fatal_errors&quot; is turned off (it is on by default)
+a number of validity errors will simply be flagged as
+failures, instead of <b>die()</b>ing.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;auto_prefix&quot; is turned on (it is off by default)
+when one provides a prefix of &quot;undef&quot; to
+&quot;declare_prefix&quot; it will generate a random prefix
+mapped to that namespace. Otherwise an undef prefix will
+trigger a warning (you should probably know what
+you&rsquo;re doing if you turn this option on).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;xmlns_11&quot; us turned off, it becomes illegal to
+undeclare namespace prefixes. It is on by default. This
+behaviour is compliant with Namespaces in <small>XML
+1.1,</small> turning it off reverts you to version 1.0.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="29%">
+
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;push_context</p> </td>
+<td width="54%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Adds a new
+empty context to the stack. You can then populate it with
+new prefixes defined at this level.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="28%">
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;pop_context</p></td>
+<td width="55%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Removes the
+topmost context in the stack and reverts to the previous
+one. It will <b>die()</b> if you try to pop more than you
+have pushed.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="55%">
+
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;declare_prefix($prefix,
+$uri)</p> </td>
+<td width="28%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Declares a
+mapping of $prefix to $uri, at the current level.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that with
+&quot;auto_prefix&quot; turned on, if you declare a prefix
+mapping in which $prefix is <b>undef()</b>, you will get an
+automatic prefix selected for you. If it is off you will get
+a warning.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is useful
+when you deal with code that hasn&rsquo;t kept prefixes
+around and need to reserialize the nodes. It also means that
+if you want to set the default namespace (i.e. with an empty
+prefix) you must use the empty string instead of undef. This
+behaviour is consistent with the <small>SAX 2.0</small>
+specification.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="60%">
+
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;declare_prefixes(%prefixes2uris)</p> </td>
+<td width="23%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Declares a
+mapping of several prefixes to URIs, at the current
+level.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="35%">
+
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;get_prefix($uri)</p> </td>
+<td width="48%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Returns a
+prefix given a <small>URI.</small> Note that as several
+prefixes may be mapped to the same <small>URI,</small> it
+returns an arbitrary one. It&rsquo;ll return undef on
+failure.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="38%">
+
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;get_prefixes($uri)</p> </td>
+<td width="45%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Returns an
+array of prefixes given a <small>URI.</small> It&rsquo;ll
+return all the prefixes if the uri is undef.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="43%">
+
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;get_declared_prefixes</p> </td>
+<td width="40%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Returns an
+array of all the prefixes that have been declared within
+this context, ie those that were declared on the last
+element, not those that were declared above and are simply
+in scope.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that at
+least one context must be added to the stack via
+&quot;push_context&quot; before this method can be
+called.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="35%">
+
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;get_uri($prefix)</p> </td>
+<td width="48%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Returns a
+<small>URI</small> for a given prefix. Returns undef on
+failure.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="57%">
+
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;process_name($qname,
+$is_attr)</p> </td>
+<td width="26%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Given a
+qualified name and a boolean indicating whether this is an
+attribute or another type of name (those are differently
+affected by default namespaces), it returns a namespace
+<small>URI,</small> local name, qualified name tuple. I know
+that that is a rather abnormal list to return, but it is so
+for compatibility with the Java spec. See below for more
+Perlish alternatives.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the prefix
+is not declared, or if the name is not valid, it&rsquo;ll
+either die or return undef depending on the current setting
+of &quot;fatal_errors&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="51%">
+
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;undeclare_prefix($prefix);</p> </td>
+<td width="32%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Removes a
+namespace prefix from the current context. This function may
+be used in <small>SAX</small> &rsquo;s end_prefix_mapping
+when there is fear that a namespace declaration might be
+available outside their scope (which shouldn&rsquo;t
+normally happen, but you never know ;) ). This may be needed
+in order to properly support Namespace 1.1.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="54%">
+
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;process_element_name($qname)</p> </td>
+<td width="29%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Given a
+qualified name, it returns a namespace <small>URI,</small>
+prefix, and local name tuple. This method applies to element
+names.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the prefix
+is not declared, or if the name is not valid, it&rsquo;ll
+either die or return undef depending on the current setting
+of &quot;fatal_errors&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="57%">
+
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;process_attribute_name($qname)</p> </td>
+<td width="26%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Given a
+qualified name, it returns a namespace <small>URI,</small>
+prefix, and local name tuple. This method applies to
+attribute names.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the prefix
+is not declared, or if the name is not valid, it&rsquo;ll
+either die or return undef depending on the current setting
+of &quot;fatal_errors&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="18%">
+
+
+<p style="margin-top: 1em">$nsup&minus;&gt;reset</p></td>
+<td width="65%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Resets the
+object so that it can be reused on another document.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All methods of
+the interface have an alias that is the name used in the
+original Java specification. You can use either name
+interchangeably. Here is the mapping:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Java name Perl
+name <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+pushContext push_context <br>
+popContext pop_context <br>
+declarePrefix declare_prefix <br>
+declarePrefixes declare_prefixes <br>
+getPrefix get_prefix <br>
+getPrefixes get_prefixes <br>
+getDeclaredPrefixes get_declared_prefixes <br>
+getURI get_uri <br>
+processName process_name <br>
+processElementName process_element_name <br>
+processAttributeName process_attribute_name <br>
+parseJClarkNotation parse_jclark_notation <br>
+undeclarePrefix undeclare_prefix</p>
+
+<h2>VARIABLES
+<a name="VARIABLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Two global
+variables are made available to you. They used to be
+constants but simple scalars are easier to use in a number
+of contexts. They are not exported but can easily be
+accessed from any package, or copied into it.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="14%">
+
+
+<p style="margin-top: 1em">$NS_XMLNS</p></td>
+<td width="69%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The namespace
+for xmlns prefixes, http://www.w3.org/2000/xmlns/.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="11%">
+
+
+<p style="margin-top: 1em">$NS_XML</p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The namespace
+for xml prefixes, http://www.w3.org/XML/1998/namespace.</p>
+
+<h2>TODO
+<a name="TODO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus; add
+more tests <br>
+&minus; optimise here and there</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">XML::Parser::PerlSAX</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="52%">
+
+
+<p style="margin-top: 1em">Robin Berjon
+&lt;robin@knowscape.com&gt;</p> </td>
+<td width="31%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="52%">
+
+
+<p>Chris Prather &lt;chris@prather.org&gt;</p></td>
+<td width="31%">
+</td></tr>
+</table>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2015 by Robin Berjon.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+
+<h2>CONTRIBUTORS
+<a name="CONTRIBUTORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="68%">
+
+
+<p style="margin-top: 1em">Chris Prather
+&lt;cprather@hdpublishing.com&gt;</p> </td>
+<td width="15%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="68%">
+
+
+<p>David Steinbrunner &lt;dsteinbrunner@pobox.com&gt;</p></td>
+<td width="15%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="68%">
+
+
+<p>Paul Cochrane &lt;paul@liekut.de&gt;</p></td>
+<td width="15%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="68%">
+
+
+<p>Paulo Custodio &lt;pauloscustodio@gmail.com&gt;</p></td>
+<td width="15%">
+</td></tr>
+ </table>
+<hr>
+</body>
+</html>

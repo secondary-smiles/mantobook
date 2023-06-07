@@ -1,0 +1,671 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:57 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERL5241DELTA</title>
+
+</head>
+<body>
+<h1>perl5241delta</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perl5241delta
+&minus; what is new for perl v5.24.1</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+describes differences between the 5.24.0 release and the
+5.24.1 release.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+upgrading from an earlier release such as 5.22.0, first read
+perl5240delta, which describes differences between 5.22.0
+and 5.24.0.</p>
+
+<h2>Security
+<a name="Security"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;Di
+switch is now required for PerlIO debugging output</b> <br>
+Previously PerlIO debugging output would be sent to the file
+specified by the &quot;PERLIO_DEBUG&quot; environment
+variable if perl wasn&rsquo;t running setuid and the
+<b>&minus;T</b> or <b>&minus;t</b> switches hadn&rsquo;t
+been parsed yet.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If perl
+performed output at a point where it hadn&rsquo;t yet parsed
+its switches this could result in perl creating or
+overwriting the file named by &quot;PERLIO_DEBUG&quot; even
+when the <b>&minus;T</b> switch had been supplied.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl now
+requires the <b>&minus;Di</b> switch to produce PerlIO
+debugging output. By default this is written to
+&quot;stderr&quot;, but can optionally be redirected to a
+file by setting the &quot;PERLIO_DEBUG&quot; environment
+variable.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If perl is
+running setuid or the <b>&minus;T</b> switch was supplied
+&quot;PERLIO_DEBUG&quot; is ignored and the debugging output
+is sent to &quot;stderr&quot; as for any other
+<b>&minus;D</b> switch.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Core modules
+and tools no longer search</b> <i>&quot;.&quot;</i> <b>for
+optional modules</b> <br>
+The tools and many modules supplied in core no longer search
+the default current directory entry in @INC for optional
+modules. For example, Storable will remove the final
+<i>&quot;.&quot;</i> from @INC before trying to load
+Log::Agent.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This prevents
+an attacker injecting an optional module into a process run
+by another user where the current directory is writable by
+the attacker, e.g. the <i>/tmp</i> directory.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In most cases
+this removal should not cause problems, but difficulties
+were encountered with base, which treats every module name
+supplied as optional. These difficulties have not yet been
+resolved, so for this release there are no changes to base.
+We hope to have a fix for base in Perl 5.24.2.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To protect your
+own code from this attack, either remove the default
+<i>&quot;.&quot;</i> entry from @INC at the start of your
+script, so:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">#!/usr/bin/perl
+<br>
+use strict; <br>
+...</p>
+
+<p style="margin-left:11%; margin-top: 1em">becomes:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">#!/usr/bin/perl
+<br>
+BEGIN { pop @INC if $INC[&minus;1] eq '.' } <br>
+use strict; <br>
+...</p>
+
+<p style="margin-left:11%; margin-top: 1em">or for modules,
+remove <i>&quot;.&quot;</i> from a localized @INC, so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $can_foo =
+eval { require Foo; }</p>
+
+<p style="margin-left:11%; margin-top: 1em">becomes:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $can_foo =
+eval { <br>
+local @INC = @INC; <br>
+pop @INC if $INC[&minus;1] eq '.'; <br>
+require Foo; <br>
+};</p>
+
+<h2>Incompatible Changes
+<a name="Incompatible Changes"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Other than the
+security changes above there are no changes intentionally
+incompatible with Perl 5.24.0. If any exist, they are bugs,
+and we request that you submit a report. See &quot;Reporting
+Bugs&quot; below.</p>
+
+<h2>Modules and Pragmata
+<a name="Modules and Pragmata"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Updated
+Modules and Pragmata</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Archive::Tar has been upgraded from version 2.04 to
+2.04_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>bignum has been upgraded from version 0.42 to
+0.42_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p><small>CPAN</small> has been upgraded from version 2.11
+to 2.11_01.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Digest has been upgraded from version 1.17 to
+1.17_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Digest::SHA has been upgraded from version 5.95 to
+5.95_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Encode has been upgraded from version 2.80 to
+2.80_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>ExtUtils::MakeMaker has been upgraded from version
+7.10_01 to 7.10_02.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>File::Fetch has been upgraded from version 0.48 to
+0.48_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>File::Spec has been upgraded from version 3.63 to
+3.63_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>HTTP::Tiny has been upgraded from version 0.056 to
+0.056_001.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p><small>IO</small> has been upgraded from version 1.36 to
+1.36_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The IO-Compress modules have been upgraded from version
+2.069 to 2.069_001.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>IPC::Cmd has been upgraded from version 0.92 to
+0.92_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p><small>JSON::PP</small> has been upgraded from version
+2.27300 to 2.27300_01.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Locale::Maketext has been upgraded from version 1.26 to
+1.26_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Locale::Maketext::Simple has been upgraded from version
+0.21 to 0.21_01.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Memoize has been upgraded from version 1.03 to
+1.03_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Module::CoreList has been upgraded from version
+5.20160506 to 5.20170114_24.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Net::Ping has been upgraded from version 2.43 to
+2.43_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Parse::CPAN::Meta has been upgraded from version 1.4417
+to 1.4417_001.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Pod::Html has been upgraded from version 1.22 to
+1.2201.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Pod::Perldoc has been upgraded from version 3.25_02 to
+3.25_03.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Storable has been upgraded from version 2.56 to
+2.56_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Sys::Syslog has been upgraded from version 0.33 to
+0.33_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Test has been upgraded from version 1.28 to 1.28_01.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Test::Harness has been upgraded from version 3.36 to
+3.36_01.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>XSLoader has been upgraded from version 0.21 to 0.22,
+fixing a security hole in which binary files could be loaded
+from a path outside of @INC. [ <small>GH</small> #15418]
+&lt;https://github.com/Perl/perl5/issues/15418&gt;</p> </td></tr>
+</table>
+
+<h2>Documentation
+<a name="Documentation"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Changes to
+Existing Documentation</b> <i><br>
+perlapio</i></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p style="margin-top: 1em">The documentation of
+&quot;PERLIO_DEBUG&quot; has been updated.</p></td>
+<td width="2%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>perlrun</i></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">The new <b>&minus;Di</b> switch
+has been documented, and the documentation of
+&quot;PERLIO_DEBUG&quot; has been updated.</p></td></tr>
+</table>
+
+<h2>Testing
+<a name="Testing"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">A new test script,
+<i>t/run/switchDx.t</i>, has been added to test that the new
+<b>&minus;Di</b> switch is working correctly.</p></td></tr>
+</table>
+
+<h2>Selected Bug Fixes
+<a name="Selected Bug Fixes"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">The change to hashbang
+redirection introduced in Perl 5.24.0, whereby perl would
+redirect to another interpreter (Perl 6) if it found a
+hashbang path which contains &quot;perl&quot; followed by
+&quot;6&quot;, has been reverted because it broke in cases
+such as &quot;#!/opt/perl64/bin/perl&quot;.</p></td></tr>
+</table>
+
+<h2>Acknowledgements
+<a name="Acknowledgements"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Perl 5.24.1
+represents approximately 8 months of development since Perl
+5.24.0 and contains approximately 8,100 lines of changes
+across 240 files from 18 authors.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Excluding
+auto-generated files, documentation and release tools, there
+were approximately 2,200 lines of changes to 170 .pm, .t, .c
+and .h files.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl continues
+to flourish into its third decade thanks to a vibrant
+community of users and developers. The following people are
+known to have contributed the improvements that became Perl
+5.24.1:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Aaron Crane,
+Alex Vandiver, Aristotle Pagaltzis, Chad Granum, Chris
+&rsquo;BinGOs&rsquo; Williams, Craig A. Berry, Father
+Chrysostomos, James E Keenan, Jarkko Hietaniemi, Karen
+Etheridge, Leon Timmermans, Matthew Horsfall, Ricardo
+Signes, Sawyer X, Sebastien Aperghis-Tramoni, Stevan Little,
+Steve Hay, Tony Cook.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The list above
+is almost certainly incomplete as it is automatically
+generated from version control history. In particular, it
+does not include the names of the (very much appreciated)
+contributors who reported issues to the Perl bug
+tracker.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Many of the
+changes included in this version originated in the
+<small>CPAN</small> modules included in Perl&rsquo;s core.
+We&rsquo;re grateful to the entire <small>CPAN</small>
+community for helping Perl to flourish.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For a more
+complete list of all of Perl&rsquo;s historical
+contributors, please see the <i><small>AUTHORS</small></i>
+file in the Perl source distribution.</p>
+
+<h2>Reporting Bugs
+<a name="Reporting Bugs"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you find
+what you think is a bug, you might check the articles
+recently posted to the comp.lang.perl.misc newsgroup and the
+Perl bug database at &lt;https://rt.perl.org/&gt; . There
+may also be information at &lt;http://www.perl.org/&gt; ,
+the Perl Home Page.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you believe
+you have an unreported bug, please run the perlbug program
+included with your release. Be sure to trim your bug down to
+a tiny but sufficient test case. Your bug report, along with
+the output of &quot;perl &minus;V&quot;, will be sent off to
+perlbug@perl.org to be analysed by the Perl porting
+team.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the bug you
+are reporting has security implications which make it
+inappropriate to send to a publicly archived mailing list,
+then see &quot; <small>SECURITY VULNERABILITY CONTACT
+INFORMATION&quot;</small> in perlsec for details of how to
+report the issue.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>Changes</i> file for an explanation of how to view
+exhaustive details on what changed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i><small>INSTALL</small></i> file for how to build
+Perl.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i><small>README</small></i> file for general stuff.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>Artistic</i> and <i>Copying</i> files for copyright
+information.</p>
+<hr>
+</body>
+</html>

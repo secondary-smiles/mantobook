@@ -1,0 +1,167 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:48 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>ZMQ_PROXY</title>
+
+</head>
+<body>
+<h1>zmq_proxy</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">zmq_proxy
+&minus; start built&minus;in 0MQ proxy</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+zmq_proxy (void</b> <i>*frontend</i><b>, void</b>
+<i>*backend</i><b>, void</b> <i>*capture</i><b>);</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>zmq_proxy()</i> function starts the built&minus;in 0MQ
+proxy in the current application thread.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The proxy
+connects a frontend socket to a backend socket.
+Conceptually, data flows from frontend to backend. Depending
+on the socket types, replies may flow in the opposite
+direction. The direction is conceptual only; the proxy is
+fully symmetric and there is no technical difference between
+frontend and backend.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Before calling
+<i>zmq_proxy()</i> you must set any socket options, and
+connect or bind both frontend and backend sockets. The two
+conventional proxy models are:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>zmq_proxy()</i>
+runs in the current thread and returns only if/when the
+current context is closed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the capture
+socket is not NULL, the proxy shall send all messages,
+received on both frontend and backend, to the capture
+socket. The capture socket should be a <i>ZMQ_PUB</i>,
+<i>ZMQ_DEALER</i>, <i>ZMQ_PUSH</i>, or <i>ZMQ_PAIR</i>
+socket.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Refer to
+<b>zmq_socket</b>(3) for a description of the available
+socket types.</p>
+
+<h2>EXAMPLE USAGE
+<a name="EXAMPLE USAGE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Shared
+Queue</b> <br>
+When the frontend is a ZMQ_ROUTER socket, and the backend is
+a ZMQ_DEALER socket, the proxy shall act as a shared queue
+that collects requests from a set of clients, and
+distributes these fairly among a set of services. Requests
+shall be fair&minus;queued from frontend connections and
+distributed evenly across backend connections. Replies shall
+automatically return to the client that made the original
+request.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Forwarder</b>
+<br>
+When the frontend is a ZMQ_XSUB socket, and the backend is a
+ZMQ_XPUB socket, the proxy shall act as a message forwarder
+that collects messages from a set of publishers and forwards
+these to a set of subscribers. This may be used to bridge
+networks transports, e.g. read on tcp:// and forward on
+pgm://.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Streamer</b>
+<br>
+When the frontend is a ZMQ_PULL socket, and the backend is a
+ZMQ_PUSH socket, the proxy shall collect tasks from a set of
+clients and forwards these to a set of workers using the
+pipeline pattern.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>zmq_proxy()</i> function always returns &minus;1 and
+<i>errno</i> set to <b>ETERM</b> or <b>EINTR</b> (the 0MQ
+<i>context</i> associated with either of the specified
+sockets was terminated) or <b>EFAULT</b> (the provided
+<i>frontend</i> or <i>backend</i> was invalid).</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Creating a
+shared queue proxy</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">// Create
+frontend and backend sockets <br>
+void *frontend = zmq_socket (context, ZMQ_ROUTER); <br>
+assert (frontend); <br>
+void *backend = zmq_socket (context, ZMQ_DEALER); <br>
+assert (backend); <br>
+// Bind both sockets to TCP ports <br>
+assert (zmq_bind (frontend, &quot;tcp://*:5555&quot;) == 0);
+<br>
+assert (zmq_bind (backend, &quot;tcp://*:5556&quot;) == 0);
+<br>
+// Start the queue proxy, which runs until ETERM <br>
+zmq_proxy (frontend, backend, NULL);</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>zmq_bind</b>(3)
+<b>zmq_connect</b>(3) <b>zmq_socket</b>(3) <b>zmq</b>(7)</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This page was
+written by the 0MQ community. To make a change please read
+the 0MQ Contribution Policy at
+<b><font color="#0000FF">http://www.zeromq.org/docs:contributing</font></b><font color="#000000">.</font></p>
+<hr>
+</body>
+</html>

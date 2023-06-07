@@ -1,0 +1,231 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:57 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SD_BUS_CALL</title>
+
+</head>
+<body>
+<h1>sd_bus_call_async</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">sd_bus_call,
+sd_bus_call_async &minus; Invoke a D&minus;Bus method
+call</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;systemd/sd&minus;bus.h&gt;</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>typedef int
+(*sd_bus_message_handler_t)(sd_bus_message&nbsp;*</b><i>m</i><b>,
+void&nbsp;*</b><i>userdata</i><b>,
+sd_bus_error&nbsp;*</b><i>ret_error</i><b>);</b></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_bus_call(sd_bus&nbsp;*</b><i>bus</i><b>,
+sd_bus_message&nbsp;*</b><i>m</i><b>,
+uint64_t&nbsp;</b><i>usec</i><b>,
+sd_bus_error&nbsp;*</b><i>ret_error</i><b>,
+sd_bus_message&nbsp;**</b><i>reply</i><b>);</b></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_bus_call_async(sd_bus&nbsp;*</b><i>bus</i><b>,
+sd_bus_slot&nbsp;**</b><i>slot</i><b>,
+sd_bus_message&nbsp;*</b><i>m</i><b>,
+sd_bus_message_handler_t&nbsp;</b><i>callback</i><b>,
+void&nbsp;*</b><i>userdata</i><b>,
+uint64_t&nbsp;</b><i>usec</i><b>);</b></p> </td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_bus_call()</b>
+takes a complete bus message object and calls the
+corresponding D&minus;Bus method. On success, the response
+is stored in <i>reply</i>. <i>usec</i> indicates the timeout
+in microseconds. If <i>ret_error</i> is not <b>NULL</b> and
+<b>sd_bus_call()</b> fails (either because of an internal
+error or because it received a D&minus;Bus error reply),
+<i>ret_error</i> is initialized to an instance of
+sd_bus_error describing the error.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_bus_call_async()</b>
+is like <b>sd_bus_call()</b> but works asynchronously. The
+<i>callback</i> indicates the function to call when the
+response arrives. The <i>userdata</i> pointer will be passed
+to the callback function, and may be chosen freely by the
+caller. If <i>slot</i> is not <b>NULL</b> and
+<b>sd_bus_call_async()</b> succeeds, <i>slot</i> is set to a
+slot object which can be used to cancel the method call at a
+later time using <b>sd_bus_slot_unref</b>(3). If <i>slot</i>
+is <b>NULL</b>, the lifetime of the method call is bound to
+the lifetime of the bus object itself, and it cannot be
+cancelled independently. See
+<b>sd_bus_slot_set_floating</b>(3) for details.
+<i>callback</i> is called when a reply arrives with the
+reply, <i>userdata</i> and an sd_bus_error output parameter
+as its arguments. Unlike <b>sd_bus_call()</b>, the
+sd_bus_error output parameter passed to the callback will be
+empty. To determine whether the method call succeeded, use
+<b>sd_bus_message_is_method_error</b>(3) on the reply
+message passed to the callback instead. If the callback
+returns zero and the sd_bus_error output parameter is still
+empty when the callback finishes, other handlers registered
+with functions such as <b>sd_bus_add_filter</b>(3) or
+<b>sd_bus_add_match</b>(3) are given a chance to process the
+message. If the callback returns a non&minus;zero value or
+the sd_bus_error output parameter is not empty when the
+callback finishes, no further processing of the message is
+done. Generally, you want to return zero from the callback
+to give other registered handlers a chance to process the
+reply as well. (Note that the sd_bus_error parameter is an
+output parameter of the callback function, not an input
+parameter; it can be used to propagate errors from the
+callback handler, it will not receive any error that was
+received as method reply.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The message
+<i>m</i> passed to the callback is only borrowed, that is,
+the callback should not call <b>sd_bus_message_unref</b>(3)
+on it. If the callback wants to hold on to the message
+beyond the lifetime of the callback, it needs to call
+<b>sd_bus_message_ref</b>(3) to create a new reference.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If <i>usec</i>
+is zero, the default D&minus;Bus method call timeout is
+used. See <b>sd_bus_get_method_call_timeout</b>(3).</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On success,
+these functions return a non&minus;negative integer. On
+failure, they return a negative errno&minus;style error
+code.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Errors</b>
+<br>
+When <b>sd_bus_call()</b> internally receives a D&minus;Bus
+error reply, it will set <i>ret_error</i> if it is not
+<b>NULL</b>, and will return a negative value mapped from
+the error reply, see <b>sd_bus_error_get_errno</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returned errors
+may indicate the following problems:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;EINVAL</b></p>
+
+<p style="margin-left:17%;">The input parameter <i>m</i> is
+<b>NULL</b>. The input parameter <i>m</i> is not a
+D&minus;Bus method call. To create a new D&minus;Bus method
+call, use <b>sd_bus_message_new_method_call</b>(3). The
+input parameter <i>m</i> has the
+<b>BUS_MESSAGE_NO_REPLY_EXPECTED</b> flag set. The input
+parameter <i>error</i> is non&minus;<b>NULL</b> but was not
+set to <b>SD_BUS_ERROR_NULL</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ECHILD</b></p>
+
+<p style="margin-left:17%;">The bus connection was
+allocated in a parent process and is being reused in a child
+process after <b>fork()</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ENOTCONN</b></p>
+
+<p style="margin-left:17%;">The input parameter <i>bus</i>
+is <b>NULL</b> or the bus is not connected.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ECONNRESET</b></p>
+
+<p style="margin-left:17%;">The bus connection was closed
+while waiting for the response.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ETIMEDOUT</b></p>
+
+<p style="margin-left:17%;">A response was not received
+within the given timeout.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ELOOP</b></p>
+
+<p style="margin-left:17%;">The message <i>m</i> is
+addressed to its own client.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ENOMEM</b></p>
+
+<p style="margin-left:17%;">Memory allocation failed.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These APIs are
+implemented as a shared library, which can be compiled and
+linked to with the <b>libsystemd&nbsp;pkg-config</b>(1)
+file.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>sd-bus</b>(3), <b>sd_bus_call_method</b>(3),
+<b>sd_bus_call_method_async</b>(3),
+<b>sd_bus_message_new_method_call</b>(3),
+<b>sd_bus_message_append</b>(3), <b>sd_bus_error</b>(3)</p>
+<hr>
+</body>
+</html>

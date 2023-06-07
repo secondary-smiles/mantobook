@@ -1,0 +1,569 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:21 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LIBTRACEFS</title>
+
+</head>
+<body>
+<h1>tracefs_synth_get_event</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">tracefs_synth_echo_cmd,
+tracefs_synth_get_start_hist, tracefs_synth_get_name,
+tracefs_synth_raw_fmt, tracefs_synth_show_event,
+tracefs_synth_show_start_hist, tracefs_synth_show_end_hist,
+tracefs_synth_get_event &minus; Retrieve data of synthetic
+events.</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;tracefs.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">int
+<b>tracefs_synth_echo_cmd</b>(struct trace_seq *<i>seq</i>,
+struct tracefs_synth *<i>synth</i>); <br>
+struct tracefs_hist
+*<b>tracefs_synth_get_start_hist</b>(struct tracefs_synth
+*<i>synth</i>);</p>
+
+<p style="margin-left:11%; margin-top: 1em">const char
+*<b>tracefs_synth_get_name</b>(struct tracefs_synth
+*<i>synth</i>); <br>
+int <b>tracefs_synth_raw_fmt</b>(struct trace_seq
+*<i>seq</i>, struct tracefs_synth *<i>synth</i>); <br>
+const char *<b>tracefs_synth_show_event</b>(struct
+tracefs_synth *<i>synth</i>); <br>
+const char *<b>tracefs_synth_show_start_hist</b>(struct
+tracefs_synth *<i>synth</i>); <br>
+const char *<b>tracefs_synth_show_end_hist</b>(struct
+tracefs_synth *<i>synth</i>); <br>
+struct tep_event *<b>tracefs_synth_get_event</b>(struct
+tep_handle *<i>tep</i>, struct tracefs_synth
+*<i>synth</i>);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Synthetic
+events are dynamic events that are created by matching two
+other events which triggers a synthetic event. One event is
+the starting event which some field is recorded, and when
+the second event is executed, if it has a field (or fields)
+that matches the starting event&rsquo;s field (or fields)
+then it will trigger the synthetic event. The field values
+other than the matching fields may be passed from the
+starting event to the end event to perform calculations on,
+or to simply pass as a parameter to the synthetic event.</p>
+
+<p style="margin-left:11%; margin-top: 1em">One common use
+case is to set &quot;sched_waking&quot; as the starting
+event. This event is triggered when a process is awoken.
+Then set &quot;sched_switch&quot; as the ending event. This
+event is triggered when a new task is scheduled on the CPU.
+By setting the &quot;common_pid&quot; of both events as the
+matching fields, the time between the two events is
+considered the wake up latency of that process. Use
+<b>TRACEFS_TIMESTAMP</b> as a field for both events to
+calculate the delta in nanoseconds, or use
+<b>TRACEFS_TIMESTAMP_USECS</b> as the compare fields for
+both events to calculate the delta in microseconds. This is
+used as the example below.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+<b>tracefs_synth_alloc</b>(3) for allocation of synthetic
+events, and <b>tracefs_synth_create</b>() for creating the
+synthetic event on the system.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tracefs_synth_echo_cmd</b>()
+acts like <b>tracefs_synth_create</b>(), but instead of
+creating the synthetic event in the system, it will write
+the echo commands to manually create it in the <i>seq</i>
+given.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tracefs_synth_get_start_hist</b>()
+returns a struct tracefs_hist descriptor describing the
+histogram used to create the synthetic event.</p>
+
+<p style="margin-left:17%; margin-top: 1em">enum
+tracefs_synth_handler { <b><br>
+TRACEFS_SYNTH_HANDLE_MATCH</b>, <b><br>
+TRACEFS_SYNTH_HANDLE_MAX</b>, <b><br>
+TRACEFS_SYNTH_HANDLE_CHANGE</b>, <br>
+};</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tracefs_synth_get_name</b>()
+returns the name of the synthetic event or NULL on error.
+The returned string belongs to the synth event object and is
+freed with the event by <b>tracefs_synth_free</b>().</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tracefs_synth_raw_fmt</b>()
+writes the raw format strings (dynamic event and histograms)
+of the synthetic event in the <i>seq</i> given.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tracefs_synth_show_event</b>()
+returns the format of the dynamic event used by the
+synthetic event or NULL on error. The returned string
+belongs to the synth event object and is freed with the
+event by <b>tracefs_synth_free</b>().</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tracefs_synth_show_start_hist</b>()
+returns the format of the start histogram used by the
+synthetic event or NULL on error. The returned string
+belongs to the synth event object and is freed with the
+event by <b>tracefs_synth_free</b>().</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tracefs_synth_show_end_hist</b>()
+returns the format of the end histogram used by the
+synthetic event or NULL on error. The returned string
+belongs to the synth event object and is freed with the
+event by <b>tracefs_synth_free</b>().</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>tracefs_synth_get_event</b>() function returns a tep
+event, describing the given synthetic event. The API detects
+any newly created or removed dynamic events. The returned
+pointer to tep event is controlled by @tep and must not be
+freed.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tracefs_synth_get_name</b>(),
+<b>tracefs_synth_show_event</b>(),
+<b>tracefs_synth_show_start_hist</b>() and
+<b>tracefs_synth_show_end_hist</b>() return a string owned
+by the synth event object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>tracefs_synth_get_event</b>() function returns a pointer
+to a tep event or NULL in case of an error or if the
+requested synthetic event is missing. The returned pointer
+to tep event is controlled by @tep and must not be
+freed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All other
+functions return zero on success or &minus;1 on error.</p>
+
+<h2>ERRORS
+<a name="ERRORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+errors are for all the above calls:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>EPERM</b>
+Not run as root user when required.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>EINVAL</b>
+Either a parameter is not valid (NULL when it should not be)
+or a field that is not compatible for calculations.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>ENODEV</b>
+An event or one of its fields is not found.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>EBADE</b>
+The fields of the start and end events are not compatible
+for either matching or comparing.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>ENOMEM</b>
+not enough memory is available.</p>
+
+<p style="margin-left:11%; margin-top: 1em">And more errors
+may have happened from the system calls to the system.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">See
+<b>tracefs_sql</b>(3) for a more indepth use of some of this
+code.</p>
+
+<p style="margin-left:17%; margin-top: 1em">#include
+&lt;stdlib.h&gt; <br>
+#include &lt;tracefs.h&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">#define
+start_event &quot;sched_waking&quot; <br>
+#define start_field &quot;pid&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">#define
+end_event &quot;sched_switch&quot; <br>
+#define end_field &quot;next_pid&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">#define
+match_name &quot;pid&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">static struct
+tracefs_synth *synth;</p>
+
+<p style="margin-left:17%; margin-top: 1em">static void
+make_event(void) <br>
+{ <br>
+struct tep_handle *tep;</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* Load all
+events from the system */ <br>
+tep = tracefs_local_events(NULL);</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* Initialize
+the synthetic event */ <br>
+synth = tracefs_synth_alloc(tep, &quot;wakeup_lat&quot;,
+<br>
+NULL, start_event, <br>
+NULL, end_event, <br>
+start_field, end_field, <br>
+match_name);</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* The tep is
+no longer needed */ <br>
+tep_free(tep);</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* Save the
+&quot;prio&quot; field as &quot;prio&quot; from the start
+event */ <br>
+tracefs_synth_add_start_field(synth, &quot;prio&quot;,
+NULL);</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* Save the
+&quot;next_comm&quot; as &quot;comm&quot; from the end event
+*/ <br>
+tracefs_synth_add_end_field(synth, &quot;next_comm&quot;,
+&quot;comm&quot;);</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* Save the
+&quot;prev_prio&quot; as &quot;prev_prio&quot; from the end
+event */ <br>
+tracefs_synth_add_end_field(synth, &quot;prev_prio&quot;,
+NULL);</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* <br>
+* Take a microsecond time difference between end and start
+<br>
+* and record as &quot;delta&quot; <br>
+*/ <br>
+tracefs_synth_add_compare_field(synth,
+TRACEFS_TIMESTAMP_USECS, <br>
+TRACEFS_TIMESTAMP_USECS, <br>
+TRACEFS_SYNTH_DELTA_END, &quot;delta&quot;);</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* Only record
+if start event &quot;prio&quot; is less than 100 */ <br>
+tracefs_synth_append_start_filter(synth,
+TRACEFS_FILTER_COMPARE, <br>
+&quot;prio&quot;, TRACEFS_COMPARE_LT, &quot;100&quot;);</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* <br>
+* Only record if end event &quot;next_prio&quot; is less
+than 50 <br>
+* or the previous task's prio was not greater than or equal
+to 100. <br>
+* next_prio &lt; 50 || !(prev_prio &gt;= 100) <br>
+*/ <br>
+tracefs_synth_append_end_filter(synth,
+TRACEFS_FILTER_COMPARE, <br>
+&quot;next_prio&quot;, TRACEFS_COMPARE_LT, &quot;50&quot;);
+<br>
+tracefs_synth_append_end_filter(synth, TRACEFS_FILTER_OR,
+NULL, 0, NULL); <br>
+tracefs_synth_append_end_filter(synth, TRACEFS_FILTER_NOT,
+NULL, 0, NULL); <br>
+tracefs_synth_append_end_filter(synth,
+TRACEFS_FILTER_OPEN_PAREN, NULL, 0, NULL); <br>
+tracefs_synth_append_end_filter(synth,
+TRACEFS_FILTER_COMPARE, <br>
+&quot;prev_prio&quot;, TRACEFS_COMPARE_GE, &quot;100&quot;);
+<br>
+/* <br>
+* Note, the above only added: &quot;next_prio &lt; 50 ||
+!(prev_prio &gt;= 100&quot; <br>
+* That's because, when the synth is executed, the remaining
+close parenthesis <br>
+* will be added. That is, the string will end up being: <br>
+* &quot;next_prio &lt; 50 || !(prev_prio &gt;= 100)&quot;
+when one of tracefs_sync_create() <br>
+* or tracefs_sync_echo_cmd() is run. <br>
+*/ <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* Display how
+to create the synthetic event */ <br>
+static void show_event(void) <br>
+{ <br>
+struct trace_seq s;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">trace_seq_init(&amp;s);</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">tracefs_synth_echo_cmd(&amp;s,
+synth); <br>
+trace_seq_terminate(&amp;s); <br>
+trace_seq_do_printf(&amp;s); <br>
+trace_seq_destroy(&amp;s); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">int main (int
+argc, char **argv) <br>
+{ <br>
+make_event();</p>
+
+<p style="margin-left:17%; margin-top: 1em">if (argc &gt;
+1) { <br>
+if (!strcmp(argv[1], &quot;create&quot;)) { <br>
+/* Create the synthetic event */ <br>
+tracefs_synth_create(synth); <br>
+} else if (!strcmp(argv[1], &quot;delete&quot;)) { <br>
+/* Delete the synthetic event */ <br>
+tracefs_synth_destroy(synth); <br>
+} else { <br>
+printf(&quot;usage: %s [create|delete]\n&quot;, argv[0]);
+<br>
+exit(&minus;1); <br>
+} <br>
+} else <br>
+show_event();</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">tracefs_synth_free(synth);</p>
+
+<p style="margin-left:17%; margin-top: 1em">return 0; <br>
+}</p>
+
+<h2>FILES
+<a name="FILES"></a>
+</h2>
+
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>tracefs.h</b>
+<br>
+Header file to include in order to have access to the
+library APIs. <b><br>
+&minus;ltracefs</b> <br>
+Linker switch to add when building a program that uses the
+library.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>libtracefs</b>(3),
+<b>libtraceevent</b>(3), <b>trace&minus;cmd</b>(1),
+<b>tracefs_hist_alloc</b>(3),
+<b>tracefs_hist_alloc_2d</b>(3),
+<b>tracefs_hist_alloc_nd</b>(3),
+<b>tracefs_hist_free</b>(3), <b>tracefs_hist_add_key</b>(3),
+<b>tracefs_hist_add_value</b>(3),
+<b>tracefs_hist_add_name</b>(3),
+<b>tracefs_hist_start</b>(3),
+<b>tracefs_hist_destory</b>(3),
+<b>tracefs_hist_add_sort_key</b>(3),
+<b>tracefs_hist_sort_key_direction</b>(3),
+<b>tracefs_synth_alloc</b>(3),
+<b>tracefs_synth_add_match_field</b>(3),
+<b>tracefs_synth_add_compare_field</b>(3),
+<b>tracefs_synth_add_start_field</b>(3),
+<b>tracefs_synth_add_end_field</b>(3),
+<b>tracefs_synth_append_start_filter</b>(3),
+<b>tracefs_synth_append_end_filter</b>(3),
+<b>tracefs_synth_free</b>(3),
+<b>tracefs_synth_create</b>(3),
+<b>tracefs_synth_destroy</b>(3),
+<b>tracefs_synth_complete</b>(3),
+<b>tracefs_synth_trace</b>(3),
+<b>tracefs_synth_snapshot</b>(3),
+<b>tracefs_synth_save</b>(3),</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>Steven
+Rostedt</b>
+&lt;<b><font color="#0000FF">rostedt@goodmis.org</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">&gt; <b><br>
+Tzvetomir Stoyanov</b>
+&lt;</font><b><font color="#0000FF">tz.stoyanov@gmail.com</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">&gt; <b><br>
+sameeruddin shaik</b>
+&lt;</font><b><font color="#0000FF">sameeruddin.shaik8@gmail.com</font></b>
+<small><font color="#000000">[3]</font></small>
+<font color="#000000">&gt;</font></p>
+
+<h2>REPORTING BUGS
+<a name="REPORTING BUGS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Report
+bugs to
+&lt;</font><b><font color="#0000FF">linux&minus;trace&minus;devel@vger.kernel.org</font></b>
+<small><font color="#000000">[4]</font></small>
+<font color="#000000">&gt;</font></p>
+
+<h2>LICENSE
+<a name="LICENSE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">libtracefs
+is Free Software licensed under the GNU LGPL 2.1</font></p>
+
+<h2>RESOURCES
+<a name="RESOURCES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><font color="#0000FF">https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/</font></b></p>
+
+<h2>COPYING
+<a name="COPYING"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Copyright
+(C) 2020 VMware, Inc. Free use of this software is granted
+under the terms of the GNU Public License (GPL).</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="29%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">rostedt@goodmis.org</font></p> </td>
+<td width="54%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:rostedt@goodmis.org</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">2.</font></p> </td>
+<td width="2%"></td>
+<td width="32%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">tz.stoyanov@gmail.com</font></p> </td>
+<td width="51%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:tz.stoyanov@gmail.com</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">3.</font></p> </td>
+<td width="2%"></td>
+<td width="43%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">sameeruddin.shaik8@gmail.com</font></p> </td>
+<td width="40%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:sameeruddin.shaik8@gmail.com</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">4.</font></p> </td>
+<td width="2%"></td>
+<td width="51%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">linux-trace-devel@vger.kernel.org</font></p> </td>
+<td width="32%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:linux-trace-devel@vger.kernel.org</font></p>
+<hr>
+</body>
+</html>

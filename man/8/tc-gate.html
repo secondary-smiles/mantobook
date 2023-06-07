@@ -1,0 +1,190 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:05 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GATE</title>
+
+</head>
+<body>
+<h1>tc-gate</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">gate &minus;
+Stream Gate Action</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tc ...
+action gate <br>
+[ base-time</b> BASETIME ] <b>[ clockid</b> CLOCKID ]
+<b><br>
+sched-entry</b> &lt;gate state&gt; &lt;interval 1&gt; [
+&lt;internal priority&gt; &lt;max octets&gt; ] <b><br>
+sched-entry</b> &lt;gate state&gt; &lt;interval 2&gt; [
+&lt;internal priority&gt; &lt;max octets&gt; ] <b><br>
+sched-entry</b> &lt;gate state&gt; &lt;interval 3&gt; [
+&lt;internal priority&gt; &lt;max octets&gt; ] <b><br>
+...... <br>
+sched-entry</b> &lt;gate state&gt; &lt;interval N&gt; [
+&lt;internal priority&gt; &lt;max octets&gt; ]</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">GATE action
+allows specified ingress frames can be passed at specific
+time slot, or be dropped at specific time slot. Tc filter
+filters the ingress frames, then tc gate action would
+specify which time slot and how many bytes these frames can
+be passed to device and which time slot frames would be
+dropped. Gate action also assign a base-time to tell when
+the entry list start. Then gate action would start to repeat
+the gate entry list cyclically at the start base-time. For
+the software simulation, gate action requires the user
+assign reference time clock type.</p>
+
+<h2>PARAMETERS
+<a name="PARAMETERS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">base-time</p>
+
+<p style="margin-left:22%;">Specifies the instant in
+nanoseconds, defining the time when the schedule starts. If
+&rsquo;base-time&rsquo; is a time in the past, the schedule
+will start at</p>
+
+<p style="margin-left:22%; margin-top: 1em">base-time + (N
+* cycle-time)</p>
+
+<p style="margin-left:22%; margin-top: 1em">where N is the
+smallest integer so the resulting time is greater than
+&quot;now&quot;, and &quot;cycle-time&quot; is the sum of
+all the intervals of the entries in the schedule. Without
+base-time specified, will default to be 0.</p>
+
+<p style="margin-left:11%;">clockid</p>
+
+<p style="margin-left:22%;">Specifies the clock to be used
+by qdisc&rsquo;s internal timer for measuring time and
+scheduling events. Not valid if gate action is used for
+offloading filter. For example, tc filter command with
+<b>skip_sw</b> parameter.</p>
+
+<p style="margin-left:11%;">sched-entry</p>
+
+<p style="margin-left:22%;">There may multiple
+<b>sched-entry</b> parameters in a single schedule. Each one
+has the format:</p>
+
+<p style="margin-left:22%; margin-top: 1em">sched-entry
+&lt;gate state&gt; &lt;interval&gt; [ &lt;internal
+priority&gt; &lt;max octets&gt; ]</p>
+
+<p style="margin-left:22%; margin-top: 1em">&lt;gate
+state&gt; means gate states. &rsquo;open&rsquo; keep gate
+open, &rsquo;close&rsquo; keep gate close. <br>
+&lt;interval&gt; means how much nano seconds for this time
+slot. <br>
+&lt;internal priority&gt; means internal priority value.
+Present of the internal receiving queue for this stream.
+&quot;-1&quot; means wildcard. &lt;internal priority&gt; and
+&lt;max octets&gt; can be omit default to be &quot;-1&quot;
+which both <br>
+value to be &quot;-1&quot; for this &lt;sched-entry&gt;.
+<br>
+&lt;max octets&gt; means how many octets size could pass in
+this time slot. Dropped if overlimited. &quot;-1&quot; means
+wildcard. &lt;max octets&gt; can be omit default to be
+&quot;-1&quot; which value to be &quot;-1&quot; for this
+&lt;sched-entry&gt;. <br>
+Note that &lt;internal priority&gt; and &lt;max octets&gt;
+are nothing meaning for gate state is &quot;close&quot; in a
+&quot;sched-entry&quot;. All frames are dropped when
+&quot;sched-entry&quot; with &quot;close&quot; state.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+example shows tc filter frames source ip match to the
+192.168.0.20 will keep the gate open for 200ms and limit the
+traffic to 8MB in this sched-entry. Then keep the traffic
+gate to be close for 100ms. Frames arrived at gate close
+state would be dropped. Then the cycle would run the gate
+entries periodically. The schedule will start at instant
+200.0s using the reference CLOCK_TAI. The schedule is
+composed of two entries each of 300ms duration.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 ingress <br>
+# tc filter add dev eth0 parent ffff: protocol ip \ <br>
+flower skip_hw src_ip 192.168.0.20 \ <br>
+action gate index 2 clockid CLOCK_TAI \ <br>
+base-time 200000000000ns \ <br>
+sched-entry open 200000000ns -1 8000000b \ <br>
+sched-entry close 100000000ns</p>
+
+<p style="margin-left:11%; margin-top: 1em">Following
+commands is an example to filter a stream source mac match
+to the 10:00:80:00:00:00 icmp frames will be dropped at any
+time with cycle 200ms. With a default basetime 0 and clockid
+is CLOCK_TAI as default.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 ingress <br>
+# tc filter add dev eth0 parent ffff: protocol ip \</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>flower ip_proto icmp dst_mac 10:00:80:00:00:00 \</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>action gate index 12 sched-entry close 200000000ns</p></td></tr>
+</table>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Po Liu
+&lt;Po.Liu@nxp.com&gt;</p>
+<hr>
+</body>
+</html>

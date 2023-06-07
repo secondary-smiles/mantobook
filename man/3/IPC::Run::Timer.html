@@ -1,0 +1,499 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:22 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>IPC::Run::Timer</title>
+
+</head>
+<body>
+<h1>IPC::Run::Timer</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">IPC::Run::Timer
+&minus;&minus; Timer channels for IPC::Run.</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use IPC::Run
+qw( run timer timeout ); <br>
+## or IPC::Run::Timer ( timer timeout ); <br>
+## or IPC::Run::Timer ( :all ); <br>
+## A non&minus;fatal timer: <br>
+$t = timer( 5 ); # or... <br>
+$t = IO::Run::Timer&minus;&gt;new( 5 ); <br>
+run $t, ...; <br>
+## A timeout (which is a timer that dies on expiry): <br>
+$t = timeout( 5 ); # or... <br>
+$t = IO::Run::Timer&minus;&gt;new( 5, exception =&gt;
+&quot;harness timed out&quot; );</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This class and
+module allows timers and timeouts to be created for use by
+IPC::Run. A timer simply expires when it&rsquo;s time is up.
+A timeout is a timer that throws an exception when it
+expires.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Timeouts are
+usually a bit simpler to use than timers: they throw an
+exception on expiration so you don&rsquo;t need to check
+them:</p>
+
+<p style="margin-left:11%; margin-top: 1em">## Give @cmd 10
+seconds to get started, then 5 seconds to respond <br>
+my $t = timeout( 10 ); <br>
+$h = start( <br>
+\@cmd, \$in, \$out, <br>
+$t, <br>
+); <br>
+pump $h until $out =~ /prompt/; <br>
+$in = &quot;some stimulus&quot;; <br>
+$out = ''; <br>
+$t&minus;&gt;time( 5 ) <br>
+pump $h until $out =~ /expected response/;</p>
+
+<p style="margin-left:11%; margin-top: 1em">You do need to
+check timers:</p>
+
+<p style="margin-left:11%; margin-top: 1em">## Give @cmd 10
+seconds to get started, then 5 seconds to respond <br>
+my $t = timer( 10 ); <br>
+$h = start( <br>
+\@cmd, \$in, \$out, <br>
+$t, <br>
+); <br>
+pump $h until $t&minus;&gt;is_expired || $out =~ /prompt/;
+<br>
+$in = &quot;some stimulus&quot;; <br>
+$out = ''; <br>
+$t&minus;&gt;time( 5 ) <br>
+pump $h until $out =~ /expected response/ ||
+$t&minus;&gt;is_expired;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Timers and
+timeouts that are reset get started by <b>start()</b> and
+<b>pump()</b>. Timers change state only in <b>pump()</b>.
+Since <b>run()</b> and <b>finish()</b> both call
+<b>pump()</b>, they act like <b>pump()</b> with respect to
+timers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Timers and
+timeouts have three states: reset, running, and expired.
+Setting the timeout value resets the timer, as does calling
+the <b>reset()</b> method. The <b>start()</b> method starts
+(or restarts) a timer with the most recently set time value,
+no matter what state it&rsquo;s in.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Time
+values</b> <br>
+All time values are in seconds. Times may be any kind of
+perl number, e.g. as integer or floating point seconds,
+optionally preceded by punctuation-separated days, hours,
+and minutes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Examples:</p>
+
+<p style="margin-left:11%; margin-top: 1em">1 1 second <br>
+1.1 1.1 seconds <br>
+60 60 seconds <br>
+1:0 1 minute <br>
+1:1 1 minute, 1 second <br>
+1:90 2 minutes, 30 seconds <br>
+1:2:3:4.5 1 day, 2 hours, 3 minutes, 4.5 seconds <br>
+'inf' the infinity perl special number (the timer never
+finishes)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Absolute
+date/time strings are *not* accepted: year, month and
+day-of-month parsing is not available (patches welcome
+:&minus;).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Interval
+fudging</b> <br>
+When calculating an end time from a start time and an
+interval, IPC::Run::Timer instances add a little fudge
+factor. This is to ensure that no time will expire before
+the interval is up.</p>
+
+<p style="margin-left:11%; margin-top: 1em">First a little
+background. Time is sampled in discrete increments.
+We&rsquo;ll call the exact moment that the reported time
+increments from one interval to the next a tick, and the
+interval between ticks as the time period. Here&rsquo;s a
+diagram of three ticks and the periods between them:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;2&minus;...
+<br>
+^ ^ ^ <br>
+|&lt;&minus;&minus;&minus; period 0
+&minus;&minus;&minus;&minus;&gt;|&lt;&minus;&minus;&minus;
+period 1 &minus;&minus;&minus;&minus;&gt;| <br>
+| | | <br>
+tick 0 tick 1 tick 2</p>
+
+<p style="margin-left:11%; margin-top: 1em">To see why the
+fudge factor is necessary, consider what would happen when a
+timer with an interval of 1 second is started right at the
+end of period 0:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;2&minus;...
+<br>
+^ ^ ^ ^ <br>
+| | | | <br>
+| | | | <br>
+tick 0 |tick 1 tick 2 <br>
+| <br>
+start $t</p>
+
+<p style="margin-left:11%; margin-top: 1em">Assuming that
+<b>check()</b> is called many times per period, then the
+timer is likely to expire just after tick 1, since the time
+reported will have lept from the value &rsquo;0&rsquo; to
+the value &rsquo;1&rsquo;:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;0&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;1&minus;2&minus;...
+<br>
+^ ^ ^ ^ ^ <br>
+| | | | | <br>
+| | | | | <br>
+tick 0 |tick 1| tick 2 <br>
+| | <br>
+start $t | <br>
+| <br>
+check $t</p>
+
+<p style="margin-left:11%; margin-top: 1em">Adding a fudge
+of &rsquo;1&rsquo; in this example means that the timer is
+guaranteed not to expire before tick 2.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The fudge is
+not added to an interval of &rsquo;0&rsquo;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This means that
+intervals guarantee a minimum interval. Given that the
+process running perl may be suspended for some period of
+time, or that it gets busy doing something time-consuming,
+there are no other guarantees on how long it will take a
+timer to expire.</p>
+
+<h2>SUBCLASSING
+<a name="SUBCLASSING"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>INCOMPATIBLE
+CHANGE:</small> Due to the awkwardness introduced by ripping
+pseudohashes out of Perl, this class <i>no longer</i> uses
+the fields pragma.</p>
+
+<h2>FUNCTIONS &amp; METHODS
+<a name="FUNCTIONS &amp; METHODS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">timer</p>
+
+<p style="margin-left:17%;">A constructor function (not
+method) of IPC::Run::Timer instances:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$t = timer( 5
+); <br>
+$t = timer( 5, name =&gt; 'stall timer', debug =&gt; 1 );
+<br>
+$t = timer; <br>
+$t&minus;&gt;interval( 5 ); <br>
+run ..., $t; <br>
+run ..., $t = timer( 5 );</p>
+
+<p style="margin-left:17%; margin-top: 1em">This
+convenience function is a shortened spelling of</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">IPC::Run::Timer&minus;&gt;new(
+... );</p>
+
+<p style="margin-left:17%; margin-top: 1em">. It returns a
+timer in the reset state with a given interval.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If an exception
+is provided, it will be thrown when the timer notices that
+it has expired (in <b>check()</b>). The name is for
+debugging usage, if you plan on having multiple timers
+around. If no name is provided, a name like &quot;timer
+#1&quot; will be provided.</p>
+
+<p style="margin-left:11%;">timeout</p>
+
+<p style="margin-left:17%;">A constructor function (not
+method) of IPC::Run::Timer instances:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$t = timeout( 5
+); <br>
+$t = timeout( 5, exception =&gt; &quot;kablooey&quot; );
+<br>
+$t = timeout( 5, name =&gt; &quot;stall&quot;, exception
+=&gt; &quot;kablooey&quot; ); <br>
+$t = timeout; <br>
+$t&minus;&gt;interval( 5 ); <br>
+run ..., $t; <br>
+run ..., $t = timeout( 5 );</p>
+
+<p style="margin-left:17%; margin-top: 1em">A This
+convenience function is a shortened spelling of</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">IPC::Run::Timer&minus;&gt;new(
+exception =&gt; &quot;IPC::Run: timeout ...&quot;, ...
+);</p>
+
+<p style="margin-left:17%; margin-top: 1em">. It returns a
+timer in the reset state that will throw an exception when
+it expires.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Takes the same
+parameters as &quot;timer&quot;, any exception passed in
+overrides the default exception.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>new</p></td>
+<td width="7%"></td>
+<td width="38%">
+
+
+<p>IPC::Run::Timer&minus;&gt;new() ;</p></td>
+<td width="40%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%;">IPC::Run::Timer&minus;&gt;new(
+5 ) ; <br>
+IPC::Run::Timer&minus;&gt;new( 5, exception =&gt; 'kablooey'
+) ;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Constructor.
+See &quot;timer&quot; for details.</p>
+
+<p style="margin-left:11%;">check</p>
+
+<p style="margin-left:17%;">check $t; <br>
+check $t, $now; <br>
+$t&minus;&gt;check;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Checks to see
+if a timer has expired since the last check. Has no effect
+on non-running timers. This will throw an exception if one
+is defined.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>IPC::Run::pump()</b>
+calls this routine for any timers in the harness.</p>
+
+<p style="margin-left:17%; margin-top: 1em">You may pass in
+a version of now, which is useful in case you have it lying
+around or you want to check several timers with a consistent
+concept of the current time.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+time left before end_time or 0 if end_time is no longer in
+the future or the timer is not running (unless, of course,
+<b>check() expire()</b>s the timer and this results in an
+exception being thrown).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns undef
+if the timer is not running on entry, 0 if <b>check()</b>
+expires it, and the time left if it&rsquo;s left
+running.</p>
+
+<p style="margin-left:11%;">debug</p>
+
+<p style="margin-left:17%;">Sets/gets the current setting
+of the debugging flag for this timer. This has no effect if
+debugging is not enabled for the current harness.</p>
+
+<p style="margin-left:11%;">end_time</p>
+
+<p style="margin-left:17%;">$et = $t&minus;&gt;end_time;
+<br>
+$et = end_time $t; <br>
+$t&minus;&gt;end_time( time + 10 );</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+time when this timer will or did expire. Even if this time
+is in the past, the timer may not be expired, since
+<b>check()</b> may not have been called yet.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that this
+end_time is not start_time($t) + interval($t), since some
+small extra amount of time is added to make sure that the
+timer does not expire before <b>interval()</b> elapses. If
+this were not so, then</p>
+
+<p style="margin-left:17%; margin-top: 1em">Changing
+<b>end_time()</b> while a timer is running will set the
+expiration time. Changing it while it is expired has no
+affect, since <b>reset()</b>ing a timer always clears the
+<b>end_time()</b>.</p>
+
+<p style="margin-left:11%;">exception</p>
+
+<p style="margin-left:17%;">$x = $t&minus;&gt;exception;
+<br>
+$t&minus;&gt;exception( $x ); <br>
+$t&minus;&gt;exception( undef );</p>
+
+<p style="margin-left:17%; margin-top: 1em">Sets/gets the
+exception to throw, if any. &rsquo;undef&rsquo; means that
+no exception will be thrown. Exception does not need to be a
+scalar: you may ask that references be thrown.</p>
+
+<p style="margin-left:11%;">interval</p>
+
+<p style="margin-left:17%;">$i = interval $t; <br>
+$i = $t&minus;&gt;interval; <br>
+$t&minus;&gt;interval( $i );</p>
+
+<p style="margin-left:17%; margin-top: 1em">Sets the
+interval. Sets the end time based on the <b>start_time()</b>
+and the interval (and a little fudge) if the timer is
+running.</p>
+
+<p style="margin-left:11%;">expire</p>
+
+<p style="margin-left:17%;">expire $t; <br>
+$t&minus;&gt;expire;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Sets the state
+to expired (undef). Will throw an exception if one is
+defined and the timer was not already expired. You can
+expire a reset timer without starting it.</p>
+
+<p style="margin-left:11%;">is_running <br>
+is_reset <br>
+is_expired <br>
+name</p>
+
+<p style="margin-left:17%;">Sets/gets this timer&rsquo;s
+name. The name is only used for debugging purposes so you
+can tell which freakin&rsquo; timer is doing what.</p>
+
+<p style="margin-left:11%;">reset</p>
+
+<p style="margin-left:17%;">reset $t; <br>
+$t&minus;&gt;reset;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Resets the
+timer to the non-running, non-expired state and clears the
+<b>end_time()</b>.</p>
+
+<p style="margin-left:11%;">start</p>
+
+<p style="margin-left:17%;">start $t; <br>
+$t&minus;&gt;start; <br>
+start $t, $interval; <br>
+start $t, $interval, $now;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Starts or
+restarts a timer. This always sets the start_time. It sets
+the end_time based on the interval if the timer is running
+or if no end time has been set.</p>
+
+<p style="margin-left:17%; margin-top: 1em">You may pass an
+optional interval or current time value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Not passing a
+defined interval causes the previous interval setting to be
+re-used unless the timer is reset and an end_time has been
+set (an exception is thrown if no interval has been
+set).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Not passing a
+defined current time value causes the current time to be
+used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Passing a
+current time value is useful if you happen to have a time
+value lying around or if you want to make sure that several
+timers are started with the same concept of start time. You
+might even need to lie to an IPC::Run::Timer,
+occasionally.</p>
+
+<p style="margin-left:11%;">start_time</p>
+
+<p style="margin-left:17%;">Sets/gets the start time, in
+seconds since the epoch. Setting this manually is a bad
+idea, it&rsquo;s better to call &quot;start&quot;() at the
+correct time.</p>
+
+<p style="margin-left:11%;">state</p>
+
+<p style="margin-left:17%;">$s = state $t; <br>
+$t&minus;&gt;state( $s );</p>
+
+<p style="margin-left:17%; margin-top: 1em">Get/Set the
+current state. Only use this if you really need to transfer
+the state to/from some variable. Use &quot;expire&quot;,
+&quot;start&quot;, &quot;reset&quot;,
+&quot;is_expired&quot;, &quot;is_running&quot;,
+&quot;is_reset&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note: Setting
+the state to &rsquo;undef&rsquo; to expire a timer will not
+throw an exception.</p>
+
+<h2>TODO
+<a name="TODO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Time::HiRes; if it&rsquo;s present.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Add detection
+and parsing of [[[ <small>HH:</small> ]MM:]SS formatted
+times and intervals.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Barrie
+Slaymaker &lt;barries@slaysys.com&gt;</p>
+<hr>
+</body>
+</html>

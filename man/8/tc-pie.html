@@ -1,0 +1,222 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:07 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PIE</title>
+
+</head>
+<body>
+<h1>tc-pie</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">PIE &minus;
+Proportional Integral controller-Enhanced AQM algorithm</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tc qdisc ...
+pie</b> [ <b>limit</b> PACKETS ] [ <b>target</b> TIME ] [
+<b>tupdate</b> TIME ] [ <b>alpha</b> int ] [ <b>beta</b> int
+] [ <b>ecn</b> | <b>noecn</b> ] [ <b>bytemode</b> |
+<b>nobytemode</b> ] [ <b>dq_rate_estimator</b> |
+<b>no_dq_rate_estimator</b> ]</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Proportional
+Integral controller-Enhanced (PIE) is a control theoretic
+active queue management scheme. It is based on the
+proportional integral controller but aims to control delay.
+The main design goals are <br>
+o Low latency control <br>
+o High link utilization <br>
+o Simple implementation <br>
+o Guaranteed stability and fast responsiveness</p>
+
+<h2>ALGORITHM
+<a name="ALGORITHM"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">PIE is designed
+to control delay effectively. First, an average dequeue rate
+is estimated based on the standing queue. The rate is used
+to calculate the current delay. Then, on a periodic basis,
+the delay is used to calculate the dropping probability.
+Finally, on arrival, a packet is dropped (or marked) based
+on this probability.</p>
+
+<p style="margin-left:11%; margin-top: 1em">PIE makes
+adjustments to the probability based on the trend of the
+delay i.e. whether it is going up or down.The delay
+converges quickly to the target value specified.</p>
+
+<p style="margin-left:11%; margin-top: 1em">alpha and beta
+are statically chosen parameters chosen to control the drop
+probability growth and are determined through control
+theoretic approaches. alpha determines how the deviation
+between the current and target latency changes probability.
+beta exerts additional adjustments depending on the latency
+trend.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The drop
+probability is used to mark packets in ecn mode. However, as
+in RED, beyond 10% packets are dropped based on this
+probability. The bytemode is used to drop packets
+proportional to the packet size.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Additional
+details can be found in the paper cited below.</p>
+
+<h2>PARAMETERS
+<a name="PARAMETERS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>limit</b>
+<br>
+limit on the queue size in packets. Incoming packets are
+dropped when this limit is reached. Default is 1000
+packets.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>target</b>
+<br>
+is the expected queue delay. The default target delay is
+15ms.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>tupdate</b>
+<br>
+is the frequency at which the system drop probability is
+calculated. The default is 15ms.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>alpha <br>
+beta</b> <br>
+alpha and beta are parameters chosen to control the drop
+probability. These should be in the range between 0 and
+32.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>ecn |
+noecn</b> <br>
+is used to mark packets instead of dropping. <b>ecn</b> to
+turn on ecn mode, <b>noecn</b> to turn off ecn mode. By
+default, <b>ecn</b> is turned off.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>bytemode |
+nobytemode</b> <br>
+is used to scale drop probability proportional to packet
+size. <b>bytemode</b> to turn on bytemode, <b>nobytemode</b>
+to turn off bytemode. By default, <b>bytemode</b> is turned
+off.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dq_rate_estimator
+| no_dq_rate_estimator</b> <br>
+is used to calculate delay using Little&rsquo;s law.
+<b>dq_rate_estimator</b> to turn on dq_rate_estimator,
+<b>no_dq_rate_estimator</b> to turn off
+no_dq_rate_estimator. By default, <b>dq_rate_estimator</b>
+is turned off.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 root pie <br>
+# tc -s qdisc show <br>
+qdisc pie 8036: dev eth0 root refcnt 2 limit 1000p target
+15.0ms tupdate 16.0ms alpha 2 beta 20 <br>
+Sent 31216108 bytes 20800 pkt (dropped 80, overlimits 0
+requeues 0) <br>
+backlog 16654b 11p requeues 0 <br>
+prob 0.006161 delay 15666us <br>
+pkts_in 20811 overlimit 0 dropped 80 maxq 50 ecn_mark 0</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 root pie dq_rate_estimator <br>
+# tc -s qdisc show <br>
+qdisc pie 8036: dev eth0 root refcnt 2 limit 1000p target
+15.0ms tupdate 16.0ms alpha 2 beta 20 <br>
+Sent 63947420 bytes 42414 pkt (dropped 41, overlimits 0
+requeues 0) <br>
+backlog 271006b 179p requeues 0 <br>
+prob 0.000092 delay 22200us avg_dq_rate 12145996 <br>
+pkts_in 41 overlimit 343 dropped 0 maxq 50 ecn_mark 0</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 root pie limit 100 target 20ms tupdate 30ms ecn
+<br>
+# tc -s qdisc show <br>
+qdisc pie 8036: dev eth0 root refcnt 2 limit 100p target
+20.0ms tupdate 32.0ms alpha 2 beta 20 ecn <br>
+Sent 6591724 bytes 4442 pkt (dropped 27, overlimits 0
+requeues 0) <br>
+backlog 18168b 12p requeues 0 <br>
+prob 0.008845 delay 11348us <br>
+pkts_in 4454 overlimit 0 dropped 27 maxq 65 ecn_mark 0</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 root pie limit 100 target 50ms tupdate 30ms
+bytemode <br>
+# tc -s qdisc show <br>
+qdisc pie 8036: dev eth0 root refcnt 2 limit 100p target
+50.0ms tupdate 32.0ms alpha 2 beta 20 bytemode <br>
+Sent 1616274 bytes 1137 pkt (dropped 0, overlimits 0
+requeues 0) <br>
+backlog 13626b 9p requeues 0 <br>
+prob 0.000000 delay 0us <br>
+pkts_in 1146 overlimit 0 dropped 0 maxq 23 ecn_mark 0</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tc</b>(8),
+<b>tc-codel</b>(8) <b>tc-red</b>(8)</p>
+
+<h2>SOURCES
+<a name="SOURCES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">o RFC 8033:
+https://tools.ietf.org/html/rfc8033</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">PIE was
+implemented by Vijay Subramanian and Mythili Prabhu, also
+the authors of this man page. Please report bugs and
+corrections to the Linux networking development mailing list
+at &lt;netdev@vger.kernel.org&gt;.</p>
+<hr>
+</body>
+</html>

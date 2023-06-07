@@ -1,0 +1,479 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:20 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LIBTRACEFS</title>
+
+</head>
+<body>
+<h1>tracefs_filter_functions</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">tracefs_function_filter,
+tracefs_function_notrace, tracefs_filter_functions &minus;
+Functions to modify the the function trace filters</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;tracefs.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">int
+<b>tracefs_function_filter</b>(struct tracefs_instance
+*<i>instance</i>, const char *<i>filter</i>, const char
+*<i>module</i>, int <i>flags</i>); <br>
+int <b>tracefs_function_notrace</b>(struct tracefs_instance
+*<i>instance</i>, const char *<i>filter</i>, const char
+*<i>module</i>, int <i>flags</i>); <br>
+int <b>tracefs_filter_functions</b>(const char
+*<i>filter</i>, const char *<i>module</i>, char
+***<i>list</i>);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tracefs_function_filter</b>
+and <b>tracefs_function_notrace</b> can be used to limit the
+Linux kernel functions that would be traced by the function
+and function&minus;graph tracers. The
+<b>tracefs_function_filter</b> defines a list of functions
+that can be traced. The <b>tracefs_function_notrace</b>
+defines a list of functions that will not be traced. If a
+function is in both lists, it will not be traced.</p>
+
+<p style="margin-left:11%; margin-top: 1em">They take an
+<i>instance</i> , that can be NULL for the top level
+tracing, <i>filter</i>, a string that represents a filter
+that should be applied to define what functions are to be
+traced, <i>module</i>, to limit the filtering on a specific
+module (or NULL to filter on all functions), <i>flags</i>
+which holds control knobs on how the filters will be handled
+(see <b>FLAGS</b>) section below.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>tracefs_filter_functions</b> returns a list of functions
+that can be filtered on via the <i>filter</i> and
+<i>module</i> that are supplied. If both <i>filter</i> and
+<i>module</i> are NULL then, all available functions that
+can be filtered is returned. On success, <i>list</i> must be
+freed with <b>tracefs_list_free()</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>filter</i> may be either a straight match of a function,
+a glob or regex(3). A glob is where <i>*</i> matches zero or
+more characters, <i>?</i> will match zero or one character,
+and <i>.</i> only matches a period. If the <i>filter</i> is
+determined to be a regex (where it contains anything other
+than alpha numeric characters, or <i>.</i>, <i>*</i>,
+<i>?</i>) the <i>filter</i> will be processed as a regex(3)
+following the rules of regex(3), and <i>.</i> is not a
+period, but will match any one character. To force a regular
+expression, either prefix <i>filter</i> with a <i>^</i> or
+append it with a <i>$</i> as the <i>filter</i> does complete
+matches of the functions anyway.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<i>module</i> is set and <i>filter</i> is NULL, this will
+imply the same as <i>filter</i> being equal to
+&quot;*&quot;. Which will enable all functions for a given
+<i>module</i>. Otherwise the <i>filter</i> may be NULL if a
+previous call to <b>tracefs_function_filter()</b> with the
+same <i>instance</i> had <b>TRACEFS_FL_CONTINUE</b> set and
+this call does not. This is useful to simply commit the
+previous filters. It may also be NULL if
+<b>TRACEFS_FL_RESET</b> is set and the previous call did not
+have the same <i>instance</i> and <b>TRACEFS_FL_CONTINUE</b>
+set. This is useful to just clear the filter.</p>
+
+<h2>FLAGS
+<a name="FLAGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>flags</i> parameter may have the following set, or be
+zero.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>TRACEFS_FL_RESET</b>
+: If <i>flags</i> contains <b>TRACEFS_FL_RESET</b>, then it
+will clear the filters that are currently set before
+applying <i>filter</i>. Otherwise, <i>filter</i> is added to
+the current set of filters already enabled. If this flag is
+set and the previous call to tracefs_function_filter() had
+the same <i>instance</i> and the <b>TRACEFS_FL_CONTINUE</b>
+flag was set, then the function will fail with a return of
+&minus;1 and errno set to EBUSY.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>TRACEFS_FL_CONTINUE</b>
+: If <i>flags</i> contains <b>TRACEFS_FL_CONTINUE</b>, then
+<i>filter</i> will not take effect after a successful call
+to tracefs_function_filter(). This allows for multiple calls
+to tracefs_function_filter() to update the filter function
+and then a single call (one without the
+<b>TRACEFS_FL_CONTINUE</b> flag set) to commit all the
+filters. It can be called multiple times to add more
+filters. A call without this flag set will commit the
+changes before returning (if the <i>filter</i> passed in
+successfully matched). A tracefs_function_filter() call
+after one that had the <b>TRACEFS_FL_CONTINUE</b> flag set
+for the same instance will fail if <b>TRACEFS_FL_RESET</b>
+flag is set, as the reset flag is only applicable for the
+first filter to be added before committing.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>TRACEFS_FL_FUTURE</b>
+: If <i>flags</i> contains <b>TRACEFS_FL_FUTURE</b> and
+<i>module</i> holds a string of a module, then if the module
+is not loaded it will attemp to write the filter with the
+module in the filter file. Starting in Linux v4.13 module
+functions could be added to the filter before they are
+loaded. The filter will be cached, and when the module is
+loaded, the filter will be set before the module executes,
+allowing to trace init functions of a module. This will only
+work if the <i>filter</i> is not a regular expression.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">For
+<b>tracefs_function_filter()</b> and
+<b>tracefs_function_notrace()</b> a return of 0 means
+success. If the there is an error but the filtering was not
+started, then 1 is returned. If filtering was started but an
+error occurs, then &minus;1 is returned. The state of the
+filtering may be in an unknown state.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<b>TRACEFS_FL_CONTINUE</b> was set, and 0 or &minus;1 was
+returned, then another call to
+<b>tracefs_function_filter()</b> must be done without
+<b>TRACEFS_FL_CONTINUE</b> set in order to commit (and
+close) the filtering.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+<b>tracefs_filter_functions()</b>, a return of 0 means
+success, and the <i>list</i> parameter is filled with a list
+of function names that matched <i>filter</i> and
+<i>module</i>. <i>list</i> is a string array, where the last
+string pointer in the array is NULL. The <i>list</i> must be
+freed with <b>tracefs_list_free()</b>. On failure, a
+negative is returned, and <i>list</i> is ignored.</p>
+
+<h2>ERRORS
+<a name="ERRORS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tracefs_function_filter</b>()
+can fail with the following errors:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>EINVAL</b>
+The filter is invalid or did not match any functions.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>EBUSY</b>
+The previous call of <b>tracefs_function_filter</b>() was
+called with the same instance and <b>TRACEFS_FL_CONTINUE</b>
+set and the current call had <b>TRACEFS_FL_RESET</b>
+set.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Other errors
+may also happen caused by internal system calls.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em">#include
+&lt;stdio.h&gt; <br>
+#include &lt;errno.h&gt; <br>
+#include &lt;tracefs.h&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">#define INST
+&quot;dummy&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">static const
+char *filters[] = { &quot;run_init_process&quot;,
+&quot;try_to_run_init_process&quot;, &quot;dummy1&quot;,
+NULL };</p>
+
+<p style="margin-left:17%; margin-top: 1em">int main(int
+argc, char *argv[]) <br>
+{ <br>
+struct tracefs_instance *inst =
+tracefs_instance_create(INST); <br>
+char **func_list; <br>
+int ret; <br>
+int i;</p>
+
+<p style="margin-left:17%; margin-top: 1em">if (!inst) {
+<br>
+/* Error creating new trace instance */ <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">if
+(tracefs_filter_functions(&quot;*lock*&quot;, NULL,
+&amp;func_list) &lt; 0) { <br>
+printf(&quot;Failed to read filter functions\n&quot;); <br>
+goto out; <br>
+} <br>
+printf(&quot;Ignoring the following functions:\n&quot;);
+<br>
+for (i = 0; func_list[i]; i++) <br>
+printf(&quot; %s\n&quot;, func_list[i]); <br>
+tracefs_list_free(func_list);</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* Do not trace
+any function with the word &quot;lock&quot; in it */ <br>
+ret = tracefs_function_notrace(inst, &quot;*lock*&quot;,
+NULL, TRACEFS_FL_RESET); <br>
+if (ret) { <br>
+printf(&quot;Failed to set the notrace filter\n&quot;); <br>
+goto out; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">/* First reset
+the filter */ <br>
+ret = tracefs_function_filter(inst, NULL, NULL, <br>
+TRACEFS_FL_RESET | TRACEFS_FL_CONTINUE); <br>
+if (ret) { <br>
+printf(&quot;Failed to reset the filter\n&quot;); <br>
+/* Make sure it is closed, &minus;1 means filter was started
+*/ <br>
+if (ret &lt; 0) <br>
+tracefs_function_filter(inst, NULL, NULL, 0); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">for (i = 0;
+filters[i]; i++) { <br>
+ret = tracefs_function_filter(inst, filters[i], NULL, <br>
+TRACEFS_FL_CONTINUE);</p>
+
+<p style="margin-left:17%; margin-top: 1em">if (ret) { <br>
+if (errno == EINVAL) <br>
+printf(&quot;Filter %s did not match\n&quot;, filters[i]);
+<br>
+else <br>
+printf(&quot;Failed writing %s\n&quot;, filters[i]); <br>
+} <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">ret =
+tracefs_function_filter(inst, &quot;*&quot;,
+&quot;ext4&quot;, 0); <br>
+if (ret) { <br>
+printf(&quot;Failed to set filters for ext4\n&quot;); <br>
+/* Force the function to commit previous filters */ <br>
+tracefs_function_filter(inst, NULL, NULL, 0); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">out: <br>
+tracefs_instance_destroy(inst); <br>
+return ret; <br>
+}</p>
+
+<h2>FILES
+<a name="FILES"></a>
+</h2>
+
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>tracefs.h</b>
+<br>
+Header file to include in order to have access to the
+library APIs. <b><br>
+&minus;ltracefs</b> <br>
+Linker switch to add when building a program that uses the
+library.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>libtracefs</b>(3),
+<b>libtraceevent</b>(3), <b>trace&minus;cmd</b>(1)</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>Steven
+Rostedt</b>
+&lt;<b><font color="#0000FF">rostedt@goodmis.org</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">&gt; <b><br>
+Tzvetomir Stoyanov</b>
+&lt;</font><b><font color="#0000FF">tz.stoyanov@gmail.com</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">&gt; <b><br>
+sameeruddin shaik</b>
+&lt;</font><b><font color="#0000FF">sameeruddin.shaik8@gmail.com</font></b>
+<small><font color="#000000">[3]</font></small>
+<font color="#000000">&gt;</font></p>
+
+<h2>REPORTING BUGS
+<a name="REPORTING BUGS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Report
+bugs to
+&lt;</font><b><font color="#0000FF">linux&minus;trace&minus;devel@vger.kernel.org</font></b>
+<small><font color="#000000">[4]</font></small>
+<font color="#000000">&gt;</font></p>
+
+<h2>LICENSE
+<a name="LICENSE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">libtracefs
+is Free Software licensed under the GNU LGPL 2.1</font></p>
+
+<h2>RESOURCES
+<a name="RESOURCES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><font color="#0000FF">https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/</font></b></p>
+
+<h2>COPYING
+<a name="COPYING"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Copyright
+(C) 2020 VMware, Inc. Free use of this software is granted
+under the terms of the GNU Public License (GPL).</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="29%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">rostedt@goodmis.org</font></p> </td>
+<td width="54%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:rostedt@goodmis.org</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">2.</font></p> </td>
+<td width="2%"></td>
+<td width="32%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">tz.stoyanov@gmail.com</font></p> </td>
+<td width="51%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:tz.stoyanov@gmail.com</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">3.</font></p> </td>
+<td width="2%"></td>
+<td width="43%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">sameeruddin.shaik8@gmail.com</font></p> </td>
+<td width="40%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:sameeruddin.shaik8@gmail.com</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">4.</font></p> </td>
+<td width="2%"></td>
+<td width="51%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">linux-trace-devel@vger.kernel.org</font></p> </td>
+<td width="32%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:linux-trace-devel@vger.kernel.org</font></p>
+<hr>
+</body>
+</html>

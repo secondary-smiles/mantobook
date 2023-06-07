@@ -1,0 +1,269 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:43 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>BT_TRAVERSAL</title>
+
+</head>
+<body>
+<h1>bt_traversal</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">bt_traversal
+&minus; AST traversal/query functions in btparse library</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">AST *
+bt_next_entry (AST * entry_list, <br>
+AST * prev_entry) <br>
+AST * bt_next_field (AST * entry, AST * prev, char ** name)
+<br>
+AST * bt_next_value (AST * head, <br>
+AST * prev, <br>
+bt_nodetype_t * nodetype, <br>
+char ** text) <br>
+bt_metatype_t bt_entry_metatype (AST * entry) <br>
+char * bt_entry_type (AST * entry) <br>
+char * bt_entry_key (AST * entry) <br>
+char * bt_get_text (AST * node)</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The functions
+described here are all used to traverse and query the
+abstract-syntax trees (ASTs) returned by the input functions
+described in bt_input. The three &quot;bt_next&quot;
+functions (&quot;bt_next_entry()&quot;,
+&quot;bt_next_field()&quot;, and
+&quot;bt_next_value()&quot;) are used respectively to
+traverse a list of entries, the list of fields within a
+particular entry, and the list of simple values associated
+with a particular field. The other functions are just used
+to query various nodes in the tree for the useful
+information contained in them.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Traversal
+functions <br>
+bt_next_entry()</b></p>
+
+<p style="margin-left:17%;">AST * bt_next_entry (AST *
+entry_list, <br>
+AST * prev_entry)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Used to
+traverse the linked list of entries returned by
+&quot;bt_parse_file()&quot; (see bt_input). On the first
+call, you should supply &quot;NULL&quot; for
+&quot;prev_entry&quot;, and a pointer to the head of the
+list will be returned. On subsequent calls, pass the
+previous return value as &quot;prev_entry&quot;; the
+function returns the next entry in the list, or
+&quot;NULL&quot; if there are no more entries. Also returns
+&quot;NULL&quot; if either &quot;entry_list&quot; or
+&quot;prev_entry&quot; are improper.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example
+(ignoring error handling and variable declarations):</p>
+
+<p style="margin-left:17%; margin-top: 1em">entries =
+bt_parse_file (filename, options, &amp;status); <br>
+entry = NULL; <br>
+while (entry = bt_next_entry (entries, entry)) <br>
+{ <br>
+/* process entry */ <br>
+}</p>
+
+<p style="margin-left:11%;"><b>bt_next_field()</b></p>
+
+<p style="margin-left:17%;">AST * bt_next_field (AST *
+entry, AST * prev, char ** name)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Used to
+traverse the list of fields in a regular or macro definition
+entry. (You should call &quot;bt_entry_metatype()&quot; to
+determine if you have the right kind of entry before calling
+&quot;bt_next_field()&quot;.) &quot;entry&quot; should be a
+pointer to the <small>AST</small> for a single entry, as
+returned by &quot;bt_parse_entry()&quot;,
+&quot;bt_parse_entry_s()&quot;, or
+&quot;bt_next_entry()&quot;. On the first call, supply
+&quot;NULL&quot; for &quot;prev&quot;;
+&quot;bt_next_field()&quot; will return a pointer to the
+first field in &quot;entry&quot;, or &quot;NULL&quot; if
+&quot;entry&quot; has no fields (for instance, if it&rsquo;s
+a comment or preamble entry). On subsequent calls, pass the
+previous return value as &quot;prev&quot;;
+&quot;bt_next_field()&quot; will keep returning pointers to
+field sub-ASTs as long as it makes sense. These pointers can
+then be passed to &quot;bt_next_value()&quot; or
+&quot;bt_get_text()&quot; to get the field&rsquo;s
+value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example,
+the loop body in the previous example could be:</p>
+
+<p style="margin-left:17%; margin-top: 1em">field = NULL;
+<br>
+while (field = bt_next_field (entry, field,
+&amp;field_name)) <br>
+{ <br>
+/* process field */ <br>
+}</p>
+
+<p style="margin-left:11%;"><b>bt_next_value()</b></p>
+
+<p style="margin-left:17%;">AST * bt_next_value (AST *
+head, <br>
+AST * prev, <br>
+bt_nodetype_t * nodetype, <br>
+char ** text)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Traverses the
+list of simple values that make up the value of a single
+field. (Recall that a simple value is either a quoted
+string, a macro invocation, or a number. A compound value is
+a list of these separated by '#' in the original input.
+Depending on the string post-processing options used when
+the data was parsed, the &quot;list of simple values&quot;
+nature of the original data may be preserved in the
+<small>AST</small> that you&rsquo;re traversing, in which
+case you&rsquo;ll need a &quot;bt_next_value()&quot;
+loop.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;bt_next_value()&quot;
+works much like &quot;bt_next_entry()&quot; and
+&quot;bt_next_field()&quot;: on the first call, you supply
+&quot;NULL&quot; for &quot;prev&quot;, and on subsequent
+calls you supply the previous return value. Returns
+&quot;NULL&quot; when there are no more simple values to
+return. Also sets *nodetype and *text to the corresponding
+information from the simple value node. *nodetype will be
+one of &quot;BTAST_STRING&quot;, &quot;BTAST_MACRO&quot;, or
+&quot;BTAST_NUMBER&quot;; *text will point to the same
+string as the <small>AST</small> node does (it is not copied
+for you), so don&rsquo;t mess with it.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example,
+the loop body in the &quot;bt_next_field()&quot; example
+could be replaced with:</p>
+
+<p style="margin-left:17%; margin-top: 1em">value = NULL;
+<br>
+while (value = bt_next_field (field, value, &amp;nodetype,
+&amp;text)) <br>
+{ <br>
+switch (nodetype) <br>
+{ <br>
+case BTAST_STRING: /* process the string */ <br>
+case BTAST_MACRO: /* process the macro */ <br>
+case BTAST_NUMBER: /* process the number */ <br>
+} <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">See also
+&quot;bt_get_text&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Query
+functions <br>
+bt_entry_metatype()</b></p>
+
+<p style="margin-left:17%;">bt_metatype_t bt_entry_metatype
+(AST * entry)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+metatype of an entry. (Recall that the <i>metatype</i> is an
+enumerated type whose values are derived from the specific
+type of an entry; for instance, an @comment entry has type
+&quot;comment&quot; and metatype &quot;BTE_COMMENT&quot;.
+The type-metatype relationship is similarly obvious for
+&quot;BTE_PREAMBLE&quot;; &quot;BTE_MACRODEF&quot;
+corresponds to @string entries; and &quot;BTE_REGULAR&quot;
+corresponds to any other type.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns
+&quot;BTE_UNKNOWN&quot; if &quot;entry&quot; is invalid
+(i.e., &quot;NULL&quot; or not a pointer to an entry
+<small>AST</small> ).</p>
+
+<p style="margin-left:11%;"><b>bt_entry_type()</b></p>
+
+<p style="margin-left:17%;">char * bt_entry_type (AST *
+entry)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+type of an entry. Recall that the type is the name that
+appears after the '@' character in the original input.
+Returns &quot;NULL&quot; if &quot;entry&quot; is invalid
+(i.e., &quot;NULL&quot; or not a pointer to an entry
+<small>AST</small> ).</p>
+
+<p style="margin-left:11%;"><b>bt_entry_key()</b></p>
+
+<p style="margin-left:17%;">char * bt_entry_key (AST *
+entry)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+citation key of a regular entry. (The citation key is the
+name that appears after the entry-open delimiter in a
+regular entry.) Returns &quot;NULL&quot; if
+&quot;entry&quot; is invalid (i.e., &quot;NULL&quot; or not
+a pointer to the <small>AST</small> for a regular
+entry).</p>
+
+<p style="margin-left:11%;"><b>bt_get_text()</b></p>
+
+<p style="margin-left:17%;">char * bt_get_text (AST *
+node)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Performs all
+string post-processing (macro expansion, concatenation of
+simple values, and whitespace collapsing) of a compound
+value and returns the string that results. Can be called
+either on a field for a regular or macro definition entry
+(as returned by &quot;bt_next_field()&quot;), or on a
+comment or preamble entry. Returns &quot;NULL&quot; if
+called on an invalid <small>AST</small> node.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">btparse,
+bt_input, bt_postprocess</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Greg Ward
+&lt;gward@python.net&gt;</p>
+<hr>
+</body>
+</html>

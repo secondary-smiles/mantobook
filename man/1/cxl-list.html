@@ -1,0 +1,607 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:44 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>CXL&minus;LIST</title>
+
+</head>
+<body>
+<h1>cxl-list</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">cxl-list
+&minus; List platform CXL objects, and their attributes, in
+json.</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>cxl list</i>
+[&lt;options&gt;]</p>
+
+<p style="margin-left:11%; margin-top: 1em">Walk the CXL
+capable device hierarchy in the system and list all device
+instances along with some of their major attributes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Options can be
+specified to limit the output to specific objects. When a
+single object type is specified the return json object is an
+array of just those objects, when multiple objects types are
+specified the returned the returned object may be an array
+of arrays with the inner array named for the given object
+type. The top&minus;level arrays are ellided when the
+objects can nest under a higher object&minus;type in the
+hierararchy. The potential top&minus;level array names and
+their nesting properties are:</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;anon
+memdevs&quot;</p>
+
+<p style="margin-left:17%;">(disabled memory devices) do
+not nest</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;buses&quot;</p>
+
+<p style="margin-left:17%;">do not nest</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;ports&quot;</p>
+
+<p style="margin-left:17%;">nest under buses</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;endpoints&quot;</p>
+
+<p style="margin-left:17%;">nest under ports or buses (if
+ports are not emitted)</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;memdevs&quot;</p>
+
+<p style="margin-left:17%;">nest under endpoints or ports
+(if endpoints are not emitted) or buses (if endpoints and
+ports are not emitted)</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;root
+decoders&quot;</p>
+
+<p style="margin-left:17%;">nest under buses</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;port
+decoders&quot;</p>
+
+<p style="margin-left:17%;">nest under ports, or buses (if
+ports are not emitted)</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;endpoint
+decoders&quot;</p>
+
+<p style="margin-left:17%;">nest under endpoints, or ports
+(if endpoints are not emitted) or buses (if endpoints and
+ports are not emitted)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Filters can by
+specifed as either a single identidier, a space separated
+quoted string, or a comma separated list. When multiple
+filter identifiers are specified within a filter string,
+like &quot;&minus;m mem0,mem1,mem2&quot;, they are combined
+as an <i>OR</i> filter. When multiple filter string types
+are specified, like &quot;&minus;m mem0,mem1,mem2 &minus;p
+port10&quot;, they are combined as an <i>AND</i> filter. So,
+&quot;&minus;m mem0,mem1,mem2 &minus;p port10&quot; would
+only list objects that are beneath port10 AND map mem0,
+mem1, OR mem2.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Given that many
+topology queries seek to answer questions relative to a
+given memdev, buses, ports, endpoints, and decoders can be
+filtered by one or more memdevs. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;P &minus;p switch,endpoint &minus;m mem0 <br>
+[ <br>
+{ <br>
+&quot;port&quot;:&quot;port1&quot;, <br>
+&quot;host&quot;:&quot;ACPI0016:00&quot;, <br>
+&quot;endpoints:port1&quot;:[ <br>
+{ <br>
+&quot;endpoint&quot;:&quot;endpoint2&quot;, <br>
+&quot;host&quot;:&quot;mem0&quot; <br>
+} <br>
+] <br>
+} <br>
+]</p>
+
+<p style="margin-left:11%; margin-top: 1em">Additionally,
+when provisioning new interleave configurations it is useful
+to know which memdevs can be referenced by a given decoder
+like a root decoder, or mapped by a given port if the
+decoders are not configured.</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;Mu &minus;d decoder0.0 <br>
+{ <br>
+&quot;memdev&quot;:&quot;mem0&quot;, <br>
+&quot;pmem_size&quot;:&quot;256.00 MiB (268.44 MB)&quot;,
+<br>
+&quot;serial&quot;:&quot;0&quot;, <br>
+&quot;host&quot;:&quot;0000:35:00.0&quot; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that for
+the &minus;m/&minus;&minus;memdev=,
+&minus;p/&minus;&minus;port=, and
+&minus;e/&minus;&minus;endpoint= filters a host device name
+can be substituted for the CXL object identifier. For
+&minus;m/&minus;&minus;memdev= this is an endpoint PCI
+device name of the form &quot;DDDD:bb:dd.f&quot; (D: Domain
+b: Bus d: Device f: Function) (see /sys/bus/pci/devices),
+for &minus;p/&minus;&minus;port= this is an upstream switch
+port PCI device name of the form &quot;DDDD:bb:dd.f&quot;,
+or a PCI bus name of the form &quot;pciDDDD:bb&quot;, and
+for &minus;e/&minus;&minus;endpoint= the host device is CXL
+memory device object name of the form &quot;memX&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&minus;&minus;human option in addition to reformatting some
+fields to more human friendly strings also unwraps the array
+to reduce the number of lines of output.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;&minus;memdevs <br>
+[ <br>
+{ <br>
+&quot;memdev&quot;:&quot;mem0&quot;, <br>
+&quot;pmem_size&quot;:268435456, <br>
+&quot;serial&quot;:0, <br>
+&quot;host&quot;:&quot;0000:35:00.0&quot; <br>
+} <br>
+]</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;BMu <br>
+[ <br>
+{ <br>
+&quot;anon memdevs&quot;:[ <br>
+{ <br>
+&quot;memdev&quot;:&quot;mem0&quot;, <br>
+&quot;pmem_size&quot;:&quot;256.00 MiB (268.44 MB)&quot;,
+<br>
+&quot;serial&quot;:&quot;0&quot; <br>
+} <br>
+] <br>
+}, <br>
+{ <br>
+&quot;buses&quot;:[ <br>
+{ <br>
+&quot;bus&quot;:&quot;root0&quot;, <br>
+&quot;provider&quot;:&quot;ACPI.CXL&quot; <br>
+} <br>
+] <br>
+} <br>
+]</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;m,
+&minus;&minus;memdev=</p>
+
+<p style="margin-left:17%;">Specify CXL memory device
+name(s) (&quot;mem0&quot;), device id(s) (&quot;0&quot;),
+and/or host device name(s) (&quot;0000:35:00.0&quot;) to
+filter the listing. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;M &minus;&minus;memdev=&quot;0 mem3 5&quot; <br>
+[ <br>
+{ <br>
+&quot;memdev&quot;:&quot;mem0&quot;, <br>
+&quot;pmem_size&quot;:268435456, <br>
+&quot;serial&quot;:0 <br>
+}, <br>
+{ <br>
+&quot;memdev&quot;:&quot;mem3&quot;, <br>
+&quot;pmem_size&quot;:268435456, <br>
+&quot;ram_size&quot;:268435456, <br>
+&quot;serial&quot;:2 <br>
+}, <br>
+{ <br>
+&quot;memdev&quot;:&quot;mem5&quot;, <br>
+&quot;pmem_size&quot;:268435456, <br>
+&quot;ram_size&quot;:268435456, <br>
+&quot;serial&quot;:4 <br>
+} <br>
+]</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;s,
+&minus;&minus;serial=</p>
+
+<p style="margin-left:17%;">Specify CXL memory device
+serial number(s) to filter the listing</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;M,
+&minus;&minus;memdevs</p>
+
+<p style="margin-left:17%;">Include CXL memory devices in
+the listing</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;i,
+&minus;&minus;idle</p>
+
+<p style="margin-left:17%;">Include idle (not enabled /
+zero&minus;sized) devices in the listing</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;H,
+&minus;&minus;health</p>
+
+<p style="margin-left:17%;">Include health information in
+the memdev listing. Example listing:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;m mem0 &minus;H <br>
+[ <br>
+{ <br>
+&quot;memdev&quot;:&quot;mem0&quot;, <br>
+&quot;pmem_size&quot;:268435456, <br>
+&quot;ram_size&quot;:268435456, <br>
+&quot;health&quot;:{ <br>
+&quot;maintenance_needed&quot;:true, <br>
+&quot;performance_degraded&quot;:true, <br>
+&quot;hw_replacement_needed&quot;:true, <br>
+&quot;media_normal&quot;:false, <br>
+&quot;media_not_ready&quot;:false, <br>
+&quot;media_persistence_lost&quot;:false, <br>
+&quot;media_data_lost&quot;:true, <br>
+&quot;media_powerloss_persistence_loss&quot;:false, <br>
+&quot;media_shutdown_persistence_loss&quot;:false, <br>
+&quot;media_persistence_loss_imminent&quot;:false, <br>
+&quot;media_powerloss_data_loss&quot;:false, <br>
+&quot;media_shutdown_data_loss&quot;:false, <br>
+&quot;media_data_loss_imminent&quot;:false, <br>
+&quot;ext_life_used&quot;:&quot;normal&quot;, <br>
+&quot;ext_temperature&quot;:&quot;critical&quot;, <br>
+&quot;ext_corrected_volatile&quot;:&quot;warning&quot;, <br>
+&quot;ext_corrected_persistent&quot;:&quot;normal&quot;,
+<br>
+&quot;life_used_percent&quot;:15, <br>
+&quot;temperature&quot;:25, <br>
+&quot;dirty_shutdowns&quot;:10, <br>
+&quot;volatile_errors&quot;:20, <br>
+&quot;pmem_errors&quot;:30 <br>
+} <br>
+} <br>
+]</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;I,
+&minus;&minus;partition</p>
+
+<p style="margin-left:17%;">Include partition information
+in the memdev listing. Example listing:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;m mem0 &minus;I <br>
+[ <br>
+{ <br>
+&quot;memdev&quot;:&quot;mem0&quot;, <br>
+&quot;ram_size&quot;:273535729664, <br>
+&quot;partition_info&quot;:{ <br>
+&quot;total_size&quot;:273535729664, <br>
+&quot;volatile_only_size&quot;:0, <br>
+&quot;persistent_only_size&quot;:0, <br>
+&quot;partition_alignment_size&quot;:268435456 <br>
+&quot;active_volatile_size&quot;:273535729664, <br>
+&quot;active_persistent_size&quot;:0, <br>
+&quot;next_volatile_size&quot;:0, <br>
+&quot;next_persistent_size&quot;:0, <br>
+} <br>
+} <br>
+]</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;A,
+&minus;&minus;alert&minus;config</p>
+
+<p style="margin-left:17%;">Include alert configuration in
+the memdev listing. Example listing:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;m mem0 &minus;A <br>
+[ <br>
+{ <br>
+&quot;memdev&quot;:&quot;mem0&quot;, <br>
+&quot;pmem_size&quot;:0, <br>
+&quot;ram_size&quot;:273535729664, <br>
+&quot;alert_config&quot;:{ <br>
+&quot;life_used_prog_warn_threshold_valid&quot;:false, <br>
+
+&quot;dev_over_temperature_prog_warn_threshold_valid&quot;:false,
+<br>
+
+&quot;dev_under_temperature_prog_warn_threshold_valid&quot;:false,
+<br>
+
+&quot;corrected_volatile_mem_err_prog_warn_threshold_valid&quot;:true,
+<br>
+
+&quot;corrected_pmem_err_prog_warn_threshold_valid&quot;:false,
+<br>
+&quot;life_used_prog_warn_threshold_writable&quot;:false,
+<br>
+
+&quot;dev_over_temperature_prog_warn_threshold_writable&quot;:false,
+<br>
+
+&quot;dev_under_temperature_prog_warn_threshold_writable&quot;:false,
+<br>
+
+&quot;corrected_volatile_mem_err_prog_warn_threshold_writable&quot;:true,
+<br>
+
+&quot;corrected_pmem_err_prog_warn_threshold_writable&quot;:false,
+<br>
+&quot;life_used_crit_alert_threshold&quot;:0, <br>
+&quot;life_used_prog_warn_threshold&quot;:0, <br>
+&quot;dev_over_temperature_crit_alert_threshold&quot;:0,
+<br>
+&quot;dev_under_temperature_crit_alert_threshold&quot;:0,
+<br>
+&quot;dev_over_temperature_prog_warn_threshold&quot;:0, <br>
+&quot;dev_under_temperature_prog_warn_threshold&quot;:0,
+<br>
+
+&quot;corrected_volatile_mem_err_prog_warn_threshold&quot;:0,
+<br>
+&quot;corrected_pmem_err_prog_warn_threshold&quot;:0 <br>
+}, <br>
+} <br>
+]</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;B,
+&minus;&minus;buses</p>
+
+<p style="margin-left:17%;">Include <i>bus</i> / CXL root
+object(s) in the listing. Typically, on ACPI systems the bus
+object is a singleton associated with the ACPI0017 device,
+but there are test scenerios where there may be multiple CXL
+memory hierarchies.</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;B <br>
+[ <br>
+{ <br>
+&quot;bus&quot;:&quot;root3&quot;, <br>
+&quot;provider&quot;:&quot;cxl_test&quot; <br>
+}, <br>
+{ <br>
+&quot;bus&quot;:&quot;root0&quot;, <br>
+&quot;provider&quot;:&quot;ACPI.CXL&quot; <br>
+} <br>
+]</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;b,
+&minus;&minus;bus=</p>
+
+<p style="margin-left:17%;">Specify CXL root device
+name(s), device id(s), and / or CXL bus provider names to
+filter the listing. The supported provider names are
+&quot;ACPI.CXL&quot; and &quot;cxl_test&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;P,
+&minus;&minus;ports</p>
+
+<p style="margin-left:17%;">Include port objects (CXL /
+PCIe root ports + Upstream Switch Ports) in the listing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;p,
+&minus;&minus;port=</p>
+
+<p style="margin-left:17%;">Specify CXL Port device name(s)
+(&quot;port2&quot;), device id(s) (&quot;2&quot;), host
+device name(s) (&quot;pci0000:34&quot;), and / or port type
+name(s) to filter the listing. The supported port type names
+are &quot;root&quot; and &quot;switch&quot;. Note that a bus
+object is also a port, so the following two syntaxes are
+equivalent:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;B <br>
+# cxl list &minus;P &minus;p root &minus;S</p>
+
+<p style="margin-left:17%; margin-top: 1em">...where the
+'&minus;S/&minus;&minus;single' is required since descendant
+ports are always <br>
+included in a port listing and
+'&minus;S/&minus;&minus;single' stops after listing the <br>
+bus. Additionally, endpoint objects are ports so the
+following commands <br>
+are equivalent, and no '&minus;S/&minus;&minus;single' is
+required as endpoint ports are <br>
+terminal:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;E <br>
+# cxl list &minus;P &minus;p endpoint</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+only 'switch' ports are listed, i.e.</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;P <br>
+# cxl list &minus;P &minus;p switch</p>
+
+<p style="margin-left:17%; margin-top: 1em">...are
+equivalent.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;S,
+&minus;&minus;single</p>
+
+<p style="margin-left:17%;">Specify whether the listing
+should emit all the objects that are descendants of a port
+that matches the port filter, or only direct descendants of
+the individual ports that match the filter. By default all
+descendant objects are listed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;E,
+&minus;&minus;endpoints</p>
+
+<p style="margin-left:17%;">Include endpoint objects (CXL
+Memory Device decoders) in the listing.</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;E <br>
+[ <br>
+{ <br>
+&quot;endpoint&quot;:&quot;endpoint2&quot;, <br>
+&quot;host&quot;:&quot;mem0&quot; <br>
+} <br>
+]</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;e,
+&minus;&minus;endpoint</p>
+
+<p style="margin-left:17%;">Specify CXL endpoint device
+name(s), or device id(s) to filter the emitted
+endpoint(s).</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;D,
+&minus;&minus;decoders</p>
+
+<p style="margin-left:17%;">Include decoder objects (CXL
+Memory decode capability instances in buses, ports, and
+endpoints) in the listing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;d,
+&minus;&minus;decoder</p>
+
+<p style="margin-left:17%;">Specify CXL decoder device
+name(s), device id(s), or decoder type names to filter the
+emitted decoder(s). The format for a decoder name is
+&quot;decoder&lt;port_id&gt;.&lt;instance_id&gt;&quot;. The
+possible decoder type names are &quot;root&quot;,
+&quot;switch&quot;, or &quot;endpoint&quot;, similar to the
+port filter syntax.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;T,
+&minus;&minus;targets</p>
+
+<p style="margin-left:17%;">Extend decoder listings with
+downstream port target information, port and bus listings
+with the downstream port information, and / or regions with
+mapping information.</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cxl list
+&minus;BTu &minus;b ACPI.CXL <br>
+{ <br>
+&quot;bus&quot;:&quot;root0&quot;, <br>
+&quot;provider&quot;:&quot;ACPI.CXL&quot;, <br>
+&quot;nr_dports&quot;:1, <br>
+&quot;dports&quot;:[ <br>
+{ <br>
+&quot;dport&quot;:&quot;ACPI0016:00&quot;, <br>
+&quot;alias&quot;:&quot;pci0000:34&quot;, <br>
+&quot;id&quot;:&quot;0&quot; <br>
+} <br>
+] <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;R,
+&minus;&minus;regions</p>
+
+<p style="margin-left:17%;">Include region objects in the
+listing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;r,
+&minus;&minus;region</p>
+
+<p style="margin-left:17%;">Specify CXL region device
+name(s), or device id(s), to filter the listing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;v,
+&minus;&minus;verbose</p>
+
+<p style="margin-left:17%;">Increase verbosity of the
+output. This can be specified multiple times to be even more
+verbose on the informational and miscellaneous output, and
+can be used to override omitted flags for showing specific
+information. Note that cxl list &minus;&minus;verbose
+&minus;&minus;verbose is equivalent to cxl list
+&minus;vv.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+<b>&minus;v</b> Enable &minus;&minus;memdevs,
+&minus;&minus;regions, &minus;&minus;buses,
+&minus;&minus;ports, &minus;&minus;decoders, and
+&minus;&minus;targets.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+<b>&minus;vv</b> Everything <b>&minus;v</b> provides, plus
+include disabled devices with &minus;&minus;idle.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+<b>&minus;vvv</b> Everything <b>&minus;vv</b> provides, plus
+enable &minus;&minus;health and &minus;&minus;partition.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;debug</p>
+
+<p style="margin-left:17%;">If the cxl tool was built with
+debug enabled, turn on debug messages.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;u,
+&minus;&minus;human</p>
+
+<p style="margin-left:17%;">By default the command will
+output machine&minus;friendly raw&minus;integer data.
+Instead, with this flag, numbers representing storage size
+will be formatted as human readable strings with units,
+other fields are converted to hexadecimal strings.</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+&copy; 2016 &minus; 2022, Intel Corporation. License GPLv2:
+GNU GPL version 2 &lt;http://gnu.org/licenses/gpl.html&gt;.
+This is free software: you are free to change and
+redistribute it. There is NO WARRANTY, to the extent
+permitted by law.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">ndctl&minus;list(1)</p>
+<hr>
+</body>
+</html>

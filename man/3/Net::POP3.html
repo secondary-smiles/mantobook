@@ -1,0 +1,424 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:38 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Net::POP3</title>
+
+</head>
+<body>
+<h1>Net::POP3</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Net::POP3
+&minus; Post Office Protocol 3 Client class (RFC1939)</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use Net::POP3;
+<br>
+# Constructors <br>
+$pop = Net::POP3&minus;&gt;new('pop3host'); <br>
+$pop = Net::POP3&minus;&gt;new('pop3host', Timeout =&gt;
+60); <br>
+$pop = Net::POP3&minus;&gt;new('pop3host', SSL =&gt; 1,
+Timeout =&gt; 60); <br>
+if ($pop&minus;&gt;login($username, $password) &gt; 0) {
+<br>
+my $msgnums = $pop&minus;&gt;list; # hashref of msgnum =&gt;
+size <br>
+foreach my $msgnum (keys %$msgnums) { <br>
+my $msg = $pop&minus;&gt;get($msgnum); <br>
+print @$msg; <br>
+$pop&minus;&gt;delete($msgnum); <br>
+} <br>
+} <br>
+$pop&minus;&gt;quit;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+implements a client interface to the <small>POP3</small>
+protocol, enabling a perl5 application to talk to
+<small>POP3</small> servers. This documentation assumes that
+you are familiar with the <small>POP3</small> protocol
+described in <small>RFC1939.</small> With IO::Socket::SSL
+installed it also provides support for implicit and explicit
+<small>TLS</small> encryption, i.e. <small>POP3S</small> or
+<small>POP3+STARTTLS.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">A new Net::POP3
+object must be created with the <i>new</i> method. Once this
+has been done, all <small>POP3</small> commands are accessed
+via method calls on the object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Net::POP3
+class is a subclass of Net::Cmd and (depending on
+avaibility) of IO::Socket::IP, IO::Socket::INET6 or
+IO::Socket::INET.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Class
+Methods</b> <br>
+&quot;new([$host][, %options])&quot;</p>
+
+<p style="margin-left:17%;">This is the constructor for a
+new Net::POP3 object. $host is the name of the remote host
+to which an <small>POP3</small> connection is required.</p>
+
+<p style="margin-left:17%; margin-top: 1em">$host is
+optional. If $host is not given then it may instead be
+passed as the &quot;Host&quot; option described below. If
+neither is given then the &quot;POP3_Hosts&quot; specified
+in &quot;Net::Config&quot; will be used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">%options are
+passed in a hash like fashion, using key and value pairs.
+Possible options are:</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Host</b>
+&minus; <small>POP3</small> host to connect to. It may be a
+single scalar, as defined for the &quot;PeerAddr&quot;
+option in IO::Socket::INET, or a reference to an array with
+hosts to try in turn. The &quot;host&quot; method will
+return the value which was used to connect to the host.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Port</b>
+&minus; port to connect to. Default &minus; 110 for plain
+<small>POP3</small> and 995 for POP3s (direct
+<small>SSL</small> ).</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>SSL</small></b>
+&minus; If the connection should be done from start with
+<small>SSL,</small> contrary to later upgrade with
+&quot;starttls&quot;. You can use <small>SSL</small>
+arguments as documented in IO::Socket::SSL, but it will
+usually use the right arguments already.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>LocalAddr</b>
+and <b>LocalPort</b> &minus; These parameters are passed
+directly to IO::Socket to allow binding the socket to a
+specific local address and port. For compatibility with
+older versions <b>ResvPort</b> can be used instead of
+<b>LocalPort</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Domain</b>
+&minus; This parameter is passed directly to IO::Socket and
+makes it possible to enforce IPv4 connections even if
+IO::Socket::IP is used as super class. Alternatively
+<b>Family</b> can be used.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Timeout</b>
+&minus; Maximum time, in seconds, to wait for a response
+from the <small>POP3</small> server (default: 120)</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Debug</b>
+&minus; Enable debugging information</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Object
+Methods</b> <br>
+Unless otherwise stated all methods return either a
+<i>true</i> or <i>false</i> value, with <i>true</i> meaning
+that the operation was a success. When a method states that
+it returns a value, failure will be returned as <i>undef</i>
+or an empty list.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Net::POP3&quot;
+inherits from &quot;Net::Cmd&quot; so methods defined in
+&quot;Net::Cmd&quot; may be used to send commands to the
+remote <small>POP3</small> server in addition to the methods
+documented here. <br>
+&quot;host()&quot;</p>
+
+<p style="margin-left:17%;">Returns the value used by the
+constructor, and passed to IO::Socket::INET, to connect to
+the host.</p>
+
+<p style="margin-left:11%;">&quot;auth($username,
+$password)&quot;</p>
+
+<p style="margin-left:17%;">Attempt <small>SASL</small>
+authentication.</p>
+
+<p style="margin-left:11%;">&quot;user($user)&quot;</p>
+
+<p style="margin-left:17%;">Send the <small>USER</small>
+command.</p>
+
+<p style="margin-left:11%;">&quot;pass($pass)&quot;</p>
+
+<p style="margin-left:17%;">Send the <small>PASS</small>
+command. Returns the number of messages in the mailbox.</p>
+
+<p style="margin-left:11%;">&quot;login([$user[,
+$pass]])&quot;</p>
+
+<p style="margin-left:17%;">Send both the
+<small>USER</small> and <small>PASS</small> commands. If
+$pass is not given the &quot;Net::POP3&quot; uses
+&quot;Net::Netrc&quot; to lookup the password using the host
+and username. If the username is not specified then the
+current user name will be used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+number of messages in the mailbox. However if there are no
+messages on the server the string &quot;0E0&quot; will be
+returned. This is will give a true value in a boolean
+context, but zero in a numeric context.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If there was an
+error authenticating the user then <i>undef</i> will be
+returned.</p>
+
+
+<p style="margin-left:11%;">&quot;starttls(%sslargs)&quot;</p>
+
+<p style="margin-left:17%;">Upgrade existing plain
+connection to <small>SSL.</small> You can use
+<small>SSL</small> arguments as documented in
+IO::Socket::SSL, but it will usually use the right arguments
+already.</p>
+
+<p style="margin-left:11%;">&quot;apop([$user[,
+$pass]])&quot;</p>
+
+<p style="margin-left:17%;">Authenticate with the server
+identifying as $user with password $pass. Similar to
+&quot;login&quot;, but the password is not sent in clear
+text.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To use this
+method you must have the Digest::MD5 or the
+<small>MD5</small> module installed, otherwise this method
+will return <i>undef</i>.</p>
+
+<p style="margin-left:11%;">&quot;banner()&quot;</p>
+
+<p style="margin-left:17%;">Return the sever&rsquo;s
+connection banner</p>
+
+<p style="margin-left:11%;">&quot;capa()&quot;</p>
+
+<p style="margin-left:17%;">Return a reference to a hash of
+the capabilities of the server. <small>APOP</small> is added
+as a pseudo capability. Note that I&rsquo;ve been unable to
+find a list of the standard capability values, and some
+appear to be multi-word and some are not. We make an attempt
+at intelligently parsing them, but it may not be
+correct.</p>
+
+<p style="margin-left:11%;">&quot;capabilities()&quot;</p>
+
+<p style="margin-left:17%;">Just like capa, but only uses a
+cache from the last time we asked the server, so as to avoid
+asking more than once.</p>
+
+<p style="margin-left:11%;">&quot;top($msgnum[,
+$numlines])&quot;</p>
+
+<p style="margin-left:17%;">Get the header and the first
+$numlines of the body for the message $msgnum. Returns a
+reference to an array which contains the lines of text read
+from the server.</p>
+
+
+<p style="margin-left:11%;">&quot;list([$msgnum])&quot;</p>
+
+<p style="margin-left:17%;">If called with an argument the
+&quot;list&quot; returns the size of the message in
+octets.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If called
+without arguments a reference to a hash is returned. The
+keys will be the $msgnum&rsquo;s of all undeleted messages
+and the values will be their size in octets.</p>
+
+<p style="margin-left:11%;">&quot;get($msgnum[,
+$fh])&quot;</p>
+
+<p style="margin-left:17%;">Get the message $msgnum from
+the remote mailbox. If $fh is not given then get returns a
+reference to an array which contains the lines of text read
+from the server. If $fh is given then the lines returned
+from the server are printed to the filehandle $fh.</p>
+
+<p style="margin-left:11%;">&quot;getfh($msgnum)&quot;</p>
+
+<p style="margin-left:17%;">As per <b>get()</b>, but
+returns a tied filehandle. Reading from this filehandle
+returns the requested message. The filehandle will return
+<small>EOF</small> at the end of the message and should not
+be reused.</p>
+
+<p style="margin-left:11%;">&quot;last()&quot;</p>
+
+<p style="margin-left:17%;">Returns the highest $msgnum of
+all the messages accessed.</p>
+
+<p style="margin-left:11%;">&quot;popstat()&quot;</p>
+
+<p style="margin-left:17%;">Returns a list of two elements.
+These are the number of undeleted elements and the size of
+the mbox in octets.</p>
+
+<p style="margin-left:11%;">&quot;ping($user)&quot;</p>
+
+<p style="margin-left:17%;">Returns a list of two elements.
+These are the number of new messages and the total number of
+messages for $user.</p>
+
+
+<p style="margin-left:11%;">&quot;uidl([$msgnum])&quot;</p>
+
+<p style="margin-left:17%;">Returns a unique identifier for
+$msgnum if given. If $msgnum is not given &quot;uidl&quot;
+returns a reference to a hash where the keys are the message
+numbers and the values are the unique identifiers.</p>
+
+
+<p style="margin-left:11%;">&quot;delete($msgnum)&quot;</p>
+
+<p style="margin-left:17%;">Mark message $msgnum to be
+deleted from the remote mailbox. All messages that are
+marked to be deleted will be removed from the remote mailbox
+when the server connection closed.</p>
+
+<p style="margin-left:11%;">&quot;reset()&quot;</p>
+
+<p style="margin-left:17%;">Reset the status of the remote
+<small>POP3</small> server. This includes resetting the
+status of all messages to not be deleted.</p>
+
+<p style="margin-left:11%;">&quot;quit()&quot;</p>
+
+<p style="margin-left:17%;">Quit and close the connection
+to the remote <small>POP3</small> server. Any messages
+marked as deleted will be deleted from the remote
+mailbox.</p>
+
+<p style="margin-left:11%;">&quot;can_inet6()&quot;</p>
+
+<p style="margin-left:17%;">Returns whether we can use
+IPv6.</p>
+
+<p style="margin-left:11%;">&quot;can_ssl()&quot;</p>
+
+<p style="margin-left:17%;">Returns whether we can use
+<small>SSL.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Notes</b>
+<br>
+If a &quot;Net::POP3&quot; object goes out of scope before
+&quot;quit&quot; method is called then the &quot;reset&quot;
+method will called before the connection is closed. This
+means that any messages marked to be deleted will not
+be.</p>
+
+<h2>EXPORTS
+<a name="EXPORTS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>None</i>.</p>
+
+<h2>KNOWN BUGS
+<a name="KNOWN BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">See
+&lt;https://rt.cpan.org/Dist/Display.html?Status=Active&amp;Queue=libnet&gt;.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Net::Netrc,
+Net::Cmd, IO::Socket::SSL.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Graham Barr
+&lt;gbarr@pobox.com &lt;mailto:gbarr@pobox.com&gt;&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Steve Hay
+&lt;shay@cpan.org &lt;mailto:shay@cpan.org&gt;&gt; is now
+maintaining libnet as of version 1.22_02.</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (C)
+1995&minus;2004 Graham Barr. All rights reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (C)
+2013&minus;2016, 2020 Steve Hay. All rights reserved.</p>
+
+<h2>LICENCE
+<a name="LICENCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself, i.e. under the terms of
+either the <small>GNU</small> General Public License or the
+Artistic License, as specified in the
+<i><small>LICENCE</small></i> file.</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Version
+3.14</p>
+
+<h2>DATE
+<a name="DATE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">23 Dec 2020</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">See the
+<i>Changes</i> file.</p>
+<hr>
+</body>
+</html>

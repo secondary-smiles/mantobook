@@ -1,0 +1,689 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:43 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>XML::LibXSLT</title>
+
+</head>
+<body>
+<h1>XML::LibXSLT</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">XML::LibXSLT
+&minus; Interface to the GNOME libxslt library</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+XML::LibXSLT; <br>
+use XML::LibXML; <br>
+my $xslt = XML::LibXSLT&minus;&gt;new(); <br>
+my $source = XML::LibXML&minus;&gt;load_xml(location =&gt;
+'foo.xml'); <br>
+my $style_doc =
+XML::LibXML&minus;&gt;load_xml(location=&gt;'bar.xsl',
+no_cdata=&gt;1); <br>
+my $stylesheet =
+$xslt&minus;&gt;parse_stylesheet($style_doc); <br>
+my $results = $stylesheet&minus;&gt;transform($source); <br>
+print $stylesheet&minus;&gt;output_as_bytes($results);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module is
+an interface to the <small>GNOME</small> project&rsquo;s
+libxslt. This is an extremely good <small>XSLT</small>
+engine, highly compliant and also very fast. I have tests
+showing this to be more than twice as fast as Sablotron.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">XML::LibXSLT
+has some global options. Note that these are probably not
+thread or even fork safe &minus; so only set them once per
+process. Each one of these options can be called either as
+class methods, or as instance methods. However either way
+you call them, it still sets global options.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each of the
+option methods returns its previous value, and can be called
+without a parameter to retrieve the current value. <br>
+max_depth</p>
+
+
+<p style="margin-left:17%;">XML::LibXSLT&minus;&gt;max_depth(1000);</p>
+
+<p style="margin-left:17%; margin-top: 1em">This option
+sets the maximum recursion depth for a stylesheet. See the
+very end of section 5.4 of the <small>XSLT</small>
+specification for more details on recursion and detecting
+it. If your stylesheet or <small>XML</small> file requires
+seriously deep recursion, this is the way to set it. Default
+value is 250.</p>
+
+<p style="margin-left:11%;">max_vars</p>
+
+
+<p style="margin-left:17%;">XML::LibXSLT&minus;&gt;max_vars(100_000);</p>
+
+<p style="margin-left:17%; margin-top: 1em">This option
+sets the maximum number of variables for a stylesheet. If
+your stylesheet or <small>XML</small> file requires many
+variables, this is the way to increase their limit. Default
+value is system-specific and may vary.</p>
+
+<p style="margin-left:11%;">debug_callback</p>
+
+
+<p style="margin-left:17%;">XML::LibXSLT&minus;&gt;debug_callback($subref);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Sets a callback
+to be used for debug messages. If you don&rsquo;t set this,
+debug messages will be ignored.</p>
+
+<p style="margin-left:11%;">register_function</p>
+
+
+<p style="margin-left:17%;">XML::LibXSLT&minus;&gt;register_function($uri,
+$name, $subref); <br>
+$stylesheet&minus;&gt;register_function($uri, $name,
+$subref);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Registers an
+<small>XSLT</small> extension function mapped to the given
+<small>URI.</small> For example:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">XML::LibXSLT&minus;&gt;register_function(&quot;urn:foo&quot;,
+&quot;bar&quot;, <br>
+sub { scalar localtime });</p>
+
+<p style="margin-left:17%; margin-top: 1em">Will register a
+&quot;bar&quot; function in the &quot;urn:foo&quot;
+namespace (which you have to define in your
+<small>XSLT</small> using &quot;xmlns:...&quot;) that will
+return the current date and time as a string:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&lt;xsl:stylesheet
+version=&quot;1.0&quot; <br>
+xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot;
+<br>
+xmlns:foo=&quot;urn:foo&quot;&gt; <br>
+&lt;xsl:template match=&quot;/&quot;&gt; <br>
+The time is: &lt;xsl:value&minus;of
+select=&quot;foo:bar()&quot;/&gt; <br>
+&lt;/xsl:template&gt; <br>
+&lt;/xsl:stylesheet&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Parameters can
+be in whatever format you like. If you pass in a nodelist it
+will be a XML::LibXML::NodeList object in your perl code,
+but ordinary values (strings, numbers and booleans) will be
+ordinary perl scalars. If you wish them to be
+&quot;XML::LibXML::Literal&quot;,
+&quot;XML::LibXML::Number&quot; and
+&quot;XML::LibXML::Number&quot; values respectively then set
+the variable $XML::LibXSLT::USE_LIBXML_DATA_TYPES to a true
+value. Return values can be a nodelist or a plain value
+&minus; the code will just do the right thing. But only a
+single return value is supported (a list is not converted to
+a nodelist).</p>
+
+<p style="margin-left:11%;">register_element</p>
+
+
+<p style="margin-left:17%;">$stylesheet&minus;&gt;register_element($uri,
+$name, $subref)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Registers an
+<small>XSLT</small> extension element $name mapped to the
+given <small>URI.</small> For example:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$stylesheet&minus;&gt;register_element(&quot;urn:foo&quot;,
+&quot;hello&quot;, sub { <br>
+my $name = $_[2]&minus;&gt;getAttribute( &quot;name&quot; );
+<br>
+return XML::LibXML::Text&minus;&gt;new( &quot;Hello,
+$name!&quot; ); <br>
+});</p>
+
+<p style="margin-left:17%; margin-top: 1em">Will register a
+&quot;hello&quot; element in the &quot;urn:foo&quot;
+namespace that returns a &quot;Hello, X!&quot; text node.
+You must define this namespace in your <small>XSLT</small>
+and include its prefix in the
+&quot;extension&minus;element&minus;prefixes&quot; list:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&lt;xsl:stylesheet
+version=&quot;1.0&quot; <br>
+xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot;
+<br>
+xmlns:foo=&quot;urn:foo&quot; <br>
+extension&minus;element&minus;prefixes=&quot;foo&quot;&gt;
+<br>
+&lt;xsl:template match=&quot;/&quot;&gt; <br>
+&lt;foo:hello name=&quot;bob&quot;/&gt; <br>
+&lt;/xsl:template&gt; <br>
+&lt;/xsl:stylesheet&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">The callback is
+passed the input document node as $_[1] and the stylesheet
+node as $_[2]. $_[0] is reserved for future use.</p>
+
+<h2>API
+<a name="API"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+methods are available on the new XML::LibXSLT object: <br>
+parse_stylesheet($stylesheet_doc)</p>
+
+<p style="margin-left:17%;">$stylesheet_doc here is an
+XML::LibXML::Document object (see XML::LibXML) representing
+an <small>XSLT</small> file. This method will return a
+XML::LibXSLT::Stylesheet object, or undef on failure. If the
+<small>XSLT</small> is invalid, an exception will be thrown,
+so wrap the call to parse_stylesheet in an eval{} block to
+trap this.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>IMPORTANT:</small>
+$stylesheet_doc should not contain <small>CDATA</small>
+sections, otherwise libxslt may misbehave. The best way to
+assure this is to load the stylesheet with no_cdata flag,
+e.g.</p>
+
+<p style="margin-left:17%; margin-top: 1em">my
+$stylesheet_doc =
+XML::LibXML&minus;&gt;load_xml(location=&gt;&quot;some.xsl&quot;,
+no_cdata=&gt;1);</p>
+
+
+<p style="margin-left:11%;">parse_stylesheet_file($filename)</p>
+
+<p style="margin-left:17%;">Exactly the same as the above,
+but parses the given filename directly.</p>
+
+<h2>Input Callbacks
+<a name="Input Callbacks"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">To define
+XML::LibXSLT or XML::LibXSLT::Stylesheet specific input
+callbacks, reuse the XML::LibXML input callback
+<small>API</small> as described in
+<b>XML::LibXML::InputCallback</b>(3). <br>
+input_callbacks($icb)</p>
+
+<p style="margin-left:17%;">Enable the callbacks in $icb
+only for this XML::LibXSLT object. $icb should be a
+&quot;XML::LibXML::InputCallback&quot; object. This will
+call &quot;init_callbacks&quot; and
+&quot;cleanup_callbacks&quot; automatically during parsing
+or transformation.</p>
+
+<h2>Security Callbacks
+<a name="Security Callbacks"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">To create
+security preferences for the transformation see
+XML::LibXSLT::Security. Once the security preferences have
+been defined you can apply them to an XML::LibXSLT or
+XML::LibXSLT::Stylesheet instance using the
+&quot;security_callbacks()&quot; method.</p>
+
+<h2>XML::LibXSLT::Stylesheet
+<a name="XML::LibXSLT::Stylesheet"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The main
+<small>API</small> is on the stylesheet, though it is fairly
+minimal.</p>
+
+<p style="margin-left:11%; margin-top: 1em">One of the main
+advantages of XML::LibXSLT is that you have a generic
+stylesheet object which you call the <b>transform()</b>
+method passing in a document to transform. This allows you
+to have multiple transformations happen with one stylesheet
+without requiring a reparse. <br>
+transform(doc, %params)</p>
+
+<p style="margin-left:17%;">my $results =
+$stylesheet&minus;&gt;transform($doc, foo =&gt;
+&quot;'bar'&quot;); <br>
+print $stylesheet&minus;&gt;output_as_bytes($results);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Transforms the
+passed in XML::LibXML::Document object, and returns a new
+XML::LibXML::Document. Extra hash entries are used as
+parameters. Be sure to keep in mind the caveat with regard
+to quotes explained in the section on &quot;Parameters&quot;
+below.</p>
+
+<p style="margin-left:11%;">transform_file(filename,
+%params)</p>
+
+<p style="margin-left:17%;">my $results =
+$stylesheet&minus;&gt;transform_file($filename, bar =&gt;
+&quot;'baz'&quot;);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note the string
+parameter caveat, detailed in the section on
+&quot;Parameters&quot; below.</p>
+
+<p style="margin-left:11%;">output_as_bytes(result)</p>
+
+<p style="margin-left:17%;">Returns a scalar that is the
+<small>XSLT</small> rendering of the XML::LibXML::Document
+object using the desired output format (specified in the
+xsl:output tag in the stylesheet). Note that you can also
+call $result&minus;&gt;toString, but that will *always*
+output the document in <small>XML</small> format which may
+not be what you asked for in the xsl:output tag. The scalar
+is a byte string encoded in the output encoding specified in
+the stylesheet.</p>
+
+<p style="margin-left:11%;">output_as_chars(result)</p>
+
+<p style="margin-left:17%;">Like
+&quot;output_as_bytes(result)&quot;, but always return the
+output as ( <small>UTF&minus;8</small> encoded) string of
+characters.</p>
+
+<p style="margin-left:11%;">output_string(result)</p>
+
+<p style="margin-left:17%;"><small>DEPRECATED:</small> This
+method is something between
+&quot;output_as_bytes(result)&quot; and
+&quot;output_as_bytes(result)&quot;: The scalar returned by
+this function appears to Perl as characters (
+<small>UTF8</small> flag is on) if the output encoding
+specified in the <small>XSLT</small> stylesheet was
+<small>UTF&minus;8</small> and as bytes if no output
+encoding was specified or if the output encoding was other
+than <small>UTF&minus;8.</small> Since the behavior of this
+function depends on the particular stylesheet, it is
+deprecated in favor of &quot;output_as_bytes(result)&quot;
+and &quot;output_as_chars(result)&quot;.</p>
+
+<p style="margin-left:11%;">output_fh(result, fh)</p>
+
+<p style="margin-left:17%;">Outputs the result to the
+filehandle given in $fh.</p>
+
+<p style="margin-left:11%;">output_file(result,
+filename)</p>
+
+<p style="margin-left:17%;">Outputs the result to the file
+named in $filename.</p>
+
+<p style="margin-left:11%;"><b>output_encoding()</b></p>
+
+<p style="margin-left:17%;">Returns the output encoding of
+the results. Defaults to &quot;
+<small>UTF&minus;8&quot;.</small></p>
+
+<p style="margin-left:11%;"><b>output_method()</b></p>
+
+<p style="margin-left:17%;">Returns the value of the
+&quot;method&quot; attribute from &quot;xsl:output&quot;
+(usually &quot;xml&quot;, &quot;html&quot; or
+&quot;text&quot;). If this attribute is unspecified, the
+default value is initially &quot;xml&quot;. If the transform
+method is used to produce an <small>HTML</small> document,
+as per the <small>XSLT</small> spec
+&lt;http://www.w3.org/TR/xslt#output&gt;, the default value
+will change to &quot;html&quot;. To override this behavior
+completely, supply an &quot;xsl:output&quot; element in the
+stylesheet source document.</p>
+
+<p style="margin-left:11%;"><b>media_type()</b></p>
+
+<p style="margin-left:17%;">Returns the value of the
+&quot;media&minus;type&quot; attribute from
+&quot;xsl:output&quot;. If this attribute is unspecified,
+the default media type is initially &quot;text/xml&quot;.
+This default changes to &quot;text/html&quot; under the same
+conditions as output_method.</p>
+
+<p style="margin-left:11%;">input_callbacks($icb)</p>
+
+<p style="margin-left:17%;">Enable the callbacks in $icb
+only for this stylesheet. $icb should be a
+&quot;XML::LibXML::InputCallback&quot; object. This will
+call &quot;init_callbacks&quot; and
+&quot;cleanup_callbacks&quot; automatically during
+transformation.</p>
+
+<p style="margin-left:11%;">transform_into_chars(doc,
+%params)</p>
+
+<p style="margin-left:17%;">Combines
+&quot;transform()&quot; and
+&quot;output_as_chars()&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">(Added in
+version 2.0000 .)</p>
+
+<h2>Parameters
+<a name="Parameters"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">LibXSLT expects
+parameters in XPath format. That is, if you wish to pass a
+string to the <small>XSLT</small> engine, you actually have
+to pass it as a quoted string:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$stylesheet&minus;&gt;transform($doc,
+param =&gt; &quot;'string'&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note the quotes
+within quotes there!</p>
+
+<p style="margin-left:11%; margin-top: 1em">Obviously this
+isn&rsquo;t much fun, so you can make it easy on
+yourself:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$stylesheet&minus;&gt;transform($doc,
+XML::LibXSLT::xpath_to_string( <br>
+param =&gt; &quot;string&quot; <br>
+));</p>
+
+<p style="margin-left:11%; margin-top: 1em">The utility
+function does the right thing with respect to strings in
+XPath, including when you have quotes already embedded
+within your string.</p>
+
+<h2>XML::LibXSLT::Security
+<a name="XML::LibXSLT::Security"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Provides an
+interface to the libxslt security framework by allowing
+callbacks to be defined that can restrict access to various
+resources (files or URLs) during a transformation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The libxslt
+security framework allows callbacks to be defined for
+certain actions that a stylesheet may attempt during a
+transformation. It may be desirable to restrict some of
+these actions (for example, writing a new file using
+exsl:document). The actions that may be restricted are: <br>
+read_file</p>
+
+<p style="margin-left:17%;">Called when the stylesheet
+attempts to open a local file (ie: when using the
+<b>document()</b> function).</p>
+
+<p style="margin-left:11%;">write_file</p>
+
+<p style="margin-left:17%;">Called when an attempt is made
+to write a local file (ie: when using the exsl:document
+element).</p>
+
+<p style="margin-left:11%;">create_dir</p>
+
+<p style="margin-left:17%;">Called when a directory needs
+to be created in order to write a file.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>NOTE:</small>
+By default, create_dir is not allowed. To enable it a
+callback must be registered.</p>
+
+<p style="margin-left:11%;">read_net</p>
+
+<p style="margin-left:17%;">Called when the stylesheet
+attempts to read from the network.</p>
+
+<p style="margin-left:11%;">write_net</p>
+
+<p style="margin-left:17%;">Called when the stylesheet
+attempts to write to the network.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Using
+XML::LibXSLT::Security</b> <br>
+The interface for this module is similar to
+XML::LibXML::InputCallback. After creating a new instance
+you may register callbacks for each of the security options
+listed above. Then you apply the security preferences to the
+XML::LibXSLT or XML::LibXSLT::Stylesheet object using
+&quot;security_callbacks()&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $security =
+XML::LibXSLT::Security&minus;&gt;new(); <br>
+$security&minus;&gt;register_callback( read_file =&gt;
+$read_cb ); <br>
+$security&minus;&gt;register_callback( write_file =&gt;
+$write_cb ); <br>
+$security&minus;&gt;register_callback( create_dir =&gt;
+$create_cb ); <br>
+$security&minus;&gt;register_callback( read_net =&gt;
+$read_net_cb ); <br>
+$security&minus;&gt;register_callback( write_net =&gt;
+$write_net_cb ); <br>
+$xslt&minus;&gt;security_callbacks( $security ); <br>
+&minus;OR&minus; <br>
+$stylesheet&minus;&gt;security_callbacks( $security );</p>
+
+<p style="margin-left:11%; margin-top: 1em">The registered
+callback functions are called when access to a resource is
+requested. If the access should be allowed the callback
+should return 1, if not it should return 0. The callback
+functions should accept the following arguments: <br>
+$tctxt</p>
+
+<p style="margin-left:17%;">This is the transform context
+(XML::LibXSLT::TransformContext). You can use this to get
+the current XML::LibXSLT::Stylesheet object by calling
+&quot;stylesheet()&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $stylesheet
+= $tctxt&minus;&gt;stylesheet();</p>
+
+<p style="margin-left:17%; margin-top: 1em">The stylesheet
+object can then be used to share contextual information
+between different calls to the security callbacks.</p>
+
+<p style="margin-left:11%;">$value</p>
+
+<p style="margin-left:17%;">This is the name of the
+resource (file or <small>URI</small> ) that has been
+requested.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a particular
+option (except for &quot;create_dir&quot;) doesn&rsquo;t
+have a registered callback, then the stylesheet will have
+full access for that action.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Interface
+<br>
+new()</b></p>
+
+<p style="margin-left:17%;">Creates a new
+XML::LibXSLT::Security object.</p>
+
+<p style="margin-left:11%;">register_callback( $option,
+$callback )</p>
+
+<p style="margin-left:17%;">Registers a callback function
+for the given security option (listed above).</p>
+
+<p style="margin-left:11%;">unregister_callback( $option
+)</p>
+
+<p style="margin-left:17%;">Removes the callback for the
+given option. This has the effect of allowing all access for
+the given option (except for &quot;create_dir&quot;).</p>
+
+<h2>BENCHMARK
+<a name="BENCHMARK"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Included in the
+distribution is a simple benchmark script, which has two
+drivers &minus; one for LibXSLT and one for Sablotron. The
+benchmark requires the testcases files from the XSLTMark
+distribution which you can find at
+http://www.datapower.com/XSLTMark/</p>
+
+<p style="margin-left:11%; margin-top: 1em">Put the
+testcases directory in the directory created by this
+distribution, and then run:</p>
+
+<p style="margin-left:11%; margin-top: 1em">perl
+benchmark.pl &minus;h</p>
+
+<p style="margin-left:11%; margin-top: 1em">to get a list
+of options.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The benchmark
+requires XML::XPath at the moment, but I hope to factor that
+out of the equation fairly soon. It also requires
+Time::HiRes, which I could be persuaded to factor out,
+replacing it with Benchmark.pm, but I haven&rsquo;t done so
+yet.</p>
+
+<p style="margin-left:11%; margin-top: 1em">I would love to
+get drivers for <small>XML::XSLT</small> and
+XML::Transformiix, if you would like to contribute them.
+Also if you get this running on Win32, I&rsquo;d love to get
+a driver for <small>MSXSLT</small> via <small>OLE,</small>
+to see what we can do against those Redmond boys!</p>
+
+<h2>LIBRARY VERSIONS
+<a name="LIBRARY VERSIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">For debugging
+purposes, XML::LibXSLT provides version information about
+the libxslt C library (but do not confuse it with the
+version number of XML::LibXSLT module itself, i.e. with
+$XML::LibXSLT::VERSION). XML::LibXSLT issues a warning if
+the runtime version of the library is less then the
+compile-time version. <b><br>
+XML::LibXSLT::LIBXSLT_VERSION()</b></p>
+
+<p style="margin-left:17%;">Returns version number of
+libxslt library which was used to compile XML::LibXSLT as an
+integer. For example, for libxslt&minus;1.1.18, it will
+return 10118.</p>
+
+
+<p style="margin-left:11%;"><b>XML::LibXSLT::LIBXSLT_DOTTED_VERSION()</b></p>
+
+<p style="margin-left:17%;">Returns version number of
+libxslt library which was used to compile XML::LibXSLT as a
+string, e.g. &quot;1.1.18&quot;.</p>
+
+
+<p style="margin-left:11%;"><b>XML::LibXSLT::LIBXSLT_RUNTIME_VERSION()</b></p>
+
+<p style="margin-left:17%;">Returns version number of
+libxslt library to which XML::LibXSLT is linked at runtime
+(either dynamically or statically). For example, for
+example, for libxslt.so.1.1.18, it will return 10118.</p>
+
+
+<p style="margin-left:11%;"><b>XML::LibXSLT::HAVE_EXLT()</b></p>
+
+<p style="margin-left:17%;">Returns 1 if the module was
+compiled with libexslt, 0 otherwise.</p>
+
+<h2>LICENSE
+<a name="LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software, you may use it and distribute it under the same
+terms as Perl itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2001&minus;2009, AxKit.com Ltd.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Matt Sergeant,
+matt@sergeant.org</p>
+
+<p style="margin-left:11%; margin-top: 1em">Security
+callbacks implementation contributed by Shane
+Corgatelli.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Petr Pajas ,
+pajas@matfyz.org</p>
+
+<h2>MAINTAINER
+<a name="MAINTAINER"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Shlomi Fish,
+&lt;https://www.shlomifish.org/me/contact&minus;me/&gt;
+.</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Please report
+bugs via</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML&minus;LibXSLT</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">XML::LibXML ,
+XML::LibXSLT::Quick .</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:19 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Thread::Queue</title>
+
+</head>
+<body>
+<h1>Thread::Queue</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Thread::Queue
+&minus; Thread&minus;safe queues</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+describes Thread::Queue version 3.14</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use strict;
+<br>
+use warnings; <br>
+use threads; <br>
+use Thread::Queue; <br>
+my $q = Thread::Queue&minus;&gt;new(); # A new empty queue
+<br>
+# Worker thread <br>
+my $thr = threads&minus;&gt;create( <br>
+sub { <br>
+# Thread will loop until no more work <br>
+while (defined(my $item = $q&minus;&gt;dequeue())) { <br>
+# Do work on $item <br>
+... <br>
+} <br>
+} <br>
+); <br>
+# Send work to the thread <br>
+$q&minus;&gt;enqueue($item1, ...); <br>
+# Signal that there is no more work to be sent <br>
+$q&minus;&gt;end(); <br>
+# Join up with the thread when it finishes <br>
+$thr&minus;&gt;join(); <br>
+... <br>
+# Count of items in the queue <br>
+my $left = $q&minus;&gt;pending(); <br>
+# Non&minus;blocking dequeue <br>
+if (defined(my $item = $q&minus;&gt;dequeue_nb())) { <br>
+# Work on $item <br>
+} <br>
+# Blocking dequeue with 5&minus;second timeout <br>
+if (defined(my $item = $q&minus;&gt;dequeue_timed(5))) {
+<br>
+# Work on $item <br>
+} <br>
+# Set a size for a queue <br>
+$q&minus;&gt;limit = 5; <br>
+# Get the second item in the queue without dequeuing
+anything <br>
+my $item = $q&minus;&gt;peek(1); <br>
+# Insert two items into the queue just behind the head <br>
+$q&minus;&gt;insert(1, $item1, $item2); <br>
+# Extract the last two items on the queue <br>
+my ($item1, $item2) = $q&minus;&gt;extract(&minus;2, 2);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+provides thread-safe <small>FIFO</small> queues that can be
+accessed safely by any number of threads.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Any data types
+supported by threads::shared can be passed via queues: <br>
+Ordinary scalars <br>
+Array refs <br>
+Hash refs <br>
+Scalar refs <br>
+Objects based on the above</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ordinary
+scalars are added to queues as they are.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If not already
+thread-shared, the other complex data types will be cloned
+(recursively, if needed, and including any
+&quot;bless&quot;ings and read-only settings) into
+thread-shared structures before being placed onto a
+queue.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example,
+the following would cause Thread::Queue to create a empty,
+shared array reference via &quot;&amp;shared([])&quot;, copy
+the elements &rsquo;foo&rsquo;, &rsquo;bar&rsquo; and
+&rsquo;baz&rsquo; from @ary into it, and then place that
+shared reference onto the queue:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @ary =
+qw/foo bar baz/; <br>
+$q&minus;&gt;enqueue(\@ary);</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, for
+the following, the items are already shared, so their
+references are added directly to the queue, and no cloning
+takes place:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @ary :shared
+= qw/foo bar baz/; <br>
+$q&minus;&gt;enqueue(\@ary); <br>
+my $obj = &amp;shared({}); <br>
+$$obj{'foo'} = 'bar'; <br>
+$$obj{'qux'} = 99; <br>
+bless($obj, 'My::Class'); <br>
+$q&minus;&gt;enqueue($obj);</p>
+
+<p style="margin-left:11%; margin-top: 1em">See &quot;
+<small>LIMITATIONS&quot;</small> for caveats related to
+passing objects via queues.</p>
+
+<h2>QUEUE CREATION
+<a name="QUEUE CREATION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&gt;<b>new()</b></p>
+
+<p style="margin-left:17%;">Creates a new empty queue.</p>
+
+<p style="margin-left:11%;">&minus;&gt;new(
+<small>LIST</small> )</p>
+
+<p style="margin-left:17%;">Creates a new queue
+pre-populated with the provided list of items.</p>
+
+<h2>BASIC METHODS
+<a name="BASIC METHODS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+methods deal with queues on a <small>FIFO</small> basis.
+<br>
+&minus;&gt;enqueue( <small>LIST</small> )</p>
+
+<p style="margin-left:17%;">Adds a list of items onto the
+end of the queue.</p>
+
+<p style="margin-left:11%;">&minus;&gt;<b>dequeue()</b>
+<br>
+&minus;&gt;dequeue( <small>COUNT</small> )</p>
+
+<p style="margin-left:17%;">Removes the requested number of
+items (default is 1) from the head of the queue, and returns
+them. If the queue contains fewer than the requested number
+of items, then the thread will be blocked until the
+requisite number of items are available (i.e., until other
+threads &quot;enqueue&quot; more items).</p>
+
+<p style="margin-left:11%;">&minus;&gt;<b>dequeue_nb()</b>
+<br>
+&minus;&gt;dequeue_nb( <small>COUNT</small> )</p>
+
+<p style="margin-left:17%;">Removes the requested number of
+items (default is 1) from the head of the queue, and returns
+them. If the queue contains fewer than the requested number
+of items, then it immediately (i.e., non-blocking) returns
+whatever items there are on the queue. If the queue is
+empty, then &quot;undef&quot; is returned.</p>
+
+<p style="margin-left:11%;">&minus;&gt;dequeue_timed(
+<small>TIMEOUT</small> ) <br>
+&minus;&gt;dequeue_timed( <small>TIMEOUT, COUNT</small>
+)</p>
+
+<p style="margin-left:17%;">Removes the requested number of
+items (default is 1) from the head of the queue, and returns
+them. If the queue contains fewer than the requested number
+of items, then the thread will be blocked until the
+requisite number of items are available, or until the
+timeout is reached. If the timeout is reached, it returns
+whatever items there are on the queue, or &quot;undef&quot;
+if the queue is empty.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The timeout may
+be a number of seconds relative to the current time (e.g., 5
+seconds from when the call is made), or may be an absolute
+timeout in <i>epoch</i> seconds the same as would be used
+with <b>cond_timedwait()</b>. Fractional seconds (e.g., 2.5
+seconds) are also supported (to the extent of the underlying
+implementation).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;TIMEOUT&quot; is missing, &quot;undef&quot;, or less
+than or equal to 0, then this call behaves the same as
+&quot;dequeue_nb&quot;.</p>
+
+
+<p style="margin-left:11%;">&minus;&gt;<b>pending()</b></p>
+
+<p style="margin-left:17%;">Returns the number of items
+still in the queue. Returns &quot;undef&quot; if the queue
+has been ended (see below), and there are no more items in
+the queue.</p>
+
+<p style="margin-left:11%;">&minus;&gt;limit</p>
+
+<p style="margin-left:17%;">Sets the size of the queue. If
+set, calls to &quot;enqueue()&quot; will block until the
+number of pending items in the queue drops below the
+&quot;limit&quot;. The &quot;limit&quot; does not prevent
+enqueuing items beyond that count:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $q =
+Thread::Queue&minus;&gt;new(1, 2); <br>
+$q&minus;&gt;limit = 4; <br>
+$q&minus;&gt;enqueue(3, 4, 5); # Does not block <br>
+$q&minus;&gt;enqueue(6); # Blocks until at least 2 items are
+<br>
+# dequeued <br>
+my $size = $q&minus;&gt;limit; # Returns the current limit
+(may return <br>
+# 'undef') <br>
+$q&minus;&gt;limit = 0; # Queue size is now unlimited</p>
+
+<p style="margin-left:17%; margin-top: 1em">Calling any of
+the dequeue methods with &quot;COUNT&quot; greater than a
+queue&rsquo;s &quot;limit&quot; will generate an error.</p>
+
+<p style="margin-left:11%;">&minus;&gt;<b>end()</b></p>
+
+<p style="margin-left:17%;">Declares that no more items
+will be added to the queue.</p>
+
+<p style="margin-left:17%; margin-top: 1em">All threads
+blocking on &quot;dequeue()&quot; calls will be unblocked
+with any remaining items in the queue and/or
+&quot;undef&quot; being returned. Any subsequent calls to
+&quot;dequeue()&quot; will behave like
+&quot;dequeue_nb()&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Once ended, no
+more items may be placed in the queue.</p>
+
+<h2>ADVANCED METHODS
+<a name="ADVANCED METHODS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+methods can be used to manipulate items anywhere in a
+queue.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To prevent the
+contents of a queue from being modified by another thread
+while it is being examined and/or changed, lock the queue
+inside a local block:</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ <br>
+lock($q); # Keep other threads from changing the queue's
+contents <br>
+my $item = $q&minus;&gt;peek(); <br>
+if ($item ...) { <br>
+... <br>
+} <br>
+} <br>
+# Queue is now unlocked <br>
+&minus;&gt;<b>peek()</b> <br>
+&minus;&gt;peek( <small>INDEX</small> )</p>
+
+<p style="margin-left:17%;">Returns an item from the queue
+without dequeuing anything. Defaults to the head of queue
+(at index position 0) if no index is specified. Negative
+index values are supported as with arrays (i.e., &minus;1 is
+the end of the queue, &minus;2 is next to last, and so
+on).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If no items
+exists at the specified index (i.e., the queue is empty, or
+the index is beyond the number of items on the queue), then
+&quot;undef&quot; is returned.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Remember, the
+returned item is not removed from the queue, so manipulating
+a &quot;peek&quot;ed at reference affects the item on the
+queue.</p>
+
+<p style="margin-left:11%;">&minus;&gt;insert(
+<small>INDEX, LIST</small> )</p>
+
+<p style="margin-left:17%;">Adds the list of items to the
+queue at the specified index position (0 is the head of the
+list). Any existing items at and beyond that position are
+pushed back past the newly added items:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$q&minus;&gt;enqueue(1,
+2, 3, 4); <br>
+$q&minus;&gt;insert(1, qw/foo bar/); <br>
+# Queue now contains: 1, foo, bar, 2, 3, 4</p>
+
+<p style="margin-left:17%; margin-top: 1em">Specifying an
+index position greater than the number of items in the queue
+just adds the list to the end.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Negative index
+positions are supported:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$q&minus;&gt;enqueue(1,
+2, 3, 4); <br>
+$q&minus;&gt;insert(&minus;2, qw/foo bar/); <br>
+# Queue now contains: 1, 2, foo, bar, 3, 4</p>
+
+<p style="margin-left:17%; margin-top: 1em">Specifying a
+negative index position greater than the number of items in
+the queue adds the list to the head of the queue.</p>
+
+<p style="margin-left:11%;">&minus;&gt;<b>extract()</b>
+<br>
+&minus;&gt;extract( <small>INDEX</small> ) <br>
+&minus;&gt;extract( <small>INDEX, COUNT</small> )</p>
+
+<p style="margin-left:17%;">Removes and returns the
+specified number of items (defaults to 1) from the specified
+index position in the queue (0 is the head of the queue).
+When called with no arguments, &quot;extract&quot; operates
+the same as &quot;dequeue_nb&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This method is
+non-blocking, and will return only as many items as are
+available to fulfill the request:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$q&minus;&gt;enqueue(1,
+2, 3, 4); <br>
+my $item = $q&minus;&gt;extract(2) # Returns 3 <br>
+# Queue now contains: 1, 2, 4 <br>
+my @items = $q&minus;&gt;extract(1, 3) # Returns (2, 4) <br>
+# Queue now contains: 1</p>
+
+<p style="margin-left:17%; margin-top: 1em">Specifying an
+index position greater than the number of items in the queue
+results in &quot;undef&quot; or an empty list being
+returned.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$q&minus;&gt;enqueue('foo');
+<br>
+my $nada = $q&minus;&gt;extract(3) # Returns undef <br>
+my @nada = $q&minus;&gt;extract(1, 3) # Returns ()</p>
+
+<p style="margin-left:17%; margin-top: 1em">Negative index
+positions are supported. Specifying a negative index
+position greater than the number of items in the queue may
+return items from the head of the queue (similar to
+&quot;dequeue_nb&quot;) if the count overlaps the head of
+the queue from the specified position (i.e. if queue size +
+index + count is greater than zero):</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$q&minus;&gt;enqueue(qw/foo
+bar baz/); <br>
+my @nada = $q&minus;&gt;extract(&minus;6, 2); # Returns ()
+&minus; (3+(&minus;6)+2) &lt;= 0 <br>
+my @some = $q&minus;&gt;extract(&minus;6, 4); # Returns
+(foo) &minus; (3+(&minus;6)+4) &gt; 0 <br>
+# Queue now contains: bar, baz <br>
+my @rest = $q&minus;&gt;extract(&minus;3, 4); # Returns
+(bar, baz) &minus; <br>
+# (2+(&minus;3)+4) &gt; 0</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Queues created
+by Thread::Queue can be used in both threaded and
+non-threaded applications.</p>
+
+<h2>LIMITATIONS
+<a name="LIMITATIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Passing objects
+on queues may not work if the objects&rsquo; classes do not
+support sharing. See &quot; <small>BUGS AND
+LIMITATIONS&quot;</small> in threads::shared for more.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Passing
+array/hash refs that contain objects may not work for Perl
+prior to 5.10.0.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Thread::Queue
+on MetaCPAN:
+&lt;https://metacpan.org/release/Thread&minus;Queue&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Code repository
+for <small>CPAN</small> distribution:
+&lt;https://github.com/Dual&minus;Life/Thread&minus;Queue&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">threads,
+threads::shared</p>
+
+<p style="margin-left:11%; margin-top: 1em">Sample code in
+the <i>examples</i> directory of this distribution on
+<small>CPAN.</small></p>
+
+<h2>MAINTAINER
+<a name="MAINTAINER"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jerry D.
+Hedden, &lt;jdhedden&nbsp; <small>AT&nbsp;</small>
+cpan&nbsp; <small>DOT&nbsp;</small> org&gt;</p>
+
+<h2>LICENSE
+<a name="LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This program is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:39 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>open</title>
+
+</head>
+<body>
+<h1>open</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">open &minus;
+perl pragma to set default PerlIO layers for input and
+output</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use open IN
+=&gt; ':crlf', OUT =&gt; ':raw'; <br>
+open my $in, '&lt;', 'foo.txt' or die &quot;open failed:
+$!&quot;; <br>
+my $line = &lt;$in&gt;; # CRLF translated <br>
+close $in; <br>
+open my $out, '&gt;', 'bar.txt' or die &quot;open failed:
+$!&quot;; <br>
+print $out $line; # no translation of bytes <br>
+close $out; <br>
+use open OUT =&gt; ':encoding(UTF&minus;8)'; <br>
+use open IN =&gt; ':encoding(iso&minus;8859&minus;7)'; <br>
+use open IO =&gt; ':locale'; <br>
+# IO implicit only for :utf8, :encoding, :locale <br>
+use open ':encoding(UTF&minus;8)'; <br>
+use open ':encoding(iso&minus;8859&minus;7)'; <br>
+use open ':locale'; <br>
+# with :std, also affect global standard handles <br>
+use open ':std', ':encoding(UTF&minus;8)'; <br>
+use open ':std', OUT =&gt; ':encoding(cp1252)'; <br>
+use open ':std', IO =&gt; ':raw
+:encoding(UTF&minus;16LE)';</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Full-fledged
+support for I/O layers is now implemented provided Perl is
+configured to use PerlIO as its <small>IO</small> system
+(which has been the default since 5.8, and the only
+supported configuration since 5.16).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;open&quot; pragma serves as one of the interfaces to
+declare default &quot;layers&quot; (previously known as
+&quot;disciplines&quot;) for all I/O. Any <b>open()</b>,
+<b>readpipe()</b> (aka qx//) and similar operators found
+within the lexical scope of this pragma will use the
+declared defaults via the &quot;${^OPEN}&quot; variable.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Layers are
+specified with a leading colon by convention. You can
+specify a stack of multiple layers as a space-separated
+string. See PerlIO for more information on the available
+layers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">With the
+&quot;IN&quot; subpragma you can declare the default layers
+of input streams, and with the &quot;OUT&quot; subpragma you
+can declare the default layers of output streams. With the
+&quot;IO&quot; subpragma (may be omitted for
+&quot;:utf8&quot;, &quot;:locale&quot;, or
+&quot;:encoding&quot;) you can control both input and output
+streams simultaneously.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When
+<b>open()</b> is given an explicit list of layers (with the
+three-arg syntax), they override the list declared using
+this pragma. <b>open()</b> can also be given a single colon
+(:) for a layer name, to override this pragma and use the
+default as detailed in &quot;Defaults and how to override
+them&quot; in PerlIO.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To translate
+from and to an arbitrary text encoding, use the
+&quot;:encoding&quot; layer. The matching of encoding names
+in &quot;:encoding&quot; is loose: case does not matter, and
+many encodings have several aliases. See Encode::Supported
+for details and the list of supported locales.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+set your encoding layers based on your locale environment
+variables, you can use the &quot;:locale&quot; pseudo-layer.
+For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ENV{LANG} =
+'ru_RU.KOI8&minus;R'; <br>
+# the :locale will probe the locale environment variables
+like LANG <br>
+use open OUT =&gt; ':locale'; <br>
+open(my $out, '&gt;', 'koi8') or die &quot;open failed:
+$!&quot;; <br>
+print $out chr(0x430); # CYRILLIC SMALL LETTER A =
+KOI8&minus;R 0xc1 <br>
+close $out; <br>
+open(my $in, '&lt;', 'koi8') or die &quot;open failed:
+$!&quot;; <br>
+printf &quot;%#x\n&quot;, ord(&lt;$in&gt;); # this should
+print 0xc1 <br>
+close $in;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The logic of
+&quot;:locale&quot; is described in full in &quot;The
+&quot;:locale&quot; sub-pragma&quot; in encoding, but in
+short it is first trying nl_langinfo( <small>CODESET</small>
+) and then guessing from the <small>LC_ALL</small> and
+<small>LANG</small> locale environment variables.
+&quot;:locale&quot; also implicitly turns on
+&quot;:std&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;:std&quot;
+is not a layer but an additional subpragma. When specified
+in the import list, it activates an additional functionality
+of pushing the layers selected for input/output handles to
+the standard filehandles ( <small>STDIN, STDOUT,
+STDERR</small> ). If the new layers and existing layer stack
+both end with an &quot;:encoding&quot; layer, the existing
+&quot;:encoding&quot; layer will also be removed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example, if
+both input and out are chosen to be
+&quot;:encoding(UTF&minus;8)&quot;, a &quot;:std&quot; will
+mean that <small>STDIN, STDOUT,</small> and
+<small>STDERR</small> will also have
+&quot;:encoding(UTF&minus;8)&quot; set. On the other hand,
+if only output is chosen to be in
+&quot;:encoding(koi8r)&quot;, a &quot;:std&quot; will cause
+only the <small>STDOUT</small> and <small>STDERR</small> to
+be in &quot;koi8r&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The effect of
+&quot;:std&quot; is not lexical as it modifies the layer
+stack of the global handles. If you wish to apply only this
+global effect and not the effect on handles that are opened
+in that scope, you can isolate the call to this pragma in
+its own lexical scope.</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ use open
+':std', IO =&gt; ':encoding(UTF&minus;8)' }</p>
+
+<p style="margin-left:11%; margin-top: 1em">Before Perl
+5.34, &quot;:std&quot; would only apply the first layer
+provided that is either &quot;:utf8&quot; or has a layer
+argument, e.g. &quot;:encoding(UTF&minus;8)&quot;. Since
+Perl 5.34 it will apply the same layer stack it provides to
+&quot;${^OPEN}&quot;.</p>
+
+<h2>IMPLEMENTATION DETAILS
+<a name="IMPLEMENTATION DETAILS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">There is a
+class method in &quot;PerlIO::Layer&quot; &quot;find&quot;
+which is implemented as <small>XS</small> code. It is called
+by &quot;import&quot; to validate the layers:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">PerlIO::Layer::&minus;&gt;find(&quot;perlio&quot;)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The return
+value (if defined) is a Perl object, of class
+&quot;PerlIO::Layer&quot; which is created by the C code in
+<i>perlio.c</i>. As yet there is nothing useful you can do
+with the object at the perl level.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;binmode&quot;
+in perlfunc, &quot;open&quot; in perlfunc, perlunicode,
+PerlIO, encoding</p>
+<hr>
+</body>
+</html>

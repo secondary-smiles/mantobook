@@ -1,0 +1,222 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:58 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>OPAL_CRS</title>
+
+</head>
+<body>
+<h1>opal_crs</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">OPAL_CRS
+&minus; Open PAL MCA Checkpoint/Restart Service (CRS):
+Overview of Open PAL&rsquo;s CRS framework, and selected
+modules. Open MPI 4.1.5.</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Open PAL can
+involuntarily checkpoint and restart sequential programs.
+Doing so requires that Open PAL was compiled with thread
+support and that the back-end checkpointing systems are
+available at run-time.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Phases of
+Checkpoint / Restart</b> <br>
+Open PAL defines three phases for checkpoint / restart
+support in a procress: <br>
+Checkpoint</p>
+
+<p style="margin-left:17%;">When the checkpoint request
+arrives, the procress is notified of the request before the
+checkpoint is taken.</p>
+
+<p style="margin-left:11%;">Continue</p>
+
+<p style="margin-left:17%;">After a checkpoint has
+successfully completed, the same process as the checkpoint
+is notified of its successful continuation of execution.</p>
+
+<p style="margin-left:11%;">Restart</p>
+
+<p style="margin-left:17%;">After a checkpoint has
+successfully completed, a new / restarted process is
+notified of its successful restart.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Continue
+and Restart phases are identical except for the process in
+which they are invoked. The Continue phase is invoked in the
+same process as the Checkpoint phase was invoked. The
+Restart phase is only invoked in newly restarted
+processes.</p>
+
+<h2>GENERAL PROCESS REQUIREMENTS
+<a name="GENERAL PROCESS REQUIREMENTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">In order for a
+process to use the Open PAL CRS components it must adhear to
+a few programmatic requirements.</p>
+
+<p style="margin-left:11%; margin-top: 1em">First, the
+program must call <i>OPAL_INIT</i> early in its execution.
+This should only be called once, and it is not possible to
+checkpoint the process without it first having called this
+function.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The program
+must call <i>OPAL_FINALIZE</i> before termination. This does
+a significant amount of cleanup. If it is not called, then
+it is very likely that remnants are left in the
+filesystem.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To checkpoint
+and restart a process you must use the Open PAL tools to do
+so. Using the backend checkpointer&rsquo;s checkpoint and
+restart tools will lead to undefined behavior. To checkpoint
+a process use <i>opal_checkpoint</i> (opal_checkpoint(1)).
+To restart a process use <i>opal_restart</i>
+(opal_restart(1)).</p>
+
+<h2>AVAILABLE COMPONENTS
+<a name="AVAILABLE COMPONENTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Open PAL ships
+with two CRS components: <i>self</i> and <i>blcr</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+MCA parameters apply to all components: <br>
+crs_base_verbose</p>
+
+<p style="margin-left:17%;">Set the verbosity level for all
+components. Default is 0, or silent except on error.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>self CRS
+Component</b> <br>
+The <i>self</i> component invokes user-defined functions to
+save and restore checkpoints. It is simply a mechanism for
+user-defined functions to be invoked at Open PAL&rsquo;s
+Checkpoint, Continue, and Restart phases. Hence, the only
+data that is saved during the checkpoint is what is written
+in the user&rsquo;s checkpoint function. No libary state is
+saved at all.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As such, the
+model for the <i>self</i> component is slightly differnt
+than for other components. Specifically, the Restart
+function is not invoked in the same process image of the
+process that was checkpointed. The Restart phase is invoked
+during <b>OPAL_INIT</b> of the new instance of the
+applicaiton (i.e., it starts over from main()).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The <i>self</i>
+component has the following MCA parameters: <br>
+crs_self_prefix</p>
+
+<p style="margin-left:17%;">Speficy a string prefix for the
+name of the checkpoint, continue, and restart functions that
+Open PAL will invoke during the respective stages. That is,
+by specifying &quot;-mca crs_self_prefix foo&quot; means
+that Open PAL expects to find three functions at
+run-time:</p>
+
+<p style="margin-left:17%; margin-top: 1em">int
+foo_checkpoint()</p>
+
+<p style="margin-left:17%; margin-top: 1em">int
+foo_continue()</p>
+
+<p style="margin-left:17%; margin-top: 1em">int
+foo_restart()</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default, the
+prefix is set to &quot;opal_crs_self_user&quot;.</p>
+
+<p style="margin-left:11%;">crs_self_priority</p>
+
+<p style="margin-left:17%;">Set the <i>self</i> components
+default priority</p>
+
+<p style="margin-left:11%;">crs_self_verbose</p>
+
+<p style="margin-left:17%;">Set the verbosity level.
+Default is 0, or silent except on error.</p>
+
+<p style="margin-left:11%;">crs_self_do_restart</p>
+
+<p style="margin-left:17%;">This is mostly internally used.
+A general user should never need to set this value. This is
+set to non-0 when a the new process should invoke the
+restart callback in <i>OPAL_INIT</i>. Default is 0, or
+normal execution.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>blcr CRS
+Component</b> <br>
+The Berkeley Lab Checkpoint/Restart (BLCR) single-process
+checkpoint is a software system developed at Lawrence
+Berkeley National Laboratory. See the project website for
+more details:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>http://ftg.lbl.gov/CheckpointRestart/CheckpointRestart.shtml</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The <i>blcr</i>
+component has the following MCA parameters: <br>
+crs_blcr_priority</p>
+
+<p style="margin-left:17%;">Set the <i>blcr</i> components
+default priority.</p>
+
+<p style="margin-left:11%;">crs_blcr_verbose</p>
+
+<p style="margin-left:17%;">Set the verbosity level.
+Default is 0, or silent except on error.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>none CRS
+Component</b> <br>
+The <i>none</i> component simply selects no CRS component.
+All of the CRS function calls return immediately with
+OPAL_SUCCESS.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This component
+is the last component to be selected by default. This means
+that if another component is available, and the <i>none</i>
+component was not explicity requested then OPAL will attempt
+to activate all of the available components before falling
+back to this component.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">opal_checkpoint(1),
+opal_restart(1)</p>
+<hr>
+</body>
+</html>

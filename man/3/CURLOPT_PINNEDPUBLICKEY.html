@@ -1,0 +1,226 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:29 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>CURLOPT_PINNEDPUBLICKEY</title>
+
+</head>
+<body>
+<h1>CURLOPT_PINNEDPUBLICKEY</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">CURLOPT_PINNEDPUBLICKEY
+&minus; pinned public key</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;curl/curl.h&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">CURLcode
+curl_easy_setopt(CURL *handle, CURLOPT_PINNEDPUBLICKEY, <br>
+char *pinnedpubkey);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Pass a pointer
+to a null-terminated string as parameter. The string can be
+the file name of your pinned public key. The file format
+expected is &quot;PEM&quot; or &quot;DER&quot;. The string
+can also be any number of base64 encoded sha256 hashes
+preceded by &quot;sha256//&quot; and separated by
+&quot;;&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">When
+negotiating a TLS or SSL connection, the server sends a
+certificate indicating its identity. A public key is
+extracted from this certificate and if it does not exactly
+match the public key provided to this option, curl will
+abort the connection before sending or receiving any
+data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On mismatch,
+<i>CURLE_SSL_PINNEDPUBKEYNOTMATCH</i> is returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The application
+does not have to keep the string around after setting this
+option.</p>
+
+<h2>DEFAULT
+<a name="DEFAULT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">NULL</p>
+
+<h2>PROTOCOLS
+<a name="PROTOCOLS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">All TLS based
+protocols: HTTPS, FTPS, IMAPS, POP3S, SMTPS etc.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">CURL *curl =
+curl_easy_init(); <br>
+if(curl) { <br>
+curl_easy_setopt(curl, CURLOPT_URL,
+&quot;https://example.com&quot;); <br>
+curl_easy_setopt(curl, CURLOPT_PINNEDPUBLICKEY,
+&quot;/etc/publickey.der&quot;); <br>
+/* OR <br>
+curl_easy_setopt(curl, CURLOPT_PINNEDPUBLICKEY,
+&quot;sha256//YhKJKSzoTt2b5FP18fvpHo7fJYqQCjAa3HWY3tvRMwE=;sha256//t62CeU2tQiqkexU74Gxa2eg7fRbEgoChTociMee9wno=&quot;);
+<br>
+*/</p>
+
+<p style="margin-left:11%; margin-top: 1em">/* Perform the
+request */ <br>
+curl_easy_perform(curl); <br>
+}</p>
+
+<h2>PUBLIC KEY EXTRACTION
+<a name="PUBLIC KEY EXTRACTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you do not
+have the server&rsquo;s public key file you can extract it
+from the server&rsquo;s certificate. <br>
+# retrieve the server&rsquo;s certificate if you do not
+already have it <br>
+# <br>
+# be sure to examine the certificate to see if it is what
+you expected <br>
+# <br>
+# Windows-specific: <br>
+# - Use NUL instead of /dev/null. <br>
+# - OpenSSL may wait for input instead of disconnecting. Hit
+enter. <br>
+# - If you do not have sed, then just copy the certificate
+into a file: <br>
+# Lines from -----BEGIN CERTIFICATE----- to -----END
+CERTIFICATE-----. <br>
+# <br>
+openssl s_client -servername www.example.com -connect
+www.example.com:443 &lt; /dev/null | sed -n
+&quot;/-----BEGIN/,/-----END/p&quot; &gt;
+www.example.com.pem</p>
+
+<p style="margin-left:11%; margin-top: 1em"># extract
+public key in pem format from certificate <br>
+openssl x509 -in www.example.com.pem -pubkey -noout &gt;
+www.example.com.pubkey.pem</p>
+
+<p style="margin-left:11%; margin-top: 1em"># convert
+public key from pem to der <br>
+openssl asn1parse -noout -inform pem -in
+www.example.com.pubkey.pem -out
+www.example.com.pubkey.der</p>
+
+<p style="margin-left:11%; margin-top: 1em"># sha256 hash
+and base64 encode der to string for use <br>
+openssl dgst -sha256 -binary www.example.com.pubkey.der |
+openssl base64 <br>
+The public key in PEM format contains a header, base64 data
+and a footer: <br>
+-----BEGIN PUBLIC KEY----- <br>
+[BASE 64 DATA] <br>
+-----END PUBLIC KEY-----</p>
+
+<h2>AVAILABILITY
+<a name="AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">PEM/DER
+support:</p>
+
+<p style="margin-left:11%; margin-top: 1em">7.39.0:
+OpenSSL, GnuTLS</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">7.39.0-7.48.0,7.58.1+:
+GSKit</p>
+
+<p style="margin-left:11%; margin-top: 1em">7.43.0: NSS and
+wolfSSL</p>
+
+<p style="margin-left:11%; margin-top: 1em">7.47.0:
+mbedTLS</p>
+
+<p style="margin-left:11%; margin-top: 1em">7.54.1: Secure
+Transport on macOS 10.7+/iOS 10+</p>
+
+<p style="margin-left:11%; margin-top: 1em">7.58.1:
+Schannel</p>
+
+<p style="margin-left:11%; margin-top: 1em">sha256
+support:</p>
+
+<p style="margin-left:11%; margin-top: 1em">7.44.0:
+OpenSSL, GnuTLS, NSS and wolfSSL</p>
+
+<p style="margin-left:11%; margin-top: 1em">7.47.0:
+mbedTLS</p>
+
+<p style="margin-left:11%; margin-top: 1em">7.54.1: Secure
+Transport on macOS 10.7+/iOS 10+</p>
+
+<p style="margin-left:11%; margin-top: 1em">7.58.1:
+Schannel Windows XP SP3+</p>
+
+<p style="margin-left:11%; margin-top: 1em">Other SSL
+backends not supported.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Returns
+CURLE_OK if TLS enabled, CURLE_UNKNOWN_OPTION if not, or
+CURLE_OUT_OF_MEMORY if there was insufficient heap
+space.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>CURLOPT_SSL_VERIFYPEER</b>(3),
+<b>CURLOPT_SSL_VERIFYHOST</b>(3), <b>CURLOPT_CAINFO</b>(3),
+<b>CURLOPT_CAPATH</b>(3),</p>
+<hr>
+</body>
+</html>

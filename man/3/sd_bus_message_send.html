@@ -1,0 +1,204 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:58 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SD_BUS_SEND</title>
+
+</head>
+<body>
+<h1>sd_bus_message_send</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">sd_bus_send,
+sd_bus_send_to, sd_bus_message_send &minus; Queue a
+D&minus;Bus message for transfer</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;systemd/sd&minus;bus.h&gt;</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_bus_send(sd_bus&nbsp;*</b><i>bus</i><b>,
+sd_bus_message&nbsp;*</b><i>m</i><b>,
+uint64_t&nbsp;*</b><i>cookie</i><b>);</b></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_bus_send_to(sd_bus&nbsp;*</b><i>bus</i><b>,
+sd_bus_message&nbsp;*</b><i>m</i><b>,
+const&nbsp;char&nbsp;*</b><i>destination</i><b>,
+uint64_t&nbsp;*</b><i>cookie</i><b>);</b></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_bus_message_send(sd_bus_message&nbsp;*</b><i>m</i><b>);</b></p> </td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_bus_send()</b>
+queues the bus message object <i>m</i> for transfer. If
+<i>bus</i> is <b>NULL</b>, the bus that <i>m</i> is attached
+to is used. <i>bus</i> only needs to be set when the message
+is sent to a different bus than the one it's attached to,
+for example when forwarding messages. If the output
+parameter <i>cookie</i> is not <b>NULL</b>, it is set to the
+message identifier. This value can later be used to match
+incoming replies to their corresponding messages. If
+<i>cookie</i> is set to <b>NULL</b> and the message is not
+sealed, <b>sd_bus_send()</b> assumes the message <i>m</i>
+doesn't expect a reply and adds the necessary headers to
+indicate this.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that in
+most scenarios, <b>sd_bus_send()</b> should not be called
+directly. Instead, use higher level functions such as
+<b>sd_bus_call_method</b>(3) and
+<b>sd_bus_reply_method_return</b>(3) which call
+<b>sd_bus_send()</b> internally.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_bus_send_to()</b>
+is a shorthand for sending a message to a specific
+destination. It's main use case is to simplify sending
+unicast signal messages (signals that only have a single
+receiver). It's behavior is similar to calling
+<b>sd_bus_message_set_destination</b>(3) followed by calling
+<b>sd_bus_send()</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_bus_send()</b>/<b>sd_bus_send_to()</b>
+will write the message directly to the underlying transport
+(e.g. kernel socket buffer) if possible. If the connection
+is not set up fully yet the message is queued locally. If
+the transport buffers are congested any unwritten message
+data is queued locally, too. If the connection has been
+closed or is currently being closed the call fails.
+<b>sd_bus_process</b>(3) should be invoked to write out any
+queued message data to the transport.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_bus_message_send()</b>
+is the same as <b>sd_bus_send()</b> but without the first
+and last argument. <b>sd_bus_message_send(m)</b> is
+equivalent to <b>sd_bus_send(sd_bus_message_get_bus(m), m,
+NULL)</b>.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On success,
+these functions return a non&minus;negative integer. On
+failure, they return a negative errno&minus;style error
+code.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Errors</b>
+<br>
+Returned errors may indicate the following problems:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;EINVAL</b></p>
+
+<p style="margin-left:17%;">The input parameter <i>m</i> is
+<b>NULL</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;EOPNOTSUPP</b></p>
+
+<p style="margin-left:17%;">The bus connection does not
+support sending file descriptors.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ECHILD</b></p>
+
+<p style="margin-left:17%;">The bus connection was
+allocated in a parent process and is being reused in a child
+process after <b>fork()</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ENOBUFS</b></p>
+
+<p style="margin-left:17%;">The bus connection's write
+queue is full.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ENOTCONN</b></p>
+
+<p style="margin-left:17%;">The input parameter <i>bus</i>
+is <b>NULL</b> or the bus is not connected.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ECONNRESET</b></p>
+
+<p style="margin-left:17%;">The bus connection was closed
+while waiting for the response.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ENOMEM</b></p>
+
+<p style="margin-left:17%;">Memory allocation failed.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These APIs are
+implemented as a shared library, which can be compiled and
+linked to with the <b>libsystemd&nbsp;pkg-config</b>(1)
+file.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>sd-bus</b>(3), <b>sd_bus_call_method</b>(3),
+<b>sd_bus_message_set_destination</b>(3),
+<b>sd_bus_reply_method_return</b>(3),
+<b>sd_bus_process</b>(3)</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:24 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>User::pwent</title>
+
+</head>
+<body>
+<h1>User::pwent</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">User::pwent
+&minus; by&minus;name interface to Perl&rsquo;s
+built&minus;in getpw*() functions</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+User::pwent; <br>
+$pw = getpwnam('daemon') || die &quot;No daemon user&quot;;
+<br>
+if ( $pw&minus;&gt;uid == 1 &amp;&amp; $pw&minus;&gt;dir =~
+m#^/(bin|tmp)?\z#s ) { <br>
+print &quot;gid 1 on root dir&quot;; <br>
+} <br>
+$real_shell = $pw&minus;&gt;shell || '/bin/sh'; <br>
+for (($fullname, $office, $workphone, $homephone) = <br>
+split /\s*,\s*/, $pw&minus;&gt;gecos) <br>
+{ <br>
+s/&amp;/ucfirst(lc($pw&minus;&gt;name))/ge; <br>
+} <br>
+use User::pwent qw(:FIELDS); <br>
+getpwnam('daemon') || die &quot;No daemon user&quot;; <br>
+if ( $pw_uid == 1 &amp;&amp; $pw_dir =~ m#^/(bin|tmp)?\z#s )
+{ <br>
+print &quot;gid 1 on root dir&quot;; <br>
+} <br>
+$pw = getpw($whoever); <br>
+use User::pwent qw/:DEFAULT pw_has/; <br>
+if (pw_has(qw[gecos expire quota])) { .... } <br>
+if (pw_has(&quot;name uid gid passwd&quot;)) { .... } <br>
+print &quot;Your struct pwd has: &quot;, scalar pw_has(),
+&quot;\n&quot;;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This
+module&rsquo;s default exports override the core
+<b>getpwent()</b>, <b>getpwuid()</b>, and <b>getpwnam()</b>
+functions, replacing them with versions that return
+&quot;User::pwent&quot; objects. This object has methods
+that return the similarly named structure field name from
+the C&rsquo;s passwd structure from <i>pwd.h</i>, stripped
+of their leading &quot;pw_&quot; parts, namely
+&quot;name&quot;, &quot;passwd&quot;, &quot;uid&quot;,
+&quot;gid&quot;, &quot;change&quot;, &quot;age&quot;,
+&quot;quota&quot;, &quot;comment&quot;, &quot;class&quot;,
+&quot;gecos&quot;, &quot;dir&quot;, &quot;shell&quot;, and
+&quot;expire&quot;. The &quot;passwd&quot;,
+&quot;gecos&quot;, and &quot;shell&quot; fields are tainted
+when running in taint mode.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You may also
+import all the structure fields directly into your namespace
+as regular variables using the :FIELDS import tag. (Note
+that this still overrides your core functions.) Access these
+fields as variables named with a preceding &quot;pw_&quot;
+in front their method names. Thus,
+&quot;$passwd_obj&minus;&gt;shell&quot; corresponds to
+$pw_shell if you import the fields.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>getpw()</b> function is a simple front-end that forwards
+a numeric argument to <b>getpwuid()</b> and the rest to
+<b>getpwnam()</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To access this
+functionality without the core overrides, pass the
+&quot;use&quot; an empty import list, and then access
+function functions with their full qualified names. The
+built-ins are always still available via the
+&quot;CORE::&quot; pseudo-package.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>System
+Specifics</b> <br>
+Perl believes that no machine ever has more than one of
+&quot;change&quot;, &quot;age&quot;, or &quot;quota&quot;
+implemented, nor more than one of either &quot;comment&quot;
+or &quot;class&quot;. Some machines do not support
+&quot;expire&quot;, &quot;gecos&quot;, or allegedly,
+&quot;passwd&quot;. You may call these methods no matter
+what machine you&rsquo;re on, but they return
+&quot;undef&quot; if unimplemented.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You may ask
+whether one of these was implemented on the system Perl was
+built on by asking the importable &quot;pw_has&quot;
+function about them. This function returns true if all
+parameters are supported fields on the build platform, false
+if one or more were not, and raises an exception if you
+asked about a field that Perl never knows how to provide.
+Parameters may be in a space-separated string, or as
+separate arguments. If you pass no parameters, the function
+returns the list of &quot;struct pwd&quot; fields supported
+by your build platform&rsquo;s C library, as a list in list
+context, or a space-separated string in scalar context. Note
+that just because your C library had a field doesn&rsquo;t
+necessarily mean that it&rsquo;s fully implemented on that
+system.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Interpretation
+of the &quot;gecos&quot; field varies between systems, but
+traditionally holds 4 comma-separated fields containing the
+user&rsquo;s full name, office location, work phone number,
+and home phone number. An &quot;&amp;&quot; in the gecos
+field should be replaced by the user&rsquo;s properly
+capitalized login &quot;name&quot;. The &quot;shell&quot;
+field, if blank, must be assumed to be <i>/bin/sh</i>. Perl
+does not do this for you. The &quot;passwd&quot; is one-way
+hashed garble, not clear text, and may not be unhashed save
+by brute-force guessing. Secure systems use more a more
+secure hashing than <small>DES.</small> On systems
+supporting shadow password systems, Perl automatically
+returns the shadow password entry when called by a suitably
+empowered user, even if your underlying vendor-provided C
+library was too short-sighted to realize it should do
+this.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+<b>passwd</b>(5) and <b>getpwent</b>(3) for details.</p>
+
+<h2>NOTE
+<a name="NOTE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">While this
+class is currently implemented using the Class::Struct
+module to build a struct-like class, you shouldn&rsquo;t
+rely upon this.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Tom
+Christiansen</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">March 18th,
+2000</p>
+
+<p style="margin-left:17%;">Reworked internals to support
+better interface to dodgey fields than normal Perl function
+provides. Added <b>pw_has()</b> field. Improved
+documentation.</p>
+<hr>
+</body>
+</html>

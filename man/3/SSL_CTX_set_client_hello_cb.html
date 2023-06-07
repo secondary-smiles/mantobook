@@ -1,0 +1,250 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:07 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SSL_CTX_SET_CLIENT_HELLO_CB</title>
+
+</head>
+<body>
+<h1>SSL_CTX_set_client_hello_cb</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">SSL_CTX_set_client_hello_cb,
+SSL_client_hello_cb_fn, SSL_client_hello_isv2,
+SSL_client_hello_get0_legacy_version,
+SSL_client_hello_get0_random,
+SSL_client_hello_get0_session_id,
+SSL_client_hello_get0_ciphers,
+SSL_client_hello_get0_compression_methods,
+SSL_client_hello_get1_extensions_present,
+SSL_client_hello_get0_ext &minus; callback functions for
+early server&minus;side ClientHello processing</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">typedef int
+(*SSL_client_hello_cb_fn)(SSL *s, int *al, void *arg); <br>
+void SSL_CTX_set_client_hello_cb(SSL_CTX *c,
+SSL_client_hello_cb_fn *f, <br>
+void *arg); <br>
+int SSL_client_hello_isv2(SSL *s); <br>
+unsigned int SSL_client_hello_get0_legacy_version(SSL *s);
+<br>
+size_t SSL_client_hello_get0_random(SSL *s, const unsigned
+char **out); <br>
+size_t SSL_client_hello_get0_session_id(SSL *s, const
+unsigned char **out); <br>
+size_t SSL_client_hello_get0_ciphers(SSL *s, const unsigned
+char **out); <br>
+size_t SSL_client_hello_get0_compression_methods(SSL *s,
+<br>
+const unsigned char **out); <br>
+int SSL_client_hello_get1_extensions_present(SSL *s, int
+**out, <br>
+size_t *outlen); <br>
+int SSL_client_hello_get0_ext(SSL *s, unsigned int type,
+const unsigned char **out, <br>
+size_t *outlen);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_CTX_set_client_hello_cb()</b>
+sets the callback function, which is automatically called
+during the early stages of ClientHello processing on the
+server. The argument supplied when setting the callback is
+passed back to the callback at run time. A callback that
+returns failure (0) will cause the connection to terminate,
+and callbacks returning failure should indicate what alert
+value is to be sent in the <b>al</b> parameter. A callback
+may also return a negative value to suspend the handshake,
+and the handshake function will return immediately.
+<b>SSL_get_error</b>(3) will return
+<small>SSL_ERROR_WANT_CLIENT_HELLO_CB</small> to indicate
+that the handshake was suspended. It is the job of the
+ClientHello callback to store information about the state of
+the last call if needed to continue. On the next call into
+the handshake function, the ClientHello callback will be
+called again, and, if it returns success, normal handshake
+processing will continue from that point.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_client_hello_isv2()</b>
+indicates whether the ClientHello was carried in a SSLv2
+record and is in the SSLv2 format. The SSLv2 format has
+substantial differences from the normal SSLv3 format,
+including using three bytes per cipher suite, and not
+allowing extensions. Additionally, the SSLv2 format
+&rsquo;challenge&rsquo; field is exposed via
+<b>SSL_client_hello_get0_random()</b>, padded to
+<small>SSL3_RANDOM_SIZE</small> bytes with zeros if needed.
+For SSLv2 format ClientHellos,
+<b>SSL_client_hello_get0_compression_methods()</b> returns a
+dummy list that only includes the null compression method,
+since the SSLv2 format does not include a mechanism by which
+to negotiate compression.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_client_hello_get0_random()</b>,
+<b>SSL_client_hello_get0_session_id()</b>,
+<b>SSL_client_hello_get0_ciphers()</b>, and
+<b>SSL_client_hello_get0_compression_methods()</b> provide
+access to the corresponding ClientHello fields, returning
+the field length and optionally setting an out pointer to
+the octets of that field.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Similarly,
+<b>SSL_client_hello_get0_ext()</b> provides access to
+individual extensions from the ClientHello on a
+per-extension basis. For the provided wire protocol
+extension type value, the extension value and length are
+returned in the output parameters (if present).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_client_hello_get1_extensions_present()</b>
+can be used prior to <b>SSL_client_hello_get0_ext()</b>, to
+determine which extensions are present in the ClientHello
+before querying for them. The <b>out</b> and <b>outlen</b>
+parameters are both required, and on success the caller must
+release the storage allocated for <b>*out</b> using
+<b>OPENSSL_free()</b>. The contents of <b>*out</b> is an
+array of integers holding the numerical value of the
+<small>TLS</small> extension types in the order they appear
+in the ClientHello. <b>*outlen</b> contains the number of
+elements in the array. In situations when the ClientHello
+has no extensions, the function will return success with
+<b>*out</b> set to <small>NULL</small> and <b>*outlen</b>
+set to 0.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The ClientHello
+callback provides a vast window of possibilities for
+application code to affect the <small>TLS</small> handshake.
+A primary use of the callback is to allow the server to
+examine the server name indication extension provided by the
+client in order to select an appropriate certificate to
+present, and make other configuration adjustments relevant
+to that server name and its configuration. Such
+configuration changes can include swapping out the
+associated <small>SSL_CTX</small> pointer, modifying the
+server&rsquo;s list of permitted <small>TLS</small>
+versions, changing the server&rsquo;s cipher list in
+response to the client&rsquo;s cipher list, etc.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is also
+recommended that applications utilize a ClientHello callback
+and not use a servername callback, in order to avoid
+unexpected behavior that occurs due to the relative order of
+processing between things like session resumption and the
+historical servername callback.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+SSL_client_hello_* family of functions may only be called
+from code executing within a ClientHello callback.</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+application&rsquo;s supplied ClientHello callback returns
+<small>SSL_CLIENT_HELLO_SUCCESS</small> on success,
+<small>SSL_CLIENT_HELLO_ERROR</small> on failure, and
+<small>SSL_CLIENT_HELLO_RETRY</small> to suspend
+processing.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_client_hello_isv2()</b>
+returns 1 for SSLv2&minus;format ClientHellos and 0
+otherwise.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_client_hello_get0_random()</b>,
+<b>SSL_client_hello_get0_session_id()</b>,
+<b>SSL_client_hello_get0_ciphers()</b>, and
+<b>SSL_client_hello_get0_compression_methods()</b> return
+the length of the corresponding ClientHello fields. If zero
+is returned, the output pointer should not be assumed to be
+valid.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_client_hello_get0_ext()</b>
+returns 1 if the extension of type &rsquo;type&rsquo; is
+present, and 0 otherwise.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_client_hello_get1_extensions_present()</b>
+returns 1 on success and 0 on failure.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ssl</b>(7),
+<b>SSL_CTX_set_tlsext_servername_callback</b>(3),
+<b>SSL_bytes_to_cipher_list</b>(3)</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<small>SSL</small> ClientHello callback,
+<b>SSL_client_hello_isv2()</b>,
+<b>SSL_client_hello_get0_random()</b>,
+<b>SSL_client_hello_get0_session_id()</b>,
+<b>SSL_client_hello_get0_ciphers()</b>,
+<b>SSL_client_hello_get0_compression_methods()</b>,
+<b>SSL_client_hello_get0_ext()</b>, and
+<b>SSL_client_hello_get1_extensions_present()</b> were added
+in OpenSSL 1.1.1.</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2017&minus;2021 The OpenSSL Project Authors. All Rights
+Reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Licensed under
+the Apache License 2.0 (the &quot;License&quot;). You may
+not use this file except in compliance with the License. You
+can obtain a copy in the file <small>LICENSE</small> in the
+source distribution or at
+&lt;https://www.openssl.org/source/license.html&gt;.</p>
+<hr>
+</body>
+</html>

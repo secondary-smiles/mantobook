@@ -1,0 +1,964 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:53 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GITFORMAT&minus;PACK</title>
+
+</head>
+<body>
+<h1>gitformat-pack</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">gitformat-pack
+&minus; Git pack format</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">$GIT_DIR/objects/pack/pack&minus;<b>.{pack,idx}
+<br>
+$GIT_DIR/objects/pack/pack&minus;</b>.rev <br>
+$GIT_DIR/objects/pack/pack&minus;*.mtimes <br>
+$GIT_DIR/objects/pack/multi&minus;pack&minus;index</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The Git pack
+format is now Git stores most of its primary repository
+data. Over the lietime af a repository loose objects (if
+any) and smaller packs are consolidated into larger pack(s).
+See <b>git-gc</b>(1) and <b>git-pack-objects</b>(1).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The pack format
+is also used over&minus;the&minus;wire, see e.g.
+<b>gitprotocol-v2</b>(5), as well as being a part of other
+container formats in the case of
+<b>gitformat-bundle</b>(5).</p>
+
+<h2>CHECKSUMS AND OBJECT IDS
+<a name="CHECKSUMS AND OBJECT IDS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">In a repository
+using the traditional SHA&minus;1, pack checksums, index
+checksums, and object IDs (object names) mentioned below are
+all computed using SHA&minus;1. Similarly, in SHA&minus;256
+repositories, these values are computed using
+SHA&minus;256.</p>
+
+<h2>PACK&minus;*.PACK FILES HAVE THE FOLLOWING FORMAT:
+<a name="PACK&minus;*.PACK FILES HAVE THE FOLLOWING FORMAT:"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A header
+appears at the beginning and consists of the following:</p>
+
+<p style="margin-left:23%; margin-top: 1em">4&minus;byte
+signature: <br>
+The signature is: {'P', 'A', 'C', 'K'}</p>
+
+<p style="margin-left:23%; margin-top: 1em">4&minus;byte
+version number (network byte order): <br>
+Git currently accepts version number 2 or 3 but <br>
+generates version 2 only.</p>
+
+<p style="margin-left:23%; margin-top: 1em">4&minus;byte
+number of objects contained in the pack (network byte
+order)</p>
+
+<p style="margin-left:23%; margin-top: 1em">Observation: we
+cannot have more than 4G versions ;&minus;) and <br>
+more than 4G objects in a pack.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+header is followed by number of object entries, each of
+which looks like this:</p>
+
+<p style="margin-left:23%; margin-top: 1em">(undeltified
+representation) <br>
+n&minus;byte type and length (3&minus;bit type,
+(n&minus;1)*7+4&minus;bit length) <br>
+compressed data</p>
+
+<p style="margin-left:23%; margin-top: 1em">(deltified
+representation) <br>
+n&minus;byte type and length (3&minus;bit type,
+(n&minus;1)*7+4&minus;bit length) <br>
+base object name if OBJ_REF_DELTA or a negative relative
+<br>
+offset from the delta object's position in the pack if this
+<br>
+is an OBJ_OFS_DELTA object <br>
+compressed delta data</p>
+
+<p style="margin-left:23%; margin-top: 1em">Observation:
+length of each object is encoded in a variable <br>
+length format and is not constrained to 32&minus;bit or
+anything.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+trailer records a pack checksum of all of the above.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Object
+types</b> <br>
+Valid object types are:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+OBJ_COMMIT (1)</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; OBJ_TREE
+(2)</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; OBJ_BLOB
+(3)</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; OBJ_TAG
+(4)</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+OBJ_OFS_DELTA (6)</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+OBJ_REF_DELTA (7)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Type 5 is
+reserved for future expansion. Type 0 is invalid.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Size
+encoding</b> <br>
+This document uses the following &quot;size encoding&quot;
+of non&minus;negative integers: From each byte, the seven
+least significant bits are used to form the resulting
+integer. As long as the most significant bit is 1, this
+process continues; the byte with MSB 0 provides the last
+seven bits. The seven&minus;bit chunks are concatenated.
+Later values are more significant.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This size
+encoding should not be confused with the &quot;offset
+encoding&quot;, which is also used in this document.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Deltified
+representation</b> <br>
+Conceptually there are only four object types: commit, tree,
+tag and blob. However to save space, an object could be
+stored as a &quot;delta&quot; of another &quot;base&quot;
+object. These representations are assigned new types
+ofs&minus;delta and ref&minus;delta, which is only valid in
+a pack file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Both
+ofs&minus;delta and ref&minus;delta store the
+&quot;delta&quot; to be applied to another object (called
+<i>base object</i>) to reconstruct the object. The
+difference between them is, ref&minus;delta directly encodes
+base object name. If the base object is in the same pack,
+ofs&minus;delta encodes the offset of the base object in the
+pack instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The base object
+could also be deltified if it&rsquo;s in the same pack.
+Ref&minus;delta can also refer to an object outside the pack
+(i.e. the so&minus;called &quot;thin pack&quot;). When
+stored on disk however, the pack should be self contained to
+avoid cyclic dependency.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The delta data
+starts with the size of the base object and the size of the
+object to be reconstructed. These sizes are encoded using
+the size encoding from above. The remainder of the delta
+data is a sequence of instructions to reconstruct the object
+from the base object. If the base object is deltified, it
+must be converted to canonical form first. Each instruction
+appends more and more data to the target object until
+it&rsquo;s complete. There are two supported instructions so
+far: one for copy a byte range from the source object and
+one for inserting new data embedded in the instruction
+itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each
+instruction has variable length. Instruction type is
+determined by the seventh bit of the first octet. The
+following diagrams follow the convention in RFC 1951
+(Deflate compressed data format).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Instruction
+to copy from base object</big></b></p>
+
+
+<p style="margin-left:23%;">+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| 1xxxxxxx | offset1 | offset2 | offset3 | offset4 | size1 |
+size2 | size3 | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;+</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is the
+instruction format to copy a byte range from the source
+object. It encodes the offset to copy from and the number of
+bytes to copy. Offset and size are in little&minus;endian
+order.</p>
+
+<p style="margin-left:17%; margin-top: 1em">All offset and
+size bytes are optional. This is to reduce the instruction
+size when encoding small offsets or sizes. The first seven
+bits in the first octet determines which of the next seven
+octets is present. If bit zero is set, offset1 is present.
+If bit one is set offset2 is present and so on.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that a
+more compact instruction does not change offset and size
+encoding. For example, if only offset2 is omitted like
+below, offset3 still contains bits 16&minus;23. It does not
+become offset2 and contains bits 8&minus;15 even if
+it&rsquo;s right next to offset1.</p>
+
+
+<p style="margin-left:23%; margin-top: 1em">+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| 10000101 | offset1 | offset3 | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+</p>
+
+<p style="margin-left:17%; margin-top: 1em">In its most
+compact form, this instruction only takes up one byte (0x80)
+with both offset and size omitted, which will have default
+values zero. There is another exception: size zero is
+automatically converted to 0x10000.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Instruction
+to add new data</big></b></p>
+
+
+<p style="margin-left:23%;">+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+============+
+<br>
+| 0xxxxxxx | data | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+============+</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is the
+instruction to construct target object without the base
+object. The following data is appended to the target object.
+The first seven bits of the first octet determines the size
+of data in bytes. The size must be non&minus;zero.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Reserved
+instruction</big></b></p>
+
+
+<p style="margin-left:23%;">+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+============
+<br>
+| 00000000 | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+============</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is the
+instruction reserved for future expansion.</p>
+
+<h2>ORIGINAL (VERSION 1) PACK&minus;*.IDX FILES HAVE THE FOLLOWING FORMAT:
+<a name="ORIGINAL (VERSION 1) PACK&minus;*.IDX FILES HAVE THE FOLLOWING FORMAT:"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+header consists of 256 4&minus;byte network byte order
+integers. N&minus;th entry of this table records the number
+of objects in the corresponding pack, the first byte of
+whose object name is less than or equal to N. This is called
+the <i>first&minus;level fan&minus;out</i> table.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+header is followed by sorted 24&minus;byte entries, one
+entry per object in the pack. Each entry is:</p>
+
+<p style="margin-left:23%; margin-top: 1em">4&minus;byte
+network byte order integer, recording where the <br>
+object is stored in the packfile as the offset from the <br>
+beginning.</p>
+
+<p style="margin-left:23%; margin-top: 1em">one object name
+of the appropriate size.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The file
+is concluded with a trailer:</p>
+
+<p style="margin-left:23%; margin-top: 1em">A copy of the
+pack checksum at the end of the corresponding <br>
+packfile.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Index checksum
+of all of the above.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Pack Idx
+file:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&minus;&minus;
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+fanout | fanout[0] = 2 (for example) |&minus;. <br>
+table
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+| <br>
+| fanout[1] | | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+| <br>
+| fanout[2] | | <br>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ | <br>
+| fanout[255] = total objects |&minus;&minus;&minus;. <br>
+&minus;&minus;
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+| | <br>
+main | offset | | | <br>
+index | object name 00XXXXXXXXXXXXXXXX | | | <br>
+table
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+| | <br>
+| offset | | | <br>
+| object name 00XXXXXXXXXXXXXXXX | | | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&lt;+
+| <br>
+.&minus;| offset | | <br>
+| | object name 01XXXXXXXXXXXXXXXX | | <br>
+|
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+| <br>
+| | offset | | <br>
+| | object name 01XXXXXXXXXXXXXXXX | | <br>
+| ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ | <br>
+| | offset | | <br>
+| | object name FFXXXXXXXXXXXXXXXX | | <br>
+&minus;&minus;|
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&lt;&minus;&minus;+
+<br>
+trailer | | packfile checksum | <br>
+|
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| | idxfile checksum | <br>
+|
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+.&minus;&minus;&minus;&minus;&minus;&minus;&minus;. <br>
+| <br>
+Pack file entry: &lt;+</p>
+
+<p style="margin-left:17%; margin-top: 1em">packed object
+header: <br>
+1&minus;byte size extension bit (MSB) <br>
+type (next 3 bit) <br>
+size0 (lower 4&minus;bit) <br>
+n&minus;byte sizeN (as long as MSB is set, each 7&minus;bit)
+<br>
+size0..sizeN form 4+7+7+..+7 bit integer, size0 <br>
+is the least significant part, and sizeN is the <br>
+most significant part. <br>
+packed object data: <br>
+If it is not DELTA, then deflated bytes (the size above <br>
+is the size before compression). <br>
+If it is REF_DELTA, then <br>
+base object name (the size above is the <br>
+size of the delta data that follows). <br>
+delta data, deflated. <br>
+If it is OFS_DELTA, then <br>
+n&minus;byte offset (see below) interpreted as a negative
+<br>
+offset from the type&minus;byte of the header of the <br>
+ofs&minus;delta entry (the size above is the size of <br>
+the delta data that follows). <br>
+delta data, deflated.</p>
+
+<p style="margin-left:17%; margin-top: 1em">offset
+encoding: <br>
+n bytes with MSB set in all but the last one. <br>
+The offset is then the number constructed by <br>
+concatenating the lower 7 bit of each byte, and <br>
+for n &gt;= 2 adding 2^7 + 2^14 + ... + 2^(7*(n&minus;1))
+<br>
+to the result.</p>
+
+<h2>VERSION 2 PACK&minus;*.IDX FILES SUPPORT PACKS LARGER THAN 4 GIB, AND
+<a name="VERSION 2 PACK&minus;*.IDX FILES SUPPORT PACKS LARGER THAN 4 GIB, AND"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em">have some other
+reorganizations. They have the format:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+4&minus;byte magic number <i>\377tOc</i> which is an
+unreasonable fanout[0] value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+4&minus;byte version number (= 2)</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+256&minus;entry fan&minus;out table just like v1.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A table
+of sorted object names. These are packed together without
+offset values to reduce the cache footprint of the binary
+search for a specific object name.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A table
+of 4&minus;byte CRC32 values of the packed object data. This
+is new in v2 so compressed data can be copied directly from
+pack to pack during repacking without undetected data
+corruption.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A table
+of 4&minus;byte offset values (in network byte order). These
+are usually 31&minus;bit pack file offsets, but large
+offsets are encoded as an index into the next table with the
+msbit set.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A table
+of 8&minus;byte offset entries (empty for pack files less
+than 2 GiB). Pack files are organized with heavily used
+objects toward the front, so most object references should
+not need to refer to this table.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The same
+trailer as a v1 pack file:</p>
+
+<p style="margin-left:23%; margin-top: 1em">A copy of the
+pack checksum at the end of <br>
+corresponding packfile.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Index checksum
+of all of the above.</p>
+
+<h2>PACK&minus;*.REV FILES HAVE THE FORMAT:
+<a name="PACK&minus;*.REV FILES HAVE THE FORMAT:"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+4&minus;byte magic number <i>0x52494458</i>
+(<i>RIDX</i>).</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+4&minus;byte version identifier (= 1).</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+4&minus;byte hash function identifier (= 1 for SHA&minus;1,
+2 for SHA&minus;256).</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A table
+of index positions (one per packed object, num_objects in
+total, each a 4&minus;byte unsigned integer in network
+order), sorted by their corresponding offsets in the
+packfile.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+trailer, containing a:</p>
+
+<p style="margin-left:23%; margin-top: 1em">checksum of the
+corresponding packfile, and</p>
+
+<p style="margin-left:23%; margin-top: 1em">a checksum of
+all of the above.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All
+4&minus;byte numbers are in network order.</p>
+
+<h2>PACK&minus;*.MTIMES FILES HAVE THE FORMAT:
+<a name="PACK&minus;*.MTIMES FILES HAVE THE FORMAT:"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">All
+4&minus;byte numbers are in network byte order.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+4&minus;byte magic number <i>0x4d544d45</i>
+(<i>MTME</i>).</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+4&minus;byte version identifier (= 1).</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+4&minus;byte hash function identifier (= 1 for SHA&minus;1,
+2 for SHA&minus;256).</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A table
+of 4&minus;byte unsigned integers. The ith value is the
+modification time (mtime) of the ith object in the
+corresponding pack by lexicographic (index) order. The
+mtimes count standard epoch seconds.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+trailer, containing a checksum of the corresponding
+packfile, and a checksum of all of the above (each having
+length according to the specified hash function).</p>
+
+<h2>MULTI&minus;PACK&minus;INDEX (MIDX) FILES HAVE THE FOLLOWING FORMAT:
+<a name="MULTI&minus;PACK&minus;INDEX (MIDX) FILES HAVE THE FOLLOWING FORMAT:"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+multi&minus;pack&minus;index files refer to multiple
+pack&minus;files and loose objects.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In order to
+allow extensions that add extra data to the MIDX, we
+organize the body into &quot;chunks&quot; and provide a
+lookup table at the beginning of the body. The header
+includes certain length values, such as the number of packs,
+the number of base MIDX files, hash lengths and types.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All
+4&minus;byte numbers are in network order.</p>
+
+<p style="margin-left:11%; margin-top: 1em">HEADER:</p>
+
+<p style="margin-left:17%; margin-top: 1em">4&minus;byte
+signature: <br>
+The signature is: {'M', 'I', 'D', 'X'}</p>
+
+<p style="margin-left:17%; margin-top: 1em">1&minus;byte
+version number: <br>
+Git only writes or recognizes version 1.</p>
+
+<p style="margin-left:17%; margin-top: 1em">1&minus;byte
+Object Id Version <br>
+We infer the length of object IDs (OIDs) from this value:
+<br>
+1 =&gt; SHA&minus;1 <br>
+2 =&gt; SHA&minus;256 <br>
+If the hash type does not match the repository's hash
+algorithm, <br>
+the multi&minus;pack&minus;index file should be ignored with
+a warning <br>
+presented to the user.</p>
+
+<p style="margin-left:17%; margin-top: 1em">1&minus;byte
+number of &quot;chunks&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">1&minus;byte
+number of base multi&minus;pack&minus;index files: <br>
+This value is currently always zero.</p>
+
+<p style="margin-left:17%; margin-top: 1em">4&minus;byte
+number of pack files</p>
+
+<p style="margin-left:11%; margin-top: 1em">CHUNK
+LOOKUP:</p>
+
+<p style="margin-left:17%; margin-top: 1em">(C + 1) * 12
+bytes providing the chunk offsets: <br>
+First 4 bytes describe chunk id. Value 0 is a terminating
+label. <br>
+Other 8 bytes provide offset in current file for chunk to
+start. <br>
+(Chunks are provided in file&minus;order, so you can infer
+the length <br>
+using the next chunk position if necessary.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">The CHUNK
+LOOKUP matches the table of contents from <br>
+the chunk&minus;based file format, see
+linkgit:gitformat&minus;chunk[5].</p>
+
+<p style="margin-left:17%; margin-top: 1em">The remaining
+data in the body is described one chunk at a time, and <br>
+these chunks may be given in any order. Chunks are required
+unless <br>
+otherwise specified.</p>
+
+<p style="margin-left:11%; margin-top: 1em">CHUNK DATA:</p>
+
+<p style="margin-left:17%; margin-top: 1em">Packfile Names
+(ID: {'P', 'N', 'A', 'M'}) <br>
+Stores the packfile names as concatenated,
+null&minus;terminated strings. <br>
+Packfiles must be listed in lexicographic order for fast
+lookups by <br>
+name. This is the only chunk not guaranteed to be a multiple
+of four <br>
+bytes in length, so should be the last chunk for alignment
+reasons.</p>
+
+<p style="margin-left:17%; margin-top: 1em">OID Fanout (ID:
+{'O', 'I', 'D', 'F'}) <br>
+The ith entry, F[i], stores the number of OIDs with first
+<br>
+byte at most i. Thus F[255] stores the total <br>
+number of objects.</p>
+
+<p style="margin-left:17%; margin-top: 1em">OID Lookup (ID:
+{'O', 'I', 'D', 'L'}) <br>
+The OIDs for all objects in the MIDX are stored in
+lexicographic <br>
+order in this chunk.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Object Offsets
+(ID: {'O', 'O', 'F', 'F'}) <br>
+Stores two 4&minus;byte values for every object. <br>
+1: The pack&minus;int&minus;id for the pack storing this
+object. <br>
+2: The offset within the pack. <br>
+If all offsets are less than 2^32, then the large offset
+chunk <br>
+will not exist and offsets are stored as in IDX v1. <br>
+If there is at least one offset value larger than
+2^32&minus;1, then <br>
+the large offset chunk must exist, and offsets larger than
+<br>
+2^31&minus;1 must be stored in it instead. If the large
+offset chunk <br>
+exists and the 31st bit is on, then removing that bit
+reveals <br>
+the row in the large offsets containing the 8&minus;byte
+offset of <br>
+this object.</p>
+
+<p style="margin-left:17%; margin-top: 1em">[Optional]
+Object Large Offsets (ID: {'L', 'O', 'F', 'F'}) <br>
+8&minus;byte offsets into large packfiles.</p>
+
+<p style="margin-left:17%; margin-top: 1em">[Optional]
+Bitmap pack order (ID: {'R', 'I', 'D', 'X'}) <br>
+A list of MIDX positions (one per object in the MIDX,
+num_objects in <br>
+total, each a 4&minus;byte unsigned integer in network byte
+order), sorted <br>
+according to their relative bitmap/pseudo&minus;pack
+positions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">TRAILER:</p>
+
+<p style="margin-left:17%; margin-top: 1em">Index checksum
+of the above contents.</p>
+
+<h2>MULTI&minus;PACK&minus;INDEX REVERSE INDEXES
+<a name="MULTI&minus;PACK&minus;INDEX REVERSE INDEXES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Similar to the
+pack&minus;based reverse index, the multi&minus;pack index
+can also be used to generate a reverse index.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instead of
+mapping between offset, pack&minus;, and index position,
+this reverse index maps between an object&rsquo;s position
+within the MIDX, and that object&rsquo;s position within a
+pseudo&minus;pack that the MIDX describes (i.e., the ith
+entry of the multi&minus;pack reverse index holds the MIDX
+position of ith object in pseudo&minus;pack order).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To clarify the
+difference between these orderings, consider a
+multi&minus;pack reachability bitmap (which does not yet
+exist, but is what we are building towards here). Each bit
+needs to correspond to an object in the MIDX, and so we need
+an efficient mapping from bit position to MIDX position.</p>
+
+<p style="margin-left:11%; margin-top: 1em">One solution is
+to let bits occupy the same position in the oid&minus;sorted
+index stored by the MIDX. But because oids are effectively
+random, their resulting reachability bitmaps would have no
+locality, and thus compress poorly. (This is the reason that
+single&minus;pack bitmaps use the pack ordering, and not the
+.idx ordering, for the same purpose.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">So we&rsquo;d
+like to define an ordering for the whole MIDX based around
+pack ordering, which has far better locality (and thus
+compresses more efficiently). We can think of a
+pseudo&minus;pack created by the concatenation of all of the
+packs in the MIDX. E.g., if we had a MIDX with three packs
+(a, b, c), with 10, 15, and 20 objects respectively, we can
+imagine an ordering of the objects like:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">|a,0|a,1|...|a,9|b,0|b,1|...|b,14|c,0|c,1|...|c,19|</p>
+
+<p style="margin-left:11%; margin-top: 1em">where the
+ordering of the packs is defined by the MIDX&rsquo;s pack
+list, and then the ordering of objects within each pack is
+the same as the order in the actual packfile.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Given the list
+of packs and their counts of objects, you can na&iuml;vely
+reconstruct that pseudo&minus;pack ordering (e.g., the
+object at position 27 must be (c,1) because packs
+&quot;a&quot; and &quot;b&quot; consumed 25 of the slots).
+But there&rsquo;s a catch. Objects may be duplicated between
+packs, in which case the MIDX only stores one pointer to the
+object (and thus we&rsquo;d want only one slot in the
+bitmap).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Callers could
+handle duplicates themselves by reading objects in order of
+their bit&minus;position, but that&rsquo;s linear in the
+number of objects, and much too expensive for ordinary
+bitmap lookups. Building a reverse index solves this, since
+it is the logical inverse of the index, and that index has
+already removed duplicates. But, building a reverse index on
+the fly can be expensive. Since we already have an
+on&minus;disk format for pack&minus;based reverse indexes,
+let&rsquo;s reuse it for the MIDX&rsquo;s pseudo&minus;pack,
+too.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Objects from
+the MIDX are ordered as follows to string together the
+pseudo&minus;pack. Let <b>pack(o)</b> return the pack from
+which <b>o</b> was selected by the MIDX, and define an
+ordering of packs based on their numeric ID (as stored by
+the MIDX). Let <b>offset(o)</b> return the object offset of
+<b>o</b> within <b>pack(o)</b>. Then, compare <b>o1</b> and
+<b>o2</b> as follows:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; If one
+of <b>pack(o1)</b> and <b>pack(o2)</b> is preferred and the
+other is not, then the preferred one sorts first.</p>
+
+<p style="margin-left:17%; margin-top: 1em">(This is a
+detail that allows the MIDX bitmap to determine which pack
+should be used by the pack&minus;reuse mechanism, since it
+can ask the MIDX for the pack containing the object at bit
+position 0).</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; If
+<b>pack(o1) &ne; pack(o2)</b>, then sort the two objects in
+descending order based on the pack ID.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+Otherwise, <b>pack(o1) = pack(o2)</b>, and the objects are
+sorted in pack&minus;order (i.e., <b>o1</b> sorts ahead of
+<b>o2</b> exactly when <b>offset(o1) &lt;
+offset(o2)</b>).</p>
+
+<p style="margin-left:11%; margin-top: 1em">In short, a
+MIDX&rsquo;s pseudo&minus;pack is the de&minus;duplicated
+concatenation of objects in packs stored by the MIDX, laid
+out in pack order, and the packs arranged in MIDX order
+(with the preferred pack coming first).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+MIDX&rsquo;s reverse index is stored in the optional
+<i>RIDX</i> chunk within the MIDX itself.</p>
+
+<h2>CRUFT PACKS
+<a name="CRUFT PACKS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The cruft packs
+feature offer an alternative to Git&rsquo;s traditional
+mechanism of removing unreachable objects. This document
+provides an overview of Git&rsquo;s pruning mechanism, and
+how a cruft pack can be used instead to accomplish the
+same.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Background</b>
+<br>
+To remove unreachable objects from your repository, Git
+offers <b>git repack &minus;Ad</b> (see
+<b>git-repack</b>(1)). Quoting from the documentation:</p>
+
+<p style="margin-left:17%; margin-top: 1em">[...]
+unreachable objects in a previous pack become loose,
+unpacked objects, <br>
+instead of being left in the old pack. [...] loose
+unreachable objects will be <br>
+pruned according to normal expiry rules with the next 'git
+gc' invocation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unreachable
+objects aren&rsquo;t removed immediately, since doing so
+could race with an incoming push which may reference an
+object which is about to be deleted. Instead, those
+unreachable objects are stored as loose objects and stay
+that way until they are older than the expiration window, at
+which point they are removed by <b>git-prune</b>(1).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Git must store
+these unreachable objects loose in order to keep track of
+their per&minus;object mtimes. If these unreachable objects
+were written into one big pack, then either freshening that
+pack (because an object contained within it was
+re&minus;written) or creating a new pack of unreachable
+objects would cause the pack&rsquo;s mtime to get updated,
+and the objects within it would never leave the expiration
+window. Instead, objects are stored loose in order to keep
+track of the individual object mtimes and avoid a situation
+where all cruft objects are freshened at once.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This can lead
+to undesirable situations when a repository contains many
+unreachable objects which have not yet left the grace
+period. Having large directories in the shards of
+<b>.git/objects</b> can lead to decreased performance in the
+repository. But given enough unreachable objects, this can
+lead to inode starvation and degrade the performance of the
+whole system. Since we can never pack those objects, these
+repositories often take up a large amount of disk space,
+since we can only zlib compress them, but not store them in
+delta chains.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Cruft
+packs</b> <br>
+A cruft pack eliminates the need for storing unreachable
+objects in a loose state by including the per&minus;object
+mtimes in a separate file alongside a single pack containing
+all loose objects.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A cruft pack is
+written by <b>git repack &minus;&minus;cruft</b> when
+generating a new pack. <b>git-pack-objects</b>(1)'s
+<b>&minus;&minus;cruft</b> option. Note that <b>git repack
+&minus;&minus;cruft</b> is a classic
+all&minus;into&minus;one repack, meaning that everything in
+the resulting pack is reachable, and everything else is
+unreachable. Once written, the <b>&minus;&minus;cruft</b>
+option instructs <b>git repack</b> to generate another pack
+containing only objects not packed in the previous step
+(which equates to packing all unreachable objects together).
+This progresses as follows:</p>
+
+<p style="margin-left:17%; margin-top: 1em">1. Enumerate
+every object, marking any object which is (a) not contained
+in a kept&minus;pack, and (b) whose mtime is within the
+grace period as a traversal tip.</p>
+
+<p style="margin-left:17%; margin-top: 1em">2. Perform a
+reachability traversal based on the tips gathered in the
+previous step, adding every object along the way to the
+pack.</p>
+
+<p style="margin-left:17%; margin-top: 1em">3. Write the
+pack out, along with a <b>.mtimes</b> file that records the
+per&minus;object timestamps.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This mode is
+invoked internally by <b>git-repack</b>(1) when instructed
+to write a cruft pack. Crucially, the set of in&minus;core
+kept packs is exactly the set of packs which will not be
+deleted by the repack; in other words, they contain all of
+the repository&rsquo;s reachable objects.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When a
+repository already has a cruft pack, <b>git repack
+&minus;&minus;cruft</b> typically only adds objects to it.
+An exception to this is when <b>git repack</b> is given the
+<b>&minus;&minus;cruft&minus;expiration</b> option, which
+allows the generated cruft pack to omit expired objects
+instead of waiting for <b>git-gc</b>(1) to expire those
+objects later on.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is
+<b>git-gc</b>(1) that is typically responsible for removing
+expired unreachable objects.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Caution for
+mixed&minus;version environments</b> <br>
+Repositories that have cruft packs in them will continue to
+work with any older version of Git. Note, however, that
+previous versions of Git which do not understand the
+<b>.mtimes</b> file will use the cruft pack&rsquo;s mtime as
+the mtime for all of the objects in it. In other words, do
+not expect older (pre&minus;cruft pack) versions of Git to
+interpret or even read the contents of the <b>.mtimes</b>
+file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+having mixed versions of Git GC&minus;ing the same
+repository can lead to unreachable objects never being
+completely pruned. This can happen under the following
+circumstances:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; An older
+version of Git running GC explodes the contents of an
+existing cruft pack loose, using the cruft pack&rsquo;s
+mtime.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A newer
+version running GC collects those loose objects into a cruft
+pack, where the .mtime file reflects the loose
+object&rsquo;s actual mtimes, but the cruft pack mtime is
+&quot;now&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Repeating this
+process will lead to unreachable objects not getting pruned
+as a result of repeatedly resetting the objects' mtimes to
+the present time.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+GC&minus;ing repositories in a mixed version environment,
+consider omitting the <b>&minus;&minus;cruft</b> option when
+using <b>git-repack</b>(1) and <b>git-gc</b>(1), and leaving
+the <b>gc.cruftPacks</b> configuration unset until all
+writers understand cruft packs.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Alternatives</b>
+<br>
+Notable alternatives to this design include:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+location of the per&minus;object mtime data, and</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; Storing
+unreachable objects in multiple cruft packs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On the location
+of mtime data, a new auxiliary file tied to the pack was
+chosen to avoid complicating the <b>.idx</b> format. If the
+<b>.idx</b> format were ever to gain support for optional
+chunks of data, it may make sense to consolidate the
+<b>.mtimes</b> format into the <b>.idx</b> itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Storing
+unreachable objects among multiple cruft packs (e.g.,
+creating a new cruft pack during each repacking operation
+including only unreachable objects which aren&rsquo;t
+already stored in an earlier cruft pack) is significantly
+more complicated to construct, and so aren&rsquo;t pursued
+here. The obvious drawback to the current implementation is
+that the entire cruft pack must be re&minus;written from
+scratch.</p>
+
+<h2>GIT
+<a name="GIT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Part of the
+<b>git</b>(1) suite</p>
+<hr>
+</body>
+</html>

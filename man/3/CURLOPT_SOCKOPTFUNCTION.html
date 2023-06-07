@@ -1,0 +1,210 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:30 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>CURLOPT_SOCKOPTFUNCTION</title>
+
+</head>
+<body>
+<h1>CURLOPT_SOCKOPTFUNCTION</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">CURLOPT_SOCKOPTFUNCTION
+&minus; callback for setting socket options</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;curl/curl.h&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef enum {
+<br>
+CURLSOCKTYPE_IPCXN, /* socket created for a specific IP
+connection */ <br>
+CURLSOCKTYPE_ACCEPT, /* socket created by accept() call */
+<br>
+CURLSOCKTYPE_LAST /* never use */ <br>
+} curlsocktype;</p>
+
+<p style="margin-left:11%; margin-top: 1em">#define
+CURL_SOCKOPT_OK 0 <br>
+#define CURL_SOCKOPT_ERROR 1 /* causes libcurl to abort and
+return <br>
+CURLE_ABORTED_BY_CALLBACK */ <br>
+#define CURL_SOCKOPT_ALREADY_CONNECTED 2</p>
+
+<p style="margin-left:11%; margin-top: 1em">int
+sockopt_callback(void *clientp, <br>
+curl_socket_t curlfd, <br>
+curlsocktype purpose);</p>
+
+<p style="margin-left:11%; margin-top: 1em">CURLcode
+curl_easy_setopt(CURL *handle, CURLOPT_SOCKOPTFUNCTION,
+sockopt_callback);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Pass a pointer
+to your callback function, which should match the prototype
+shown above.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When set, this
+callback function gets called by libcurl when the socket has
+been created, but before the connect call to allow
+applications to change specific socket options. The
+callback&rsquo;s <i>purpose</i> argument identifies the
+exact purpose for this particular socket:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>CURLSOCKTYPE_IPCXN</i>
+for actively created connections or since 7.28.0
+<i>CURLSOCKTYPE_ACCEPT</i> for FTP when the connection was
+setup with PORT/EPSV (in earlier versions these sockets were
+not passed to this callback).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Future versions
+of libcurl may support more purposes. libcurl passes the
+newly created socket descriptor to the callback in the
+<i>curlfd</i> parameter so additional setsockopt() calls can
+be done at the user&rsquo;s discretion.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>clientp</i> pointer contains whatever user-defined value
+set using the <i>CURLOPT_SOCKOPTDATA(3)</i> function.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Return
+<i>CURL_SOCKOPT_OK</i> from the callback on success. Return
+<i>CURL_SOCKOPT_ERROR</i> from the callback function to
+signal an unrecoverable error to the library and it will
+close the socket and return <i>CURLE_COULDNT_CONNECT</i>.
+Alternatively, the callback function can return
+<i>CURL_SOCKOPT_ALREADY_CONNECTED</i>, to tell libcurl that
+the socket is already connected and then libcurl will not
+attempt to connect it. This allows an application to pass in
+an already connected socket with
+<i>CURLOPT_OPENSOCKETFUNCTION(3)</i> and then have this
+function make libcurl not attempt to connect (again).</p>
+
+<h2>DEFAULT
+<a name="DEFAULT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">By default,
+this callback is NULL and unused.</p>
+
+<h2>PROTOCOLS
+<a name="PROTOCOLS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">All</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">/* make libcurl
+use the already established socket &rsquo;sockfd&rsquo;
+*/</p>
+
+<p style="margin-left:11%; margin-top: 1em">static
+curl_socket_t opensocket(void *clientp, <br>
+curlsocktype purpose, <br>
+struct curl_sockaddr *address) <br>
+{ <br>
+curl_socket_t sockfd; <br>
+sockfd = *(curl_socket_t *)clientp; <br>
+/* the actual externally set socket is passed in via the
+OPENSOCKETDATA <br>
+option */ <br>
+return sockfd; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">static int
+sockopt_callback(void *clientp, curl_socket_t curlfd, <br>
+curlsocktype purpose) <br>
+{ <br>
+/* This return code was added in libcurl 7.21.5 */ <br>
+return CURL_SOCKOPT_ALREADY_CONNECTED; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">curl =
+curl_easy_init(); <br>
+if(curl) { <br>
+/* libcurl will internally think that you connect to the
+host <br>
+* and port that you specify in the URL option. */ <br>
+curl_easy_setopt(curl, CURLOPT_URL,
+&quot;http://99.99.99.99:9999&quot;); <br>
+/* call this function to get a socket */ <br>
+curl_easy_setopt(curl, CURLOPT_OPENSOCKETFUNCTION,
+opensocket); <br>
+curl_easy_setopt(curl, CURLOPT_OPENSOCKETDATA,
+&amp;sockfd);</p>
+
+<p style="margin-left:11%; margin-top: 1em">/* call this
+function to set options for the socket */ <br>
+curl_easy_setopt(curl, CURLOPT_SOCKOPTFUNCTION,
+sockopt_callback);</p>
+
+<p style="margin-left:11%; margin-top: 1em">res =
+curl_easy_perform(curl);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">curl_easy_cleanup(curl);</p>
+
+<h2>AVAILABILITY
+<a name="AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Added in
+7.16.0. The <i>CURL_SOCKOPT_ALREADY_CONNECTED</i> return
+code was added in 7.21.5.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Returns
+CURLE_OK if the option is supported, and
+CURLE_UNKNOWN_OPTION if not.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>CURLOPT_SOCKOPTDATA</b>(3),
+<b>CURLOPT_OPENSOCKETFUNCTION</b>(3),</p>
+<hr>
+</body>
+</html>

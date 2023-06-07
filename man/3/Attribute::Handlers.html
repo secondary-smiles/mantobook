@@ -1,0 +1,883 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:18 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Attribute::Handlers</title>
+
+</head>
+<body>
+<h1>Attribute::Handlers</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Attribute::Handlers
+&minus; Simpler definition of attribute handlers</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+describes version 1.02 of Attribute::Handlers.</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">package
+MyClass; <br>
+require 5.006; <br>
+use Attribute::Handlers; <br>
+no warnings 'redefine'; <br>
+sub Good : ATTR(SCALAR) { <br>
+my ($package, $symbol, $referent, $attr, $data) = @_; <br>
+# Invoked for any scalar variable with a :Good attribute,
+<br>
+# provided the variable was declared in MyClass (or <br>
+# a derived class) or typed to MyClass. <br>
+# Do whatever to $referent here (executed in CHECK phase).
+<br>
+... <br>
+} <br>
+sub Bad : ATTR(SCALAR) { <br>
+# Invoked for any scalar variable with a :Bad attribute,
+<br>
+# provided the variable was declared in MyClass (or <br>
+# a derived class) or typed to MyClass. <br>
+... <br>
+} <br>
+sub Good : ATTR(ARRAY) { <br>
+# Invoked for any array variable with a :Good attribute,
+<br>
+# provided the variable was declared in MyClass (or <br>
+# a derived class) or typed to MyClass. <br>
+... <br>
+} <br>
+sub Good : ATTR(HASH) { <br>
+# Invoked for any hash variable with a :Good attribute, <br>
+# provided the variable was declared in MyClass (or <br>
+# a derived class) or typed to MyClass. <br>
+... <br>
+} <br>
+sub Ugly : ATTR(CODE) { <br>
+# Invoked for any subroutine declared in MyClass (or a <br>
+# derived class) with an :Ugly attribute. <br>
+... <br>
+} <br>
+sub Omni : ATTR { <br>
+# Invoked for any scalar, array, hash, or subroutine <br>
+# with an :Omni attribute, provided the variable or <br>
+# subroutine was declared in MyClass (or a derived class)
+<br>
+# or the variable was typed to MyClass. <br>
+# Use ref($_[2]) to determine what kind of referent it was.
+<br>
+... <br>
+} <br>
+use Attribute::Handlers autotie =&gt; { Cycle =&gt;
+Tie::Cycle }; <br>
+my $next : Cycle(['A'..'Z']);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module,
+when inherited by a package, allows that package&rsquo;s
+class to define attribute handler subroutines for specific
+attributes. Variables and subroutines subsequently defined
+in that package, or in packages derived from that package
+may be given attributes with the same names as the attribute
+handler subroutines, which will then be called in one of the
+compilation phases (i.e. in a &quot;BEGIN&quot;,
+&quot;CHECK&quot;, &quot;INIT&quot;, or &quot;END&quot;
+block). (&quot;UNITCHECK&quot; blocks don&rsquo;t correspond
+to a global compilation phase, so they can&rsquo;t be
+specified here.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">To create a
+handler, define it as a subroutine with the same name as the
+desired attribute, and declare the subroutine itself with
+the attribute &quot;:ATTR&quot;. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+LoudDecl; <br>
+use Attribute::Handlers; <br>
+sub Loud :ATTR { <br>
+my ($package, $symbol, $referent, $attr, $data, $phase, <br>
+$filename, $linenum) = @_; <br>
+print STDERR <br>
+ref($referent), &quot; &quot;, <br>
+*{$symbol}{NAME}, &quot; &quot;, <br>
+&quot;($referent) &quot;, &quot;was just declared &quot;,
+<br>
+&quot;and ascribed the ${attr} attribute &quot;, <br>
+&quot;with data ($data)\n&quot;, <br>
+&quot;in phase $phase\n&quot;, <br>
+&quot;in file $filename at line $linenum\n&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This creates a
+handler for the attribute &quot;:Loud&quot; in the class
+LoudDecl. Thereafter, any subroutine declared with a
+&quot;:Loud&quot; attribute in the class LoudDecl:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+LoudDecl; <br>
+sub foo: Loud {...}</p>
+
+<p style="margin-left:11%; margin-top: 1em">causes the
+above handler to be invoked, and passed:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[0]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>the name of the package into which it was declared;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[1]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>a reference to the symbol table entry (typeglob)
+containing the subroutine;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[2]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>a reference to the subroutine;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[3]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>the name of the attribute;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[4]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>any data associated with that attribute;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[5]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>the name of the phase in which the handler is being
+invoked;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[6]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>the filename in which the handler is being invoked;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[7]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>the line number in this file.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">Likewise,
+declaring any variables with the &quot;:Loud&quot; attribute
+within the package:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+LoudDecl; <br>
+my $foo :Loud; <br>
+my @foo :Loud; <br>
+my %foo :Loud;</p>
+
+<p style="margin-left:11%; margin-top: 1em">will cause the
+handler to be called with a similar argument list (except,
+of course, that $_[2] will be a reference to the
+variable).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The package
+name argument will typically be the name of the class into
+which the subroutine was declared, but it may also be the
+name of a derived class (since handlers are inherited).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a lexical
+variable is given an attribute, there is no symbol table to
+which it belongs, so the symbol table argument ($_[1]) is
+set to the string 'LEXICAL' in that case. Likewise,
+ascribing an attribute to an anonymous subroutine results in
+a symbol table argument of 'ANON'.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The data
+argument passes in the value (if any) associated with the
+attribute. For example, if &amp;foo had been declared:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub foo
+:Loud(&quot;turn it up to 11, man!&quot;) {...}</p>
+
+<p style="margin-left:11%; margin-top: 1em">then a
+reference to an array containing the string &quot;turn it up
+to 11, man!&quot; would be passed as the last argument.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Attribute::Handlers
+makes strenuous efforts to convert the data argument ($_[4])
+to a usable form before passing it to the handler (but see
+&quot;Non-interpretive attribute handlers&quot;). If those
+efforts succeed, the interpreted data is passed in an array
+reference; if they fail, the raw data is passed as a string.
+For example, all of these:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub foo
+:Loud(till=&gt;ears=&gt;are=&gt;bleeding) {...} <br>
+sub foo :Loud(qw/till ears are bleeding/) {...} <br>
+sub foo :Loud(qw/till, ears, are, bleeding/) {...} <br>
+sub foo :Loud(till,ears,are,bleeding) {...}</p>
+
+<p style="margin-left:11%; margin-top: 1em">causes it to
+pass &quot;['till','ears','are','bleeding']&quot; as the
+handler&rsquo;s data argument. While:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub foo
+:Loud(['till','ears','are','bleeding']) {...}</p>
+
+<p style="margin-left:11%; margin-top: 1em">causes it to
+pass &quot;[ ['till','ears','are','bleeding'] ]&quot;; the
+array reference specified in the data being passed inside
+the standard array reference indicating successful
+interpretation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, if the
+data can&rsquo;t be parsed as valid Perl, then it is passed
+as an uninterpreted string. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub foo
+:Loud(my,ears,are,bleeding) {...} <br>
+sub foo :Loud(qw/my ears are bleeding) {...}</p>
+
+<p style="margin-left:11%; margin-top: 1em">cause the
+strings 'my,ears,are,bleeding' and 'qw/my ears are bleeding'
+respectively to be passed as the data argument.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no value is
+associated with the attribute, &quot;undef&quot; is
+passed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Typed
+lexicals</b> <br>
+Regardless of the package in which it is declared, if a
+lexical variable is ascribed an attribute, the handler that
+is invoked is the one belonging to the package to which it
+is typed. For example, the following declarations:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+OtherClass; <br>
+my LoudDecl $loudobj : Loud; <br>
+my LoudDecl @loudobjs : Loud; <br>
+my LoudDecl %loudobjex : Loud;</p>
+
+<p style="margin-left:11%; margin-top: 1em">causes the
+LoudDecl::Loud handler to be invoked (even if OtherClass
+also defines a handler for &quot;:Loud&quot;
+attributes).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Type-specific
+attribute handlers</b> <br>
+If an attribute handler is declared and the
+&quot;:ATTR&quot; specifier is given the name of a built-in
+type (&quot;SCALAR&quot;, &quot;ARRAY&quot;,
+&quot;HASH&quot;, or &quot;CODE&quot;), the handler is only
+applied to declarations of that type. For example, the
+following definition:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+LoudDecl; <br>
+sub RealLoud :ATTR(SCALAR) { print &quot;Yeeeeow!&quot;
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">creates an
+attribute handler that applies only to scalars:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+Painful; <br>
+use base LoudDecl; <br>
+my $metal : RealLoud; # invokes &amp;LoudDecl::RealLoud <br>
+my @metal : RealLoud; # error: unknown attribute <br>
+my %metal : RealLoud; # error: unknown attribute <br>
+sub metal : RealLoud {...} # error: unknown attribute</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can, of
+course, declare separate handlers for these types as well
+(but you&rsquo;ll need to specify &quot;no warnings
+'redefine'&quot; to do it quietly):</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+LoudDecl; <br>
+use Attribute::Handlers; <br>
+no warnings 'redefine'; <br>
+sub RealLoud :ATTR(SCALAR) { print &quot;Yeeeeow!&quot; }
+<br>
+sub RealLoud :ATTR(ARRAY) { print &quot;Urrrrrrrrrr!&quot; }
+<br>
+sub RealLoud :ATTR(HASH) { print
+&quot;Arrrrrgggghhhhhh!&quot; } <br>
+sub RealLoud :ATTR(CODE) { croak &quot;Real loud sub
+torpedoed&quot; }</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+explicitly indicate that a single handler is meant to be
+used for all types of referents like so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+LoudDecl; <br>
+use Attribute::Handlers; <br>
+sub SeriousLoud :ATTR(ANY) { warn &quot;Hearing loss
+imminent&quot; }</p>
+
+<p style="margin-left:11%; margin-top: 1em">(I.e.
+&quot;ATTR(ANY)&quot; is a synonym for
+&quot;:ATTR&quot;).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Non-interpretive
+attribute handlers</b> <br>
+Occasionally the strenuous efforts Attribute::Handlers makes
+to convert the data argument ($_[4]) to a usable form before
+passing it to the handler get in the way.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can turn
+off that eagerness-to-help by declaring an attribute handler
+with the keyword &quot;RAWDATA&quot;. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub Raw :
+ATTR(RAWDATA) {...} <br>
+sub Nekkid : ATTR(SCALAR,RAWDATA) {...} <br>
+sub Au::Naturale : ATTR(RAWDATA,ANY) {...}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Then the
+handler makes absolutely no attempt to interpret the data it
+receives and simply passes it as a string:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $power :
+Raw(1..100); # handlers receives &quot;1..100&quot;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Phase-specific
+attribute handlers</b> <br>
+By default, attribute handlers are called at the end of the
+compilation phase (in a &quot;CHECK&quot; block). This seems
+to be optimal in most cases because most things that can be
+defined are defined by that point but nothing has been
+executed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, it is
+possible to set up attribute handlers that are called at
+other points in the program&rsquo;s compilation or
+execution, by explicitly stating the phase (or phases) in
+which you wish the attribute handler to be called. For
+example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub Early
+:ATTR(SCALAR,BEGIN) {...} <br>
+sub Normal :ATTR(SCALAR,CHECK) {...} <br>
+sub Late :ATTR(SCALAR,INIT) {...} <br>
+sub Final :ATTR(SCALAR,END) {...} <br>
+sub Bookends :ATTR(SCALAR,BEGIN,END) {...}</p>
+
+<p style="margin-left:11%; margin-top: 1em">As the last
+example indicates, a handler may be set up to be (re)called
+in two or more phases. The phase name is passed as the
+handler&rsquo;s final argument.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+attribute handlers that are scheduled for the
+&quot;BEGIN&quot; phase are handled as soon as the attribute
+is detected (i.e. before any subsequently defined
+&quot;BEGIN&quot; blocks are executed).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Attributes
+as &quot;tie&quot; interfaces</b> <br>
+Attributes make an excellent and intuitive interface through
+which to tie variables. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Attribute::Handlers; <br>
+use Tie::Cycle; <br>
+sub UNIVERSAL::Cycle : ATTR(SCALAR) { <br>
+my ($package, $symbol, $referent, $attr, $data, $phase) =
+@_; <br>
+$data = [ $data ] unless ref $data eq 'ARRAY'; <br>
+tie $$referent, 'Tie::Cycle', $data; <br>
+} <br>
+# and thereafter... <br>
+package main; <br>
+my $next : Cycle('A'..'Z'); # $next is now a tied variable
+<br>
+while (&lt;&gt;) { <br>
+print $next; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that,
+because the &quot;Cycle&quot; attribute receives its
+arguments in the $data variable, if the attribute is given a
+list of arguments, $data will consist of a single array
+reference; otherwise, it will consist of the single argument
+directly. Since Tie::Cycle requires its cycling values to be
+passed as an array reference, this means that we need to
+wrap non-array-reference arguments in an array
+constructor:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$data = [ $data
+] unless ref $data eq 'ARRAY';</p>
+
+<p style="margin-left:11%; margin-top: 1em">Typically,
+however, things are the other way around: the tieable class
+expects its arguments as a flattened list, so the attribute
+looks like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub
+UNIVERSAL::Cycle : ATTR(SCALAR) { <br>
+my ($package, $symbol, $referent, $attr, $data, $phase) =
+@_; <br>
+my @data = ref $data eq 'ARRAY' ? @$data : $data; <br>
+tie $$referent, 'Tie::Whatever', @data; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This software
+pattern is so widely applicable that Attribute::Handlers
+provides a way to automate it: specifying 'autotie' in the
+&quot;use Attribute::Handlers&quot; statement. So, the
+cycling example, could also be written:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Attribute::Handlers autotie =&gt; { Cycle =&gt; 'Tie::Cycle'
+}; <br>
+# and thereafter... <br>
+package main; <br>
+my $next : Cycle(['A'..'Z']); # $next is now a tied variable
+<br>
+while (&lt;&gt;) { <br>
+print $next; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that we
+now have to pass the cycling values as an array reference,
+since the &quot;autotie&quot; mechanism passes
+&quot;tie&quot; a list of arguments as a list (as in the
+Tie::Whatever example), <i>not</i> as an array reference (as
+in the original Tie::Cycle example at the start of this
+section).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The argument
+after 'autotie' is a reference to a hash in which each key
+is the name of an attribute to be created, and each value is
+the class to which variables ascribed that attribute should
+be tied.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that there
+is no longer any need to import the Tie::Cycle module --
+Attribute::Handlers takes care of that automagically. You
+can even pass arguments to the module&rsquo;s
+&quot;import&quot; subroutine, by appending them to the
+class name. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Attribute::Handlers <br>
+autotie =&gt; { Dir =&gt; 'Tie::Dir qw(DIR_UNLINK)' };</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+attribute name is unqualified, the attribute is installed in
+the current package. Otherwise it is installed in the
+qualifier&rsquo;s package:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package Here;
+<br>
+use Attribute::Handlers autotie =&gt; { <br>
+Other::Good =&gt; Tie::SecureHash, # tie attr installed in
+Other:: <br>
+Bad =&gt; Tie::Taxes, # tie attr installed in Here:: <br>
+UNIVERSAL::Ugly =&gt; Software::Patent # tie attr installed
+everywhere <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Autoties are
+most commonly used in the module to which they actually tie,
+and need to export their attributes to any module that calls
+them. To facilitate this, Attribute::Handlers recognizes a
+special &quot;pseudo-class&quot; -- &quot;__CALLER__&quot;,
+which may be specified as the qualifier of an attribute:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+Tie::Me::Kangaroo::Down::Sport; <br>
+use Attribute::Handlers autotie =&gt; <br>
+{ '__CALLER__::Roo' =&gt; __PACKAGE__ };</p>
+
+<p style="margin-left:11%; margin-top: 1em">This causes
+Attribute::Handlers to define the &quot;Roo&quot; attribute
+in the package that imports the
+Tie::Me::Kangaroo::Down::Sport module.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that it is
+important to quote the __CALLER__::Roo identifier because a
+bug in perl 5.8 will refuse to parse it and cause an unknown
+error.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Passing the
+tied object to &quot;tie&quot;</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Occasionally it
+is important to pass a reference to the object being tied to
+the <small>TIESCALAR, TIEHASH,</small> etc. that ties
+it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;autotie&quot; mechanism supports this too. The
+following code:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Attribute::Handlers autotieref =&gt; { Selfish =&gt;
+Tie::Selfish }; <br>
+my $var : Selfish(@args);</p>
+
+<p style="margin-left:11%; margin-top: 1em">has the same
+effect as:</p>
+
+<p style="margin-left:11%; margin-top: 1em">tie my $var,
+'Tie::Selfish', @args;</p>
+
+<p style="margin-left:11%; margin-top: 1em">But when
+&quot;autotieref&quot; is used instead of
+&quot;autotie&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Attribute::Handlers autotieref =&gt; { Selfish =&gt;
+Tie::Selfish }; <br>
+my $var : Selfish(@args);</p>
+
+<p style="margin-left:11%; margin-top: 1em">the effect is
+to pass the &quot;tie&quot; call an extra reference to the
+variable being tied:</p>
+
+<p style="margin-left:11%; margin-top: 1em">tie my $var,
+'Tie::Selfish', \$var, @args;</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If the class
+shown in &quot; <small>SYNOPSIS&quot;</small> were placed in
+the MyClass.pm module, then the following code:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package main;
+<br>
+use MyClass; <br>
+my MyClass $slr :Good :Bad(1**1&minus;1)
+:Omni(&minus;vorous); <br>
+package SomeOtherClass; <br>
+use base MyClass; <br>
+sub tent { 'acle' } <br>
+sub fn :Ugly(sister) :Omni('po',tent()) {...} <br>
+my @arr :Good :Omni(s/cie/nt/); <br>
+my %hsh :Good(q/bye/) :Omni(q/bus/);</p>
+
+<p style="margin-left:11%; margin-top: 1em">would cause the
+following handlers to be invoked:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># my MyClass
+$slr :Good :Bad(1**1&minus;1) :Omni(&minus;vorous); <br>
+MyClass::Good:ATTR(SCALAR)( 'MyClass', # class <br>
+'LEXICAL', # no typeglob <br>
+\$slr, # referent <br>
+'Good', # attr name <br>
+undef # no attr data <br>
+'CHECK', # compiler phase <br>
+); <br>
+MyClass::Bad:ATTR(SCALAR)( 'MyClass', # class <br>
+'LEXICAL', # no typeglob <br>
+\$slr, # referent <br>
+'Bad', # attr name <br>
+0 # eval'd attr data <br>
+'CHECK', # compiler phase <br>
+); <br>
+MyClass::Omni:ATTR(SCALAR)( 'MyClass', # class <br>
+'LEXICAL', # no typeglob <br>
+\$slr, # referent <br>
+'Omni', # attr name <br>
+'&minus;vorous' # eval'd attr data <br>
+'CHECK', # compiler phase <br>
+); <br>
+# sub fn :Ugly(sister) :Omni('po',tent()) {...} <br>
+MyClass::UGLY:ATTR(CODE)( 'SomeOtherClass', # class <br>
+\*SomeOtherClass::fn, # typeglob <br>
+\&amp;SomeOtherClass::fn, # referent <br>
+'Ugly', # attr name <br>
+'sister' # eval'd attr data <br>
+'CHECK', # compiler phase <br>
+); <br>
+MyClass::Omni:ATTR(CODE)( 'SomeOtherClass', # class <br>
+\*SomeOtherClass::fn, # typeglob <br>
+\&amp;SomeOtherClass::fn, # referent <br>
+'Omni', # attr name <br>
+['po','acle'] # eval'd attr data <br>
+'CHECK', # compiler phase <br>
+); <br>
+# my @arr :Good :Omni(s/cie/nt/); <br>
+MyClass::Good:ATTR(ARRAY)( 'SomeOtherClass', # class <br>
+'LEXICAL', # no typeglob <br>
+\@arr, # referent <br>
+'Good', # attr name <br>
+undef # no attr data <br>
+'CHECK', # compiler phase <br>
+); <br>
+MyClass::Omni:ATTR(ARRAY)( 'SomeOtherClass', # class <br>
+'LEXICAL', # no typeglob <br>
+\@arr, # referent <br>
+'Omni', # attr name <br>
+&quot;&quot; # eval'd attr data <br>
+'CHECK', # compiler phase <br>
+); <br>
+# my %hsh :Good(q/bye) :Omni(q/bus/); <br>
+MyClass::Good:ATTR(HASH)( 'SomeOtherClass', # class <br>
+'LEXICAL', # no typeglob <br>
+\%hsh, # referent <br>
+'Good', # attr name <br>
+'q/bye' # raw attr data <br>
+'CHECK', # compiler phase <br>
+); <br>
+MyClass::Omni:ATTR(HASH)( 'SomeOtherClass', # class <br>
+'LEXICAL', # no typeglob <br>
+\%hsh, # referent <br>
+'Omni', # attr name <br>
+'bus' # eval'd attr data <br>
+'CHECK', # compiler phase <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Installing
+handlers into <small>UNIVERSAL,</small> makes
+them...err..universal. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+Descriptions; <br>
+use Attribute::Handlers; <br>
+my %name; <br>
+sub name { return $name{$_[2]}||*{$_[1]}{NAME} } <br>
+sub UNIVERSAL::Name :ATTR { <br>
+$name{$_[2]} = $_[4]; <br>
+} <br>
+sub UNIVERSAL::Purpose :ATTR { <br>
+print STDERR &quot;Purpose of &quot;, &amp;name, &quot; is
+$_[4]\n&quot;; <br>
+} <br>
+sub UNIVERSAL::Unit :ATTR { <br>
+print STDERR &amp;name, &quot; measured in $_[4]\n&quot;;
+<br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Let&rsquo;s you
+write:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Descriptions; <br>
+my $capacity : Name(capacity) <br>
+: Purpose(to store max storage capacity for files) <br>
+: Unit(Gb); <br>
+package Other; <br>
+sub foo : Purpose(to foo all data before barring it) { }
+<br>
+# etc.</p>
+
+<h2>UTILITY FUNCTIONS
+<a name="UTILITY FUNCTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+offers a single utility function, &quot;findsym()&quot;.
+<br>
+findsym</p>
+
+<p style="margin-left:17%;">my $symbol =
+Attribute::Handlers::findsym($package, $referent);</p>
+
+<p style="margin-left:17%; margin-top: 1em">The function
+looks in the symbol table of $package for the typeglob for
+$referent, which is a reference to a variable or subroutine
+( <small>SCALAR, ARRAY, HASH,</small> or <small>CODE</small>
+). If it finds the typeglob, it returns it. Otherwise, it
+returns undef. Note that &quot;findsym&quot; memoizes the
+typeglobs it has previously successfully found, so
+subsequent calls with the same arguments should be much
+faster.</p>
+
+<h2>DIAGNOSTICS
+<a name="DIAGNOSTICS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Bad
+attribute type: ATTR(%s)&quot;</p>
+
+<p style="margin-left:17%;">An attribute handler was
+specified with an &quot;:ATTR(<i>ref_type</i>)&quot;, but
+the type of referent it was defined to handle wasn&rsquo;t
+one of the five permitted: &quot;SCALAR&quot;,
+&quot;ARRAY&quot;, &quot;HASH&quot;, &quot;CODE&quot;, or
+&quot;ANY&quot;.</p>
+
+<p style="margin-left:11%;">&quot;Attribute handler %s
+doesn't handle %s attributes&quot;</p>
+
+<p style="margin-left:17%;">A handler for attributes of the
+specified name <i>was</i> defined, but not for the specified
+type of declaration. Typically encountered when trying to
+apply a &quot;VAR&quot; attribute handler to a subroutine,
+or a &quot;SCALAR&quot; attribute handler to some other type
+of variable.</p>
+
+<p style="margin-left:11%;">&quot;Declaration of %s
+attribute in package %s may clash with future <br>
+reserved word&quot;</p>
+
+<p style="margin-left:17%;">A handler for an attributes
+with an all-lowercase name was declared. An attribute with
+an all-lowercase name might have a meaning to Perl itself
+some day, even though most don&rsquo;t yet. Use a mixed-case
+attribute name, instead.</p>
+
+<p style="margin-left:11%;">&quot;Can't have two ATTR
+specifiers on one subroutine&quot;</p>
+
+<p style="margin-left:17%;">You just can&rsquo;t, okay?
+Instead, put all the specifications together with commas
+between them in a single
+&quot;ATTR(<i>specification</i>)&quot;.</p>
+
+<p style="margin-left:11%;">&quot;Can't autotie a
+%s&quot;</p>
+
+<p style="margin-left:17%;">You can only declare autoties
+for types &quot;SCALAR&quot;, &quot;ARRAY&quot;, and
+&quot;HASH&quot;. They&rsquo;re the only things (apart from
+typeglobs -- which are not declarable) that Perl can
+tie.</p>
+
+<p style="margin-left:11%;">&quot;Internal error: %s symbol
+went missing&quot;</p>
+
+<p style="margin-left:17%;">Something is rotten in the
+state of the program. An attributed subroutine ceased to
+exist between the point it was declared and the point at
+which its attribute handler(s) would have been called.</p>
+
+<p style="margin-left:11%;">&quot;Won't be able to apply
+END handler&quot;</p>
+
+<p style="margin-left:17%;">You have defined an
+<small>END</small> handler for an attribute that is being
+applied to a lexical variable. Since the variable may not be
+available during <small>END</small> this won&rsquo;t
+happen.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Damian Conway
+(damian@conway.org). The maintainer of this module is now
+Rafael Garcia-Suarez (rgarciasuarez@gmail.com).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Maintainer of
+the <small>CPAN</small> release is Steffen Mueller
+(smueller@cpan.org). Contact him with technical difficulties
+with respect to the packaging of the <small>CPAN</small>
+module.</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">There are
+undoubtedly serious bugs lurking somewhere in code this
+funky :&minus;) Bug reports and other feedback are most
+welcome.</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (c)
+2001&minus;2014, Damian Conway. All Rights Reserved. <br>
+This module is free software. It may be used, redistributed
+<br>
+and/or modified under the same terms as Perl itself.</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,299 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:08 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>process_madvise</title>
+
+</head>
+<body>
+<h1>process_madvise</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">process_madvise
+&minus; give advice about use of memory to a process</p>
+
+<h2>LIBRARY
+<a name="LIBRARY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Standard C
+library (<i>libc</i>, <i>&minus;lc</i>)</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;sys/mman.h&gt;</b> /* Definition of <b>MADV_*</b>
+constants */ <b><br>
+#include &lt;sys/syscall.h&gt;</b> /* Definition of
+<b>SYS_*</b> constants */ <b><br>
+#include &lt;sys/uio.h&gt;</b> /* Definition of <b>struct
+iovec</b> type */ <b><br>
+#include &lt;unistd.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>ssize_t
+syscall(SYS_process_madvise, int</b> <i>pidfd</i><b>, <br>
+const struct iovec *</b><i>iovec</i><b>, size_t</b>
+<i>vlen</i><b>, int</b> <i>advice</i><b>, <br>
+unsigned int</b> <i>flags</i><b>);</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Note</i>:
+glibc provides no wrapper for <b>process_madvise</b>(),
+necessitating the use of <b>syscall</b>(2).</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>process_madvise</b>() system call is used to give advice
+or directions to the kernel about the address ranges of
+another process or of the calling process. It provides the
+advice for the address ranges described by <i>iovec</i> and
+<i>vlen</i>. The goal of such advice is to improve system or
+application performance.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>pidfd</i> argument is a PID file descriptor (see
+<b>pidfd_open</b>(2)) that specifies the process to which
+the advice is to be applied.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The pointer
+<i>iovec</i> points to an array of <i>iovec</i> structures,
+described in <b>iovec</b>(3type).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>vlen</i>
+specifies the number of elements in the array of
+<i>iovec</i> structures. This value must be less than or
+equal to <b>IOV_MAX</b> (defined in <i>&lt;limits.h&gt;</i>
+or accessible via the call <i>sysconf(_SC_IOV_MAX)</i>).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>advice</i> argument is one of the following values:
+<b><br>
+MADV_COLD</b></p>
+
+<p style="margin-left:22%;">See <b>madvise</b>(2).</p>
+
+<p style="margin-left:11%;"><b>MADV_COLLAPSE</b></p>
+
+<p style="margin-left:22%;">See <b>madvise</b>(2).</p>
+
+<p style="margin-left:11%;"><b>MADV_PAGEOUT</b></p>
+
+<p style="margin-left:22%;">See <b>madvise</b>(2).</p>
+
+<p style="margin-left:11%;"><b>MADV_WILLNEED</b></p>
+
+<p style="margin-left:22%;">See <b>madvise</b>(2).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>flags</i> argument is reserved for future use; currently,
+this argument must be specified as 0.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The <i>vlen</i>
+and <i>iovec</i> arguments are checked before applying any
+advice. If <i>vlen</i> is too big, or <i>iovec</i> is
+invalid, then an error will be returned immediately and no
+advice will be applied.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The advice
+might be applied to only a part of <i>iovec</i> if one of
+its elements points to an invalid memory region in the
+remote process. No further elements will be processed beyond
+that point. (See the discussion regarding partial advice in
+RETURN VALUE.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Starting in
+Linux 5.12, permission to apply advice to another process is
+governed by ptrace access mode
+<b>PTRACE_MODE_READ_FSCREDS</b> check (see
+<b>ptrace</b>(2)); in addition, because of the performance
+implications of applying the advice, the caller must have
+the <b>CAP_SYS_NICE</b> capability (see
+<b>capabilities</b>(7)).</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On success,
+<b>process_madvise</b>() returns the number of bytes
+advised. This return value may be less than the total number
+of requested bytes, if an error occurred after some
+<i>iovec</i> elements were already processed. The caller
+should check the return value to determine whether a partial
+advice occurred.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On error,
+&minus;1 is returned and <i>errno</i> is set to indicate the
+error.</p>
+
+<h2>ERRORS
+<a name="ERRORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em"><b>EBADF</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em"><i>pidfd</i> is not a valid PID
+file descriptor.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>EFAULT</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>The memory described by <i>iovec</i> is outside the
+accessible address space of the process referred to by
+<i>pidfd</i>.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>EINVAL</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p><i>flags</i> is not 0.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>EINVAL</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>The sum of the <i>iov_len</i> values of <i>iovec</i>
+overflows a <i>ssize_t</i> value.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>EINVAL</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p><i>vlen</i> is too large.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>ENOMEM</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>Could not allocate memory for internal copies of the
+<i>iovec</i> structures.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>EPERM</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>The caller does not have permission to access the
+address space of the process <i>pidfd</i>.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>ESRCH</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>The target process does not exist (i.e., it has
+terminated and been waited on).</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">See
+<b>madvise</b>(2) for <i>advice</i>-specific errors.</p>
+
+<h2>STANDARDS
+<a name="STANDARDS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Linux.</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Linux 5.10.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Support for
+this system call is optional, depending on the setting of
+the <b>CONFIG_ADVISE_SYSCALLS</b> configuration option.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When this
+system call first appeared in Linux 5.10, permission to
+apply advice to another process was entirely governed by
+ptrace access mode <b>PTRACE_MODE_ATTACH_FSCREDS</b> check
+(see <b>ptrace</b>(2)). This requirement was relaxed in
+Linux 5.12 so that the caller didn&rsquo;t require full
+control over the target process.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>madvise</b>(2),
+<b>pidfd_open</b>(2), <b>process_vm_readv</b>(2),
+<b>process_vm_write</b>(2)</p>
+<hr>
+</body>
+</html>

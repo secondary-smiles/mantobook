@@ -1,0 +1,176 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:07 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>NSS&minus;MYHOSTNAME</title>
+
+</head>
+<body>
+<h1>nss-myhostname</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">nss-myhostname,
+libnss_myhostname.so.2 &minus; Hostname resolution for the
+locally configured system hostname</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">libnss_myhostname.so.2</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>nss&minus;myhostname</b>
+is a plug&minus;in module for the GNU Name Service Switch
+(NSS) functionality of the GNU C Library (<b>glibc</b>),
+primarily providing hostname resolution for the locally
+configured system hostname as returned by
+<b>gethostname</b>(2). The precise hostnames resolved by
+this module are:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+local, configured hostname is resolved to all locally
+configured IP addresses ordered by their scope, or &mdash;
+if none are configured &mdash; the IPv4 address 127.0.0.2
+(which is on the local loopback) and the IPv6 address ::1
+(which is the local host).</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+hostnames &quot;localhost&quot; and
+&quot;localhost.localdomain&quot; (as well as any hostname
+ending in &quot;.localhost&quot; or
+&quot;.localhost.localdomain&quot;) are resolved to the IP
+addresses 127.0.0.1 and ::1.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+hostname &quot;_gateway&quot; is resolved to all current
+default routing gateway addresses, ordered by their metric.
+This assigns a stable hostname to the current gateway,
+useful for referencing it independently of the current
+network configuration state.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+hostname &quot;_outbound&quot; is resolved to the local IPv4
+and IPv6 addresses that are most likely used for
+communication with other hosts. This is determined by
+requesting a routing decision to the configured default
+gateways from the kernel and then using the local IP
+addresses selected by this decision. This hostname is only
+available if there is at least one local default gateway
+configured. This assigns a stable hostname to the local
+outbound IP addresses, useful for referencing them
+independently of the current network configuration
+state.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Various
+software relies on an always&minus;resolvable local
+hostname. When using dynamic hostnames, this is
+traditionally achieved by patching /etc/hosts at the same
+time as changing the hostname. This is problematic since it
+requires a writable /etc/ file system and is fragile because
+the file might be edited by the administrator at the same
+time. With <b>nss&minus;myhostname</b> enabled, changing
+/etc/hosts is unnecessary, and on many systems, the file
+becomes entirely optional.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To activate the
+NSS modules, add &quot;myhostname&quot; to the line starting
+with &quot;hosts:&quot; in /etc/nsswitch.conf.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is
+recommended to place &quot;myhostname&quot; after
+&quot;file&quot; and before &quot;dns&quot;. This resolves
+well&minus;known hostnames like &quot;localhost&quot; and
+the machine hostnames locally. It is consistent with the
+behaviour of <b>nss&minus;resolve</b>, and still allows
+overriding via /etc/hosts.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Please keep in
+mind that <b>nss&minus;myhostname</b> (and
+<b>nss&minus;resolve</b>) also resolve in the other
+direction &mdash; from locally attached IP addresses to
+hostnames. If you rely on that lookup being provided by DNS,
+you might want to order things differently.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Here is an
+example /etc/nsswitch.conf file that enables
+<b>nss&minus;myhostname</b> correctly:</p>
+
+<p style="margin-left:17%; margin-top: 1em">passwd: compat
+systemd <br>
+group: compat [SUCCESS=merge] systemd <br>
+shadow: compat systemd <br>
+gshadow: files systemd</p>
+
+<p style="margin-left:17%; margin-top: 1em">hosts:
+mymachines resolve [!UNAVAIL=return] files <b>myhostname</b>
+dns <br>
+networks: files</p>
+
+<p style="margin-left:17%; margin-top: 1em">protocols: db
+files <br>
+services: db files <br>
+ethers: db files <br>
+rpc: db files</p>
+
+<p style="margin-left:17%; margin-top: 1em">netgroup:
+nis</p>
+
+<p style="margin-left:11%; margin-top: 1em">To test, use
+<b>glibc</b>'s <b>getent</b>(1) tool:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$ getent ahosts
+&lsquo;hostname&lsquo; <br>
+::1 STREAM omega <br>
+::1 DGRAM <br>
+::1 RAW <br>
+127.0.0.2 STREAM <br>
+127.0.0.2 DGRAM <br>
+127.0.0.2 RAW</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this case,
+the local hostname is <i>omega</i>.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>nss-systemd</b>(8), <b>nss-resolve</b>(8),
+<b>nss-mymachines</b>(8), <b>nsswitch.conf</b>(5),
+<b>getent</b>(1)</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,2627 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:59 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERLLOCALE</title>
+
+</head>
+<body>
+<h1>perllocale</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perllocale
+&minus; Perl locale handling (internationalization and
+localization)</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">In the
+beginning there was <small>ASCII,</small> the &quot;American
+Standard Code for Information Interchange&quot;, which works
+quite well for Americans with their English alphabet and
+dollar-denominated currency. But it doesn&rsquo;t work so
+well even for other English speakers, who may use different
+currencies, such as the pound sterling (as the symbol for
+that currency is not in <small>ASCII</small> ); and
+it&rsquo;s hopelessly inadequate for many of the thousands
+of the world&rsquo;s other languages.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To address
+these deficiencies, the concept of locales was invented
+(formally the <small>ISO C, XPG4, POSIX 1</small> .c
+&quot;locale system&quot;). And applications were and are
+being written that use the locale mechanism. The process of
+making such an application take account of its users&rsquo;
+preferences in these kinds of matters is called
+<b>internationalization</b> (often abbreviated as
+<b>i18n</b>); telling such an application about a particular
+set of preferences is known as <b>localization</b>
+(<b>l10n</b>).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl has been
+extended to support certain types of locales available in
+the locale system. This is controlled per application by
+using one pragma, one function call, and several environment
+variables.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl supports
+single-byte locales that are supersets of
+<small>ASCII,</small> such as the <small>ISO 8859</small>
+ones, and one multi-byte-type locale,
+<small>UTF&minus;8</small> ones, described in the next
+paragraph. Perl doesn&rsquo;t support any other multi-byte
+locales, such as the ones for East Asian languages.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unfortunately,
+there are quite a few deficiencies with the design (and
+often, the implementations) of locales. Unicode was invented
+(see perlunitut for an introduction to that) in part to
+address these design deficiencies, and nowadays, there is a
+series of &quot; <small>UTF&minus;8</small> locales&quot;,
+based on Unicode. These are locales whose character set is
+Unicode, encoded in <small>UTF&minus;8.</small> Starting in
+v5.20, Perl fully supports <small>UTF&minus;8</small>
+locales, except for sorting and string comparisons like
+&quot;lt&quot; and &quot;ge&quot;. Starting in v5.26, Perl
+can handle these reasonably as well, depending on the
+platform&rsquo;s implementation. However, for earlier
+releases or for better control, use Unicode::Collate. There
+are actually two slightly different types of
+<small>UTF&minus;8</small> locales: one for Turkic languages
+and one for everything else.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Starting in
+Perl v5.30, Perl detects Turkic locales by their behaviour,
+and seamlessly handles both types; previously only the
+non-Turkic one was supported. The name of the locale is
+ignored, if your system has a &quot;tr_TR.UTF&minus;8&quot;
+locale and it doesn&rsquo;t behave like a Turkic locale,
+perl will treat it like a non-Turkic locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl continues
+to support the old non <small>UTF&minus;8</small> locales as
+well. There are currently no <small>UTF&minus;8</small>
+locales for <small>EBCDIC</small> platforms.</p>
+
+<p style="margin-left:11%; margin-top: 1em">(Unicode is
+also creating &quot;CLDR&quot;, the &quot;Common Locale Data
+Repository&quot;, &lt;http://cldr.unicode.org/&gt; which
+includes more types of information than are available in the
+<small>POSIX</small> locale system. At the time of this
+writing, there was no <small>CPAN</small> module that
+provides access to this XML-encoded data. However, it is
+possible to compute the <small>POSIX</small> locale data
+from them, and earlier <small>CLDR</small> versions had
+these already extracted for you as
+<small>UTF&minus;8</small> locales
+&lt;http://unicode.org/Public/cldr/2.0.1/&gt;.)</p>
+
+<h2>WHAT IS A LOCALE
+<a name="WHAT IS A LOCALE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A locale is a
+set of data that describes various aspects of how various
+communities in the world categorize their world. These
+categories are broken down into the following types (some of
+which include a brief note here): <br>
+Category &quot;LC_NUMERIC&quot;: Numeric formatting</p>
+
+<p style="margin-left:17%;">This indicates how numbers
+should be formatted for human readability, for example the
+character used as the decimal point.</p>
+
+<p style="margin-left:11%;">Category
+&quot;LC_MONETARY&quot;: Formatting of monetary amounts <br>
+Category &quot;LC_TIME&quot;: Date/Time formatting <br>
+Category &quot;LC_MESSAGES&quot;: Error and other
+messages</p>
+
+<p style="margin-left:17%;">This is used by Perl itself
+only for accessing operating system error messages via $!
+and $^E.</p>
+
+<p style="margin-left:11%;">Category
+&quot;LC_COLLATE&quot;: Collation</p>
+
+<p style="margin-left:17%;">This indicates the ordering of
+letters for comparison and sorting. In Latin alphabets, for
+example, &quot;b&quot;, generally follows &quot;a&quot;.</p>
+
+<p style="margin-left:11%;">Category &quot;LC_CTYPE&quot;:
+Character Types</p>
+
+<p style="margin-left:17%;">This indicates, for example if
+a character is an uppercase letter.</p>
+
+<p style="margin-left:11%;">Other categories</p>
+
+<p style="margin-left:17%;">Some platforms have other
+categories, dealing with such things as measurement units
+and paper sizes. None of these are used directly by Perl,
+but outside operations that Perl interacts with may use
+these. See &quot;Not within the scope of &quot;use
+locale&quot;&quot; below.</p>
+
+<p style="margin-left:11%; margin-top: 1em">More details on
+the categories used by Perl are given below in &quot;
+<small>LOCALE CATEGORIES&quot;</small> .</p>
+
+<p style="margin-left:11%; margin-top: 1em">Together, these
+categories go a long way towards being able to customize a
+single program to run in many different locations. But there
+are deficiencies, so keep reading.</p>
+
+<h2>PREPARING TO USE LOCALES
+<a name="PREPARING TO USE LOCALES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Perl itself
+(outside the <small>POSIX</small> module) will not use
+locales unless specifically requested to (but again note
+that Perl may interact with code that does use them). Even
+if there is such a request, <b>all</b> of the following must
+be true for it to work properly:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p><b>Your operating system must support the locale
+system</b>. If it does, you should find that the
+&quot;setlocale()&quot; function is a documented part of its
+C library.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p><b>Definitions for locales that you use must be
+installed</b>. You, or your system administrator, must make
+sure that this is the case. The available locales, the
+location in which they are kept, and the manner in which
+they are installed all vary from system to system. Some
+systems provide only a few, hard-wired locales and do not
+allow more to be added. Others allow you to add
+&quot;canned&quot; locales provided by the system supplier.
+Still others allow you or the system administrator to define
+and add arbitrary locales. (You may have to ask your
+supplier to provide canned locales that are not delivered
+with your operating system.) Read your system documentation
+for further illumination.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p><b>Perl must believe that the locale system is
+supported</b>. If it does, &quot;perl
+&minus;V:d_setlocale&quot; will say that the value for
+&quot;d_setlocale&quot; is &quot;define&quot;.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">If you want a
+Perl application to process and present your data according
+to a particular locale, the application code should include
+the &quot;use&nbsp;locale&quot; pragma (see &quot;The
+&quot;use locale&quot; pragma&quot;) where appropriate, and
+<b>at least one</b> of the following must be true:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">1.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em"><b>The locale-determining
+environment variables (see &quot;
+<small>ENVIRONMENT&quot;</small> ) must be correctly set
+up</b> at the time the application is started, either by
+yourself or by whomever set up your system account; or</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>2.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p><b>The application must set its own locale</b> using the
+method described in &quot;The setlocale function&quot;.</p></td></tr>
+</table>
+
+<h2>USING LOCALES
+<a name="USING LOCALES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>The
+&quot;use locale&quot; pragma</b> <br>
+Starting in Perl 5.28, this pragma may be used in
+multi-threaded applications on systems that have thread-safe
+locale ability. Some caveats apply, see
+&quot;Multi-threaded&quot; below. On systems without this
+capability, or in earlier Perls, do <small>NOT</small> use
+this pragma in scripts that have multiple threads active.
+The locale in these cases is not local to a single thread.
+Another thread may change the locale at any time, which
+could cause at a minimum that a given thread is operating in
+a locale it isn&rsquo;t expecting to be in. On some
+platforms, segfaults can also occur. The locale change need
+not be explicit; some operations cause perl itself to change
+the locale. You are vulnerable simply by having done a
+&quot;use&nbsp;locale&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default,
+Perl itself (outside the <small>POSIX</small> module)
+ignores the current locale. The &quot;use&nbsp;locale&quot;
+pragma tells Perl to use the current locale for some
+operations. Starting in v5.16, there are optional parameters
+to this pragma, described below, which restrict which
+operations are affected by it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The current
+locale is set at execution time by <b>setlocale()</b>
+described below. If that function hasn&rsquo;t yet been
+called in the course of the program&rsquo;s execution, the
+current locale is that which was determined by the &quot;
+<small>ENVIRONMENT&quot;</small> in effect at the start of
+the program. If there is no valid environment, the current
+locale is whatever the system default has been set to. On
+<small>POSIX</small> systems, it is likely, but not
+necessarily, the &quot;C&quot; locale. On Windows, the
+default is set via the computer&rsquo;s
+&quot;Control&nbsp;Panel&minus;&gt;Regional&nbsp;and&nbsp;Language&nbsp;Options&quot;
+(or its current equivalent).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The operations
+that are affected by locale are: <b><br>
+Not within the scope of &quot;use locale&quot;</b></p>
+
+<p style="margin-left:17%;">Only certain operations (all
+originating outside Perl) should be affected, as
+follows:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>The current locale is used when going outside of Perl
+with operations like <b>system()</b> or qx//, if those
+operations are locale-sensitive.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>Also Perl gives access to various C library functions
+through the <small>POSIX</small> module. Some of those
+functions are always affected by the current locale. For
+example, &quot;POSIX::strftime()&quot; uses
+&quot;LC_TIME&quot;; &quot;POSIX::strtod()&quot; uses
+&quot;LC_NUMERIC&quot;; &quot;POSIX::strcoll()&quot; and
+&quot;POSIX::strxfrm()&quot; use &quot;LC_COLLATE&quot;. All
+such functions will behave according to the current
+underlying locale, even if that locale isn&rsquo;t exposed
+to Perl space.</p></td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">This applies as
+well to I18N::Langinfo.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em"><small>XS</small> modules for
+all categories but &quot;LC_NUMERIC&quot; get the underlying
+locale, and hence any C library functions they call will use
+that underlying locale. For more discussion, see &quot;
+<small>CAVEATS&quot;</small> in perlxs.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Note that all C
+programs (including the perl interpreter, which is written
+in C) always have an underlying locale. That locale is the
+&quot;C&quot; locale unless changed by a call to
+<b>setlocale()</b>. When Perl starts up, it changes the
+underlying locale to the one which is indicated by the
+&quot; <small>ENVIRONMENT&quot;</small> . When using the
+<small>POSIX</small> module or writing <small>XS</small>
+code, it is important to keep in mind that the underlying
+locale may be something other than &quot;C&quot;, even if
+the program hasn&rsquo;t explicitly changed it.</p>
+
+<p style="margin-left:11%;"><b>Lingering effects of
+&quot;use&nbsp;locale&quot;</b></p>
+
+<p style="margin-left:17%;">Certain Perl operations that
+are set-up within the scope of a &quot;use locale&quot;
+retain that effect even outside the scope. These
+include:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>The output format of a <b>write()</b> is determined by
+an earlier format declaration (&quot;format&quot; in
+perlfunc), so whether or not the output is affected by
+locale is determined by if the &quot;format()&quot; is
+within the scope of a &quot;use locale&quot;, not whether
+the &quot;write()&quot; is.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>Regular expression patterns can be compiled using qr//
+with actual matching deferred to later. Again, it is whether
+or not the compilation was done within the scope of
+&quot;use locale&quot; that determines the match behavior,
+not if the matches are done within such a scope or not.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>Under &quot;&quot;use
+locale&quot;;&quot;</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>All the above operations</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p><b>Format declarations</b> (&quot;format&quot; in
+perlfunc) and hence any subsequent &quot;write()&quot;s use
+&quot;LC_NUMERIC&quot;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p><b>stringification and output</b> use
+&quot;LC_NUMERIC&quot;. These include the results of
+&quot;print()&quot;, &quot;printf()&quot;,
+&quot;say()&quot;, and &quot;sprintf()&quot;.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p><b>The comparison operators</b> (&quot;lt&quot;,
+&quot;le&quot;, &quot;cmp&quot;, &quot;ge&quot;, and
+&quot;gt&quot;) use &quot;LC_COLLATE&quot;.
+&quot;sort()&quot; is also affected if used without an
+explicit comparison function, because it uses
+&quot;cmp&quot; by default.</p></td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em"><b>Note:</b>
+&quot;eq&quot; and &quot;ne&quot; are unaffected by locale:
+they always perform a char-by-char comparison of their
+scalar operands. What&rsquo;s more, if &quot;cmp&quot; finds
+that its operands are equal according to the collation
+sequence specified by the current locale, it goes on to
+perform a char-by-char comparison, and only returns <i>0</i>
+(equal) if the operands are char-for-char identical. If you
+really want to know whether two strings--which
+&quot;eq&quot; and &quot;cmp&quot; may consider
+different--are equal as far as collation in the locale is
+concerned, see the discussion in &quot;Category
+&quot;LC_COLLATE&quot;: Collation&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em"><b>Regular expressions and
+case-modification functions</b> (&quot;uc()&quot;,
+&quot;lc()&quot;, &quot;ucfirst()&quot;, and
+&quot;lcfirst()&quot;) use &quot;LC_CTYPE&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p><b>The variables $!</b> (and its synonyms $ERRNO and
+$OS_ERROR) <b>and</b> $^E&gt; (and its synonym
+$EXTENDED_OS_ERROR) when used as strings use
+&quot;LC_MESSAGES&quot;.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">The default
+behavior is restored with the &quot;no&nbsp;locale&quot;
+pragma, or upon reaching the end of the block enclosing
+&quot;use locale&quot;. Note that &quot;use locale&quot;
+calls may be nested, and that what is in effect within an
+inner scope will revert to the outer scope&rsquo;s rules at
+the end of the inner scope.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The string
+result of any operation that uses locale information is
+tainted (if your perl supports taint checking), as it is
+possible for a locale to be untrustworthy. See &quot;
+<small>SECURITY&quot;</small> .</p>
+
+<p style="margin-left:11%; margin-top: 1em">Starting in
+Perl v5.16 in a very limited way, and more generally in
+v5.22, you can restrict which category or categories are
+enabled by this particular instance of the pragma by adding
+parameters to it. For example,</p>
+
+<p style="margin-left:11%; margin-top: 1em">use locale
+qw(:ctype :numeric);</p>
+
+<p style="margin-left:11%; margin-top: 1em">enables locale
+awareness within its scope of only those operations (listed
+above) that are affected by &quot;LC_CTYPE&quot; and
+&quot;LC_NUMERIC&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The possible
+categories are: &quot;:collate&quot;, &quot;:ctype&quot;,
+&quot;:messages&quot;, &quot;:monetary&quot;,
+&quot;:numeric&quot;, &quot;:time&quot;, and the pseudo
+category &quot;:characters&quot; (described below).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Thus you can
+say</p>
+
+<p style="margin-left:11%; margin-top: 1em">use locale
+':messages';</p>
+
+<p style="margin-left:11%; margin-top: 1em">and only $! and
+$^E will be locale aware. Everything else is unaffected.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since Perl
+doesn&rsquo;t currently do anything with the
+&quot;LC_MONETARY&quot; category, specifying
+&quot;:monetary&quot; does effectively nothing. Some systems
+have other categories, such as &quot;LC_PAPER&quot;, but
+Perl also doesn&rsquo;t do anything with them, and there is
+no way to specify them in this pragma&rsquo;s arguments.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+easily say to use all categories but one, by either, for
+example,</p>
+
+<p style="margin-left:11%; margin-top: 1em">use locale
+':!ctype'; <br>
+use locale ':not_ctype';</p>
+
+<p style="margin-left:11%; margin-top: 1em">both of which
+mean to enable locale awareness of all categories but
+&quot;LC_CTYPE&quot;. Only one category argument may be
+specified in a &quot;use&nbsp;locale&quot; if it is of the
+negated form.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Prior to v5.22
+only one form of the pragma with arguments is available:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use locale
+':not_characters';</p>
+
+<p style="margin-left:11%; margin-top: 1em">(and you have
+to say &quot;not_&quot;; you can&rsquo;t use the bang
+&quot;!&quot; form). This pseudo category is a shorthand for
+specifying both &quot;:collate&quot; and &quot;:ctype&quot;.
+Hence, in the negated form, it is nearly the same thing as
+saying</p>
+
+<p style="margin-left:11%; margin-top: 1em">use locale
+qw(:messages :monetary :numeric :time);</p>
+
+<p style="margin-left:11%; margin-top: 1em">We use the term
+&quot;nearly&quot;, because &quot;:not_characters&quot; also
+turns on &quot;use&nbsp;feature&nbsp;'unicode_strings'&quot;
+within its scope. This form is less useful in v5.20 and
+later, and is described fully in &quot;Unicode and
+<small>UTF&minus;8&quot;</small> , but briefly, it tells
+Perl to not use the character portions of the locale
+definition, that is the &quot;LC_CTYPE&quot; and
+&quot;LC_COLLATE&quot; categories. Instead it will use the
+native character set (extended by Unicode). When using this
+parameter, you are responsible for getting the external
+character set translated into the native/Unicode one (which
+it already will be if it is one of the increasingly popular
+<small>UTF&minus;8</small> locales). There are convenient
+ways of doing this, as described in &quot;Unicode and
+<small>UTF&minus;8&quot;</small> .</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>The
+setlocale function</b> <small><br>
+WARNING</small> ! Prior to Perl 5.28 or on a system that
+does not support thread-safe locale operations, do
+<small>NOT</small> use this function in a thread. The locale
+will change in all other threads at the same time, and
+should your thread get paused by the operating system, and
+another started, that thread will not have the locale it is
+expecting. On some platforms, there can be a race leading to
+segfaults if two threads call this function nearly
+simultaneously. This warning does not apply on unthreaded
+builds, or on perls where &quot;${^SAFE_LOCALES}&quot;
+exists and is non-zero; namely Perl 5.28 and later
+unthreaded or compiled to be locale-thread-safe. On z/OS
+systems, this function becomes a no-op once any thread is
+started. Thus, on that system, you can set up the locale
+before creating any threads, and that locale will be the one
+in effect for the entire program.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Otherwise, you
+can switch locales as often as you wish at run time with the
+&quot;POSIX::setlocale()&quot; function:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Import
+locale&minus;handling tool set from POSIX module. <br>
+# This example uses: setlocale &minus;&minus; the function
+call <br>
+# LC_CTYPE &minus;&minus; explained below <br>
+# (Showing the testing for success/failure of operations is
+<br>
+# omitted in these examples to avoid distracting from the
+main <br>
+# point) <br>
+use POSIX qw(locale_h); <br>
+use locale; <br>
+my $old_locale; <br>
+# query and save the old locale <br>
+$old_locale = setlocale(LC_CTYPE); <br>
+setlocale(LC_CTYPE, &quot;fr_CA.ISO8859&minus;1&quot;); <br>
+# LC_CTYPE now in locale &quot;French, Canada, codeset ISO
+8859&minus;1&quot; <br>
+setlocale(LC_CTYPE, &quot;&quot;); <br>
+# LC_CTYPE now reset to the default defined by the <br>
+# LC_ALL/LC_CTYPE/LANG environment variables, or to the
+system <br>
+# default. See below for documentation. <br>
+# restore the old locale <br>
+setlocale(LC_CTYPE, $old_locale);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first
+argument of &quot;setlocale()&quot; gives the
+<b>category</b>, the second the <b>locale</b>. The category
+tells in what aspect of data processing you want to apply
+locale-specific rules. Category names are discussed in
+&quot; <small>LOCALE CATEGORIES&quot;</small> and &quot;
+<small>ENVIRONMENT&quot;</small> . The locale is the name of
+a collection of customization information corresponding to a
+particular combination of language, country or territory,
+and codeset. Read on for hints on the naming of locales: not
+all systems name locales as in the example.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no second
+argument is provided and the category is something other
+than &quot;LC_ALL&quot;, the function returns a string
+naming the current locale for the category. You can use this
+value as the second argument in a subsequent call to
+&quot;setlocale()&quot;, <b>but</b> on some platforms the
+string is opaque, not something that most people would be
+able to decipher as to what locale it means.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no second
+argument is provided and the category is &quot;LC_ALL&quot;,
+the result is implementation-dependent. It may be a string
+of concatenated locale names (separator also
+implementation-dependent) or a single locale name. Please
+consult your <b>setlocale</b>(3) man page for details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a second
+argument is given and it corresponds to a valid locale, the
+locale for the category is set to that value, and the
+function returns the now-current locale value. You can then
+use this in yet another call to &quot;setlocale()&quot;. (In
+some implementations, the return value may sometimes differ
+from the value you gave as the second argument--think of it
+as an alias for the value you gave.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">As the example
+shows, if the second argument is an empty string, the
+category&rsquo;s locale is returned to the default specified
+by the corresponding environment variables. Generally, this
+results in a return to the default that was in force when
+Perl started up: changes to the environment made by the
+application after startup may or may not be noticed,
+depending on your system&rsquo;s C library.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that when
+a form of &quot;use locale&quot; that doesn&rsquo;t include
+all categories is specified, Perl ignores the excluded
+categories.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;setlocale()&quot; fails for some reason (for example,
+an attempt to set to a locale unknown to the system), the
+locale for the category is not changed, and the function
+returns &quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Starting in
+Perl 5.28, on multi-threaded perls compiled on systems that
+implement <small>POSIX 2008</small> thread-safe locale
+operations, this function doesn&rsquo;t actually call the
+system &quot;setlocale&quot;. Instead those thread-safe
+operations are used to emulate the &quot;setlocale&quot;
+function, but in a thread-safe manner.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can force
+the thread-safe locale operations to always be used (if
+available) by recompiling perl with</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;Accflags='&minus;DUSE_THREAD_SAFE_LOCALE'</p>
+
+<p style="margin-left:11%; margin-top: 1em">added to your
+call to <i>Configure</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For further
+information about the categories, consult
+<b>setlocale</b>(3).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Multi-threaded
+operation</b> <br>
+Beginning in Perl 5.28, multi-threaded locale operation is
+supported on systems that implement either the <small>POSIX
+2008</small> or Windows-specific thread-safe locale
+operations. Many modern systems, such as various Unix
+variants and Darwin do have this.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can tell if
+using locales is safe on your system by looking at the
+read-only boolean variable &quot;${^SAFE_LOCALES}&quot;. The
+value is 1 if the perl is not threaded, or if it is using
+thread-safe locale operations.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Thread-safe
+operations are supported in Windows starting in Visual
+Studio 2005, and in systems compatible with <small>POSIX
+2008.</small> Some platforms claim to support <small>POSIX
+2008,</small> but have buggy implementations, so that the
+hints files for compiling to run on them turn off attempting
+to use thread-safety. &quot;${^SAFE_LOCALES}&quot; will be 0
+on them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Be aware that
+writing a multi-threaded application will not be portable to
+a platform which lacks the native thread-safe locale
+support. On systems that do have it, you automatically get
+this behavior for threaded perls, without having to do
+anything. If for some reason, you don&rsquo;t want to use
+this capability (perhaps the <small>POSIX 2008</small>
+support is buggy on your system), you can manually compile
+Perl to use the old non-thread-safe implementation by
+passing the argument
+&quot;&minus;Accflags='&minus;DNO_THREAD_SAFE_LOCALE'&quot;
+to <i>Configure</i>. Except on Windows, this will continue
+to use certain of the <small>POSIX 2008</small> functions in
+some situations. If these are buggy, you can pass the
+following to <i>Configure</i> instead or additionally:
+&quot;&minus;Accflags='&minus;DNO_POSIX_2008_LOCALE'&quot;.
+This will also keep the code from using thread-safe locales.
+&quot;${^SAFE_LOCALES}&quot; will be 0 on systems that turn
+off the thread-safe operations.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Normally on
+unthreaded builds, the traditional &quot;setlocale()&quot;
+is used and not the thread-safe locale functions. You can
+force the use of these on systems that have them by adding
+the
+&quot;&minus;Accflags='&minus;DUSE_THREAD_SAFE_LOCALE'&quot;
+to <i>Configure</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The initial
+program is started up using the locale specified from the
+environment, as currently, described in &quot;
+<small>ENVIRONMENT&quot;</small> . All newly created threads
+start with &quot;LC_ALL&quot; set to &quot;C&quot;. Each
+thread may use &quot;POSIX::setlocale()&quot; to query or
+switch its locale at any time, without affecting any other
+thread. All locale-dependent operations automatically use
+their thread&rsquo;s locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This should be
+completely transparent to any applications written entirely
+in Perl (minus a few rarely encountered caveats given in the
+&quot;Multi-threaded&quot; section). Information for
+<small>XS</small> module writers is given in
+&quot;Locale-aware <small>XS</small> code&quot; in
+perlxs.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Finding
+locales</b> <br>
+For locales available in your system, consult also
+<b>setlocale</b>(3) to see whether it leads to the list of
+available locales (search for the <i><small>SEE
+ALSO</small></i> section). If that fails, try the following
+command lines:</p>
+
+<p style="margin-left:11%; margin-top: 1em">locale &minus;a
+<br>
+nlsinfo <br>
+ls /usr/lib/nls/loc <br>
+ls /usr/lib/locale <br>
+ls /usr/lib/nls <br>
+ls /usr/share/locale</p>
+
+<p style="margin-left:11%; margin-top: 1em">and see whether
+they list something resembling these</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">en_US.ISO8859&minus;1
+de_DE.ISO8859&minus;1 ru_RU.ISO8859&minus;5 <br>
+en_US.iso88591 de_DE.iso88591 ru_RU.iso88595 <br>
+en_US de_DE ru_RU <br>
+en de ru <br>
+english german russian <br>
+english.iso88591 german.iso88591 russian.iso88595 <br>
+english.roman8 russian.koi8r</p>
+
+<p style="margin-left:11%; margin-top: 1em">Sadly, even
+though the calling interface for &quot;setlocale()&quot; has
+been standardized, names of locales and the directories
+where the configuration resides have not been. The basic
+form of the name is
+<i>language_territory</i><b>.</b><i>codeset</i>, but the
+latter parts after <i>language</i> are not always present.
+The <i>language</i> and <i>country</i> are usually from the
+standards <b><small>ISO 3166</small></b> and <b><small>ISO
+639</small></b> , the two-letter abbreviations for the
+countries and the languages of the world, respectively. The
+<i>codeset</i> part often mentions some <b><small>ISO
+8859</small></b> character set, the Latin codesets. For
+example, &quot;ISO 8859&minus;1&quot; is the so-called
+&quot;Western European codeset&quot; that can be used to
+encode most Western European languages adequately. Again,
+there are several ways to write even the name of that one
+standard. Lamentably.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Two special
+locales are worth particular mention: &quot;C&quot; and
+&quot; <small>POSIX&quot;.</small> Currently these are
+effectively the same locale: the difference is mainly that
+the first one is defined by the C standard, the second by
+the <small>POSIX</small> standard. They define the
+<b>default locale</b> in which every program starts in the
+absence of locale information in its environment. (The
+<i>default</i> default locale, if you will.) Its language is
+(American) English and its character codeset
+<small>ASCII</small> or, rarely, a superset thereof (such as
+the &quot; <small>DEC</small> Multinational Character Set
+(DEC-MCS)&quot;). <b>Warning</b>. The C locale delivered by
+some vendors may not actually exactly match what the C
+standard calls for. So beware.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>NOTE</small></b>
+: Not all systems have the &quot; <small>POSIX&quot;</small>
+locale (not all systems are POSIX-conformant), so use
+&quot;C&quot; when you need explicitly to specify this
+default locale.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>LOCALE
+PROBLEMS</small></b> <br>
+You may encounter the following warning message at Perl
+startup:</p>
+
+<p style="margin-left:11%; margin-top: 1em">perl: warning:
+Setting locale failed. <br>
+perl: warning: Please check that your locale settings: <br>
+LC_ALL = &quot;En_US&quot;, <br>
+LANG = (unset) <br>
+are supported and installed on your system. <br>
+perl: warning: Falling back to the standard locale
+(&quot;C&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">This means that
+your locale settings had &quot;LC_ALL&quot; set to
+&quot;En_US&quot; and <small>LANG</small> exists but has no
+value. Perl tried to believe you but could not. Instead,
+Perl gave up and fell back to the &quot;C&quot; locale, the
+default locale that is supposed to work no matter what. (On
+Windows, it first tries falling back to the system default
+locale.) This usually means your locale settings were wrong,
+they mention locales your system has never heard of, or the
+locale installation in your system has problems (for
+example, some system files are broken or missing). There are
+quick and temporary fixes to these problems, as well as more
+thorough and lasting fixes.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Testing for
+broken locales</b> <br>
+If you are building Perl from source, the Perl test suite
+file <i>lib/locale.t</i> can be used to test the locales on
+your system. Setting the environment variable
+&quot;PERL_DEBUG_FULL_TEST&quot; to 1 will cause it to
+output detailed results. For example, on Linux, you could
+say</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">PERL_DEBUG_FULL_TEST=1
+./perl &minus;T &minus;Ilib lib/locale.t &gt; locale.log
+2&gt;&amp;1</p>
+
+<p style="margin-left:11%; margin-top: 1em">Besides many
+other tests, it will test every locale it finds on your
+system to see if they conform to the <small>POSIX</small>
+standard. If any have errors, it will include a summary near
+the end of the output of which locales passed all its tests,
+and which failed, and why.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Temporarily
+fixing locale problems</b> <br>
+The two quickest fixes are either to render Perl silent
+about any locale inconsistencies or to run Perl under the
+default locale &quot;C&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl&rsquo;s
+moaning about locale problems can be silenced by setting the
+environment variable &quot;PERL_BADLANG&quot; to
+&quot;0&quot; or &quot;&quot;. This method really just
+sweeps the problem under the carpet: you tell Perl to shut
+up even when Perl sees that something is wrong. Do not be
+surprised if later something locale-dependent
+misbehaves.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl can be run
+under the &quot;C&quot; locale by setting the environment
+variable &quot;LC_ALL&quot; to &quot;C&quot;. This method is
+perhaps a bit more civilized than the
+&quot;PERL_BADLANG&quot; approach, but setting
+&quot;LC_ALL&quot; (or other locale variables) may affect
+other programs as well, not just Perl. In particular,
+external programs run from within Perl will see these
+changes. If you make the new settings permanent (read on),
+all programs you run see the changes. See &quot;
+<small>ENVIRONMENT&quot;</small> for the full list of
+relevant environment variables and &quot; <small>USING
+LOCALES&quot;</small> for their effects in Perl. Effects in
+other programs are easily deducible. For example, the
+variable &quot;LC_COLLATE&quot; may well affect your
+<b>sort</b> program (or whatever the program that arranges
+&quot;records&quot; alphabetically in your system is
+called).</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can test
+out changing these variables temporarily, and if the new
+settings seem to help, put those settings into your shell
+startup files. Consult your local documentation for the
+exact details. For Bourne-like shells (<b>sh</b>,
+<b>ksh</b>, <b>bash</b>, <b>zsh</b>):</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">LC_ALL=en_US.ISO8859&minus;1
+<br>
+export LC_ALL</p>
+
+<p style="margin-left:11%; margin-top: 1em">This assumes
+that we saw the locale &quot;en_US.ISO8859&minus;1&quot;
+using the commands discussed above. We decided to try that
+instead of the above faulty locale
+&quot;En_US&quot;&minus;&minus;and in Cshish shells
+(<b>csh</b>, <b>tcsh</b>)</p>
+
+<p style="margin-left:11%; margin-top: 1em">setenv LC_ALL
+en_US.ISO8859&minus;1</p>
+
+<p style="margin-left:11%; margin-top: 1em">or if you have
+the &quot;env&quot; application you can do (in any
+shell)</p>
+
+<p style="margin-left:11%; margin-top: 1em">env
+LC_ALL=en_US.ISO8859&minus;1 perl ...</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you do not
+know what shell you have, consult your local helpdesk or the
+equivalent.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Permanently
+fixing locale problems</b> <br>
+The slower but superior fixes are when you may be able to
+yourself fix the misconfiguration of your own environment
+variables. The mis(sing)configuration of the whole
+system&rsquo;s locales usually requires the help of your
+friendly system administrator.</p>
+
+<p style="margin-left:11%; margin-top: 1em">First, see
+earlier in this document about &quot;Finding locales&quot;.
+That tells how to find which locales are really
+supported--and more importantly, installed--on your system.
+In our example error message, environment variables
+affecting the locale are listed in the order of decreasing
+importance (and unset variables do not matter). Therefore,
+having <small>LC_ALL</small> set to &quot;En_US&quot; must
+have been the bad choice, as shown by the error message.
+First try fixing locale settings listed first.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Second, if
+using the listed commands you see something <b>exactly</b>
+(prefix matches do not count and case usually counts) like
+&quot;En_US&quot; without the quotes, then you should be
+okay because you are using a locale name that should be
+installed and available in your system. In this case, see
+&quot;Permanently fixing your system&rsquo;s locale
+configuration&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Permanently
+fixing your system&rsquo;s locale configuration</b> <br>
+This is when you see something like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">perl: warning:
+Please check that your locale settings: <br>
+LC_ALL = &quot;En_US&quot;, <br>
+LANG = (unset) <br>
+are supported and installed on your system.</p>
+
+<p style="margin-left:11%; margin-top: 1em">but then cannot
+see that &quot;En_US&quot; listed by the above-mentioned
+commands. You may see things like
+&quot;en_US.ISO8859&minus;1&quot;, but that isn&rsquo;t the
+same. In this case, try running under a locale that you can
+list and which somehow matches what you tried. The rules for
+matching locale names are a bit vague because
+standardization is weak in this area. See again the
+&quot;Finding locales&quot; about general rules.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Fixing
+system locale configuration</b> <br>
+Contact a system administrator (preferably your own) and
+report the exact error message you get, and ask them to read
+this same documentation you are now reading. They should be
+able to check whether there is something wrong with the
+locale configuration of the system. The &quot;Finding
+locales&quot; section is unfortunately a bit vague about the
+exact commands and places because these things are not that
+standardized.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>The
+localeconv function</b> <br>
+The &quot;POSIX::localeconv()&quot; function allows you to
+get particulars of the locale-dependent numeric formatting
+information specified by the current underlying
+&quot;LC_NUMERIC&quot; and &quot;LC_MONETARY&quot; locales
+(regardless of whether called from within the scope of
+&quot;use&nbsp;locale&quot; or not). (If you just want the
+name of the current locale for a particular category, use
+&quot;POSIX::setlocale()&quot; with a single parameter--see
+&quot;The setlocale function&quot;.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">use POSIX
+qw(locale_h); <br>
+# Get a reference to a hash of locale&minus;dependent info
+<br>
+$locale_values = localeconv(); <br>
+# Output sorted list of the values <br>
+for (sort keys %$locale_values) { <br>
+printf &quot;%&minus;20s = %s\n&quot;, $_,
+$locale_values&minus;&gt;{$_} <br>
+}</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;localeconv()&quot;
+takes no arguments, and returns <b>a reference to</b> a
+hash. The keys of this hash are variable names for
+formatting, such as &quot;decimal_point&quot; and
+&quot;thousands_sep&quot;. The values are the corresponding,
+er, values. See &quot;localeconv&quot; in
+<small>POSIX</small> for a longer example listing the
+categories an implementation might be expected to provide;
+some provide more and others fewer. You don&rsquo;t need an
+explicit &quot;use locale&quot;, because
+&quot;localeconv()&quot; always observes the current
+locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s a
+simple-minded example program that rewrites its command-line
+parameters as integers correctly formatted in the current
+locale:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use POSIX
+qw(locale_h); <br>
+# Get some of locale's numeric formatting parameters <br>
+my ($thousands_sep, $grouping) = <br>
+@{localeconv()}{'thousands_sep', 'grouping'}; <br>
+# Apply defaults if values are missing <br>
+$thousands_sep = ',' unless $thousands_sep; <br>
+# grouping and mon_grouping are packed lists <br>
+# of small integers (characters) telling the <br>
+# grouping (thousand_seps and mon_thousand_seps <br>
+# being the group dividers) of numbers and <br>
+# monetary quantities. The integers' meanings: <br>
+# 255 means no more grouping, 0 means repeat <br>
+# the previous grouping, 1&minus;254 means use that <br>
+# as the current grouping. Grouping goes from <br>
+# right to left (low to high digits). In the <br>
+# below we cheat slightly by never using anything <br>
+# else than the first grouping (whatever that is). <br>
+if ($grouping) { <br>
+@grouping = unpack(&quot;C*&quot;, $grouping); <br>
+} else { <br>
+@grouping = (3); <br>
+} <br>
+# Format command line params for current locale <br>
+for (@ARGV) { <br>
+$_ = int; # Chop non&minus;integer part <br>
+1 while <br>
+
+s/(\d)(\d{$grouping[0]}($|$thousands_sep))/$1$thousands_sep$2/;
+<br>
+print &quot;$_&quot;; <br>
+} <br>
+print &quot;\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that if
+the platform doesn&rsquo;t have &quot;LC_NUMERIC&quot;
+and/or &quot;LC_MONETARY&quot; available or enabled, the
+corresponding elements of the hash will be missing.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>I18N::Langinfo</b>
+<br>
+Another interface for querying locale-dependent information
+is the &quot;I18N::Langinfo::langinfo()&quot; function.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+example will import the &quot;langinfo()&quot; function
+itself and three constants to be used as arguments to
+&quot;langinfo()&quot;: a constant for the abbreviated first
+day of the week (the numbering starts from Sunday = 1) and
+two more constants for the affirmative and negative answers
+for a yes/no question in the current locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+I18N::Langinfo qw(langinfo ABDAY_1 YESSTR NOSTR); <br>
+my ($abday_1, $yesstr, $nostr) <br>
+= map { langinfo } qw(ABDAY_1 YESSTR NOSTR); <br>
+print &quot;$abday_1? [$yesstr/$nostr] &quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">In other words,
+in the &quot;C&quot; (or English) locale the above will
+probably print something like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Sun?
+[yes/no]</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+I18N::Langinfo for more information.</p>
+
+<h2>LOCALE CATEGORIES
+<a name="LOCALE CATEGORIES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+subsections describe basic locale categories. Beyond these,
+some combination categories allow manipulation of more than
+one basic category at a time. See &quot;
+<small>ENVIRONMENT&quot;</small> for a discussion of
+these.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Category
+&quot;LC_COLLATE&quot;: Collation: Text Comparisons and
+Sorting</b> <br>
+In the scope of a &quot;use&nbsp;locale&quot; form that
+includes collation, Perl looks to the &quot;LC_COLLATE&quot;
+environment variable to determine the application&rsquo;s
+notions on collation (ordering) of characters. For example,
+&quot;b&quot; follows &quot;a&quot; in Latin alphabets, but
+where do &quot;a&quot; and &quot;aa&quot; belong? And while
+&quot;color&quot; follows &quot;chocolate&quot; in English,
+what about in traditional Spanish?</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+collations all make sense and you may meet any of them if
+you &quot;use locale&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A B C D E a b c
+d e <br>
+A a B b C c D d E e <br>
+a A b B c C d D e E <br>
+a b c d e A B C D E</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here is a code
+snippet to tell what &quot;word&quot; characters are in the
+current locale, in that locale&rsquo;s order:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use locale;
+<br>
+print +(sort grep /\w/, map { chr } 0..255),
+&quot;\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Compare this
+with the characters that you see and their order if you
+state explicitly that the locale should be ignored:</p>
+
+<p style="margin-left:11%; margin-top: 1em">no locale; <br>
+print +(sort grep /\w/, map { chr } 0..255),
+&quot;\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+machine-native collation (which is what you get unless
+&quot;use&nbsp;locale&quot; has appeared earlier in the same
+block) must be used for sorting raw binary data, whereas the
+locale-dependent collation of the first example is useful
+for natural text.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As noted in
+&quot; <small>USING LOCALES&quot;</small> , &quot;cmp&quot;
+compares according to the current collation locale when
+&quot;use locale&quot; is in effect, but falls back to a
+char-by-char comparison for strings that the locale says are
+equal. You can use &quot;POSIX::strcoll()&quot; if you
+don&rsquo;t want this fall-back:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use POSIX
+qw(strcoll); <br>
+$equal_in_locale = <br>
+!strcoll(&quot;space and case ignored&quot;,
+&quot;SpaceAndCaseIgnored&quot;);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$equal_in_locale
+will be true if the collation locale specifies a
+dictionary-like ordering that ignores space characters
+completely and which folds case.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl uses the
+platform&rsquo;s C library collation functions
+&quot;strcoll()&quot; and &quot;strxfrm()&quot;. That means
+you get whatever they give. On some platforms, these
+functions work well on <small>UTF&minus;8</small> locales,
+giving a reasonable default collation for the code points
+that are important in that locale. (And if they aren&rsquo;t
+working well, the problem may only be that the locale
+definition is deficient, so can be fixed by using a better
+definition file. Unicode&rsquo;s definitions (see
+&quot;Freely available locale definitions&quot;) provide
+reasonable <small>UTF&minus;8</small> locale collation
+definitions.) Starting in Perl v5.26, Perl&rsquo;s use of
+these functions has been made more seamless. This may be
+sufficient for your needs. For more control, and to make
+sure strings containing any code point (not just the ones
+important in the locale) collate properly, the
+Unicode::Collate module is suggested.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In
+non&minus;UTF&minus;8 locales (hence single byte), code
+points above 0xFF are technically invalid. But if present,
+again starting in v5.26, they will collate to the same
+position as the highest valid code point does. This
+generally gives good results, but the collation order may be
+skewed if the valid code point gets special treatment when
+it forms particular sequences with other characters as
+defined by the locale. When two strings collate identically,
+the code point order is used as a tie breaker.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If Perl detects
+that there are problems with the locale collation order, it
+reverts to using non-locale collation rules for that
+locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you have a
+single string that you want to check for &quot;equality in
+locale&quot; against several others, you might think you
+could gain a little efficiency by using
+&quot;POSIX::strxfrm()&quot; in conjunction with
+&quot;eq&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use POSIX
+qw(strxfrm); <br>
+$xfrm_string = strxfrm(&quot;Mixed&minus;case string&quot;);
+<br>
+print &quot;locale collation ignores spaces\n&quot; <br>
+if $xfrm_string eq
+strxfrm(&quot;Mixed&minus;casestring&quot;); <br>
+print &quot;locale collation ignores hyphens\n&quot; <br>
+if $xfrm_string eq strxfrm(&quot;Mixedcase string&quot;);
+<br>
+print &quot;locale collation ignores case\n&quot; <br>
+if $xfrm_string eq strxfrm(&quot;mixed&minus;case
+string&quot;);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;strxfrm()&quot;
+takes a string and maps it into a transformed string for use
+in char-by-char comparisons against other transformed
+strings during collation. &quot;Under the hood&quot;,
+locale-affected Perl comparison operators call
+&quot;strxfrm()&quot; for both operands, then do a
+char-by-char comparison of the transformed strings. By
+calling &quot;strxfrm()&quot; explicitly and using a non
+locale-affected comparison, the example attempts to save a
+couple of transformations. But in fact, it doesn&rsquo;t
+save anything: Perl magic (see &quot;Magic Variables&quot;
+in perlguts) creates the transformed version of a string the
+first time it&rsquo;s needed in a comparison, then keeps
+this version around in case it&rsquo;s needed again. An
+example rewritten the easy way with &quot;cmp&quot; runs
+just about as fast. It also copes with null characters
+embedded in strings; if you call &quot;strxfrm()&quot;
+directly, it treats the first null it finds as a terminator.
+Don&rsquo;t expect the transformed strings it produces to be
+portable across systems--or even from one revision of your
+operating system to the next. In short, don&rsquo;t call
+&quot;strxfrm()&quot; directly: let Perl do it for you.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: &quot;use
+locale&quot; isn&rsquo;t shown in some of these examples
+because it isn&rsquo;t needed: &quot;strcoll()&quot; and
+&quot;strxfrm()&quot; are <small>POSIX</small> functions
+which use the standard system-supplied &quot;libc&quot;
+functions that always obey the current
+&quot;LC_COLLATE&quot; locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Category
+&quot;LC_CTYPE&quot;: Character Types</b> <br>
+In the scope of a &quot;use&nbsp;locale&quot; form that
+includes &quot;LC_CTYPE&quot;, Perl obeys the
+&quot;LC_CTYPE&quot; locale setting. This controls the
+application&rsquo;s notion of which characters are
+alphabetic, numeric, punctuation, <i>etc</i>. This affects
+Perl&rsquo;s &quot;\w&quot; regular expression metanotation,
+which stands for alphanumeric characters--that is,
+alphabetic, numeric, and the platform&rsquo;s native
+underscore. (Consult perlre for more information about
+regular expressions.) Thanks to &quot;LC_CTYPE&quot;,
+depending on your locale setting, characters like
+&quot;ae&quot;, &quot;`&quot;, &quot;ss&quot;, and
+&quot;o&quot; may be understood as &quot;\w&quot;
+characters. It also affects things like &quot;\s&quot;,
+&quot;\D&quot;, and the <small>POSIX</small> character
+classes, like &quot;[[:graph:]]&quot;. (See perlrecharclass
+for more information on all these.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;LC_CTYPE&quot; locale also provides the map used in
+transliterating characters between lower and uppercase. This
+affects the case-mapping functions--&quot;fc()&quot;,
+&quot;lc()&quot;, &quot;lcfirst()&quot;, &quot;uc()&quot;,
+and &quot;ucfirst()&quot;; case-mapping interpolation with
+&quot;\F&quot;, &quot;\l&quot;, &quot;\L&quot;,
+&quot;\u&quot;, or &quot;\U&quot; in double-quoted strings
+and &quot;s///&quot; substitutions; and case-insensitive
+regular expression pattern matching using the &quot;i&quot;
+modifier.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Starting in
+v5.20, Perl supports <small>UTF&minus;8</small> locales for
+&quot;LC_CTYPE&quot;, but otherwise Perl only supports
+single-byte locales, such as the <small>ISO 8859</small>
+series. This means that wide character locales, for example
+for Asian languages, are not well-supported. Use of these
+locales may cause core dumps. If the platform has the
+capability for Perl to detect such a locale, starting in
+Perl v5.22, Perl will warn, default enabled, using the
+&quot;locale&quot; warning category, whenever such a locale
+is switched into. The <small>UTF&minus;8</small> locale
+support is actually a superset of <small>POSIX</small>
+locales, because it is really full Unicode behavior as if no
+&quot;LC_CTYPE&quot; locale were in effect at all (except
+for tainting; see &quot; <small>SECURITY&quot;</small> ).
+<small>POSIX</small> locales, even
+<small>UTF&minus;8</small> ones, are lacking certain
+concepts in Unicode, such as the idea that changing the case
+of a character could expand to be more than one character.
+Perl in a <small>UTF&minus;8</small> locale, will give you
+that expansion. Prior to v5.20, Perl treated a
+<small>UTF&minus;8</small> locale on some platforms like an
+<small>ISO 8859&minus;1</small> one, with some restrictions,
+and on other platforms more like the &quot;C&quot; locale.
+For releases v5.16 and v5.18,
+&quot;use&nbsp;locale&nbsp;'not_characters&quot; could be
+used as a workaround for this (see &quot;Unicode and
+<small>UTF&minus;8&quot;</small> ).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that there
+are quite a few things that are unaffected by the current
+locale. Any literal character is the native character for
+the given platform. Hence &rsquo;A&rsquo; means the
+character at code point 65 on <small>ASCII</small>
+platforms, and 193 on <small>EBCDIC.</small> That may or may
+not be an &rsquo;A&rsquo; in the current locale, if that
+locale even has an &rsquo;A&rsquo;. Similarly, all the
+escape sequences for particular characters, &quot;\n&quot;
+for example, always mean the platform&rsquo;s native one.
+This means, for example, that &quot;\N&quot; in regular
+expressions (every character but new-line) works on the
+platform character set.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Starting in
+v5.22, Perl will by default warn when switching into a
+locale that redefines any <small>ASCII</small> printable
+character (plus &quot;\t&quot; and &quot;\n&quot;) into a
+different class than expected. This is likely to happen on
+modern locales only on <small>EBCDIC</small> platforms,
+where, for example, a <small>CCSID 0037</small> locale on a
+<small>CCSID 1047</small> machine moves &quot;[&quot;, but
+it can happen on <small>ASCII</small> platforms with the
+<small>ISO 646</small> and other 7&minus;bit locales that
+are essentially obsolete. Things may still work, depending
+on what features of Perl are used by the program. For
+example, in the example from above where &quot;|&quot;
+becomes a &quot;\w&quot;, and there are no regular
+expressions where this matters, the program may still work
+properly. The warning lists all the characters that it can
+determine could be adversely affected.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note:</b> A
+broken or malicious &quot;LC_CTYPE&quot; locale definition
+may result in clearly ineligible characters being considered
+to be alphanumeric by your application. For strict matching
+of (mundane) <small>ASCII</small> letters and digits--for
+example, in command strings--locale&minus;aware applications
+should use &quot;\w&quot; with the &quot;/a&quot; regular
+expression modifier. See &quot;
+<small>SECURITY&quot;</small> .</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Category
+&quot;LC_NUMERIC&quot;: Numeric Formatting</b> <br>
+After a proper &quot;POSIX::setlocale()&quot; call, and
+within the scope of a &quot;use locale&quot; form that
+includes numerics, Perl obeys the &quot;LC_NUMERIC&quot;
+locale information, which controls an application&rsquo;s
+idea of how numbers should be formatted for human
+readability. In most implementations the only effect is to
+change the character used for the decimal point--perhaps
+from &quot;.&quot; to &quot;,&quot;. The functions
+aren&rsquo;t aware of such niceties as thousands separation
+and so on. (See &quot;The localeconv function&quot; if you
+care about these things.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">use POSIX
+qw(strtod setlocale LC_NUMERIC); <br>
+use locale; <br>
+setlocale LC_NUMERIC, &quot;&quot;; <br>
+$n = 5/2; # Assign numeric 2.5 to $n <br>
+$a = &quot; $n&quot;; # Locale&minus;dependent conversion to
+string <br>
+print &quot;half five is $n\n&quot;; #
+Locale&minus;dependent output <br>
+printf &quot;half five is %g\n&quot;, $n; #
+Locale&minus;dependent output <br>
+print &quot;DECIMAL POINT IS COMMA\n&quot; <br>
+if $n == (strtod(&quot;2,5&quot;))[0]; #
+Locale&minus;dependent conversion</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also
+I18N::Langinfo and &quot;RADIXCHAR&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Category
+&quot;LC_MONETARY&quot;: Formatting of monetary amounts</b>
+<br>
+The C standard defines the &quot;LC_MONETARY&quot; category,
+but not a function that is affected by its contents. (Those
+with experience of standards committees will recognize that
+the working group decided to punt on the issue.)
+Consequently, Perl essentially takes no notice of it. If you
+really want to use &quot;LC_MONETARY&quot;, you can query
+its contents--see &quot;The localeconv
+function&quot;&minus;&minus;and use the information that it
+returns in your application&rsquo;s own formatting of
+currency amounts. However, you may well find that the
+information, voluminous and complex though it may be, still
+does not quite meet your requirements: currency formatting
+is a hard nut to crack.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also
+I18N::Langinfo and &quot;CRNCYSTR&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Category
+&quot;LC_TIME&quot;: Respresentation of time</b> <br>
+Output produced by &quot;POSIX::strftime()&quot;, which
+builds a formatted human-readable date/time string, is
+affected by the current &quot;LC_TIME&quot; locale. Thus, in
+a French locale, the output produced by the %B format
+element (full month name) for the first month of the year
+would be &quot;janvier&quot;. Here&rsquo;s how to get a list
+of long month names in the current locale:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use POSIX
+qw(strftime); <br>
+for (0..11) { <br>
+$long_month_name[$_] = <br>
+strftime(&quot;%B&quot;, 0, 0, 0, 1, $_, 96); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: &quot;use
+locale&quot; isn&rsquo;t needed in this example:
+&quot;strftime()&quot; is a <small>POSIX</small> function
+which uses the standard system-supplied &quot;libc&quot;
+function that always obeys the current &quot;LC_TIME&quot;
+locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also
+I18N::Langinfo and &quot;ABDAY_1&quot;..&quot;ABDAY_7&quot;,
+&quot;DAY_1&quot;..&quot;DAY_7&quot;,
+&quot;ABMON_1&quot;..&quot;ABMON_12&quot;, and
+&quot;ABMON_1&quot;..&quot;ABMON_12&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Other
+categories</b> <br>
+The remaining locale categories are not currently used by
+Perl itself. But again note that things Perl interacts with
+may use these, including extensions outside the standard
+Perl distribution, and by the operating system and its
+utilities. Note especially that the string value of $! and
+the error messages given by external utilities may be
+changed by &quot;LC_MESSAGES&quot;. If you want to have
+portable error codes, use &quot;%!&quot;. See Errno.</p>
+
+<h2>SECURITY
+<a name="SECURITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Although the
+main discussion of Perl security issues can be found in
+perlsec, a discussion of Perl&rsquo;s locale handling would
+be incomplete if it did not draw your attention to
+locale-dependent security issues. Locales--particularly on
+systems that allow unprivileged users to build their own
+locales--are untrustworthy. A malicious (or just plain
+broken) locale can make a locale-aware application give
+unexpected results. Here are a few possibilities:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Regular expression checks for
+safe file names or mail addresses using &quot;\w&quot; may
+be spoofed by an &quot;LC_CTYPE&quot; locale that claims
+that characters such as &quot;&gt;&quot; and &quot;|&quot;
+are alphanumeric.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>String interpolation with case-mapping, as in, say,
+&quot;$dest = &quot;C:\U$name.$ext&quot;&quot;, may produce
+dangerous results if a bogus &quot;LC_CTYPE&quot;
+case-mapping table is in effect.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>A sneaky &quot;LC_COLLATE&quot; locale could result in
+the names of students with &quot;D&quot; grades appearing
+ahead of those with &quot;A&quot;s.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>An application that takes the trouble to use information
+in &quot;LC_MONETARY&quot; may format debits as if they were
+credits and vice versa if that locale has been subverted. Or
+it might make payments in <small>US</small> dollars instead
+of Hong Kong dollars.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The date and day names in dates formatted by
+&quot;strftime()&quot; could be manipulated to advantage by
+a malicious user able to subvert the &quot;LC_DATE&quot;
+locale. (&quot;Look--it says I wasn&rsquo;t in the building
+on Sunday.&quot;)</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">Such dangers
+are not peculiar to the locale system: any aspect of an
+application&rsquo;s environment which may be modified
+maliciously presents similar challenges. Similarly, they are
+not specific to Perl: any programming language that allows
+you to write programs that take account of their environment
+exposes you to these issues.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl cannot
+protect you from all possibilities shown in the
+examples--there is no substitute for your own
+vigilance--but, when &quot;use locale&quot; is in effect,
+Perl uses the tainting mechanism (see perlsec) to mark
+string results that become locale-dependent, and which may
+be untrustworthy in consequence.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that it is
+possible to compile Perl without taint support, in which
+case all taint features silently do nothing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here is a
+summary of the tainting behavior of operators and functions
+that may be affected by the locale:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em"><b>Comparison operators</b>
+(&quot;lt&quot;, &quot;le&quot;, &quot;ge&quot;,
+&quot;gt&quot; and &quot;cmp&quot;):</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Scalar
+true/false (or less/equal/greater) result is never
+tainted.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em"><b>Case-mapping
+interpolation</b> (with &quot;\l&quot;, &quot;\L&quot;,
+&quot;\u&quot;, &quot;\U&quot;, or &quot;\F&quot;)</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The result
+string containing interpolated material is tainted if a
+&quot;use locale&quot; form that includes
+&quot;LC_CTYPE&quot; is in effect.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="40%">
+
+
+<p style="margin-top: 1em"><b>Matching operator</b>
+(&quot;m//&quot;):</p> </td>
+<td width="43%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Scalar
+true/false result never tainted.</p>
+
+<p style="margin-left:17%; margin-top: 1em">All
+subpatterns, either delivered as a list-context result or as
+$1 <i>etc</i>., are tainted if a &quot;use locale&quot; form
+that includes &quot;LC_CTYPE&quot; is in effect, and the
+subpattern regular expression contains a locale-dependent
+construct. These constructs include &quot;\w&quot; (to match
+an alphanumeric character), &quot;\W&quot; (non-alphanumeric
+character), &quot;\b&quot; and &quot;\B&quot; (word-boundary
+and non-boundardy, which depend on what &quot;\w&quot; and
+&quot;\W&quot; match), &quot;\s&quot; (whitespace
+character), &quot;\S&quot; (non whitespace character),
+&quot;\d&quot; and &quot;\D&quot; (digits and non-digits),
+and the <small>POSIX</small> character classes, such as
+&quot;[:alpha:]&quot; (see &quot; <small>POSIX</small>
+Character Classes&quot; in perlrecharclass).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Tainting is
+also likely if the pattern is to be matched
+case-insensitively (via &quot;/i&quot;). The exception is if
+all the code points to be matched this way are above 255 and
+do not have folds under Unicode rules to below 256. Tainting
+is not done for these because Perl only uses Unicode rules
+for such code points, and those rules are the same no matter
+what the current locale.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+matched-pattern variables, $&amp;, &quot;$`&quot;
+(pre-match), &quot;$'&quot; (post-match), and $+ (last
+match) also are tainted.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="48%">
+
+
+<p style="margin-top: 1em"><b>Substitution operator</b>
+(&quot;s///&quot;):</p> </td>
+<td width="35%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Has the same
+behavior as the match operator. Also, the left operand of
+&quot;=~&quot; becomes tainted when a &quot;use locale&quot;
+form that includes &quot;LC_CTYPE&quot; is in effect, if
+modified as a result of a substitution based on a regular
+expression match involving any of the things mentioned in
+the previous item, or of case-mapping, such as
+&quot;\l&quot;, &quot;\L&quot;,&quot;\u&quot;,
+&quot;\U&quot;, or &quot;\F&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em"><b>Output formatting
+functions</b> (&quot;printf()&quot; and
+&quot;write()&quot;):</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Results are
+never tainted because otherwise even output from print, for
+example &quot;print(1/7)&quot;, should be tainted if
+&quot;use locale&quot; is in effect.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em"><b>Case-mapping functions</b>
+(&quot;lc()&quot;, &quot;lcfirst()&quot;, &quot;uc()&quot;,
+&quot;ucfirst()&quot;):</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Results are
+tainted if a &quot;use locale&quot; form that includes
+&quot;LC_CTYPE&quot; is in effect.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em"><b><small>POSIX</small>
+locale-dependent functions</b> (&quot;localeconv()&quot;,
+&quot;strcoll()&quot;, &quot;strftime()&quot;,
+&quot;strxfrm()&quot;):</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Results are
+never tainted.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Three examples
+illustrate locale-dependent tainting. The first program,
+which ignores its locale, won&rsquo;t run: a value taken
+directly from the command line may not be used to name an
+output file when taint checks are enabled.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">#/usr/local/bin/perl
+&minus;T <br>
+# Run with taint checking <br>
+# Command line sanity check omitted... <br>
+$tainted_output_file = shift; <br>
+open(F, &quot;&gt;$tainted_output_file&quot;) <br>
+or warn &quot;Open of $tainted_output_file failed:
+$!\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The program can
+be made to run by &quot;laundering&quot; the tainted value
+through a regular expression: the second example--which
+still ignores locale information--runs, creating the file
+named on its command line if it can.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">#/usr/local/bin/perl
+&minus;T <br>
+$tainted_output_file = shift; <br>
+$tainted_output_file =~ m%[\w/]+%; <br>
+$untainted_output_file = $&amp;; <br>
+open(F, &quot;&gt;$untainted_output_file&quot;) <br>
+or warn &quot;Open of $untainted_output_file failed:
+$!\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Compare this
+with a similar but locale-aware program:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">#/usr/local/bin/perl
+&minus;T <br>
+$tainted_output_file = shift; <br>
+use locale; <br>
+$tainted_output_file =~ m%[\w/]+%; <br>
+$localized_output_file = $&amp;; <br>
+open(F, &quot;&gt;$localized_output_file&quot;) <br>
+or warn &quot;Open of $localized_output_file failed:
+$!\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This third
+program fails to run because $&amp; is tainted: it is the
+result of a match involving &quot;\w&quot; while &quot;use
+locale&quot; is in effect.</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>PERL_SKIP_LOCALE_INIT</small></p>
+
+<p style="margin-left:29%;">This environment variable,
+available starting in Perl v5.20, if set (to any value),
+tells Perl to not use the rest of the environment variables
+to initialize with. Instead, Perl uses whatever the current
+locale settings are. This is particularly useful in embedded
+environments, see &quot;Using embedded Perl with
+<small>POSIX</small> locales&quot; in perlembed.</p>
+
+
+<p style="margin-left:11%;"><small>PERL_BADLANG</small></p>
+
+<p style="margin-left:29%;">A string that can suppress
+Perl&rsquo;s warning about failed locale settings at
+startup. Failure can occur if the locale support in the
+operating system is lacking (broken) in some way--or if you
+mistyped the name of a locale when you set up your
+environment. If this environment variable is absent, or has
+a value other than &quot;0&quot; or &quot;&quot;, Perl will
+complain about locale setting failures.</p>
+
+
+<p style="margin-left:29%; margin-top: 1em"><b><small>NOTE</small></b>
+: &quot;PERL_BADLANG&quot; only gives you a way to hide the
+warning message. The message tells about some problem in
+your system&rsquo;s locale support, and you should
+investigate what the problem is.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+environment variables are not specific to Perl: They are
+part of the standardized ( <small>ISO C, XPG4, POSIX
+1</small> .c) &quot;setlocale()&quot; method for controlling
+an application&rsquo;s opinion on data. Windows is
+non-POSIX, but Perl arranges for the following to work as
+described anyway. If the locale given by an environment
+variable is not valid, Perl tries the next lower one in
+priority. If none are valid, on Windows, the system default
+locale is then tried. If all else fails, the &quot;C&quot;
+locale is used. If even that doesn&rsquo;t work, something
+is badly broken, but Perl tries to forge ahead with whatever
+the locale settings might be.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="15%">
+
+
+<p>&quot;LC_ALL&quot;</p></td>
+<td width="3%"></td>
+<td width="71%">
+
+
+<p>&quot;LC_ALL&quot; is the &quot;override-all&quot;
+locale environment variable. If set, it overrides all the
+rest of the locale environment variables.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="15%">
+
+
+<p>&quot;LANGUAGE&quot;</p></td>
+<td width="3%"></td>
+<td width="71%">
+
+
+<p><b><small>NOTE</small></b> : &quot;LANGUAGE&quot; is a
+<small>GNU</small> extension, it affects you only if you are
+using the <small>GNU</small> libc. This is the case if you
+are using e.g. Linux. If you are using
+&quot;commercial&quot; Unixes you are most probably
+<i>not</i> using <small>GNU</small> libc and you can ignore
+&quot;LANGUAGE&quot;.</p> </td></tr>
+</table>
+
+<p style="margin-left:29%; margin-top: 1em">However, in the
+case you are using &quot;LANGUAGE&quot;: it affects the
+language of informational, warning, and error messages
+output by commands (in other words, it&rsquo;s like
+&quot;LC_MESSAGES&quot;) but it has higher priority than
+&quot;LC_ALL&quot;. Moreover, it&rsquo;s not a single value
+but instead a &quot;path&quot;
+(&quot;:&quot;&minus;separated list) of <i>languages</i>
+(not locales). See the <small>GNU</small>
+&quot;gettext&quot; library documentation for more
+information.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="15%">
+
+
+<p style="margin-top: 1em">&quot;LC_CTYPE&quot;</p></td>
+<td width="3%"></td>
+<td width="71%">
+
+
+<p style="margin-top: 1em">In the absence of
+&quot;LC_ALL&quot;, &quot;LC_CTYPE&quot; chooses the
+character type locale. In the absence of both
+&quot;LC_ALL&quot; and &quot;LC_CTYPE&quot;,
+&quot;LANG&quot; chooses the character type locale.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">&quot;LC_COLLATE&quot;</p>
+
+<p style="margin-left:29%;">In the absence of
+&quot;LC_ALL&quot;, &quot;LC_COLLATE&quot; chooses the
+collation (sorting) locale. In the absence of both
+&quot;LC_ALL&quot; and &quot;LC_COLLATE&quot;,
+&quot;LANG&quot; chooses the collation locale.</p>
+
+<p style="margin-left:11%;">&quot;LC_MONETARY&quot;</p>
+
+<p style="margin-left:29%;">In the absence of
+&quot;LC_ALL&quot;, &quot;LC_MONETARY&quot; chooses the
+monetary formatting locale. In the absence of both
+&quot;LC_ALL&quot; and &quot;LC_MONETARY&quot;,
+&quot;LANG&quot; chooses the monetary formatting locale.</p>
+
+<p style="margin-left:11%;">&quot;LC_NUMERIC&quot;</p>
+
+<p style="margin-left:29%;">In the absence of
+&quot;LC_ALL&quot;, &quot;LC_NUMERIC&quot; chooses the
+numeric format locale. In the absence of both
+&quot;LC_ALL&quot; and &quot;LC_NUMERIC&quot;,
+&quot;LANG&quot; chooses the numeric format.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="14%">
+
+
+<p>&quot;LC_TIME&quot;</p></td>
+<td width="4%"></td>
+<td width="71%">
+
+
+<p>In the absence of &quot;LC_ALL&quot;,
+&quot;LC_TIME&quot; chooses the date and time formatting
+locale. In the absence of both &quot;LC_ALL&quot; and
+&quot;LC_TIME&quot;, &quot;LANG&quot; chooses the date and
+time formatting locale.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="14%">
+
+
+<p>&quot;LANG&quot;</p></td>
+<td width="4%"></td>
+<td width="71%">
+
+
+<p>&quot;LANG&quot; is the &quot;catch-all&quot; locale
+environment variable. If it is set, it is used as the last
+resort after the overall &quot;LC_ALL&quot; and the
+category-specific &quot;LC_<i>foo</i>&quot;.</p></td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Examples</b>
+<br>
+The &quot;LC_NUMERIC&quot; controls the numeric output:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use locale;
+<br>
+use POSIX qw(locale_h); # Imports setlocale() and the LC_
+constants. <br>
+setlocale(LC_NUMERIC, &quot;fr_FR&quot;) or die
+&quot;Pardon&quot;; <br>
+printf &quot;%g\n&quot;, 1.23; # If the &quot;fr_FR&quot;
+succeeded, probably shows 1,23.</p>
+
+<p style="margin-left:11%; margin-top: 1em">and also how
+strings are parsed by &quot;POSIX::strtod()&quot; as
+numbers:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use locale;
+<br>
+use POSIX qw(locale_h strtod); <br>
+setlocale(LC_NUMERIC, &quot;de_DE&quot;) or die
+&quot;Entschuldigung&quot;; <br>
+my $x = strtod(&quot;2,34&quot;) + 5; <br>
+print $x, &quot;\n&quot;; # Probably shows 7,34.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>String
+&quot;eval&quot; and &quot;LC_NUMERIC&quot;</b> <br>
+A string eval parses its expression as standard Perl. It is
+therefore expecting the decimal point to be a dot. If
+&quot;LC_NUMERIC&quot; is set to have this be a comma
+instead, the parsing will be confused, perhaps silently.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use locale;
+<br>
+use POSIX qw(locale_h); <br>
+setlocale(LC_NUMERIC, &quot;fr_FR&quot;) or die
+&quot;Pardon&quot;; <br>
+my $a = 1.2; <br>
+print eval &quot;$a + 1.5&quot;; <br>
+print &quot;\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">prints
+&quot;13,5&quot;. This is because in that locale, the comma
+is the decimal point character. The &quot;eval&quot; thus
+expands to:</p>
+
+<p style="margin-left:11%; margin-top: 1em">eval &quot;1,2
++ 1.5&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">and the result
+is not what you likely expected. No warnings are generated.
+If you do string &quot;eval&quot;&rsquo;s within the scope
+of &quot;use&nbsp;locale&quot;, you should instead change
+the &quot;eval&quot; line to do something like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print eval
+&quot;no locale; $a + 1.5&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This prints
+2.7.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You could also
+exclude &quot;LC_NUMERIC&quot;, if you don&rsquo;t need it,
+by</p>
+
+<p style="margin-left:11%; margin-top: 1em">use locale
+':!numeric';</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Backward
+compatibility</b> <br>
+Versions of Perl prior to 5.004 <b>mostly</b> ignored locale
+information, generally behaving as if something similar to
+the &quot;C&quot; locale were always in force, even if the
+program environment suggested otherwise (see &quot;The
+setlocale function&quot;). By default, Perl still behaves
+this way for backward compatibility. If you want a Perl
+application to pay attention to locale information, you
+<b>must</b> use the &quot;use&nbsp;locale&quot; pragma (see
+&quot;The &quot;use locale&quot; pragma&quot;) or, in the
+unlikely event that you want to do so for just pattern
+matching, the &quot;/l&quot; regular expression modifier
+(see &quot;Character set modifiers&quot; in perlre) to
+instruct it to do so.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Versions of
+Perl from 5.002 to 5.003 did use the &quot;LC_CTYPE&quot;
+information if available; that is, &quot;\w&quot; did
+understand what were the letters according to the locale
+environment variables. The problem was that the user had no
+control over the feature: if the C library supported
+locales, Perl used them.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>I18N:Collate
+obsolete</b> <br>
+In versions of Perl prior to 5.004, per-locale collation was
+possible using the &quot;I18N::Collate&quot; library module.
+This module is now mildly obsolete and should be avoided in
+new applications. The &quot;LC_COLLATE&quot; functionality
+is now integrated into the Perl core language: One can use
+locale-specific scalar data completely normally with
+&quot;use locale&quot;, so there is no longer any need to
+juggle with the scalar references of
+&quot;I18N::Collate&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Sort speed
+and memory use impacts</b> <br>
+Comparing and sorting by locale is usually slower than the
+default sorting; slow-downs of two to four times have been
+observed. It will also consume more memory: once a Perl
+scalar variable has participated in any string comparison or
+sorting operation obeying the locale collation rules, it
+will take 3&minus;15 times more memory than before. (The
+exact multiplier depends on the string&rsquo;s contents, the
+operating system and the locale.) These downsides are
+dictated more by the operating system&rsquo;s implementation
+of the locale system than by Perl.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Freely
+available locale definitions</b> <br>
+The Unicode <small>CLDR</small> project extracts the
+<small>POSIX</small> portion of many of its locales,
+available at</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">https://unicode.org/Public/cldr/2.0.1/</p>
+
+<p style="margin-left:11%; margin-top: 1em">(Newer versions
+of <small>CLDR</small> require you to compute the
+<small>POSIX</small> data yourself. See
+&lt;http://unicode.org/Public/cldr/latest/&gt;.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">There is a
+large collection of locale definitions at:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">http://std.dkuug.dk/i18n/WG15&minus;collection/locales/</p>
+
+<p style="margin-left:11%; margin-top: 1em">You should be
+aware that it is unsupported, and is not claimed to be fit
+for any purpose. If your system allows installation of
+arbitrary locales, you may find the definitions useful as
+they are, or as a basis for the development of your own
+locales.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>I18n and
+l10n</b> <br>
+&quot;Internationalization&quot; is often abbreviated as
+<b>i18n</b> because its first and last letters are separated
+by eighteen others. (You may guess why the internalin ...
+internaliti ... i18n tends to get abbreviated.) In the same
+way, &quot;localization&quot; is often abbreviated to
+<b>l10n</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>An imperfect
+standard</b> <br>
+Internationalization, as defined in the C and
+<small>POSIX</small> standards, can be criticized as
+incomplete and ungainly. They also have a tendency, like
+standards groups, to divide the world into nations, when we
+all know that the world can equally well be divided into
+bankers, bikers, gamers, and so on.</p>
+
+<h2>Unicode and UTF&minus;8
+<a name="Unicode and UTF&minus;8"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The support of
+Unicode is new starting from Perl version v5.6, and more
+fully implemented in versions v5.8 and later. See
+perluniintro.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Starting in
+Perl v5.20, <small>UTF&minus;8</small> locales are supported
+in Perl, except &quot;LC_COLLATE&quot; is only partially
+supported; collation support is improved in Perl v5.26 to a
+level that may be sufficient for your needs (see
+&quot;Category &quot;LC_COLLATE&quot;: Collation: Text
+Comparisons and Sorting&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you have
+Perl v5.16 or v5.18 and can&rsquo;t upgrade, you can use</p>
+
+<p style="margin-left:11%; margin-top: 1em">use locale
+':not_characters';</p>
+
+<p style="margin-left:11%; margin-top: 1em">When this form
+of the pragma is used, only the non-character portions of
+locales are used by Perl, for example
+&quot;LC_NUMERIC&quot;. Perl assumes that you have
+translated all the characters it is to operate on into
+Unicode (actually the platform&rsquo;s native character set
+( <small>ASCII</small> or <small>EBCDIC</small> ) plus
+Unicode). For data in files, this can conveniently be done
+by also specifying</p>
+
+<p style="margin-left:11%; margin-top: 1em">use open
+':locale';</p>
+
+<p style="margin-left:11%; margin-top: 1em">This pragma
+arranges for all inputs from files to be translated into
+Unicode from the current locale as specified in the
+environment (see &quot; <small>ENVIRONMENT&quot;</small> ),
+and all outputs to files to be translated back into the
+locale. (See open). On a per-filehandle basis, you can
+instead use the PerlIO::locale module, or the Encode::Locale
+module, both available from <small>CPAN.</small> The latter
+module also has methods to ease the handling of
+&quot;ARGV&quot; and environment variables, and can be used
+on individual strings. If you know that all your locales
+will be <small>UTF&minus;8,</small> as many are these days,
+you can use the <b>&minus;C</b> command line switch.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This form of
+the pragma allows essentially seamless handling of locales
+with Unicode. The collation order will be by Unicode code
+point order. Unicode::Collate can be used to get Unicode
+rules collation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All the modules
+and switches just described can be used in v5.20 with just
+plain &quot;use locale&quot;, and, should the input locales
+not be <small>UTF&minus;8,</small> you&rsquo;ll get the less
+than ideal behavior, described below, that you get with
+pre&minus;v5.16 Perls, or when you use the locale pragma
+without the &quot;:not_characters&quot; parameter in v5.16
+and v5.18. If you are using exclusively
+<small>UTF&minus;8</small> locales in v5.20 and higher, the
+rest of this section does not apply to you.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are two
+cases, multi-byte and single-byte locales. First
+multi-byte:</p>
+
+<p style="margin-left:11%; margin-top: 1em">The only
+multi-byte (or wide character) locale that Perl is ever
+likely to support is <small>UTF&minus;8.</small> This is due
+to the difficulty of implementation, the fact that high
+quality <small>UTF&minus;8</small> locales are now published
+for every area of the world
+(&lt;https://unicode.org/Public/cldr/2.0.1/&gt; for ones
+that are already set-up, but from an earlier version;
+&lt;https://unicode.org/Public/cldr/latest/&gt; for the most
+up-to-date, but you have to extract the <small>POSIX</small>
+information yourself), and failing all that, you can use the
+Encode module to translate to/from your locale. So,
+you&rsquo;ll have to do one of those things if you&rsquo;re
+using one of these locales, such as Big5 or Shift
+<small>JIS.</small> For <small>UTF&minus;8</small> locales,
+in Perls (pre v5.20) that don&rsquo;t have full
+<small>UTF&minus;8</small> locale support, they may work
+reasonably well (depending on your C library implementation)
+simply because both they and Perl store characters that take
+up multiple bytes the same way. However, some, if not most,
+C library implementations may not process the characters in
+the upper half of the Latin&minus;1 range (128 &minus; 255)
+properly under &quot;LC_CTYPE&quot;. To see if a character
+is a particular type under a locale, Perl uses the functions
+like &quot;isalnum()&quot;. Your C library may not work for
+<small>UTF&minus;8</small> locales with those functions,
+instead only working under the newer wide library functions
+like &quot;iswalnum()&quot;, which Perl does not use. These
+multi-byte locales are treated like single-byte locales, and
+will have the restrictions described below. Starting in Perl
+v5.22 a warning message is raised when Perl detects a
+multi-byte locale that it doesn&rsquo;t fully support.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For single-byte
+locales, Perl generally takes the tack to use locale rules
+on code points that can fit in a single byte, and Unicode
+rules for those that can&rsquo;t (though this isn&rsquo;t
+uniformly applied, see the note at the end of this section).
+This prevents many problems in locales that aren&rsquo;t
+<small>UTF&minus;8.</small> Suppose the locale is
+<small>ISO8859&minus;7,</small> Greek. The character at 0xD7
+there is a capital Chi. But in the
+<small>ISO8859&minus;1</small> locale, Latin1, it is a
+multiplication sign. The <small>POSIX</small> regular
+expression character class &quot;[[:alpha:]]&quot; will
+magically match 0xD7 in the Greek locale but not in the
+Latin one.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, there
+are places where this breaks down. Certain Perl constructs
+are for Unicode only, such as &quot;\p{Alpha}&quot;. They
+assume that 0xD7 always has its Unicode meaning (or the
+equivalent on <small>EBCDIC</small> platforms). Since Latin1
+is a subset of Unicode and 0xD7 is the multiplication sign
+in both Latin1 and Unicode, &quot;\p{Alpha}&quot; will never
+match it, regardless of locale. A similar issue occurs with
+&quot;\N{...}&quot;. Prior to v5.20, it is therefore a bad
+idea to use &quot;\p{}&quot; or &quot;\N{}&quot; under plain
+&quot;use locale&quot;&minus;&minus;<i>unless</i> you can
+guarantee that the locale will be
+<small>ISO8859&minus;1.</small> Use <small>POSIX</small>
+character classes instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Another problem
+with this approach is that operations that cross the single
+byte/multiple byte boundary are not well-defined, and so are
+disallowed. (This boundary is between the codepoints at
+255/256.) For example, lower casing <small>LATIN CAPITAL
+LETTER Y WITH DIAERESIS</small> (U+0178) should return
+<small>LATIN SMALL LETTER Y WITH DIAERESIS</small> (U+00FF).
+But in the Greek locale, for example, there is no character
+at 0xFF, and Perl has no way of knowing what the character
+at 0xFF is really supposed to represent. Thus it disallows
+the operation. In this mode, the lowercase of U+0178 is
+itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The same
+problems ensue if you enable automatic
+UTF&minus;8&minus;ification of your standard file handles,
+default &quot;open()&quot; layer, and @ARGV on
+non&minus;ISO8859&minus;1, non&minus;UTF&minus;8 locales (by
+using either the <b>&minus;C</b> command line switch or the
+&quot;PERL_UNICODE&quot; environment variable; see perlrun).
+Things are read in as <small>UTF&minus;8,</small> which
+would normally imply a Unicode interpretation, but the
+presence of a locale causes them to be interpreted in that
+locale instead. For example, a 0xD7 code point in the
+Unicode input, which should mean the multiplication sign,
+won&rsquo;t be interpreted by Perl that way under the Greek
+locale. This is not a problem <i>provided</i> you make
+certain that all locales will always and only be either an
+<small>ISO8859&minus;1,</small> or, if you don&rsquo;t have
+a deficient C library, a <small>UTF&minus;8</small>
+locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Still another
+problem is that this approach can lead to two code points
+meaning the same character. Thus in a Greek locale, both
+U+03A7 and U+00D7 are <small>GREEK CAPITAL LETTER
+CHI.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">Because of all
+these problems, starting in v5.22, Perl will raise a warning
+if a multi-byte (hence Unicode) code point is used when a
+single-byte locale is in effect. (Although it doesn&rsquo;t
+check for this if doing so would unreasonably slow execution
+down.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Vendor locales
+are notoriously buggy, and it is difficult for Perl to test
+its locale-handling code because this interacts with code
+that Perl has no control over; therefore the locale-handling
+code in Perl may be buggy as well. (However, the
+Unicode-supplied locales should be better, and there is a
+feed back mechanism to correct any problems. See
+&quot;Freely available locale definitions&quot;.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you have
+Perl v5.16, the problems mentioned above go away if you use
+the &quot;:not_characters&quot; parameter to the locale
+pragma (except for vendor bugs in the non-character
+portions). If you don&rsquo;t have v5.16, and you <i>do</i>
+have locales that work, using them may be worthwhile for
+certain specific purposes, as long as you keep in mind the
+gotchas already mentioned. For example, if the collation for
+your locales works, it runs faster under locales than under
+Unicode::Collate; and you gain access to such things as the
+local currency symbol and the names of the months and days
+of the week. (But to hammer home the point, in v5.16, you
+get this access without the downsides of locales by using
+the &quot;:not_characters&quot; form of the pragma.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: The
+policy of using locale rules for code points that can fit in
+a byte, and Unicode rules for those that can&rsquo;t is not
+uniformly applied. Pre&minus;v5.12, it was somewhat
+haphazard; in v5.12 it was applied fairly consistently to
+regular expression matching except for bracketed character
+classes; in v5.14 it was extended to all regex matches; and
+in v5.16 to the casing operations such as &quot;\L&quot; and
+&quot;uc()&quot;. For collation, in all releases so far, the
+system&rsquo;s &quot;strxfrm()&quot; function is called, and
+whatever it does is what you get. Starting in v5.26, various
+bugs are fixed with the way perl uses this function.</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Collation of
+strings containing embedded &quot;NUL&quot; characters</b>
+<br>
+&quot;NUL&quot; characters will sort the same as the lowest
+collating control character does, or to &quot;\001&quot; in
+the unlikely event that there are no control characters at
+all in the locale. In cases where the strings don&rsquo;t
+contain this non&minus;&quot;NUL&quot; control, the results
+will be correct, and in many locales, this control, whatever
+it might be, will rarely be encountered. But there are cases
+where a &quot;NUL&quot; should sort before this control, but
+doesn&rsquo;t. If two strings do collate identically, the
+one containing the &quot;NUL&quot; will sort to earlier.
+Prior to 5.26, there were more bugs.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Multi-threaded</b>
+<small><br>
+XS</small> code or C&minus;language libraries called from it
+that use the system setlocale(3) function (except on
+Windows) likely will not work from a multi-threaded
+application without changes. See &quot;Locale-aware
+<small>XS</small> code&quot; in perlxs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An
+<small>XS</small> module that is locale-dependent could have
+been written under the assumption that it will never be
+called in a multi-threaded environment, and so uses other
+non-locale constructs that aren&rsquo;t multi-thread-safe.
+See &quot;Thread-aware system interfaces&quot; in
+perlxs.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>POSIX</small>
+does not define a way to get the name of the current
+per-thread locale. Some systems, such as Darwin and NetBSD
+do implement a function, <b>querylocale</b>(3) to do this.
+On non-Windows systems without it, such as Linux, there are
+some additional caveats:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">An embedded perl needs to be
+started up while the global locale is in effect. See
+&quot;Using embedded Perl with <small>POSIX</small>
+locales&quot; in perlembed.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>It becomes more important for perl to know about all the
+possible locale categories on the platform, even if they
+aren&rsquo;t apparently used in your program. Perl knows all
+of the Linux ones. If your platform has others, you can
+submit an issue at
+&lt;https://github.com/Perl/perl5/issues&gt; for inclusion
+of it in the next release. In the meantime, it is possible
+to edit the Perl source to teach it about the category, and
+then recompile. Search for instances of, say,
+&quot;LC_PAPER&quot; in the source, and use that as a
+template to add the omitted one.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>It is possible, though hard to do, to call
+&quot;POSIX::setlocale&quot; with a locale that it
+doesn&rsquo;t recognize as syntactically legal, but actually
+is legal on that system. This should happen only with
+embedded perls, or if you hand-craft a locale name
+yourself.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Broken
+systems</b> <br>
+In certain systems, the operating system&rsquo;s locale
+support is broken and cannot be fixed or used by Perl. Such
+deficiencies can and will result in mysterious hangs and/or
+Perl core dumps when &quot;use locale&quot; is in effect.
+When confronted with such a system, please report in
+excruciating detail to
+&lt;&lt;https://github.com/Perl/perl5/issues&gt;&gt;, and
+also contact your vendor: bug fixes may exist for these
+problems in your operating system. Sometimes such bug fixes
+are called an operating system upgrade. If you have the
+source for Perl, include in the bug report the output of the
+test described above in &quot;Testing for broken
+locales&quot;.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">I18N::Langinfo,
+perluniintro, perlunicode, open, &quot;localeconv&quot; in
+<small>POSIX</small> , &quot;setlocale&quot; in
+<small>POSIX</small> , &quot;strcoll&quot; in
+<small>POSIX</small> , &quot;strftime&quot; in
+<small>POSIX</small> , &quot;strtod&quot; in
+<small>POSIX</small> , &quot;strxfrm&quot; in
+<small>POSIX</small> .</p>
+
+<p style="margin-left:11%; margin-top: 1em">For special
+considerations when Perl is embedded in a C program, see
+&quot;Using embedded Perl with <small>POSIX</small>
+locales&quot; in perlembed.</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jarkko
+Hietaniemi&rsquo;s original <i>perli18n.pod</i> heavily
+hacked by Dominic Dunlop, assisted by the
+perl5&minus;porters. Prose worked over a bit by Tom
+Christiansen, and now maintained by Perl 5 porters.</p>
+<hr>
+</body>
+</html>

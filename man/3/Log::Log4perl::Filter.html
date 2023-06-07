@@ -1,0 +1,380 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:31 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Filter</title>
+
+</head>
+<body>
+<h1>Log::Log4perl::Filter</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Log::Log4perl::Filter
+&minus; Log4perl Custom Filter Base Class</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Log::Log4perl; <br>
+Log::Log4perl&minus;&gt;init(\ &lt;&lt;'EOT'); <br>
+log4perl.logger = INFO, Screen <br>
+log4perl.filter.MyFilter = sub { /let this through/ } <br>
+log4perl.appender.Screen = Log::Log4perl::Appender::Screen
+<br>
+log4perl.appender.Screen.Filter = MyFilter <br>
+log4perl.appender.Screen.layout =
+Log::Log4perl::Layout::SimpleLayout <br>
+EOT <br>
+# Define a logger <br>
+my $logger =
+Log::Log4perl&minus;&gt;get_logger(&quot;Some&quot;); <br>
+# Let this through <br>
+$logger&minus;&gt;info(&quot;Here's the info, let this
+through!&quot;); <br>
+# Suppress this <br>
+$logger&minus;&gt;info(&quot;Here's the info, suppress
+this!&quot;); <br>
+
+#################################################################
+<br>
+# StringMatch Filter: <br>
+
+#################################################################
+<br>
+log4perl.filter.M1 = Log::Log4perl::Filter::StringMatch <br>
+log4perl.filter.M1.StringToMatch = let this through <br>
+log4perl.filter.M1.AcceptOnMatch = true <br>
+
+#################################################################
+<br>
+# LevelMatch Filter: <br>
+
+#################################################################
+<br>
+log4perl.filter.M1 = Log::Log4perl::Filter::LevelMatch <br>
+log4perl.filter.M1.LevelToMatch = INFO <br>
+log4perl.filter.M1.AcceptOnMatch = true</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Log4perl allows
+the use of customized filters in its appenders to control
+the output of messages. These filters might grep for certain
+text chunks in a message, verify that its priority matches
+or exceeds a certain level or that this is the 10th time the
+same message has been submitted -- and come to a log/no log
+decision based upon these circumstantial facts.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Filters have
+names and can be specified in two different ways in the
+Log4perl configuration file: As subroutines or as filter
+classes. Here&rsquo;s a simple filter named
+&quot;MyFilter&quot; which just verifies that the oncoming
+message matches the regular expression &quot;/let this
+through/i&quot;:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">log4perl.filter.MyFilter
+= sub { /let this through/i }</p>
+
+<p style="margin-left:11%; margin-top: 1em">It exploits the
+fact that when the subroutine defined above is called on a
+message, Perl&rsquo;s special $_ variable will be set to the
+message text (prerendered, i.e. concatenated but not
+layouted) to be logged. The subroutine is expected to return
+a true value if it wants the message to be logged or a false
+value if doesn&rsquo;t.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also,
+Log::Log4perl will pass a hash to the subroutine, containing
+all key/value pairs that it would pass to the corresponding
+appender, as specified in Log::Log4perl::Appender.
+Here&rsquo;s an example of a filter checking the priority of
+the oncoming message:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">log4perl.filter.MyFilter
+= sub { \ <br>
+my %p = @_; \ <br>
+if($p{log4p_level} eq &quot;WARN&quot; or \ <br>
+$p{log4p_level} eq &quot;INFO&quot;) { \ <br>
+return 1; \ <br>
+} \ <br>
+return 0; \ <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the message
+priority equals &quot;WARN&quot; or &quot;INFO&quot;, it
+returns a true value, causing the message to be logged.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Predefined
+Filters</b> <br>
+For common tasks like verifying that the message priority
+matches a certain priority, there&rsquo;s already a set of
+predefined filters available. To perform an exact level
+match, it&rsquo;s much cleaner to use Log4perl&rsquo;s
+&quot;LevelMatch&quot; filter instead:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">log4perl.filter.M1
+= Log::Log4perl::Filter::LevelMatch <br>
+log4perl.filter.M1.LevelToMatch = INFO <br>
+log4perl.filter.M1.AcceptOnMatch = true</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will let
+the message through if its priority is <small>INFO</small>
+and suppress it otherwise. The statement can be negated by
+saying</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">log4perl.filter.M1.AcceptOnMatch
+= false</p>
+
+<p style="margin-left:11%; margin-top: 1em">instead. This
+way, the message will be logged if its priority is anything
+but <small>INFO.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">On a similar
+note, Log4perl&rsquo;s &quot;StringMatch&quot; filter will
+check the oncoming message for strings or regular
+expressions:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">log4perl.filter.M1
+= Log::Log4perl::Filter::StringMatch <br>
+log4perl.filter.M1.StringToMatch = bl.. bl.. <br>
+log4perl.filter.M1.AcceptOnMatch = true</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will open
+the gate for messages like &quot;blah blah&quot; because the
+regular expression in the &quot;StringToMatch&quot; matches
+them. Again, the setting of &quot;AcceptOnMatch&quot;
+determines if the filter is defined in a positive or
+negative way.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All class
+filter entries in the configuration file have to adhere to
+the following rule: Only after a filter has been defined by
+name and class/subroutine, its attribute values can be
+assigned, just like the &quot;true&quot; value above gets
+assigned to the &quot;AcceptOnMatch&quot; attribute
+<i>after</i> the filter &quot;M1&quot; has been defined.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Attaching a
+filter to an appender</b> <br>
+Attaching a filter to an appender is as easy as assigning
+its name to the appender&rsquo;s &quot;Filter&quot;
+attribute:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">log4perl.appender.MyAppender.Filter
+= MyFilter</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will cause
+&quot;Log::Log4perl&quot; to call the filter
+subroutine/method every time a message is supposed to be
+passed to the appender. Depending on the filter&rsquo;s
+return value, &quot;Log::Log4perl&quot; will either continue
+as planned or withdraw immediately.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Combining
+filters with Log::Log4perl::Filter::Boolean</b> <br>
+Sometimes, it&rsquo;s useful to combine the output of
+various filters to arrive at a log/no log decision. While
+Log4j, Log4perl&rsquo;s mother ship, has chosen to implement
+this feature as a filter chain, similar to Linux&rsquo;
+<small>IP</small> chains, Log4perl tries a different
+approach.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Typically,
+filter results will not need to be bumped along chains but
+combined in a programmatic manner using boolean logic.
+&quot;Log if this filter says &rsquo;yes&rsquo; and that
+filter says &rsquo;no&rsquo;&quot; is a fairly common
+requirement, but hard to implement as a chain.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Log::Log4perl::Filter::Boolean&quot;
+is a specially predefined custom filter for Log4perl. It
+combines the results of other custom filters in arbitrary
+ways, using boolean expressions:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">log4perl.logger
+= WARN, AppWarn, AppError <br>
+log4perl.filter.Match1 = sub { /let this through/ } <br>
+log4perl.filter.Match2 = sub { /and that, too/ } <br>
+log4perl.filter.MyBoolean = Log::Log4perl::Filter::Boolean
+<br>
+log4perl.filter.MyBoolean.logic = Match1 || Match2 <br>
+log4perl.appender.Screen = Log::Log4perl::Appender::Screen
+<br>
+log4perl.appender.Screen.Filter = MyBoolean <br>
+log4perl.appender.Screen.layout =
+Log::Log4perl::Layout::SimpleLayout</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Log::Log4perl::Filter::Boolean&quot;&rsquo;s
+boolean expressions allow for combining different appenders
+by name using <small>AND</small> (&amp;&amp; or &amp;),
+<small>OR</small> (|| or |) and <small>NOT</small> (!) as
+logical expressions. Also, parentheses can be used for
+defining precedences. Operator precedence follows standard
+Perl conventions. Here&rsquo;s a bunch of examples:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Match1
+&amp;&amp; !Match2 # Match1 and not Match2 <br>
+!(Match1 || Match2) # Neither Match1 nor Match2 <br>
+(Match1 &amp;&amp; Match2) || Match3 # Both Match1 and
+Match2 or Match3</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Writing your
+own filter classes</b> <br>
+If none of Log::Log4perl&rsquo;s predefined filter classes
+fits your needs, you can easily roll your own: Just define a
+new class, derive it from the baseclass
+&quot;Log::Log4perl::Filter&quot;, and define its
+&quot;new&quot; and &quot;ok&quot; methods like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+Log::Log4perl::Filter::MyFilter; <br>
+use base Log::Log4perl::Filter; <br>
+sub new { <br>
+my ($class, %options) = @_; <br>
+my $self = { %options, <br>
+}; <br>
+bless $self, $class; <br>
+return $self; <br>
+} <br>
+sub ok { <br>
+my ($self, %p) = @_; <br>
+# ... decide and return 1 or 0 <br>
+} <br>
+1;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Log4perl will
+call the <b>ok()</b> method to determine if the filter
+should let the message pass or not. A true return value
+indicates the message will be logged by the appender, a
+false value blocks it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Values
+you&rsquo;ve defined for its attributes in Log4perl&rsquo;s
+configuration file, will be received through its
+&quot;new&quot; method:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">log4perl.filter.MyFilter
+= Log::Log4perl::Filter::MyFilter <br>
+log4perl.filter.MyFilter.color = red</p>
+
+<p style="margin-left:11%; margin-top: 1em">will cause
+&quot;Log::Log4perl::Filter::MyFilter&quot;&rsquo;s
+constructor to be called like this:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Log::Log4perl::Filter::MyFilter&minus;&gt;new(
+name =&gt; &quot;MyFilter&quot;, <br>
+color =&gt; &quot;red&quot; );</p>
+
+<p style="margin-left:11%; margin-top: 1em">The custom
+filter class should use this to set the object&rsquo;s
+attributes, to have them available later to base log/nolog
+decisions on it.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;ok()&quot;
+is the filter&rsquo;s method to tell if it agrees or
+disagrees with logging the message. It will be called by
+Log::Log4perl whenever it needs the filter to decide. A
+false value returned by &quot;ok()&quot; will block
+messages, a true value will let them through.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>A Practical
+Example: Level Matching</b> <br>
+See Log::Log4perl::FAQ for this.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Log::Log4perl::Filter::LevelMatch,
+Log::Log4perl::Filter::LevelRange,
+Log::Log4perl::Filter::StringRange,
+Log::Log4perl::Filter::Boolean</p>
+
+<h2>LICENSE
+<a name="LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2002&minus;2013 by Mike Schilli &lt;m@perlmeister.com&gt;
+and Kevin Goess &lt;cpan@goess.org&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This library is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Please
+contribute patches to the project on Github:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">http://github.com/mschilli/log4perl</p>
+
+<p style="margin-left:11%; margin-top: 1em">Send bug
+reports or requests for enhancements to the authors via
+our</p>
+
+<p style="margin-left:11%; margin-top: 1em"><small>MAILING
+LIST</small> (questions, bug reports, suggestions/patches):
+log4perl&minus;devel@lists.sourceforge.net</p>
+
+<p style="margin-left:11%; margin-top: 1em">Authors (please
+contact them via the list above, not directly): Mike Schilli
+&lt;m@perlmeister.com&gt;, Kevin Goess
+&lt;cpan@goess.org&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Contributors
+(in alphabetical order): Ateeq Altaf, Cory Bennett, Jens
+Berthold, Jeremy Bopp, Hutton Davidson, Chris R. Donnelly,
+Matisse Enzer, Hugh Esco, Anthony Foiani, James FitzGibbon,
+Carl Franks, Dennis Gregorovic, Andy Grundman, Paul
+Harrington, Alexander Hartmaier David Hull, Robert Jacobson,
+Jason Kohles, Jeff Macdonald, Markus Peter, Brett Rann,
+Peter Rabbitson, Erik Selberg, Aaron Straup Cope, Lars
+Thegler, David Viner, Mac Yang.</p>
+<hr>
+</body>
+</html>

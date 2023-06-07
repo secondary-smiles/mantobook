@@ -1,0 +1,832 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:53 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GITPROTOCOL&minus;HTTP</title>
+
+</head>
+<body>
+<h1>gitprotocol-http</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">gitprotocol-http
+&minus; Git HTTP&minus;based protocols</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;over&minus;the&minus;wire&minus;protocol&gt;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Git supports
+two HTTP based transfer protocols. A &quot;dumb&quot;
+protocol which requires only a standard HTTP server on the
+server end of the connection, and a &quot;smart&quot;
+protocol which requires a Git aware CGI (or server module).
+This document describes both protocols.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As a design
+feature smart clients can automatically upgrade
+&quot;dumb&quot; protocol URLs to smart URLs. This permits
+all users to have the same published URL, and the peers
+automatically select the most efficient transport available
+to them.</p>
+
+<h2>URL FORMAT
+<a name="URL FORMAT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">URLs for Git
+repositories accessed by HTTP use the standard HTTP URL
+syntax documented by RFC 1738, so they are of the form:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">http://&lt;host&gt;:&lt;port&gt;/&lt;path&gt;?&lt;searchpart&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Within this
+documentation the placeholder <b>$GIT_URL</b> will stand for
+the http:// repository URL entered by the
+end&minus;user.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Servers SHOULD
+handle all requests to locations matching <b>$GIT_URL</b>,
+as both the &quot;smart&quot; and &quot;dumb&quot; HTTP
+protocols used by Git operate by appending additional path
+components onto the end of the user supplied <b>$GIT_URL</b>
+string.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An example of a
+dumb client requesting for a loose object:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$GIT_URL:
+http://example.com:8080/git/repo.git <br>
+URL request:
+http://example.com:8080/git/repo.git/objects/d0/49f6c27a2244e12041955e262a404c7faba355</p>
+
+<p style="margin-left:11%; margin-top: 1em">An example of a
+smart request to a catch&minus;all gateway:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$GIT_URL:
+http://example.com/daemon.cgi?svc=git&amp;q= <br>
+URL request:
+http://example.com/daemon.cgi?svc=git&amp;q=/info/refs&amp;service=git&minus;receive&minus;pack</p>
+
+<p style="margin-left:11%; margin-top: 1em">An example of a
+request to a submodule:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$GIT_URL:
+http://example.com/git/repo.git/path/submodule.git <br>
+URL request:
+http://example.com/git/repo.git/path/submodule.git/info/refs</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients MUST
+strip a trailing <b>/</b>, if present, from the user
+supplied <b>$GIT_URL</b> string to prevent empty path tokens
+(<b>//</b>) from appearing in any URL sent to a server.
+Compatible clients MUST expand <b>$GIT_URL/info/refs</b> as
+<b>foo/info/refs</b> and not <b>foo//info/refs</b>.</p>
+
+<h2>AUTHENTICATION
+<a name="AUTHENTICATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Standard HTTP
+authentication is used if authentication is required to
+access a repository, and MAY be configured and enforced by
+the HTTP server software.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because Git
+repositories are accessed by standard path components server
+administrators MAY use directory based permissions within
+their HTTP server to control repository access.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients SHOULD
+support Basic authentication as described by RFC 2617.
+Servers SHOULD support Basic authentication by relying upon
+the HTTP server placed in front of the Git server
+software.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Servers SHOULD
+NOT require HTTP cookies for the purposes of authentication
+or access control.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients and
+servers MAY support other common forms of HTTP based
+authentication, such as Digest authentication.</p>
+
+<h2>SSL
+<a name="SSL"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Clients and
+servers SHOULD support SSL, particularly to protect
+passwords when relying on Basic HTTP authentication.</p>
+
+<h2>SESSION STATE
+<a name="SESSION STATE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The Git over
+HTTP protocol (much like HTTP itself) is stateless from the
+perspective of the HTTP server side. All state MUST be
+retained and managed by the client process. This permits
+simple round&minus;robin load&minus;balancing on the server
+side, without needing to worry about state management.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients MUST
+NOT require state management on the server side in order to
+function correctly.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Servers MUST
+NOT require HTTP cookies in order to function correctly.
+Clients MAY store and forward HTTP cookies during request
+processing as described by RFC 2616 (HTTP/1.1). Servers
+SHOULD ignore any cookies sent by a client.</p>
+
+<h2>GENERAL REQUEST PROCESSING
+<a name="GENERAL REQUEST PROCESSING"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Except where
+noted, all standard HTTP behavior SHOULD be assumed by both
+client and server. This includes (but is not necessarily
+limited to):</p>
+
+<p style="margin-left:11%; margin-top: 1em">If there is no
+repository at <b>$GIT_URL</b>, or the resource pointed to by
+a location matching <b>$GIT_URL</b> does not exist, the
+server MUST NOT respond with <b>200 OK</b> response. A
+server SHOULD respond with <b>404 Not Found</b>, <b>410
+Gone</b>, or any other suitable HTTP status code which does
+not imply the resource exists as requested.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If there is a
+repository at <b>$GIT_URL</b>, but access is not currently
+permitted, the server MUST respond with the <b>403
+Forbidden</b> HTTP status code.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Servers SHOULD
+support both HTTP 1.0 and HTTP 1.1. Servers SHOULD support
+chunked encoding for both request and response bodies.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients SHOULD
+support both HTTP 1.0 and HTTP 1.1. Clients SHOULD support
+chunked encoding for both request and response bodies.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Servers MAY
+return ETag and/or Last&minus;Modified headers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients MAY
+revalidate cached entities by including
+If&minus;Modified&minus;Since and/or
+If&minus;None&minus;Match request headers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Servers MAY
+return <b>304 Not Modified</b> if the relevant headers
+appear in the request and the entity has not changed.
+Clients MUST treat <b>304 Not Modified</b> identical to
+<b>200 OK</b> by reusing the cached entity.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients MAY
+reuse a cached entity without revalidation if the
+Cache&minus;Control and/or Expires header permits caching.
+Clients and servers MUST follow RFC 2616 for cache
+controls.</p>
+
+<h2>DISCOVERING REFERENCES
+<a name="DISCOVERING REFERENCES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">All HTTP
+clients MUST begin either a fetch or a push exchange by
+discovering the references available on the remote
+repository.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Dumb
+Clients</b> <br>
+HTTP clients that only support the &quot;dumb&quot; protocol
+MUST discover references by making a request for the special
+info/refs file of the repository.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Dumb HTTP
+clients MUST make a <b>GET</b> request to
+<b>$GIT_URL/info/refs</b>, without any search/query
+parameters.</p>
+
+<p style="margin-left:17%; margin-top: 1em">C: GET
+$GIT_URL/info/refs HTTP/1.0</p>
+
+<p style="margin-left:17%; margin-top: 1em">S: 200 OK <br>
+S: <br>
+S: 95dcfa3633004da0049d3d0fa03f80589cbcaf31 refs/heads/maint
+<br>
+S: d049f6c27a2244e12041955e262a404c7faba355
+refs/heads/master <br>
+S: 2cb58b79488a98d2721cea644875a8dd0026b115 refs/tags/v1.0
+<br>
+S: a3c2e2402b99163d1d59756e5f207ae21cccba4c
+refs/tags/v1.0^{}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+Content&minus;Type of the returned info/refs entity SHOULD
+be <b>text/plain; charset=utf&minus;8</b>, but MAY be any
+content type. Clients MUST NOT attempt to validate the
+returned Content&minus;Type. Dumb servers MUST NOT return a
+return type starting with
+<b>application/x&minus;git&minus;</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Cache&minus;Control
+headers MAY be returned to disable caching of the returned
+entity.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When examining
+the response clients SHOULD only examine the HTTP status
+code. Valid responses are <b>200 OK</b>, or <b>304 Not
+Modified</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The returned
+content is a UNIX formatted text file describing each ref
+and its known value. The file SHOULD be sorted by name
+according to the C locale ordering. The file SHOULD NOT
+include the default ref named <b>HEAD</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">info_refs = *(
+ref_record ) <br>
+ref_record = any_ref / peeled_ref</p>
+
+<p style="margin-left:17%; margin-top: 1em">any_ref =
+obj&minus;id HTAB refname LF <br>
+peeled_ref = obj&minus;id HTAB refname LF <br>
+obj&minus;id HTAB refname &quot;^{}&quot; LF</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Smart
+Clients</b> <br>
+HTTP clients that support the &quot;smart&quot; protocol (or
+both the &quot;smart&quot; and &quot;dumb&quot; protocols)
+MUST discover references by making a parameterized request
+for the info/refs file of the repository.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The request
+MUST contain exactly one query parameter,
+<b>service=$servicename</b>, where <b>$servicename</b> MUST
+be the service name the client wishes to contact to complete
+the operation. The request MUST NOT contain additional query
+parameters.</p>
+
+<p style="margin-left:17%; margin-top: 1em">C: GET
+$GIT_URL/info/refs?service=git&minus;upload&minus;pack
+HTTP/1.0</p>
+
+<p style="margin-left:11%; margin-top: 1em">dumb server
+reply:</p>
+
+<p style="margin-left:17%; margin-top: 1em">S: 200 OK <br>
+S: <br>
+S: 95dcfa3633004da0049d3d0fa03f80589cbcaf31 refs/heads/maint
+<br>
+S: d049f6c27a2244e12041955e262a404c7faba355
+refs/heads/master <br>
+S: 2cb58b79488a98d2721cea644875a8dd0026b115 refs/tags/v1.0
+<br>
+S: a3c2e2402b99163d1d59756e5f207ae21cccba4c
+refs/tags/v1.0^{}</p>
+
+<p style="margin-left:11%; margin-top: 1em">smart server
+reply:</p>
+
+<p style="margin-left:17%; margin-top: 1em">S: 200 OK <br>
+S: Content&minus;Type:
+application/x&minus;git&minus;upload&minus;pack&minus;advertisement
+<br>
+S: Cache&minus;Control: no&minus;cache <br>
+S: <br>
+S: 001e# service=git&minus;upload&minus;pack\n <br>
+S: 0000 <br>
+S: 004895dcfa3633004da0049d3d0fa03f80589cbcaf31
+refs/heads/maint\0multi_ack\n <br>
+S: 003fd049f6c27a2244e12041955e262a404c7faba355
+refs/heads/master\n <br>
+S: 003c2cb58b79488a98d2721cea644875a8dd0026b115
+refs/tags/v1.0\n <br>
+S: 003fa3c2e2402b99163d1d59756e5f207ae21cccba4c
+refs/tags/v1.0^{}\n <br>
+S: 0000</p>
+
+<p style="margin-left:11%; margin-top: 1em">The client may
+send Extra Parameters (see <b>gitprotocol-pack</b>(5)) as a
+colon&minus;separated string in the Git&minus;Protocol HTTP
+header.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Uses the
+<b>&minus;&minus;http&minus;backend&minus;info&minus;refs</b>
+option to <b>git-upload-pack</b>(1).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Dumb
+Server Response</big></b></p>
+
+<p style="margin-left:17%;">Dumb servers MUST respond with
+the dumb server reply format.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See the prior
+section under dumb clients for a more detailed description
+of the dumb server response.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Smart
+Server Response</big></b></p>
+
+<p style="margin-left:17%;">If the server does not
+recognize the requested service name, or the requested
+service name has been disabled by the server administrator,
+the server MUST respond with the <b>403 Forbidden</b> HTTP
+status code.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Otherwise,
+smart servers MUST respond with the smart server reply
+format for the requested service name.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">Cache&minus;Control
+headers SHOULD be used to disable caching of the returned
+entity.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+Content&minus;Type MUST be
+<b>application/x&minus;$servicename&minus;advertisement</b>.
+Clients SHOULD fall back to the dumb protocol if another
+content type is returned. When falling back to the dumb
+protocol clients SHOULD NOT make an additional request to
+<b>$GIT_URL/info/refs</b>, but instead SHOULD use the
+response already in hand. Clients MUST NOT continue if they
+do not support the dumb protocol.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Clients MUST
+validate the status code is either <b>200 OK</b> or <b>304
+Not Modified</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Clients MUST
+validate the first five bytes of the response entity matches
+the regex <b>^[0&minus;9a&minus;f]{4}#</b>. If this test
+fails, clients MUST NOT continue.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Clients MUST
+parse the entire response as a sequence of pkt&minus;line
+records.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Clients MUST
+verify the first pkt&minus;line is <b>#
+service=$servicename</b>. Servers MUST set $servicename to
+be the request parameter value. Servers SHOULD include an LF
+at the end of this line. Clients MUST ignore an LF at the
+end of the line.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Servers MUST
+terminate the response with the magic <b>0000</b> end
+pkt&minus;line marker.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The returned
+response is a pkt&minus;line stream describing each ref and
+its known value. The stream SHOULD be sorted by name
+according to the C locale ordering. The stream SHOULD
+include the default ref named <b>HEAD</b> as the first ref.
+The stream MUST include capability declarations behind a NUL
+on the first ref.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The returned
+response contains &quot;version 1&quot; if
+&quot;version=1&quot; was sent as an Extra Parameter.</p>
+
+<p style="margin-left:23%; margin-top: 1em">smart_reply =
+PKT&minus;LINE(&quot;# service=$servicename&quot; LF) <br>
+&quot;0000&quot; <br>
+*1(&quot;version 1&quot;) <br>
+ref_list <br>
+&quot;0000&quot; <br>
+ref_list = empty_list / non_empty_list</p>
+
+<p style="margin-left:23%; margin-top: 1em">empty_list =
+PKT&minus;LINE(zero&minus;id SP &quot;capabilities^{}&quot;
+NUL cap&minus;list LF)</p>
+
+<p style="margin-left:23%; margin-top: 1em">non_empty_list
+= PKT&minus;LINE(obj&minus;id SP name NUL cap_list LF) <br>
+*ref_record</p>
+
+<p style="margin-left:23%; margin-top: 1em">cap&minus;list
+= capability *(SP capability) <br>
+capability = 1*(LC_ALPHA / DIGIT / &quot;&minus;&quot; /
+&quot;_&quot;) <br>
+LC_ALPHA = %x61&minus;7A</p>
+
+<p style="margin-left:23%; margin-top: 1em">ref_record =
+any_ref / peeled_ref <br>
+any_ref = PKT&minus;LINE(obj&minus;id SP name LF) <br>
+peeled_ref = PKT&minus;LINE(obj&minus;id SP name LF) <br>
+PKT&minus;LINE(obj&minus;id SP name &quot;^{}&quot; LF</p>
+
+<h2>SMART SERVICE GIT&minus;UPLOAD&minus;PACK
+<a name="SMART SERVICE GIT&minus;UPLOAD&minus;PACK"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This service
+reads from the repository pointed to by <b>$GIT_URL</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients MUST
+first perform ref discovery with
+<b>$GIT_URL/info/refs?service=git&minus;upload&minus;pack</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">C: POST
+$GIT_URL/git&minus;upload&minus;pack HTTP/1.0 <br>
+C: Content&minus;Type:
+application/x&minus;git&minus;upload&minus;pack&minus;request
+<br>
+C: <br>
+C: 0032want 0a53e9ddeaddad63ad106860237bbf53411d11a7\n <br>
+C: 0032have 441b40d833fdfa93eb2908e52742248faf0ee993\n <br>
+C: 0000</p>
+
+<p style="margin-left:17%; margin-top: 1em">S: 200 OK <br>
+S: Content&minus;Type:
+application/x&minus;git&minus;upload&minus;pack&minus;result
+<br>
+S: Cache&minus;Control: no&minus;cache <br>
+S: <br>
+S: ....ACK %s, continue <br>
+S: ....NAK</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients MUST
+NOT reuse or revalidate a cached response. Servers MUST
+include sufficient Cache&minus;Control headers to prevent
+caching of the response.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Servers SHOULD
+support all capabilities defined here.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients MUST
+send at least one &quot;want&quot; command in the request
+body. Clients MUST NOT reference an id in a &quot;want&quot;
+command which did not appear in the response obtained
+through ref discovery unless the server advertises
+capability
+<b>allow&minus;tip&minus;sha1&minus;in&minus;want</b> or
+<b>allow&minus;reachable&minus;sha1&minus;in&minus;want</b>.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">compute_request
+= want_list <br>
+have_list <br>
+request_end <br>
+request_end = &quot;0000&quot; / &quot;done&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">want_list =
+PKT&minus;LINE(want SP cap_list LF) <br>
+*(want_pkt) <br>
+want_pkt = PKT&minus;LINE(want LF) <br>
+want = &quot;want&quot; SP id <br>
+cap_list = capability *(SP capability)</p>
+
+<p style="margin-left:17%; margin-top: 1em">have_list =
+*PKT&minus;LINE(&quot;have&quot; SP id LF)</p>
+
+<p style="margin-left:11%; margin-top: 1em">TODO: Document
+this further.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>The
+Negotiation Algorithm</b> <br>
+The computation to select the minimal pack proceeds as
+follows (C = client, S = server):</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>init
+step:</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">C: Use ref
+discovery to obtain the advertised refs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">C: Place any
+object seen into set <b>advertised</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">C: Build an
+empty set, <b>common</b>, to hold the objects that are later
+determined to be on both ends.</p>
+
+<p style="margin-left:11%; margin-top: 1em">C: Build a set,
+<b>want</b>, of the objects from <b>advertised</b> the
+client wants to fetch, based on what it saw during ref
+discovery.</p>
+
+<p style="margin-left:11%; margin-top: 1em">C: Start a
+queue, <b>c_pending</b>, ordered by commit time (popping
+newest first). Add all client refs. When a commit is popped
+from the queue its parents SHOULD be automatically inserted
+back. Commits MUST only enter the queue once.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>one compute
+step:</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">C: Send one
+<b>$GIT_URL/git&minus;upload&minus;pack</b> request:</p>
+
+<p style="margin-left:17%; margin-top: 1em">C: 0032want
+&lt;want #1&gt;............................... <br>
+C: 0032want &lt;want #2&gt;...............................
+<br>
+.... <br>
+C: 0032have &lt;common #1&gt;.............................
+<br>
+C: 0032have &lt;common #2&gt;.............................
+<br>
+.... <br>
+C: 0032have &lt;have #1&gt;...............................
+<br>
+C: 0032have &lt;have #2&gt;...............................
+<br>
+.... <br>
+C: 0000</p>
+
+<p style="margin-left:11%; margin-top: 1em">The stream is
+organized into &quot;commands&quot;, with each command
+appearing by itself in a pkt&minus;line. Within a command
+line, the text leading up to the first space is the command
+name, and the remainder of the line to the first LF is the
+value. Command lines are terminated with an LF as the last
+byte of the pkt&minus;line value.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Commands MUST
+appear in the following order, if they appear at all in the
+request stream:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+&quot;want&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+&quot;have&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The stream is
+terminated by a pkt&minus;line flush (<b>0000</b>).</p>
+
+<p style="margin-left:11%; margin-top: 1em">A single
+&quot;want&quot; or &quot;have&quot; command MUST have one
+hex formatted object name as its value. Multiple object
+names MUST be sent by sending multiple commands. Object
+names MUST be given using the object format negotiated
+through the <b>object&minus;format</b> capability (default
+SHA&minus;1).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The <b>have</b>
+list is created by popping the first 32 commits from
+<b>c_pending</b>. Less can be supplied if <b>c_pending</b>
+empties.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the client
+has sent 256 &quot;have&quot; commits and has not yet
+received one of those back from <b>s_common</b>, or the
+client has emptied <b>c_pending</b> it SHOULD include a
+&quot;done&quot; command to let the server know it
+won&rsquo;t proceed:</p>
+
+<p style="margin-left:17%; margin-top: 1em">C: 0009done</p>
+
+<p style="margin-left:11%; margin-top: 1em">S: Parse the
+git&minus;upload&minus;pack request:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Verify all
+objects in <b>want</b> are directly reachable from refs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The server MAY
+walk backwards through history or through the reflog to
+permit slightly stale requests.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no
+&quot;want&quot; objects are received, send an error: TODO:
+Define error if no &quot;want&quot; lines are requested.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If any
+&quot;want&quot; object is not reachable, send an error:
+TODO: Define error if an invalid &quot;want&quot; is
+requested.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Create an empty
+list, <b>s_common</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;have&quot; was sent:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Loop through
+the objects in the order supplied by the client.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For each
+object, if the server has the object reachable from a ref,
+add it to <b>s_common</b>. If a commit is added to
+<b>s_common</b>, do not add any ancestors, even if they also
+appear in <b>have</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">S: Send the
+git&minus;upload&minus;pack response:</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the server
+has found a closed set of objects to pack or the request
+ends with &quot;done&quot;, it replies with the pack. TODO:
+Document the pack based response</p>
+
+<p style="margin-left:17%; margin-top: 1em">S: PACK...</p>
+
+<p style="margin-left:11%; margin-top: 1em">The returned
+stream is the side&minus;band&minus;64k protocol supported
+by the git&minus;upload&minus;pack service, and the pack is
+embedded into stream 1. Progress messages from the server
+side MAY appear in stream 2.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here a
+&quot;closed set of objects&quot; is defined to have at
+least one path from every &quot;want&quot; to at least one
+&quot;common&quot; object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the server
+needs more information, it replies with a status continue
+response: TODO: Document the non&minus;pack response</p>
+
+<p style="margin-left:11%; margin-top: 1em">C: Parse the
+upload&minus;pack response: TODO: Document parsing
+response</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Do another
+compute step.</i></p>
+
+<h2>SMART SERVICE GIT&minus;RECEIVE&minus;PACK
+<a name="SMART SERVICE GIT&minus;RECEIVE&minus;PACK"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This service
+reads from the repository pointed to by <b>$GIT_URL</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients MUST
+first perform ref discovery with
+<b>$GIT_URL/info/refs?service=git&minus;receive&minus;pack</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">C: POST
+$GIT_URL/git&minus;receive&minus;pack HTTP/1.0 <br>
+C: Content&minus;Type:
+application/x&minus;git&minus;receive&minus;pack&minus;request
+<br>
+C: <br>
+C: ....0a53e9ddeaddad63ad106860237bbf53411d11a7
+441b40d833fdfa93eb2908e52742248faf0ee993 refs/heads/maint\0
+report&minus;status <br>
+C: 0000 <br>
+C: PACK....</p>
+
+<p style="margin-left:17%; margin-top: 1em">S: 200 OK <br>
+S: Content&minus;Type:
+application/x&minus;git&minus;receive&minus;pack&minus;result
+<br>
+S: Cache&minus;Control: no&minus;cache <br>
+S: <br>
+S: ....</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients MUST
+NOT reuse or revalidate a cached response. Servers MUST
+include sufficient Cache&minus;Control headers to prevent
+caching of the response.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Servers SHOULD
+support all capabilities defined here.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients MUST
+send at least one command in the request body. Within the
+command portion of the request body clients SHOULD send the
+id obtained through ref discovery as old_id.</p>
+
+<p style="margin-left:17%; margin-top: 1em">update_request
+= command_list <br>
+&quot;PACK&quot; &lt;binary data&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">command_list =
+PKT&minus;LINE(command NUL cap_list LF) <br>
+*(command_pkt) <br>
+command_pkt = PKT&minus;LINE(command LF) <br>
+cap_list = *(SP capability) SP</p>
+
+<p style="margin-left:17%; margin-top: 1em">command =
+create / delete / update <br>
+create = zero&minus;id SP new_id SP name <br>
+delete = old_id SP zero&minus;id SP name <br>
+update = old_id SP new_id SP name</p>
+
+<p style="margin-left:11%; margin-top: 1em">TODO: Document
+this further.</p>
+
+<h2>REFERENCES
+<a name="REFERENCES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><font color="#0000FF">RFC
+1738: Uniform Resource Locators (URL)</font></b>
+<small><font color="#000000">[1]</font></small>
+<b><font color="#0000FF">RFC 2616: Hypertext Transfer
+Protocol &mdash; HTTP/1.1</font></b>
+<small><font color="#000000">[2]</font></small></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>gitprotocol-pack</b>(5)
+<b>gitprotocol-capabilities</b>(5)</font></p>
+
+<h2>GIT
+<a name="GIT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Part
+of the <b>git</b>(1) suite</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="63%">
+
+
+<p style="margin-top: 1em"><font color="#000000">RFC 1738:
+Uniform Resource Locators (URL)</font></p></td>
+<td width="20%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">http://www.ietf.org/rfc/rfc1738.txt</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">2.</font></p> </td>
+<td width="2%"></td>
+<td width="74%">
+
+
+<p style="margin-top: 1em"><font color="#000000">RFC 2616:
+Hypertext Transfer Protocol &mdash; HTTP/1.1</font></p></td>
+<td width="9%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">http://www.ietf.org/rfc/rfc2616.txt</font></p>
+<hr>
+</body>
+</html>

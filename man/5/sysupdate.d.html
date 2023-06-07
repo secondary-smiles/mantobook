@@ -1,0 +1,1056 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:55 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SYSUPDATE.D</title>
+
+</head>
+<body>
+<h1>sysupdate.d</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">sysupdate.d
+&minus; Transfer Definition Files for Automatic Updates</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">/etc/sysupdate.d/*.conf
+<br>
+/run/sysupdate.d/*.conf <br>
+/usr/lib/sysupdate.d/*.conf</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">sysupdate.d/*.conf
+files describe how specific resources on the local system
+shall be updated from a remote source. Each such file
+defines one such transfer: typically a remote HTTP/HTTPS
+resource as source; and a local file, directory or partition
+as target. This may be used as a simple, automatic, atomic
+update mechanism for the OS itself, for containers, portable
+services or system extension images &mdash; but in fact may
+be used to update any kind of file from a remote source.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>systemd-sysupdate</b>(8) command reads these files and
+uses them to determine which local resources should be
+updated, and then executes the update.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Both the remote
+HTTP/HTTPS source and the local target typically exist in
+multiple, concurrent versions, in order to implement
+flexible update schemes, e.g. A/B updating (or a superset
+thereof, e.g. A/B/C, A/B/C/D, ...).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each *.conf
+file defines one transfer, i.e. describes one resource to
+update. Typically, multiple of these files (i.e. multiple of
+such transfers) are defined together, and are bound together
+by a common version identifier in order to update multiple
+resources at once on each update operation, for example to
+update a kernel, a root file system and a Verity partition
+in a single, combined, synchronized operation, so that only
+a combined update of all three together constitutes a
+complete update.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each *.conf
+file contains three sections: [Transfer], [Source] and
+[Target].</p>
+
+<h2>BASIC MODE OF OPERATION
+<a name="BASIC MODE OF OPERATION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Disk&minus;image
+based OS updates typically consist of multiple different
+resources that need to be updated together, for example a
+secure OS update might consist of a root file system image
+to drop into a partition, a matching Verity integrity data
+partition image, and a kernel image prepared to boot into
+the combination of the two partitions. The first two
+resources are files that are downloaded and placed in a disk
+partition, the latter is a file that is downloaded and
+placed in a regular file in the boot file system (e.g. EFI
+system partition). Hence, during an update of a hypothetical
+operating system &quot;foobarOS&quot; to a hypothetical
+version 47 the following operations should take place:</p>
+
+<p style="margin-left:17%; margin-top: 1em">1. A file
+&quot;https://download.example.com/foobarOS_47.root.xz&quot;
+should be downloaded, decompressed and written to a
+previously unused partition with GPT partition type UUID
+4f68bce3&minus;e8cd&minus;4db1&minus;96e7&minus;fbcaf984b709
+for x86&minus;64, as per
+<b><font color="#0000FF">Discoverable Partitions
+Specification</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">2.
+Similarly, a file
+&quot;https://download.example.com/foobarOS_47.verity.xz&quot;
+should be downloaded, decompressed and written to a
+previously empty partition with GPT partition type UUID of
+2c7357ed&minus;ebd2&minus;46d9&minus;aec1&minus;23d437ec2bf5
+(i.e. the partition type for Verity integrity information
+for x86&minus;64 root file systems).</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">3.
+Finally, a file
+&quot;https://download.example.com/foobarOS_47.efi.xz&quot;
+(a unified kernel, as per</font>
+<b><font color="#0000FF">Boot Loader
+Specification</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">Type #2) should be downloaded,
+decompressed and written to the ESP file system, i.e. to
+EFI/Linux/foobarOS_47.efi in the ESP.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+version&minus;independent generalization of this would be
+(using the special marker &quot;@v&quot; as wildcard for the
+version identifier):</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">1.
+A transfer of a file
+&quot;https://download.example.com/foobarOS_@v.root.xz&quot;
+&acirc; a local, previously empty GPT partition of type
+4f68bce3&minus;e8cd&minus;4db1&minus;96e7&minus;fbcaf984b709,
+with the label to be set to
+&quot;foobarOS_@v&quot;.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">2.
+A transfer of a file
+&quot;https://download.example.com/foobarOS_@v.verity.xz&quot;
+&acirc; a local, previously empty GPT partition of type
+2c7357ed&minus;ebd2&minus;46d9&minus;aec1&minus;23d437ec2bf5,
+with the label to be set to
+&quot;foobarOS_@v_verity&quot;.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">3.
+A transfer of a file
+&quot;https://download.example.com/foobarOS_@v.efi.xz&quot;
+&acirc; a local file
+/efi/EFI/Linux/foobarOS_@v.efi.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">An
+update can only complete if the relevant URLs provide their
+resources for the same version, i.e. for the same value of
+&quot;@v&quot;.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+above may be translated into three *.conf files in
+sysupdate.d/, one for each resource to transfer. The *.conf
+files configure the type of download, and what place to
+write the download to (i.e. whether to a partition or a file
+in the file system). Most importantly these files contain
+the URL, partition name and filename patterns shown above
+that describe how these resources are called on the source
+and how they shall be called on the target.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">In
+order to enumerate available versions and figuring out
+candidates to update to, a mechanism is necessary to list
+suitable files:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+For partitions: the surrounding GPT partition table contains
+a list of defined partitions, including a partition type
+UUID and a partition label (in this scheme the partition
+label plays a role for the partition similar to the filename
+for a regular file).</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+For regular files: the directory listing of the directory
+the files are contained in provides a list of existing files
+in a straightforward way.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+For HTTP/HTTPS sources a simple scheme is used: a manifest
+file SHA256SUMS, following the format defined by
+<b>sha256sum</b>(1), lists file names and their SHA256
+hashes.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Transfers
+are done in the alphabetical order of the .conf file names
+they are defined in. First, the resource data is downloaded
+directly into a target file/directory/partition. Once this
+is completed for all defined transfers, in a second step the
+files/directories/partitions are renamed to their final
+names as defined by the target <i>MatchPattern=</i>, again
+in the order the .conf transfer file names dictate. This
+step is not atomic, however it is guaranteed to be executed
+strictly in order with suitable disk synchronization in
+place. Typically, when updating an OS one of the transfers
+defines the entry point when booting. Thus it is generally a
+good idea to order the resources via the transfer
+configuration file names so that the entry point is written
+last, ensuring that any abnormal termination does not leave
+an entry point around whose backing is not established yet.
+In the example above it would hence make sense to establish
+the EFI kernel image last and thus give its transfer
+configuration file the alphabetically last name.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">See
+below for an extended, more specific example based on the
+above.</font></p>
+
+<h2>RESOURCE TYPES
+<a name="RESOURCE TYPES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Each
+transfer file defines one source resource to transfer to one
+target resource. The following resource types are
+supported:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">1.
+Resources of type &quot;url&minus;file&quot; encapsulate a
+file on a web server, referenced via a HTTP or HTTPS URL.
+When an update takes place, the file is downloaded and
+decompressed and then written to the target file or
+partition. This resource type is only available for sources,
+not for targets. The list of available versions of resources
+of this type is encoded in SHA256SUMS manifest files,
+accompanied by SHA256SUMS.gpg detached
+signatures.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">2.
+The &quot;url&minus;tar&quot; resource type is similar, but
+the file must be a .tar archive. When an update takes place,
+the file is decompressed and unpacked into a directory or
+btrfs subvolume. This resource type is only available for
+sources, not for targets. Just like
+&quot;url&minus;file&quot;, &quot;url&minus;tar&quot;
+version enumeration makes use of SHA256SUMS files,
+authenticated via SHA256SUMS.gpg.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">3.
+The &quot;regular&minus;file&quot; resource type
+encapsulates a local regular file on disk. During updates
+the file is uncompressed and written to the target file or
+partition. This resource type is available both as source
+and as target. When updating no integrity or authentication
+verification is done for resources of this type.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">4.
+The &quot;partition&quot; resource type is similar to
+&quot;regular&minus;file&quot;, and encapsulates a GPT
+partition on disk. When updating, the partition must exist
+already, and have the correct GPT partition type. A
+partition whose GPT partition label is set to
+&quot;_empty&quot; is considered empty, and a candidate to
+place a newly downloaded resource in. The GPT partition
+label is used to store version information, once a partition
+is updated. This resource type is only available for target
+resources.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">5.
+The &quot;tar&quot; resource type encapsulates local .tar
+archive files. When an update takes place, the files are
+uncompressed and unpacked into a target directory or btrfs
+subvolume. Behaviour of &quot;tar&quot; and
+&quot;url&minus;tar&quot; is generally similar, but the
+latter downloads from remote sources, and does integrity and
+authentication checks while the former does not. The
+&quot;tar&quot; resource type is only available for source
+resources.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">6.
+The &quot;directory&quot; resource type encapsulates local
+directory trees. This type is available both for source and
+target resources. If an update takes place on a source
+resource of this type, a recursive copy of the directory is
+done.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">7.
+The &quot;subvolume&quot; resource type is identical to
+&quot;directory&quot;, except when used as the target, in
+which case the file tree is placed in a btrfs subvolume
+instead of a plain directory, if the backing file system
+supports it (i.e. is btrfs).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">As
+already indicated, only a subset of source and target
+resource type combinations are supported:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Table&nbsp;1.&nbsp;Resource
+Types</b></font></p>
+
+
+<p align="center"><font color="#000000"><b><img src="grohtml-35851851.png" alt="Image grohtml-35851851.png"></b></font></p>
+
+<h2>MATCH PATTERNS
+<a name="MATCH PATTERNS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Both
+the source and target resources typically exist in multiple
+versions concurrently. An update operation is done whenever
+the newest of the source versions is newer than the newest
+of the target versions. To determine the newest version of
+the resources a directory listing, partition listing or
+manifest listing is used, a subset of qualifying entries
+selected from that, and the version identifier extracted
+from the file names or partition labels of these selected
+entries. Subset selection and extraction of the version
+identifier (plus potentially other metadata) is done via
+match patterns, configured in <i>MatchPattern=</i> in the
+[Source] and [Target] sections. These patterns are strings
+that describe how files or partitions are named, with named
+wildcards for specific fields such as the version
+identifier. The following wildcards are defined:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Table&nbsp;2.&nbsp;Match
+Pattern Wildcards</b> <br>
+Of these wildcards only &quot;@v&quot; must be present in a
+valid pattern, all other wildcards are optional. Each
+wildcard may be used at most once in each pattern. A typical
+wildcard matching a file system source image could be
+&quot;MatchPattern=foobar_@v.raw.xz&quot;, i.e. any file
+whose name begins with &quot;foobar_&quot;, followed by a
+version ID and suffixed by &quot;.raw.xz&quot;.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Do
+not confuse the &quot;@&quot; pattern matching wildcard
+prefix with the &quot;%&quot; specifier expansion prefix.
+The former encapsulate a variable part of a match pattern
+string, the latter are simple shortcuts that are expanded
+while the drop&minus;in files are parsed. For details about
+specifiers, see below.</font></p>
+
+<h2>[TRANSFER] SECTION OPTIONS
+<a name="[TRANSFER] SECTION OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">This
+section defines general properties of this
+transfer.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>MinVersion=</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Specifies
+the minimum version to require for this transfer to take
+place. If the source or target patterns in this transfer
+definition match files older than this version they will be
+considered obsolete, and never be considered for the update
+operation.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>ProtectVersion=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes one
+or more version strings to mark as &quot;protected&quot;.
+Protected versions are never removed while making room for
+new, updated versions. This is useful to ensure that the
+currently booted OS version (or auxiliary resources
+associated with it) is not replaced/overwritten during
+updates, in order to avoid runtime file system
+corruptions.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Like
+many of the settings in these configuration files this
+setting supports specifier expansion. It's particularly
+useful to set this setting to one of the &quot;%A&quot;,
+&quot;%B&quot; or &quot;%w&quot; specifiers to automatically
+refer to the current OS version of the running system. See
+below for details on supported specifiers.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>Verify=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+boolean, defaults to yes. Controls whether to
+cryptographically verify downloaded resources (specifically:
+validate the GPG signatures for downloaded SHA256SUMS
+manifest files, via their detached signature files
+SHA256SUMS.gpg in combination with the system keyring
+/usr/lib/systemd/import&minus;pubring.gpg or
+/etc/systemd/import&minus;pubring.gpg).</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">This
+option is essential to provide integrity guarantees for
+downloaded resources and thus should be left enabled,
+outside of test environments.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that the downloaded payload files are unconditionally
+checked against the SHA256 hashes listed in the manifest.
+This option only controls whether the signatures of these
+manifests are verified.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">This
+option only has an effect if the source resource type is
+selected as <b>url&minus;file</b> or <b>url&minus;tar</b>,
+as integrity and authentication checking is only available
+for transfers from remote sources.</font></p>
+
+<h2>[SOURCE] SECTION OPTIONS
+<a name="[SOURCE] SECTION OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">This
+section defines properties of the transfer
+source.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>Type=</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Specifies
+the resource type of the source for the transfer. Takes one
+of <b>url&minus;file</b>, <b>url&minus;tar</b>, <b>tar</b>,
+<b>regular&minus;file</b>, <b>directory</b> or
+<b>subvolume</b>. For details about the resource types, see
+above. This option is mandatory.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that only some combinations of source and target resource
+types are supported, see above.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>Path=</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Specifies
+where to find source versions of this resource.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">If
+the source type is selected as <b>url&minus;file</b> or
+<b>url&minus;tar</b> this must be a HTTP/HTTPS URL. The URL
+is suffixed with /SHA256SUMS to acquire the manifest file,
+with /SHA256SUMS.gpg to acquire the detached signature file
+for it, and with the file names listed in the manifest file
+in case an update is executed and a resource shall be
+downloaded.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">For
+all other source resource types this must be a local path in
+the file system, referring to a local directory to find the
+versions of this resource in.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>MatchPattern=</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Specifies
+one or more file name match patterns that select the subset
+of files that are update candidates as source for this
+transfer. See above for details on match
+patterns.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">This
+option is mandatory. Any pattern listed must contain at
+least the &quot;@v&quot; wildcard, so that a version
+identifier may be extracted from the filename. All other
+wildcards are optional.</font></p>
+
+<h2>[TARGET] SECTION OPTIONS
+<a name="[TARGET] SECTION OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">This
+section defines properties of the transfer
+target.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>Type=</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Specifies
+the resource type of the target for the transfer. Takes one
+of <b>partition</b>, <b>regular&minus;file</b>,
+<b>directory</b> or <b>subvolume</b>. For details about the
+resource types, see above. This option is
+mandatory.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that only certain combinations of source and target resource
+types are supported, see above.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>Path=</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Specifies
+a file system path where to look for already installed
+versions or place newly downloaded versions of this
+configured resource. If <i>Type=</i> is set to
+<b>partition</b>, expects a path to a (whole) block device
+node, or the special string &quot;auto&quot; in which case
+the block device which contains the root file system of the
+currently booted system is automatically determined and
+used. If <i>Type=</i> is set to <b>regular&minus;file</b>,
+<b>directory</b> or <b>subvolume</b>, must refer to a path
+in the local file system referencing the directory to find
+or place the version files or directories under.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that this mechanism cannot be used to create or remove
+partitions, in case <i>Type=</i> is set to <b>partition</b>.
+Partitions must exist already, and a special partition label
+&quot;_empty&quot; is used to indicate empty partitions. To
+automatically generate suitable partitions on first boot,
+use a tool such as <b>systemd-repart</b>(8).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>MatchPattern=</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Specifies
+one or more file name or partition label match patterns that
+select the subset of files or partitions that are update
+candidates as targets for this transfer. See above for
+details on match patterns.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">This
+option is mandatory. Any pattern listed must contain at
+least the &quot;@v&quot; wildcard, so that a version
+identifier may be extracted from the filename. All other
+wildcards are optional.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">This
+pattern is both used for matching existing installed
+versions and for determining the name of new versions to
+install. If multiple patterns are specified, the first
+specified is used for naming newly installed
+versions.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>MatchPartitionType=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">When the
+target <i>Type=</i> is chosen as <b>partition</b>, specifies
+the GPT partition type to look for. Only partitions of this
+type are considered, all other partitions are ignored. If
+not specified, the GPT partition type
+<b>linux&minus;generic</b> is used. Accepts either a literal
+type UUID or a symbolic type identifier. For a list of
+supported type identifiers, see the <i>Type=</i> setting in
+<b>repart.d</b>(5).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>PartitionUUID=</i>,
+<i>PartitionFlags=</i>, <i>PartitionNoAuto=</i>,
+<i>PartitionGrowFileSystem=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">When the
+target <i>Type=</i> is picked as <b>partition</b>, selects
+the GPT partition UUID and partition flags to use for the
+updated partition. Expects a valid UUID string, a
+hexadecimal integer, or booleans, respectively. If not set,
+but the source match pattern includes wildcards for these
+fields (i.e. &quot;@u&quot;, &quot;@f&quot;, &quot;@a&quot;,
+or &quot;@g&quot;), the values from the patterns are used.
+If neither configured with wildcards or these explicit
+settings, the values are left untouched. If both the overall
+<i>PartitionFlags=</i> flags setting and the individual flag
+settings <i>PartitionNoAuto=</i> and
+<i>PartitionGrowFileSystem=</i> are used (or the wildcards
+for them), then the latter override the former, i.e. the
+individual flag bit overrides the overall flags value.
+See</font> <b><font color="#0000FF">Discoverable Partitions
+Specification</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">for details about these
+flags.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that these settings are not used for matching, they only
+have effect on newly written partitions in case a transfer
+takes place.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>ReadOnly=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Controls
+whether to mark the resulting file, subvolume or partition
+read&minus;only. If the target type is <b>partition</b> this
+controls the ReadOnly partition flag, as per</font>
+<b><font color="#0000FF">Discoverable Partitions
+Specification</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">, similar to the
+<i>PartitionNoAuto=</i> and <i>PartitionGrowFileSystem=</i>
+flags described above. If the target type is
+<b>regular&minus;file</b>, the writable bit is removed from
+the access mode. If the target type is <b>subvolume</b>, the
+subvolume will be marked read&minus;only as a whole.
+Finally, if the target <i>Type=</i> is selected as
+<b>directory</b>, the &quot;immutable&quot; file attribute
+is set, see <b>chattr</b>(1) for details.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>Mode=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">The UNIX
+file access mode to use for newly created files in case the
+target resource type is picked as <b>regular&minus;file</b>.
+Expects an octal integer, in typical UNIX fashion. If not
+set, but the source match pattern includes a wildcard for
+this field (i.e. &quot;@t&quot;), the value from the pattern
+is used.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that this setting is not used for matching, it only has an
+effect on newly written files when a transfer takes
+place.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>TriesDone=</i>,
+<i>TriesLeft=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">These
+options take positive, decimal integers, and control the
+number of attempts done and left for this file. These
+settings are useful for managing kernel images, following
+the scheme defined in</font>
+<b><font color="#0000FF">Automatic Boot
+Assessment</font></b>
+<small><font color="#000000">[3]</font></small>
+<font color="#000000">, and only have an effect if the
+target pattern includes the &quot;@d&quot; or &quot;@l&quot;
+wildcards.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>InstancesMax=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+decimal integer equal to or greater than 2. This configures
+how many concurrent versions of the resource to keep.
+Whenever a new update is initiated it is made sure that no
+more than the number of versions specified here minus one
+exist in the target. Any excess versions are deleted (in
+case the target <i>Type=</i> of <b>regular&minus;file</b>,
+<b>directory</b>, <b>subvolume</b> is used) or emptied (in
+case the target <i>Type=</i> of <b>partition</b> is used;
+emptying in this case simply means to set the partition
+label to the special string &quot;_empty&quot;; note that no
+partitions are actually removed). After an update is
+completed the number of concurrent versions of the target
+resources is equal to or below the number specified
+here.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that this setting may be set differently for each transfer.
+However, it generally is advisable to keep this setting the
+same for all transfers, since otherwise incomplete
+combinations of files or partitions will be left
+installed.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">If
+the target <i>Type=</i> is selected as <b>partition</b>, the
+number of concurrent versions to keep is additionally
+restricted by the number of partition slots of the right
+type in the partition table. I.e. if there are only 2
+partition slots for the selected partition type, setting
+this value larger than 2 is without effect, since no more
+than 2 concurrent versions could be stored in the image
+anyway.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>RemoveTemporary=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+boolean argument. If this option is enabled (which is the
+default) before initiating an update, all left&minus;over,
+incomplete updates from a previous attempt are removed from
+the target directory. This only has an effect if the target
+resource <i>Type=</i> is selected as
+<b>regular&minus;file</b>, <b>directory</b> or
+<b>subvolume</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>CurrentSymlink=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+symlink name as argument. If this option is used, as the
+last step of the update a symlink under the specified name
+is created/updated pointing to the completed update. This is
+useful in to provide a stable name always pointing to the
+newest version of the resource. This is only supported if
+the target resource <i>Type=</i> is selected as
+<b>regular&minus;file</b>, <b>directory</b> or
+<b>subvolume</b>.</font></p>
+
+<h2>SPECIFIERS
+<a name="SPECIFIERS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Specifiers
+may be used in the <i>MinVersion=</i>,
+<i>ProtectVersion=</i>, <i>Path=</i>, <i>MatchPattern=</i>
+and <i>CurrentSymlink=</i> settings. The following
+expansions are understood:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Table&nbsp;3.&nbsp;Specifiers
+available</b> <br>
+Do not confuse the &quot;%&quot; specifier expansion prefix
+with the &quot;@&quot; pattern matching wildcard prefix. The
+former are simple shortcuts that are expanded while the
+drop&minus;in files are parsed, the latter encapsulate a
+variable part of a match pattern string. For details about
+pattern matching wildcards, see above.</font></p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Example&nbsp;1.&nbsp;Updates
+for a Verity Enabled Secure OS</b></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">With
+the following three files we define a root file system
+partition, a matching Verity partition, and a unified kernel
+image to update as one. This example is an extension of the
+example discussed earlier in this man page.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">#
+/usr/lib/sysupdate.d/50&minus;verity.conf <br>
+[Transfer] <br>
+ProtectVersion=%A</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">[Source]
+<br>
+Type=url&minus;file <br>
+Path=https://download.example.com/ <br>
+MatchPattern=foobarOS_@v_@u.verity.xz</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">[Target]
+<br>
+Type=partition <br>
+Path=auto <br>
+MatchPattern=foobarOS_@v_verity <br>
+MatchPartitionType=root&minus;verity <br>
+PartitionFlags=0 <br>
+PartitionReadOnly=1</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+above defines the update mechanism for the Verity partition
+of the root file system. Verity partition images are
+downloaded from
+&quot;https://download.example.com/foobarOS_@v_@u.verity.xz&quot;
+and written to a suitable local partition, which is marked
+read&minus;only. Under the assumption this update is run
+from the image itself the current image version (i.e. the
+&quot;%A&quot; specifier) is marked as protected, to ensure
+it is not corrupted while booted. Note that the partition
+UUID for the target partition is encoded in the source file
+name. Fixating the partition UUID can be useful to ensure
+that &quot;roothash=&quot; on the kernel command line is
+sufficient to pinpoint both the Verity and root file system
+partition, and also encode the Verity root level hash (under
+the assumption the UUID in the file names match their
+top&minus;level hash, the way
+<b>systemd-gpt-auto-generator</b>(8) suggests).</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">#
+/usr/lib/sysupdate.d/60&minus;root.conf <br>
+[Transfer] <br>
+ProtectVersion=%A</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">[Source]
+<br>
+Type=url&minus;file <br>
+Path=https://download.example.com/ <br>
+MatchPattern=foobarOS_@v_@u.root.xz</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">[Target]
+<br>
+Type=partition <br>
+Path=auto <br>
+MatchPattern=foobarOS_@v <br>
+MatchPartitionType=root <br>
+PartitionFlags=0 <br>
+PartitionReadOnly=1</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+above defines a matching transfer definition for the root
+file system.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">#
+/usr/lib/sysupdate.d/70&minus;kernel.conf <br>
+[Transfer] <br>
+ProtectVersion=%A</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">[Source]
+<br>
+Type=url&minus;file <br>
+Path=https://download.example.com/ <br>
+MatchPattern=foobarOS_@v.efi.xz</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">[Target]
+<br>
+Type=regular&minus;file <br>
+Path=/efi/EFI/Linux <br>
+MatchPattern=foobarOS_@v+@l&minus;@d.efi \ <br>
+foobarOS_@v+@l.efi \ <br>
+foobarOS_@v.efi <br>
+Mode=0444 <br>
+TriesLeft=3 <br>
+TriesDone=0 <br>
+InstancesMax=2</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+above installs a unified kernel image into the ESP (which is
+mounted to /efi/), as per</font>
+<b><font color="#0000FF">Boot Loader
+Specification</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">Type #2. This defines three possible
+patterns for the names of the kernel images, as per</font>
+<b><font color="#0000FF">Automatic Boot
+Assessment</font></b>
+<small><font color="#000000">[3]</font></small>
+<font color="#000000">, and ensures when installing new
+kernels, they are set up with 3 tries left. No more than two
+parallel kernels are kept.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">With
+this setup the web server would serve the following files,
+for a hypothetical version 7 of the OS:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+SHA256SUMS &ndash; The manifest file, containing available
+files and their SHA256 hashes</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+SHA256SUMS.gpg &ndash; The detached cryptographic signature
+for the manifest file</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+foobarOS_7_8b8186b1&minus;2b4e&minus;4eb6&minus;ad39&minus;8d4d18d2a8fb.verity.xz
+&ndash; The Verity image for version 7</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+foobarOS_7_f4d1234f&minus;3ebf&minus;47c4&minus;b31d&minus;4052982f9a2f.root.xz
+&ndash; The root file system image for version 7</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+foobarOS_7_efi.xz &ndash; The unified kernel image for
+version 7</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">For
+each new OS release a new set of the latter three files
+would be added, each time with an updated version. The
+SHA256SUMS manifest should then be updated accordingly,
+listing all files for all versions that shall be offered for
+download.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Example&nbsp;2.&nbsp;Updates
+for Plain Directory Container Image</b></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">[Source]
+<br>
+Type=url&minus;tar <br>
+Path=https://download.example.com/ <br>
+MatchPattern=myContainer_@v.tar.gz</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">[Target]
+<br>
+Type=subvolume <br>
+Path=/var/lib/machines <br>
+MatchPattern=myContainer_@v <br>
+CurrentSymlink=myContainer</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">On
+updates this downloads
+&quot;https://download.example.com/myContainer_@v.tar.gz&quot;
+and decompresses/unpacks it to
+/var/lib/machines/myContainer_@v. After each update a
+symlink /var/lib/machines/myContainer is created/updated
+always pointing to the most recent update.</font></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>systemd</b>(1),
+<b>systemd-sysupdate</b>(8),
+<b>systemd-repart</b>(8)</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="57%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">Discoverable
+Partitions Specification</font></p></td>
+<td width="26%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://uapi-group.org/specifications/specs/discoverable_partitions_specification</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">2.</font></p> </td>
+<td width="2%"></td>
+<td width="38%">
+
+
+<p style="margin-top: 1em"><font color="#000000">Boot
+Loader Specification</font></p></td>
+<td width="45%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://uapi-group.org/specifications/specs/boot_loader_specification</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">3.</font></p> </td>
+<td width="2%"></td>
+<td width="38%">
+
+
+<p style="margin-top: 1em"><font color="#000000">Automatic
+Boot Assessment</font></p></td>
+<td width="45%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://systemd.io/AUTOMATIC_BOOT_ASSESSMENT</font></p>
+<hr>
+</body>
+</html>

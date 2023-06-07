@@ -1,0 +1,219 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:17 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>hwlocality_shmem</title>
+
+</head>
+<body>
+<h1>hwloc_shmem_topology_write</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">hwlocality_shmem
+&minus; Sharing topologies between processes</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Functions</b></p>
+
+<p style="margin-left:17%;">int
+<b>hwloc_shmem_topology_get_length</b>
+(<b>hwloc_topology_t</b> topology, size_t *lengthp, unsigned
+long flags) <br>
+int <b>hwloc_shmem_topology_write</b>
+(<b>hwloc_topology_t</b> topology, int fd, hwloc_uint64_t
+fileoffset, void *mmap_address, size_t length, unsigned long
+flags) <br>
+int <b>hwloc_shmem_topology_adopt</b>
+(<b>hwloc_topology_t</b> *topologyp, int fd, hwloc_uint64_t
+fileoffset, void *mmap_address, size_t length, unsigned long
+flags)</p>
+
+<h2>Detailed Description
+<a name="Detailed Description"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These functions
+are used to share a topology between processes by
+duplicating it into a file-backed shared-memory buffer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The master
+process must first get the required shared-memory size for
+storing this topology with
+<b>hwloc_shmem_topology_get_length()</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Then it must
+find a virtual memory area of that size that is available in
+all processes (identical virtual addresses in all
+processes). On Linux, this can be done by comparing holes
+found in /proc/&lt;pid&gt;/maps for each process.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once found, it
+must open a destination file for storing the buffer, and
+pass it to <b>hwloc_shmem_topology_write()</b> together with
+virtual memory address and length obtained above.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Other processes
+may then adopt this shared topology by opening the same file
+and passing it to <b>hwloc_shmem_topology_adopt()</b> with
+the exact same virtual memory address and length.</p>
+
+<h2>Function Documentation
+<a name="Function Documentation"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+hwloc_shmem_topology_adopt (hwloc_topology_t * topologyp,
+int fd, hwloc_uint64_t fileoffset, void * mmap_address,
+size_t length, unsigned long flags)</b> <br>
+Adopt a shared memory topology stored in a file. Map a file
+in virtual memory and adopt the topology that was previously
+stored there with <b>hwloc_shmem_topology_write()</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The returned
+adopted topology in <tt>topologyp</tt> can be used just like
+any topology. And it must be destroyed with
+<b>hwloc_topology_destroy()</b> as usual.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However the
+topology is read-only. For instance, it cannot be modified
+with <b>hwloc_topology_restrict()</b> and object userdata
+pointers cannot be changed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The segment of
+the file pointed by descriptor <tt>fd</tt>, starting at
+offset <tt>fileoffset</tt>, and of length <tt>length</tt>
+(in bytes), will be mapped at virtual address
+<tt>mmap_address</tt>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The file
+pointed by descriptor <tt>fd</tt>, the offset
+<tt>fileoffset</tt>, the requested mapping virtual address
+<tt>mmap_address</tt> and the length <tt>length</tt> must be
+identical to what was given to
+<b>hwloc_shmem_topology_write()</b> earlier.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b></p>
+
+<p style="margin-left:17%;">Flags <tt>flags</tt> are
+currently unused, must be 0.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The object
+userdata pointer should not be used unless the process that
+created the shared topology also placed userdata-pointed
+buffers in shared memory.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This function
+takes care of calling <b>hwloc_topology_abi_check()</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Returns</b></p>
+
+<p style="margin-left:17%;">-1 with errno set to EBUSY if
+the virtual memory mapping defined by <tt>mmap_address</tt>
+and <tt>length</tt> isn&rsquo;t available in the
+process.</p>
+
+<p style="margin-left:17%; margin-top: 1em">-1 with errno
+set to EINVAL if <tt>fileoffset</tt>, <tt>mmap_address</tt>
+or <tt>length</tt> aren&rsquo;t page-aligned, or do not
+match what was given to <b>hwloc_shmem_topology_write()</b>
+earlier.</p>
+
+<p style="margin-left:17%; margin-top: 1em">-1 with errno
+set to EINVAL if the layout of the topology structure is
+different between the writer process and the adopter
+process.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+hwloc_shmem_topology_get_length (hwloc_topology_t topology,
+size_t * lengthp, unsigned long flags)</b> <br>
+Get the required shared memory length for storing a
+topology. This length (in bytes) must be used in
+<b>hwloc_shmem_topology_write()</b> and
+<b>hwloc_shmem_topology_adopt()</b> later.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b></p>
+
+<p style="margin-left:17%;">Flags <tt>flags</tt> are
+currently unused, must be 0.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+hwloc_shmem_topology_write (hwloc_topology_t topology, int
+fd, hwloc_uint64_t fileoffset, void * mmap_address, size_t
+length, unsigned long flags)</b> <br>
+Duplicate a topology to a shared memory file. Temporarily
+map a file in virtual memory and duplicate the topology
+<tt>topology</tt> by allocating duplicates in there.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The segment of
+the file pointed by descriptor <tt>fd</tt>, starting at
+offset <tt>fileoffset</tt>, and of length <tt>length</tt>
+(in bytes), will be temporarily mapped at virtual address
+<tt>mmap_address</tt> during the duplication.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The mapping
+length <tt>length</tt> must have been previously obtained
+with <b>hwloc_shmem_topology_get_length()</b> and the
+topology must not have been modified in the meantime.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b></p>
+
+<p style="margin-left:17%;">Flags <tt>flags</tt> are
+currently unused, must be 0.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The object
+userdata pointer is duplicated but the pointed buffer is
+not. However the caller may also allocate it manually in
+shared memory to share it as well.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Returns</b></p>
+
+<p style="margin-left:17%;">-1 with errno set to EBUSY if
+the virtual memory mapping defined by <tt>mmap_address</tt>
+and <tt>length</tt> isn&rsquo;t available in the
+process.</p>
+
+<p style="margin-left:17%; margin-top: 1em">-1 with errno
+set to EINVAL if <tt>fileoffset</tt>, <tt>mmap_address</tt>
+or <tt>length</tt> aren&rsquo;t page-aligned.</p>
+
+<h2>Author
+<a name="Author"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Generated
+automatically by Doxygen for Hardware Locality (hwloc) from
+the source code.</p>
+<hr>
+</body>
+</html>

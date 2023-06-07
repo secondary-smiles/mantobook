@@ -1,0 +1,188 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:50 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PKCS12_NEWPASS</title>
+
+</head>
+<body>
+<h1>PKCS12_newpass</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">PKCS12_newpass
+&minus; change the password of a PKCS12 structure</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;openssl/pkcs12.h&gt; <br>
+int PKCS12_newpass(PKCS12 *p12, const char *oldpass, const
+char *newpass);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>PKCS12_newpass()</b>
+changes the password of a <small>PKCS12</small>
+structure.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>p12</b> is a
+pointer to a <small>PKCS12</small> structure. <b>oldpass</b>
+is the existing password and <b>newpass</b> is the new
+password.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each of
+<b>oldpass</b> and <b>newpass</b> is independently
+interpreted as a string in the <small>UTF&minus;8</small>
+encoding. If it is not valid <small>UTF&minus;8,</small> it
+is assumed to be <small>ISO8859&minus;1</small> instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In particular,
+this means that passwords in the locale character set (or
+code page on Windows) must potentially be converted to
+<small>UTF&minus;8</small> before use. This may include
+passwords from local text files, or input from the terminal
+or command line. Refer to the documentation of
+<b>UI_OpenSSL</b>(3), for example.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the PKCS#12
+structure does not have a password, then you must use the
+empty string &quot;&quot; for <b>oldpass</b>. Using
+<small>NULL</small> for <b>oldpass</b> will result in a
+<b>PKCS12_newpass()</b> failure.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the wrong
+password is used for <b>oldpass</b> then the function will
+fail, with a <small>MAC</small> verification error. In rare
+cases the <small>PKCS12</small> structure does not contain a
+<small>MAC:</small> in this case it will usually fail with a
+decryption padding error.</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>PKCS12_newpass()</b>
+returns 1 on success or 0 on failure. Applications can
+retrieve the most recent error from <b>PKCS12_newpass()</b>
+with <b>ERR_get_error()</b>.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This example
+loads a PKCS#12 file, changes its password and writes out
+the result to a new file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;stdio.h&gt; <br>
+#include &lt;stdlib.h&gt; <br>
+#include &lt;openssl/pem.h&gt; <br>
+#include &lt;openssl/err.h&gt; <br>
+#include &lt;openssl/pkcs12.h&gt; <br>
+int main(int argc, char **argv) <br>
+{ <br>
+FILE *fp; <br>
+PKCS12 *p12; <br>
+if (argc != 5) { <br>
+fprintf(stderr, &quot;Usage: pkread p12file password newpass
+opfile\n&quot;); <br>
+return 1; <br>
+} <br>
+if ((fp = fopen(argv[1], &quot;rb&quot;)) == NULL) { <br>
+fprintf(stderr, &quot;Error opening file %s\n&quot;,
+argv[1]); <br>
+return 1; <br>
+} <br>
+p12 = d2i_PKCS12_fp(fp, NULL); <br>
+fclose(fp); <br>
+if (p12 == NULL) { <br>
+fprintf(stderr, &quot;Error reading PKCS#12 file\n&quot;);
+<br>
+ERR_print_errors_fp(stderr); <br>
+return 1; <br>
+} <br>
+if (PKCS12_newpass(p12, argv[2], argv[3]) == 0) { <br>
+fprintf(stderr, &quot;Error changing password\n&quot;); <br>
+ERR_print_errors_fp(stderr); <br>
+PKCS12_free(p12); <br>
+return 1; <br>
+} <br>
+if ((fp = fopen(argv[4], &quot;wb&quot;)) == NULL) { <br>
+fprintf(stderr, &quot;Error opening file %s\n&quot;,
+argv[4]); <br>
+PKCS12_free(p12); <br>
+return 1; <br>
+} <br>
+i2d_PKCS12_fp(fp, p12); <br>
+PKCS12_free(p12); <br>
+fclose(fp); <br>
+return 0; <br>
+}</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The password
+format is a <small>NULL</small> terminated
+<small>ASCII</small> string which is converted to Unicode
+form internally. As a result some passwords cannot be
+supplied to this function.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>PKCS12_create</b>(3),
+<b>ERR_get_error</b>(3),
+<b>passphrase&minus;encoding</b>(7)</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2016&minus;2018 The OpenSSL Project Authors. All Rights
+Reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Licensed under
+the Apache License 2.0 (the &quot;License&quot;). You may
+not use this file except in compliance with the License. You
+can obtain a copy in the file <small>LICENSE</small> in the
+source distribution or at
+&lt;https://www.openssl.org/source/license.html&gt;.</p>
+<hr>
+</body>
+</html>

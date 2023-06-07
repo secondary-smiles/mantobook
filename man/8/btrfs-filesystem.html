@@ -1,0 +1,1196 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:04 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>BTRFS-FILESYSTEM</title>
+
+</head>
+<body>
+<h1>btrfs-filesystem</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">btrfs-filesystem
+&minus; command group that primarily does work on the whole
+filesystems</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>btrfs
+filesystem</b> &lt;subcommand&gt; &lt;args&gt;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>btrfs
+filesystem</b> is used to perform several whole filesystem
+level tasks, including all the regular filesystem operations
+like resizing, space stats, label setting/getting, and
+defragmentation. There are other whole filesystem tasks like
+scrub or balance that are grouped in separate commands.</p>
+
+<h2>SUBCOMMAND
+<a name="SUBCOMMAND"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>df [options]
+&lt;path&gt;</b></p>
+
+<p style="margin-left:22%;">Show a terse summary
+information about allocation of block group types of a given
+mount point. The original purpose of this command was a
+debugging helper. The output needs to be further interpreted
+and is not suitable for quick overview.</p>
+
+<p style="margin-left:22%; margin-top: 1em">An example with
+description:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="67%">
+
+
+<p>device size: <i>1.9TiB</i>, one device, no RAID</p></td>
+<td width="8%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="67%">
+
+
+<p>filesystem size: <i>1.9TiB</i></p></td>
+<td width="8%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="67%">
+
+
+<p>created with: <b>mkfs.btrfs &minus;d single &minus;m
+single</b></p> </td>
+<td width="8%">
+</td></tr>
+</table>
+
+<pre style="margin-left:26%; margin-top: 1em">$ btrfs filesystem df /path
+Data, single: total=1.15TiB, used=1.13TiB
+System, single: total=32.00MiB, used=144.00KiB
+Metadata, single: total=12.00GiB, used=6.45GiB
+GlobalReserve, single: total=512.00MiB, used=0.00B</pre>
+
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p style="margin-top: 1em"><i>Data</i>, <i>System</i> and
+<i>Metadata</i> are separate block group types.
+<i>GlobalReserve</i> is an artificial and internal emergency
+space, see below.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>single</i> &minus;&minus; the allocation profile,
+defined at mkfs time</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>total</i> &minus;&minus; sum of space reserved for
+all allocation profiles of the given type, i.e. all
+Data/single. Note that it's not total size of
+filesystem.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>used</i> &minus;&minus; sum of used space of the
+above, i.e. file extents, metadata blocks</p></td></tr>
+</table>
+
+
+<p style="margin-left:22%; margin-top: 1em"><i>GlobalReserve</i>
+is an artificial and internal emergency space. It is used
+e.g. when the filesystem is full. Its <i>total</i> size is
+dynamic based on the filesystem size, usually not larger
+than 512MiB, <i>used</i> may fluctuate.</p>
+
+<p style="margin-left:22%; margin-top: 1em">The
+GlobalReserve is a portion of Metadata. In case the
+filesystem metadata is exhausted, <i>GlobalReserve/total +
+Metadata/used = Metadata/total</i>. Otherwise there appears
+to be some unused space of Metadata.</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>Options <br>
+&minus;b|&minus;&minus;raw</b></p>
+
+<p style="margin-left:32%;">raw numbers in bytes, without
+the <i>B</i> suffix</p>
+
+
+<p style="margin-left:22%;"><b>&minus;h|&minus;&minus;human&minus;readable</b></p>
+
+<p style="margin-left:32%;">print human friendly numbers,
+base 1024, this is the default</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;H</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>print human friendly numbers, base 1000</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;iec</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>select the 1024 base for the following options,
+according to the IEC standard</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;si</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>select the 1000 base for the following options,
+according to the SI standard</p></td></tr>
+</table>
+
+
+<p style="margin-left:22%;"><b>&minus;k|&minus;&minus;kbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in KiB, or kB with
+&minus;&minus;si</p>
+
+
+<p style="margin-left:22%;"><b>&minus;m|&minus;&minus;mbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in MiB, or MB with
+&minus;&minus;si</p>
+
+
+<p style="margin-left:22%;"><b>&minus;g|&minus;&minus;gbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in GiB, or GB with
+&minus;&minus;si</p>
+
+
+<p style="margin-left:22%;"><b>&minus;t|&minus;&minus;tbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in TiB, or TB with
+&minus;&minus;si</p>
+
+<p style="margin-left:22%; margin-top: 1em">If conflicting
+options are passed, the last one takes precedence.</p>
+
+<p style="margin-left:11%;"><b>defragment [options]
+&lt;file&gt;|&lt;dir&gt;
+[&lt;file&gt;|&lt;dir&gt;...]</b></p>
+
+<p style="margin-left:22%;">Defragment file data on a
+mounted filesystem. Requires kernel 2.6.33 and newer.</p>
+
+<p style="margin-left:22%; margin-top: 1em">If
+<i>&minus;r</i> is passed, files in dir will be defragmented
+recursively (not descending to subvolumes, mount points and
+directory symlinks). The start position and the number of
+bytes to defragment can be specified by start and length
+using <i>&minus;s</i> and <i>&minus;l</i> options below.
+Extents bigger than value given by <i>&minus;t</i> will be
+skipped, otherwise this value is used as a target extent
+size, but is only advisory and may not be reached if the
+free space is too fragmented. Use 0 to take the kernel
+default, which is 256KiB but may change in the future. You
+can also turn on compression in defragment operations.</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><b>WARNING:</b></p>
+
+<p style="margin-left:26%;">Defragmenting with Linux kernel
+versions &lt; 3.9 or &acirc;&yen; 3.14&minus;rc2 as well as
+with Linux stable kernel versions &acirc;&yen; 3.10.31,
+&acirc;&yen; 3.12.12 or &acirc;&yen; 3.13.4 will break up
+the reflinks of COW data (for example files copied with
+<b>cp &minus;&minus;reflink</b>, snapshots or
+de&minus;duplicated data). This may cause considerable
+increase of space usage depending on the broken up
+reflinks.</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><b>NOTE:</b></p>
+
+<p style="margin-left:26%;">Directory arguments without
+<i>&minus;r</i> do not defragment files recursively but will
+defragment certain internal trees (extent tree and the
+subvolume tree). This has been confusing and could be
+removed in the future.</p>
+
+<p style="margin-left:22%; margin-top: 1em">For
+<i>start</i>, <i>len</i>, <i>size</i> it is possible to
+append units designator: <i>K</i>, <i>M</i>, <i>G</i>,
+<i>T</i>, <i>P</i>, or <i>E</i>, which represent KiB, MiB,
+GiB, TiB, PiB, or EiB, respectively (case does not
+matter).</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>Options <br>
+&minus;c[&lt;algo&gt;]</b></p>
+
+<p style="margin-left:32%;">compress file contents while
+defragmenting. Optional argument selects the compression
+algorithm, <i>zlib</i> (default), <i>lzo</i> or <i>zstd</i>.
+Currently it's not possible to select no compression. See
+also section <i>EXAMPLES</i>.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;r</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>defragment files recursively in given directories, does
+not descend to subvolumes or mount points</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;f</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>flush data for each file before going to the next
+file.</p> </td></tr>
+</table>
+
+<p style="margin-left:32%; margin-top: 1em">This will limit
+the amount of dirty data to current file, otherwise the
+amount accumulates from several files and will increase
+system load. This can also lead to ENOSPC if there's too
+much dirty data to write and it's not possible to make the
+reservations for the new data (i.e. how the COW design
+works).</p>
+
+<p style="margin-left:22%;"><b>&minus;s
+&lt;start&gt;[kKmMgGtTpPeE]</b></p>
+
+<p style="margin-left:32%;">defragmentation will start from
+the given offset, default is beginning of a file</p>
+
+<p style="margin-left:22%;"><b>&minus;l
+&lt;len&gt;[kKmMgGtTpPeE]</b></p>
+
+<p style="margin-left:32%;">defragment only up to
+<i>len</i> bytes, default is the file size</p>
+
+<p style="margin-left:22%;"><b>&minus;t
+&lt;size&gt;[kKmMgGtTpPeE]</b></p>
+
+<p style="margin-left:32%;">target extent size, do not
+touch extents bigger than <i>size</i>, default: 32MiB</p>
+
+<p style="margin-left:32%; margin-top: 1em">The value is
+only advisory and the final size of the extents may differ,
+depending on the state of the free space and fragmentation
+or other internal logic. Reasonable values are from tens to
+hundreds of megabytes.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;v</b></p></td>
+<td width="7%"></td>
+<td width="60%">
+
+
+<p>(deprecated) alias for global <i>&minus;v</i> option</p></td>
+<td width="8%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>du [options] &lt;path&gt;
+[&lt;path&gt;..]</b></p>
+
+<p style="margin-left:22%;">Calculate disk usage of the
+target files using FIEMAP. For individual files, it will
+report a count of total bytes, and exclusive (not shared)
+bytes. We also calculate a 'set shared' value which is
+described below.</p>
+
+<p style="margin-left:22%; margin-top: 1em">Each argument
+to <b>btrfs filesystem du</b> will have a <i>set shared</i>
+value calculated for it. We define each <i>set</i> as those
+files found by a recursive search of an argument (recursion
+descends to subvolumes but not mount points). The <i>set
+shared</i> value then is a sum of all shared space
+referenced by the set.</p>
+
+<p style="margin-left:22%; margin-top: 1em"><i>set
+shared</i> takes into account overlapping shared extents,
+hence it isn't as simple as adding up shared extents.</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>Options <br>
+&minus;s|&minus;&minus;summarize</b></p>
+
+<p style="margin-left:32%;">display only a total for each
+argument</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;raw</b></p></td>
+<td width="3%"></td>
+<td width="66%">
+
+
+<p>raw numbers in bytes, without the <i>B</i> suffix.</p></td>
+<td width="2%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;human&minus;readable</b></p>
+
+<p style="margin-left:32%;">print human friendly numbers,
+base 1024, this is the default</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;iec</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>select the 1024 base for the following options,
+according to the IEC standard.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;si</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>select the 1000 base for the following options,
+according to the SI standard.</p></td></tr>
+</table>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;kbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in KiB, or kB with
+&minus;&minus;si.</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;mbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in MiB, or MB with
+&minus;&minus;si.</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;gbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in GiB, or GB with
+&minus;&minus;si.</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;tbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in TiB, or TB with
+&minus;&minus;si.</p>
+
+<p style="margin-left:11%;"><b>label
+[&lt;device&gt;|&lt;mountpoint&gt;]
+[&lt;newlabel&gt;]</b></p>
+
+<p style="margin-left:22%;">Show or update the label of a
+filesystem. This works on a mounted filesystem or a
+filesystem image.</p>
+
+<p style="margin-left:22%; margin-top: 1em">The
+<i>newlabel</i> argument is optional. Current label is
+printed if the argument is omitted.</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><b>NOTE:</b></p>
+
+<p style="margin-left:26%;">The maximum allowable length
+shall be less than 256 chars and must not contain a newline.
+The trailing newline is stripped automatically.</p>
+
+<p style="margin-left:11%;"><b>mkswapfile [&minus;s size]
+file</b></p>
+
+<p style="margin-left:22%;">Create a new file that's
+suitable and formatted as a swapfile. Default size is 2GiB,
+fixed page size 4KiB, minimum size is 40KiB.</p>
+
+<p style="margin-left:22%; margin-top: 1em">A swapfile must
+be created in a specific way: NOCOW and preallocated.
+Subvolume containing a swapfile cannot be snapshotted and
+blocks of an activated swapfile cannot be balanced.</p>
+
+<p style="margin-left:22%; margin-top: 1em">Swapfile
+creation can be achieved by standalone commands too.
+Activation needs to be done by command <b>swapon(8)</b>. See
+also command <b>btrfs inspect&minus;internal
+map&minus;swapfile</b> and the <i>Swapfile feature</i>
+description.</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><b>NOTE:</b></p>
+
+<p style="margin-left:26%;">The command is a simplified
+version of 'mkswap', if you want to set label, page size, or
+other parameters please use 'mkswap' proper.</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>Options <br>
+&minus;s|&minus;&minus;size SIZE</b></p>
+
+<p style="margin-left:32%;">Create swapfile of a given size
+SIZE (accepting k/m/g/e/p suffix).</p>
+
+<p style="margin-left:22%;"><b>&minus;U|&minus;&minus;uuid
+UUID</b></p>
+
+<p style="margin-left:32%;">specify UUID to use, or a
+special value: clear (all zeros), random, time
+(time&minus;based random)</p>
+
+<p style="margin-left:11%;"><b>resize [options]
+[&lt;devid&gt;:][+/&minus;]&lt;size&gt;[kKmMgGtTpPeE]|[&lt;devid&gt;:]max
+<br>
+&lt;path&gt;</b></p>
+
+<p style="margin-left:22%;">Resize a mounted filesystem
+identified by <i>path</i>. A particular device can be
+resized by specifying a <i>devid</i>.</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><b>WARNING:</b></p>
+
+<p style="margin-left:26%;">If <i>path</i> is a file
+containing a BTRFS image then resize does not work as
+expected and does not resize the image. This would resize
+the underlying filesystem instead.</p>
+
+<p style="margin-left:22%; margin-top: 1em">The
+<i>devid</i> can be found in the output of <b>btrfs
+filesystem show</b> and defaults to 1 if not specified. The
+<i>size</i> parameter specifies the new size of the
+filesystem. If the prefix <i>+</i> or <i>&minus;</i> is
+present the size is increased or decreased by the quantity
+<i>size</i>. If no units are specified, bytes are assumed
+for <i>size</i>. Optionally, the size parameter may be
+suffixed by one of the following unit designators: <i>K</i>,
+<i>M</i>, <i>G</i>, <i>T</i>, <i>P</i>, or <i>E</i>, which
+represent KiB, MiB, GiB, TiB, PiB, or EiB, respectively
+(case does not matter).</p>
+
+<p style="margin-left:22%; margin-top: 1em">If <i>max</i>
+is passed, the filesystem will occupy all available space on
+the device respecting <i>devid</i> (remember, devid 1 by
+default).</p>
+
+<p style="margin-left:22%; margin-top: 1em">The resize
+command does not manipulate the size of underlying
+partition. If you wish to enlarge/reduce a filesystem, you
+must make sure you can expand the partition before enlarging
+the filesystem and shrink the partition after reducing the
+size of the filesystem. This can done using <b>fdisk(8)</b>
+or <b>parted(8)</b> to delete the existing partition and
+recreate it with the new desired size. When recreating the
+partition make sure to use the same starting partition
+offset as before.</p>
+
+<p style="margin-left:22%; margin-top: 1em">Growing is
+usually instant as it only updates the size. However,
+shrinking could take a long time if there are data in the
+device area that's beyond the new end. Relocation of the
+data takes time.</p>
+
+<p style="margin-left:22%; margin-top: 1em">See also
+section <i>EXAMPLES</i>.</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>Options <br>
+&minus;&minus;enqueue</b></p>
+
+<p style="margin-left:32%;">wait if there's another
+exclusive operation running, otherwise continue</p>
+
+<p style="margin-left:11%;"><b>show [options]
+[&lt;path&gt;|&lt;uuid&gt;|&lt;device&gt;|&lt;label&gt;]</b></p>
+
+<p style="margin-left:22%;">Show the btrfs filesystem with
+some additional info about devices and space allocation.</p>
+
+<p style="margin-left:22%; margin-top: 1em">If no option
+none of <i>path</i>/<i>uuid</i>/<i>device</i>/<i>label</i>
+is passed, information about all the BTRFS filesystems is
+shown, both mounted and unmounted.</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>Options <br>
+&minus;m|&minus;&minus;mounted</b></p>
+
+<p style="margin-left:32%;">probe kernel for mounted BTRFS
+filesystems</p>
+
+
+<p style="margin-left:22%;"><b>&minus;d|&minus;&minus;all&minus;devices</b></p>
+
+<p style="margin-left:32%;">scan all devices under
+<i>/dev</i>, otherwise the devices list is extracted from
+the <i>/proc/partitions</i> file. This is a fallback option
+if there's no device node manager (like udev) available in
+the system.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;raw</b></p></td>
+<td width="3%"></td>
+<td width="65%">
+
+
+<p>raw numbers in bytes, without the <i>B</i> suffix</p></td>
+<td width="3%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;human&minus;readable</b></p>
+
+<p style="margin-left:32%;">print human friendly numbers,
+base 1024, this is the default</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;iec</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>select the 1024 base for the following options,
+according to the IEC standard</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;si</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>select the 1000 base for the following options,
+according to the SI standard</p></td></tr>
+</table>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;kbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in KiB, or kB with
+&minus;&minus;si</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;mbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in MiB, or MB with
+&minus;&minus;si</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;gbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in GiB, or GB with
+&minus;&minus;si</p>
+
+
+<p style="margin-left:22%;"><b>&minus;&minus;tbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in TiB, or TB with
+&minus;&minus;si</p>
+
+<p style="margin-left:11%;"><b>sync &lt;path&gt;</b></p>
+
+<p style="margin-left:22%;">Force a sync of the filesystem
+at <i>path</i>, similar to the <b>sync(1)</b> command. In
+addition, it starts cleaning of deleted subvolumes. To wait
+for the subvolume deletion to complete use the <b>btrfs
+subvolume sync</b> command.</p>
+
+<p style="margin-left:11%;"><b>usage [options] &lt;path&gt;
+[&lt;path&gt;...]</b></p>
+
+<p style="margin-left:22%;">Show detailed information about
+internal filesystem usage. This is supposed to replace the
+<b>btrfs filesystem df</b> command in the long run.</p>
+
+<p style="margin-left:22%; margin-top: 1em">The level of
+detail can differ if the command is run under a regular or
+the root user (due to use of restricted ioctl). For both
+there's a summary section with information about space
+usage:</p>
+
+<pre style="margin-left:26%; margin-top: 1em">$ btrfs filesystem usage /path
+WARNING: cannot read detailed chunk info, RAID5/6 numbers will be incorrect, run as root
+Overall:
+    Device size:                   1.82TiB
+    Device allocated:              1.17TiB
+    Device unallocated:          669.99GiB
+    Device missing:                  0.00B
+    Device slack:                  1.00GiB
+    Used:                          1.14TiB
+    Free (estimated):            692.57GiB      (min: 692.57GiB)
+    Free (statfs, df)            692.57GiB
+    Data ratio:                       1.00
+    Metadata ratio:                   1.00
+    Global reserve:              512.00MiB      (used: 0.00B)
+    Multiple profiles:                  no</pre>
+
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Device size</i> &minus;&minus; sum of raw device
+capacity available to the filesystem, note that this may not
+be the same as the total device size (the difference is
+accounted as slack)</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Device allocated</i> &minus;&minus; sum of total
+space allocated for data/metadata/system profiles, this also
+accounts space reserved but not yet used for extents</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Device unallocated</i> &minus;&minus; the remaining
+unallocated space for future allocations (difference of the
+above two numbers)</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Device missing</i> &minus;&minus; sum of capacity of
+all missing devices</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Device slack</i> &minus;&minus; sum of slack space on
+all devices (difference between entire device size and the
+space occupied by filesystem)</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Used</i> &minus;&minus; sum of the used space of
+data/metadata/system profiles, not including the reserved
+space</p> </td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Free (estimated)</i> &minus;&minus; approximate size
+of the remaining free space usable for data, including
+currently allocated space and estimating the usage of the
+unallocated space based on the block group profiles, the
+<i>min</i> is the lower bound of the estimate in case
+multiple profiles are present</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Free (statfs, df)</i> &minus;&minus; the amount of
+space available for data as reported by the <b>statfs</b>
+syscall, also returned as <i>Avail</i> in the output of
+<b>df</b>. The value is calculated in a different way and
+may not match the estimate in some cases (e.g. multiple
+profiles).</p> </td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Data ratio</i> &minus;&minus; ratio of total space
+for data including redundancy or parity to the effectively
+usable data space, e.g. single is 1.0, RAID1 is 2.0 and for
+RAID5/6 it depends on the number of devices</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Metadata ratio</i> &minus;&minus; ditto, for
+metadata</p> </td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Global reserve</i> &minus;&minus; portion of metadata
+currently used for global block reserve, used for emergency
+purposes (like deletion on a full filesystem)</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Multiple profiles</i> &minus;&minus; what block group
+types (data, metadata) have more than one profile (single,
+raid1, ...), see <i>btrfs(5)</i> section <i>FILESYSTEMS WITH
+MULTIPLE BLOCK GROUP PROFILES</i>.</p></td></tr>
+</table>
+
+<p style="margin-left:22%; margin-top: 1em">And on a zoned
+filesystem there are two more lines in the <i>Device</i>
+section:</p>
+
+<pre style="margin-left:26%; margin-top: 1em">Device zone unusable:          5.13GiB
+Device zone size:            256.00MiB</pre>
+
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p style="margin-top: 1em"><i>Device zone unusable</i>
+&minus;&minus; sum of of space that's been used in the past
+but now is not due to COW and not referenced anymore, the
+chunks have to be reclaimed and zones reset to make it
+usable again</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p><i>Device zone size</i> &minus;&minus; the reported zone
+size of the host&minus;managed device, same for all
+devices</p> </td></tr>
+</table>
+
+<p style="margin-left:22%; margin-top: 1em">The root user
+will also see stats broken down by block group types:</p>
+<pre style="margin-left:26%; margin-top: 1em">Data,single: Size:1.15TiB, Used:1.13TiB (98.26%)
+   /dev/sdb        1.15TiB
+
+Metadata,single: Size:12.00GiB, Used:6.45GiB (53.75%)
+   /dev/sdb       12.00GiB
+
+System,single: Size:32.00MiB, Used:144.00KiB (0.44%)
+   /dev/sdb       32.00MiB
+
+Unallocated:
+   /dev/sdb      669.99GiB</pre>
+
+<p style="margin-left:22%; margin-top: 1em"><i>Data</i> is
+block group type, <i>single</i> is block group profile,
+<i>Size</i> is total size occupied by this type, <i>Used</i>
+is the actually used space, the percent is ratio of
+<i>Used/Size</i>. The <i>Unallocated</i> is remaining
+space.</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>Options <br>
+&minus;b|&minus;&minus;raw</b></p>
+
+<p style="margin-left:32%;">raw numbers in bytes, without
+the <i>B</i> suffix</p>
+
+
+<p style="margin-left:22%;"><b>&minus;h|&minus;&minus;human&minus;readable</b></p>
+
+<p style="margin-left:32%;">print human friendly numbers,
+base 1024, this is the default</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;H</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>print human friendly numbers, base 1000</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;iec</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>select the 1024 base for the following options,
+according to the IEC standard</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>&minus;&minus;si</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>select the 1000 base for the following options,
+according to the SI standard</p></td></tr>
+</table>
+
+
+<p style="margin-left:22%;"><b>&minus;k|&minus;&minus;kbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in KiB, or kB with
+&minus;&minus;si</p>
+
+
+<p style="margin-left:22%;"><b>&minus;m|&minus;&minus;mbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in MiB, or MB with
+&minus;&minus;si</p>
+
+
+<p style="margin-left:22%;"><b>&minus;g|&minus;&minus;gbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in GiB, or GB with
+&minus;&minus;si</p>
+
+
+<p style="margin-left:22%;"><b>&minus;t|&minus;&minus;tbytes</b></p>
+
+<p style="margin-left:32%;">show sizes in TiB, or TB with
+&minus;&minus;si</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;T</b></p></td>
+<td width="7%"></td>
+<td width="42%">
+
+
+<p>show data in tabular format</p></td>
+<td width="26%">
+</td></tr>
+</table>
+
+<p style="margin-left:22%; margin-top: 1em">If conflicting
+options are passed, the last one takes precedence.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$ btrfs
+filesystem defrag &minus;v &minus;r dir/</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Recursively
+defragment files under <i>dir/</i>, print files as they are
+processed. The file names will be printed in batches,
+similarly the amount of data triggered by defragmentation
+will be proportional to last N printed files. The system
+dirty memory throttling will slow down the defragmentation
+but there can still be a lot of IO load and the system may
+stall for a moment.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>$ btrfs
+filesystem defrag &minus;v &minus;r &minus;f dir/</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Recursively
+defragment files under <i>dir/</i>, be verbose and wait
+until all blocks are flushed before processing next file.
+You can note slower progress of the output and lower IO load
+(proportional to currently defragmented file).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>$ btrfs
+filesystem defrag &minus;v &minus;r &minus;f &minus;clzo
+dir/</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Recursively
+defragment files under <i>dir/</i>, be verbose, wait until
+all blocks are flushed and force file compression.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>$ btrfs
+filesystem defrag &minus;v &minus;r &minus;t 64M
+dir/</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Recursively
+defragment files under <i>dir/</i>, be verbose and try to
+merge extents to be about 64MiB. As stated above, the
+success rate depends on actual free space fragmentation and
+the final result is not guaranteed to meet the target even
+if run repeatedly.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>$ btrfs
+filesystem resize &minus;1G /path</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>$ btrfs
+filesystem resize 1:&minus;1G /path</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Shrink size of
+the filesystem's device id 1 by 1GiB. The first syntax
+expects a device with id 1 to exist, otherwise fails. The
+second is equivalent and more explicit. For a
+single&minus;device filesystem it's typically not necessary
+to specify the devid though.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>$ btrfs
+filesystem resize max /path</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>$ btrfs
+filesystem resize 1:max /path</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Let's assume
+that devid 1 exists and the filesystem does not occupy the
+whole block device, e.g. it has been enlarged and we want to
+grow the filesystem. By simply using <i>max</i> as size we
+will achieve that.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>NOTE:</b></p>
+
+<p style="margin-left:15%;">There are two ways to minimize
+the filesystem on a given device. The <b>btrfs
+inspect&minus;internal min&minus;dev&minus;size</b> command,
+or iteratively shrink in steps.</p>
+
+<h2>EXIT STATUS
+<a name="EXIT STATUS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>btrfs
+filesystem</b> returns a zero exit status if it succeeds.
+Non zero is returned in case of failure.</p>
+
+<h2>AVAILABILITY
+<a name="AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>btrfs</b> is
+part of btrfs&minus;progs. Please refer to the documentation
+at <i>https://btrfs.readthedocs.io</i>.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>btrfs&minus;subvolume(8)</i>,
+<i>mkfs.btrfs(8)</i></p>
+<hr>
+</body>
+</html>

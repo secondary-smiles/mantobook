@@ -1,0 +1,3445 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:58 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERLFAQ4</title>
+
+</head>
+<body>
+<h1>perlfaq4</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perlfaq4
+&minus; Data Manipulation</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+5.20210520</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This section of
+the <small>FAQ</small> answers questions related to
+manipulating numbers, dates, strings, arrays, hashes, and
+miscellaneous data issues.</p>
+
+<h2>Data: Numbers
+<a name="Data: Numbers"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Why am I
+getting long decimals (eg, 19.9499999999999) instead of the
+numbers I should be getting (eg, 19.95)?</b> <br>
+For the long explanation, see David Goldberg&rsquo;s
+&quot;What Every Computer Scientist Should Know About
+Floating-Point Arithmetic&quot;
+(&lt;http://web.cse.msu.edu/~cse320/Documents/FloatingPoint.pdf&gt;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Internally,
+your computer represents floating-point numbers in binary.
+Digital (as in powers of two) computers cannot store all
+numbers exactly. Some real numbers lose precision in the
+process. This is a problem with how computers store numbers
+and affects all computer languages, not just Perl.</p>
+
+<p style="margin-left:11%; margin-top: 1em">perlnumber
+shows the gory details of number representations and
+conversions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To limit the
+number of decimal places in your numbers, you can use the
+&quot;printf&quot; or &quot;sprintf&quot; function. See
+&quot;Floating-point Arithmetic&quot; in perlop for more
+details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">printf
+&quot;%.2f&quot;, 10/3; <br>
+my $number = sprintf &quot;%.2f&quot;, 10/3;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Why is int()
+broken?</b> <br>
+Your &quot;int()&quot; is most probably working just fine.
+It&rsquo;s the numbers that aren&rsquo;t quite what you
+think.</p>
+
+<p style="margin-left:11%; margin-top: 1em">First, see the
+answer to &quot;Why am I getting long decimals (eg,
+19.9499999999999) instead of the numbers I should be getting
+(eg, 19.95)?&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example,
+this</p>
+
+<p style="margin-left:11%; margin-top: 1em">print
+int(0.6/0.2&minus;2), &quot;\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">will in most
+computers print 0, not 1, because even such simple numbers
+as 0.6 and 0.2 cannot be presented exactly by floating-point
+numbers. What you think in the above as &rsquo;three&rsquo;
+is really more like 2.9999999999999995559.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Why
+isn&rsquo;t my octal data interpreted correctly?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">You&rsquo;re
+probably trying to convert a string to a number, which Perl
+only converts as a decimal number. When Perl converts a
+string to a number, it ignores leading spaces and zeroes,
+then assumes the rest of the digits are in base 10:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $string =
+'0644'; <br>
+print $string + 0; # prints 644 <br>
+print $string + 44; # prints 688, certainly not octal!</p>
+
+<p style="margin-left:11%; margin-top: 1em">This problem
+usually involves one of the Perl built-ins that has the same
+name a Unix command that uses octal numbers as arguments on
+the command line. In this example, &quot;chmod&quot; on the
+command line knows that its first argument is octal because
+that&rsquo;s what it does:</p>
+
+<p style="margin-left:11%; margin-top: 1em">%prompt&gt;
+chmod 644 file</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+use the same literal digits (644) in Perl, you have to tell
+Perl to treat them as octal numbers either by prefixing the
+digits with a 0 or using &quot;oct&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">chmod( 0644,
+$filename ); # right, has leading zero <br>
+chmod( oct(644), $filename ); # also correct</p>
+
+<p style="margin-left:11%; margin-top: 1em">The problem
+comes in when you take your numbers from something that Perl
+thinks is a string, such as a command line argument in
+@ARGV:</p>
+
+<p style="margin-left:11%; margin-top: 1em">chmod(
+$ARGV[0], $filename ); # wrong, even if &quot;0644&quot;
+<br>
+chmod( oct($ARGV[0]), $filename ); # correct, treat string
+as octal</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can always
+check the value you&rsquo;re using by printing it in octal
+notation to ensure it matches what you think it should be.
+Print it in octal and decimal format:</p>
+
+<p style="margin-left:11%; margin-top: 1em">printf
+&quot;0%o %d&quot;, $number, $number;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Does Perl
+have a round() function? What about ceil() and floor()? Trig
+functions?</b> <br>
+Remember that &quot;int()&quot; merely truncates toward 0.
+For rounding to a certain number of digits,
+&quot;sprintf()&quot; or &quot;printf()&quot; is usually the
+easiest route.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">printf(&quot;%.3f&quot;,
+3.1415926535); # prints 3.142</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<small>POSIX</small> module (part of the standard Perl
+distribution) implements &quot;ceil()&quot;,
+&quot;floor()&quot;, and a number of other mathematical and
+trigonometric functions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use POSIX; <br>
+my $ceil = ceil(3.5); # 4 <br>
+my $floor = floor(3.5); # 3</p>
+
+<p style="margin-left:11%; margin-top: 1em">In 5.000 to
+5.003 perls, trigonometry was done in the Math::Complex
+module. With 5.004, the Math::Trig module (part of the
+standard Perl distribution) implements the trigonometric
+functions. Internally it uses the Math::Complex module and
+some functions can break out from the real axis into the
+complex plane, for example the inverse sine of 2.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Rounding in
+financial applications can have serious implications, and
+the rounding method used should be specified precisely. In
+these cases, it probably pays not to trust whichever system
+of rounding is being used by Perl, but instead to implement
+the rounding function you need yourself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To see why,
+notice how you&rsquo;ll still have an issue on
+half-way-point alternation:</p>
+
+<p style="margin-left:11%; margin-top: 1em">for (my $i =
+&minus;5; $i &lt;= 5; $i += 0.5) { printf &quot;%.0f
+&quot;,$i } <br>
+&minus;5 &minus;4 &minus;4 &minus;4 &minus;3 &minus;2
+&minus;2 &minus;2 &minus;1 &minus;0 0 0 1 2 2 2 3 4 4 4
+5</p>
+
+<p style="margin-left:11%; margin-top: 1em">Don&rsquo;t
+blame Perl. It&rsquo;s the same as in C. <small>IEEE</small>
+says we have to do this. Perl numbers whose absolute values
+are integers under 2**31 (on 32&minus;bit machines) will
+work pretty much like mathematical integers. Other numbers
+are not guaranteed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+convert between numeric representations/bases/radixes?</b>
+<br>
+As always with Perl there is more than one way to do it.
+Below are a few examples of approaches to making common
+conversions between number representations. This is intended
+to be representational rather than exhaustive.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some of the
+examples later in perlfaq4 use the Bit::Vector module from
+<small>CPAN.</small> The reason you might choose Bit::Vector
+over the perl built-in functions is that it works with
+numbers of <small>ANY</small> size, that it is optimized for
+speed on some operations, and for at least some programmers
+the notation might be familiar. <br>
+How do I convert hexadecimal into decimal</p>
+
+<p style="margin-left:17%;">Using perl&rsquo;s built in
+conversion of &quot;0x&quot; notation:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $dec =
+0xDEADBEEF;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using the
+&quot;hex&quot; function:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $dec =
+hex(&quot;DEADBEEF&quot;);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+&quot;pack&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $dec =
+unpack(&quot;N&quot;, pack(&quot;H8&quot;,
+substr(&quot;0&quot; x 8 . &quot;DEADBEEF&quot;,
+&minus;8)));</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using the
+<small>CPAN</small> module &quot;Bit::Vector&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use
+Bit::Vector; <br>
+my $vec = Bit::Vector&minus;&gt;new_Hex(32,
+&quot;DEADBEEF&quot;); <br>
+my $dec = $vec&minus;&gt;to_Dec();</p>
+
+<p style="margin-left:11%;">How do I convert from decimal
+to hexadecimal</p>
+
+<p style="margin-left:17%;">Using &quot;sprintf&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $hex =
+sprintf(&quot;%X&quot;, 3735928559); # upper case A&minus;F
+<br>
+my $hex = sprintf(&quot;%x&quot;, 3735928559); # lower case
+a&minus;f</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+&quot;unpack&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $hex =
+unpack(&quot;H*&quot;, pack(&quot;N&quot;, 3735928559));</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+Bit::Vector:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use
+Bit::Vector; <br>
+my $vec = Bit::Vector&minus;&gt;new_Dec(32,
+&minus;559038737); <br>
+my $hex = $vec&minus;&gt;to_Hex();</p>
+
+<p style="margin-left:17%; margin-top: 1em">And Bit::Vector
+supports odd bit counts:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use
+Bit::Vector; <br>
+my $vec = Bit::Vector&minus;&gt;new_Dec(33, 3735928559);
+<br>
+$vec&minus;&gt;Resize(32); # suppress leading 0 if unwanted
+<br>
+my $hex = $vec&minus;&gt;to_Hex();</p>
+
+<p style="margin-left:11%;">How do I convert from octal to
+decimal</p>
+
+<p style="margin-left:17%;">Using Perl&rsquo;s built in
+conversion of numbers with leading zeros:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $dec =
+033653337357; # note the leading 0!</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using the
+&quot;oct&quot; function:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $dec =
+oct(&quot;33653337357&quot;);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+Bit::Vector:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use
+Bit::Vector; <br>
+my $vec = Bit::Vector&minus;&gt;new(32); <br>
+$vec&minus;&gt;Chunk_List_Store(3, split(//, reverse
+&quot;33653337357&quot;)); <br>
+my $dec = $vec&minus;&gt;to_Dec();</p>
+
+<p style="margin-left:11%;">How do I convert from decimal
+to octal</p>
+
+<p style="margin-left:17%;">Using &quot;sprintf&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $oct =
+sprintf(&quot;%o&quot;, 3735928559);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+Bit::Vector:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use
+Bit::Vector; <br>
+my $vec = Bit::Vector&minus;&gt;new_Dec(32,
+&minus;559038737); <br>
+my $oct = reverse join('',
+$vec&minus;&gt;Chunk_List_Read(3));</p>
+
+<p style="margin-left:11%;">How do I convert from binary to
+decimal</p>
+
+<p style="margin-left:17%;">Perl 5.6 lets you write binary
+numbers directly with the &quot;0b&quot; notation:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $number =
+0b10110110;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+&quot;oct&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $input =
+&quot;10110110&quot;; <br>
+my $decimal = oct( &quot;0b$input&quot; );</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+&quot;pack&quot; and &quot;ord&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $decimal =
+ord(pack('B8', '10110110'));</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+&quot;pack&quot; and &quot;unpack&quot; for larger
+strings:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $int =
+unpack(&quot;N&quot;, pack(&quot;B32&quot;, <br>
+substr(&quot;0&quot; x 32 .
+&quot;11110101011011011111011101111&quot;, &minus;32)));
+<br>
+my $dec = sprintf(&quot;%d&quot;, $int); <br>
+# substr() is used to left&minus;pad a 32&minus;character
+string with zeros.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+Bit::Vector:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $vec =
+Bit::Vector&minus;&gt;new_Bin(32,
+&quot;11011110101011011011111011101111&quot;); <br>
+my $dec = $vec&minus;&gt;to_Dec();</p>
+
+<p style="margin-left:11%;">How do I convert from decimal
+to binary</p>
+
+<p style="margin-left:17%;">Using &quot;sprintf&quot; (perl
+5.6+):</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $bin =
+sprintf(&quot;%b&quot;, 3735928559);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+&quot;unpack&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $bin =
+unpack(&quot;B*&quot;, pack(&quot;N&quot;, 3735928559));</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+Bit::Vector:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use
+Bit::Vector; <br>
+my $vec = Bit::Vector&minus;&gt;new_Dec(32,
+&minus;559038737); <br>
+my $bin = $vec&minus;&gt;to_Bin();</p>
+
+<p style="margin-left:17%; margin-top: 1em">The remaining
+transformations (e.g. hex &minus;&gt; oct, bin &minus;&gt;
+hex, etc.) are left as an exercise to the inclined
+reader.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Why
+doesn&rsquo;t &amp; work the way I want it to?</b> <br>
+The behavior of binary arithmetic operators depends on
+whether they&rsquo;re used on numbers or strings. The
+operators treat a string as a series of bits and work with
+that (the string &quot;3&quot; is the bit pattern 00110011).
+The operators work with the binary form of a number (the
+number 3 is treated as the bit pattern 00000011).</p>
+
+<p style="margin-left:11%; margin-top: 1em">So, saying
+&quot;11 &amp; 3&quot; performs the &quot;and&quot;
+operation on numbers (yielding 3). Saying &quot;11&quot;
+&amp; &quot;3&quot; performs the &quot;and&quot; operation
+on strings (yielding &quot;1&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Most problems
+with &quot;&amp;&quot; and &quot;|&quot; arise because the
+programmer thinks they have a number but really it&rsquo;s a
+string or vice versa. To avoid this, stringify the arguments
+explicitly (using &quot;&quot; or &quot;qq()&quot;) or
+convert them to numbers explicitly (using
+&quot;0+$arg&quot;). The rest arise because the programmer
+says:</p>
+
+<p style="margin-left:11%; margin-top: 1em">if
+(&quot;\020\020&quot; &amp; &quot;\101\101&quot;) { <br>
+# ... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">but a string
+consisting of two null bytes (the result of
+&quot;\020\020&quot; &amp; &quot;\101\101&quot;) is not a
+false value in Perl. You need:</p>
+
+<p style="margin-left:11%; margin-top: 1em">if (
+(&quot;\020\020&quot; &amp; &quot;\101\101&quot;) !~
+/[^\000]/) { <br>
+# ... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+multiply matrices?</b> <br>
+Use the Math::Matrix or Math::MatrixReal modules (available
+from <small>CPAN</small> ) or the <small>PDL</small>
+extension (also available from <small>CPAN</small> ).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+perform an operation on a series of integers?</b> <br>
+To call a function on each element in an array, and collect
+the results, use:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @results =
+map { my_func($_) } @array;</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @triple =
+map { 3 * $_ } @single;</p>
+
+<p style="margin-left:11%; margin-top: 1em">To call a
+function on each element of an array, but ignore the
+results:</p>
+
+<p style="margin-left:11%; margin-top: 1em">foreach my
+$iterator (@array) { <br>
+some_func($iterator); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">To call a
+function on each integer in a (small) range, you <b>can</b>
+use:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @results =
+map { some_func($_) } (5 .. 25);</p>
+
+<p style="margin-left:11%; margin-top: 1em">but you should
+be aware that in this form, the &quot;..&quot; operator
+creates a list of all integers in the range, which can take
+a lot of memory for large ranges. However, the problem does
+not occur when using &quot;..&quot; within a &quot;for&quot;
+loop, because in that case the range operator is optimized
+to <i>iterate</i> over the range, without creating the
+entire list. So</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @results =
+(); <br>
+for my $i (5 .. 500_005) { <br>
+push(@results, some_func($i)); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">or even</p>
+
+<p style="margin-left:11%; margin-top: 1em">push(@results,
+some_func($_)) for 5 .. 500_005;</p>
+
+<p style="margin-left:11%; margin-top: 1em">will not create
+an intermediate list of 500,000 integers.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+output Roman numerals?</b> <br>
+Get the
+&lt;http://www.cpan.org/modules/by&minus;module/Roman&gt;
+module.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Why
+aren&rsquo;t my random numbers random?</b> <br>
+If you&rsquo;re using a version of Perl before 5.004, you
+must call &quot;srand&quot; once at the start of your
+program to seed the random number generator.</p>
+
+<p style="margin-left:11%; margin-top: 1em">BEGIN { srand()
+if $] &lt; 5.004 }</p>
+
+<p style="margin-left:11%; margin-top: 1em">5.004 and later
+automatically call &quot;srand&quot; at the beginning.
+Don&rsquo;t call &quot;srand&quot; more than once--you make
+your numbers less random, rather than more.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Computers are
+good at being predictable and bad at being random (despite
+appearances caused by bugs in your programs :&minus;). The
+<i>random</i> article in the &quot;Far More Than You Ever
+Wanted To Know&quot; collection in
+&lt;http://www.cpan.org/misc/olddoc/FMTEYEWTK.tgz&gt;,
+courtesy of Tom Phoenix, talks more about this. John von
+Neumann said, &quot;Anyone who attempts to generate random
+numbers by deterministic means is, of course, living in a
+state of sin.&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl relies on
+the underlying system for the implementation of
+&quot;rand&quot; and &quot;srand&quot;; on some systems, the
+generated numbers are not random enough (especially on
+Windows : see
+&lt;http://www.perlmonks.org/?node_id=803632&gt;). Several
+<small>CPAN</small> modules in the &quot;Math&quot;
+namespace implement better pseudorandom generators; see for
+example Math::Random::MT (&quot;Mersenne Twister&quot;,
+fast), or Math::TrulyRandom (uses the imperfections in the
+system&rsquo;s timer to generate random numbers, which is
+rather slow). More algorithms for random numbers are
+described in &quot;Numerical Recipes in C&quot; at
+&lt;http://www.nr.com/&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I get
+a random number between X and Y?</b> <br>
+To get a random number between two values, you can use the
+&quot;rand()&quot; built-in to get a random number between 0
+and 1. From there, you shift that into the range that you
+want.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;rand($x)&quot;
+returns a number such that &quot;0 &lt;= rand($x) &lt;
+$x&quot;. Thus what you want to have perl figure out is a
+random number in the range from 0 to the difference between
+your <i>X</i> and <i>Y</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">That is, to get
+a number between 10 and 15, inclusive, you want a random
+number between 0 and 5 that you can then add to 10.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $number = 10
++ int rand( 15&minus;10+1 ); # ( 10,11,12,13,14, or 15 )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Hence you
+derive the following simple function to abstract that. It
+selects a random integer between the two given integers
+(inclusive). For example:
+&quot;random_int_between(50,120)&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub
+random_int_between { <br>
+my($min, $max) = @_; <br>
+# Assumes that the two arguments are integers themselves!
+<br>
+return $min if $min == $max; <br>
+($min, $max) = ($max, $min) if $min &gt; $max; <br>
+return $min + int rand(1 + $max &minus; $min); <br>
+}</p>
+
+<h2>Data: Dates
+<a name="Data: Dates"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+find the day or week of the year?</b> <br>
+The day of the year is in the list returned by the
+&quot;localtime&quot; function. Without an argument
+&quot;localtime&quot; uses the current time.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $day_of_year
+= (localtime)[7];</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<small>POSIX</small> module can also format a date as the
+day of the year or week of the year.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use POSIX
+qw/strftime/; <br>
+my $day_of_year = strftime &quot;%j&quot;, localtime; <br>
+my $week_of_year = strftime &quot;%W&quot;, localtime;</p>
+
+<p style="margin-left:11%; margin-top: 1em">To get the day
+of year for any date, use <small>POSIX</small> &rsquo;s
+&quot;mktime&quot; to get a time in epoch seconds for the
+argument to &quot;localtime&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use POSIX
+qw/mktime strftime/; <br>
+my $week_of_year = strftime &quot;%W&quot;, <br>
+localtime( mktime( 0, 0, 0, 18, 11, 87 ) );</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+use Time::Piece, which comes with Perl and provides a
+&quot;localtime&quot; that returns an object:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Time::Piece; <br>
+my $day_of_year = localtime&minus;&gt;yday; <br>
+my $week_of_year = localtime&minus;&gt;week;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Date::Calc
+module provides two functions to calculate these, too:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Date::Calc;
+<br>
+my $day_of_year = Day_of_Year( 1987, 12, 18 ); <br>
+my $week_of_year = Week_of_Year( 1987, 12, 18 );</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+find the current century or millennium?</b> <br>
+Use the following simple functions:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub get_century
+{ <br>
+return int((((localtime(shift || time))[5] + 1999))/100);
+<br>
+} <br>
+sub get_millennium { <br>
+return 1+int((((localtime(shift || time))[5] + 1899))/1000);
+<br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">On some
+systems, the <small>POSIX</small> module&rsquo;s
+&quot;strftime()&quot; function has been extended in a
+non-standard way to use a %C format, which they sometimes
+claim is the &quot;century&quot;. It isn&rsquo;t, because on
+most such systems, this is only the first two digits of the
+four-digit year, and thus cannot be used to determine
+reliably the current century or millennium.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+compare two dates and find the difference?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">You could just
+store all your dates as a number and then subtract. Life
+isn&rsquo;t always that simple though.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Time::Piece
+module, which comes with Perl, replaces localtime with a
+version that returns an object. It also overloads the
+comparison operators so you can compare them directly:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Time::Piece; <br>
+my $date1 = localtime( $some_time ); <br>
+my $date2 = localtime( $some_other_time ); <br>
+if( $date1 &lt; $date2 ) { <br>
+print &quot;The date was in the past\n&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+get differences with a subtraction, which returns a
+Time::Seconds object:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $date_diff =
+$date1 &minus; $date2; <br>
+print &quot;The difference is &quot;,
+$date_diff&minus;&gt;days, &quot; days\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+work with formatted dates, the Date::Manip, Date::Calc, or
+DateTime modules can help you.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+take a string and turn it into epoch seconds?</b> <br>
+If it&rsquo;s a regular enough string that it always has the
+same format, you can split it up and pass the parts to
+&quot;timelocal&quot; in the standard Time::Local module.
+Otherwise, you should look into the Date::Calc, Date::Parse,
+and Date::Manip modules from <small>CPAN.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+find the Julian Day?</b> <br>
+(contributed by brian d foy and Dave Cross)</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use the
+Time::Piece module, part of the Standard Library, which can
+convert a date/time to a Julian Day:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ perl
+&minus;MTime::Piece &minus;le 'print
+localtime&minus;&gt;julian_day' <br>
+2455607.7959375</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or the modified
+Julian Day:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ perl
+&minus;MTime::Piece &minus;le 'print
+localtime&minus;&gt;mjd' <br>
+55607.2961226851</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or even the day
+of the year (which is what some people think of as a Julian
+day):</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ perl
+&minus;MTime::Piece &minus;le 'print
+localtime&minus;&gt;yday' <br>
+45</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also do
+the same things with the DateTime module:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ perl
+&minus;MDateTime &minus;le'print
+DateTime&minus;&gt;today&minus;&gt;jd' <br>
+2453401.5 <br>
+$ perl &minus;MDateTime &minus;le'print
+DateTime&minus;&gt;today&minus;&gt;mjd' <br>
+53401 <br>
+$ perl &minus;MDateTime &minus;le'print
+DateTime&minus;&gt;today&minus;&gt;doy' <br>
+31</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use the
+Time::JulianDay module available on <small>CPAN.</small>
+Ensure that you really want to find a Julian day, though, as
+many people have different ideas about Julian days (see
+&lt;http://www.hermetic.ch/cal_stud/jdn.htm&gt; for
+instance):</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ perl
+&minus;MTime::JulianDay &minus;le 'print local_julian_day(
+time )' <br>
+55608</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+find yesterday&rsquo;s date?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">To do it
+correctly, you can use one of the &quot;Date&quot; modules
+since they work with calendars instead of times. The
+DateTime module makes it simple, and give you the same time
+of day, only the day before, despite daylight saving time
+changes:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use DateTime;
+<br>
+my $yesterday = DateTime&minus;&gt;now&minus;&gt;subtract(
+days =&gt; 1 ); <br>
+print &quot;Yesterday was $yesterday\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+use the Date::Calc module using its
+&quot;Today_and_Now&quot; function.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Date::Calc
+qw( Today_and_Now Add_Delta_DHMS ); <br>
+my @date_time = Add_Delta_DHMS( Today_and_Now(), &minus;1,
+0, 0, 0 ); <br>
+print &quot;@date_time\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Most people try
+to use the time rather than the calendar to figure out
+dates, but that assumes that days are twenty-four hours
+each. For most people, there are two days a year when they
+aren&rsquo;t: the switch to and from summer time throws this
+off. For example, the rest of the suggestions will be wrong
+sometimes:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Starting with
+Perl 5.10, Time::Piece and Time::Seconds are part of the
+standard distribution, so you might think that you could do
+something like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Time::Piece; <br>
+use Time::Seconds; <br>
+my $yesterday = localtime() &minus; ONE_DAY; # WRONG <br>
+print &quot;Yesterday was $yesterday\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Time::Piece
+module exports a new &quot;localtime&quot; that returns an
+object, and Time::Seconds exports the &quot;ONE_DAY&quot;
+constant that is a set number of seconds. This means that it
+always gives the time 24 hours ago, which is not always
+yesterday. This can cause problems around the end of
+daylight saving time when there&rsquo;s one day that is 25
+hours long.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You have the
+same problem with Time::Local, which will give the wrong
+answer for those same special cases:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># contributed
+by Gunnar Hjalmarsson <br>
+use Time::Local; <br>
+my $today = timelocal 0, 0, 12, ( localtime )[3..5]; <br>
+my ($d, $m, $y) = ( localtime $today&minus;86400 )[3..5]; #
+WRONG <br>
+printf &quot;Yesterday: %d&minus;%02d&minus;%02d\n&quot;,
+$y+1900, $m+1, $d;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Does Perl
+have a Year 2000 or 2038 problem? Is Perl Y2K compliant?</b>
+<br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl itself
+never had a Y2K problem, although that never stopped people
+from creating Y2K problems on their own. See the
+documentation for &quot;localtime&quot; for its proper
+use.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Starting with
+Perl 5.12, &quot;localtime&quot; and &quot;gmtime&quot; can
+handle dates past 03:14:08 January 19, 2038, when a
+32&minus;bit based time would overflow. You still might get
+a warning on a 32&minus;bit &quot;perl&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">% perl5.12
+&minus;E 'say scalar localtime( 0x9FFF_FFFFFFFF )' <br>
+Integer overflow in hexadecimal number at &minus;e line 1.
+<br>
+Wed Nov 1 19:42:39 5576711</p>
+
+<p style="margin-left:11%; margin-top: 1em">On a
+64&minus;bit &quot;perl&quot;, you can get even larger dates
+for those really long running projects:</p>
+
+<p style="margin-left:11%; margin-top: 1em">% perl5.12
+&minus;E 'say scalar gmtime( 0x9FFF_FFFFFFFF )' <br>
+Thu Nov 2 00:42:39 5576711</p>
+
+<p style="margin-left:11%; margin-top: 1em">You&rsquo;re
+still out of luck if you need to keep track of decaying
+protons though.</p>
+
+<h2>Data: Strings
+<a name="Data: Strings"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+validate input?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are many
+ways to ensure that values are what you expect or want to
+accept. Besides the specific examples that we cover in the
+perlfaq, you can also look at the modules with
+&quot;Assert&quot; and &quot;Validate&quot; in their names,
+along with other modules such as Regexp::Common.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some modules
+have validation for particular types of input, such as
+Business::ISBN, Business::CreditCard, Email::Valid, and
+Data::Validate::IP.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+unescape a string?</b> <br>
+It depends just what you mean by &quot;escape&quot;.
+<small>URL</small> escapes are dealt with in perlfaq9. Shell
+escapes with the backslash (&quot;\&quot;) character are
+removed with</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">s/\\(.)/$1/g;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+won&rsquo;t expand &quot;\n&quot; or &quot;\t&quot; or any
+other special escapes.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+remove consecutive pairs of characters?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use the
+substitution operator to find pairs of characters (or runs
+of characters) and replace them with a single instance. In
+this substitution, we find a character in &quot;(.)&quot;.
+The memory parentheses store the matched character in the
+back-reference &quot;\g1&quot; and we use that to require
+that the same thing immediately follow it. We replace that
+part of the string with the character in $1.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">s/(.)\g1/$1/g;</p>
+
+<p style="margin-left:11%; margin-top: 1em">We can also use
+the transliteration operator, &quot;tr///&quot;. In this
+example, the search list side of our &quot;tr///&quot;
+contains nothing, but the &quot;c&quot; option complements
+that so it contains everything. The replacement list also
+contains nothing, so the transliteration is almost a no-op
+since it won&rsquo;t do any replacements (or more exactly,
+replace the character with itself). However, the
+&quot;s&quot; option squashes duplicated and consecutive
+characters in the string so a character does not show up
+next to itself</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $str =
+'Haarlem'; # in the Netherlands <br>
+$str =~ tr///cs; # Now Harlem, like in New York</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+expand function calls in a string?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is
+documented in perlref, and although it&rsquo;s not the
+easiest thing to read, it does work. In each of these
+examples, we call the function inside the braces used to
+dereference a reference. If we have more than one return
+value, we can construct and dereference an anonymous array.
+In this case, we call the function in list context.</p>
+
+<p style="margin-left:11%; margin-top: 1em">print &quot;The
+time values are @{ [localtime] }.\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If we want to
+call the function in scalar context, we have to do a bit
+more work. We can really have any code we like inside the
+braces, so we simply have to end with the scalar reference,
+although how you do that is up to you, and you can use code
+inside the braces. Note that the use of parens creates a
+list context, so we need &quot;scalar&quot; to force the
+scalar context on the function:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print &quot;The
+time is ${\(scalar localtime)}.\n&quot; <br>
+print &quot;The time is ${ my $x = localtime; \$x
+}.\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If your
+function already returns a reference, you don&rsquo;t need
+to create the reference yourself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub timestamp {
+my $t = localtime; \$t } <br>
+print &quot;The time is ${ timestamp() }.\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Interpolation&quot; module can also do a lot of magic
+for you. You can specify a variable name, in this case
+&quot;E&quot;, to set up a tied hash that does the
+interpolation for you. It has several other methods to do
+this as well.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Interpolation E =&gt; 'eval'; <br>
+print &quot;The time values are
+$E{localtime()}.\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">In most cases,
+it is probably easier to simply use string concatenation,
+which also forces scalar context.</p>
+
+<p style="margin-left:11%; margin-top: 1em">print &quot;The
+time is &quot; . localtime() . &quot;.\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+find matching/nesting anything?</b> <br>
+To find something between two single characters, a pattern
+like &quot;/x([^x]*)x/&quot; will get the intervening bits
+in $1. For multiple ones, then something more like
+&quot;/alpha(.*?)omega/&quot; would be needed. For nested
+patterns and/or balanced expressions, see the so-called
+(?PARNO) construct (available since perl 5.10). The
+<small>CPAN</small> module Regexp::Common can help to build
+such regular expressions (see in particular
+Regexp::Common::balanced and Regexp::Common::delimited).</p>
+
+<p style="margin-left:11%; margin-top: 1em">More complex
+cases will require to write a parser, probably using a
+parsing module from <small>CPAN,</small> like
+Regexp::Grammars, Parse::RecDescent, Parse::Yapp,
+Text::Balanced, or Marpa::R2.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+reverse a string?</b> <br>
+Use &quot;reverse()&quot; in scalar context, as documented
+in &quot;reverse&quot; in perlfunc.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $reversed =
+reverse $string;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+expand tabs in a string?</b> <br>
+You can do it yourself:</p>
+
+<p style="margin-left:11%; margin-top: 1em">1 while $string
+=~ s/\t+/' ' x (length($&amp;) * 8 &minus; length($`) %
+8)/e;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or you can just
+use the Text::Tabs module (part of the standard Perl
+distribution).</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Text::Tabs;
+<br>
+my @expanded_lines = expand(@lines_with_tabs);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+reformat a paragraph?</b> <br>
+Use Text::Wrap (part of the standard Perl distribution):</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Text::Wrap;
+<br>
+print wrap(&quot;\t&quot;, ' ', @paragraphs);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The paragraphs
+you give to Text::Wrap should not contain embedded newlines.
+Text::Wrap doesn&rsquo;t justify the lines
+(flush-right).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or use the
+<small>CPAN</small> module Text::Autoformat. Formatting
+files can be easily done by making a shell alias, like
+so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">alias
+fmt=&quot;perl &minus;i &minus;MText::Autoformat
+&minus;n0777 \ <br>
+&minus;e 'print autoformat $_, {all=&gt;1}' $*&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">See the
+documentation for Text::Autoformat to appreciate its many
+capabilities.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+access or change N characters of a string?</b> <br>
+You can access the first characters of a string with
+<b>substr()</b>. To get the first character, for example,
+start at position 0 and grab the string of length 1.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $string =
+&quot;Just another Perl Hacker&quot;; <br>
+my $first_char = substr( $string, 0, 1 ); # 'J'</p>
+
+<p style="margin-left:11%; margin-top: 1em">To change part
+of a string, you can use the optional fourth argument which
+is the replacement string.</p>
+
+<p style="margin-left:11%; margin-top: 1em">substr(
+$string, 13, 4, &quot;Perl 5.8.0&quot; );</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+use <b>substr()</b> as an lvalue.</p>
+
+<p style="margin-left:11%; margin-top: 1em">substr(
+$string, 13, 4 ) = &quot;Perl 5.8.0&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+change the Nth occurrence of something?</b> <br>
+You have to keep track of N yourself. For example,
+let&rsquo;s say you want to change the fifth occurrence of
+&quot;whoever&quot; or &quot;whomever&quot; into
+&quot;whosoever&quot; or &quot;whomsoever&quot;, case
+insensitively. These all assume that $_ contains the string
+to be altered.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$count = 0;
+<br>
+s{((whom?)ever)}{ <br>
+++$count == 5 # is it the 5th? <br>
+? &quot;${2}soever&quot; # yes, swap <br>
+: $1 # renege and leave it there <br>
+}ige;</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the more
+general case, you can use the &quot;/g&quot; modifier in a
+&quot;while&quot; loop, keeping count of matches.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$WANT = 3; <br>
+$count = 0; <br>
+$_ = &quot;One fish two fish red fish blue fish&quot;; <br>
+while (/(\w+)\s+fish\b/gi) { <br>
+if (++$count == $WANT) { <br>
+print &quot;The third fish is a $1 one.\n&quot;; <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">That prints
+out: &quot;The third fish is a red one.&quot; You can also
+use a repetition count and repeated pattern like this:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">/(?:\w+\s+fish\s+){2}(\w+)\s+fish/i;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+count the number of occurrences of a substring within a
+string?</b> <br>
+There are a number of ways, with varying efficiency. If you
+want a count of a certain single character (X) within a
+string, you can use the &quot;tr///&quot; function like
+so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $string =
+&quot;ThisXlineXhasXsomeXx'sXinXit&quot;; <br>
+my $count = ($string =~ tr/X//); <br>
+print &quot;There are $count X characters in the
+string&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is fine if
+you are just looking for a single character. However, if you
+are trying to count multiple character substrings within a
+larger string, &quot;tr///&quot; won&rsquo;t work. What you
+can do is wrap a <b>while()</b> loop around a global pattern
+match. For example, let&rsquo;s count negative integers:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $string =
+&quot;&minus;9 55 48 &minus;2 23 &minus;76 4 14
+&minus;44&quot;; <br>
+my $count = 0; <br>
+while ($string =~ /&minus;\d+/g) { $count++ } <br>
+print &quot;There are $count negative numbers in the
+string&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Another version
+uses a global match in list context, then assigns the result
+to a scalar, producing a count of the number of matches.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $count = ()
+= $string =~ /&minus;\d+/g;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+capitalize all the words on one line?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Damian
+Conway&rsquo;s Text::Autoformat handles all of the thinking
+for you.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Text::Autoformat; <br>
+my $x = &quot;Dr. Strangelove or: How I Learned to Stop
+&quot;. <br>
+&quot;Worrying and Love the Bomb&quot;; <br>
+print $x, &quot;\n&quot;; <br>
+for my $style (qw( sentence title highlight )) { <br>
+print autoformat($x, { case =&gt; $style }), &quot;\n&quot;;
+<br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">How do you want
+to capitalize those words?</p>
+
+<p style="margin-left:11%; margin-top: 1em">FRED AND
+BARNEY'S LODGE # all uppercase <br>
+Fred And Barney's Lodge # title case <br>
+Fred and Barney's Lodge # highlight case</p>
+
+<p style="margin-left:11%; margin-top: 1em">It&rsquo;s not
+as easy a problem as it looks. How many words do you think
+are in there? Wait for it... wait for it.... If you answered
+5 you&rsquo;re right. Perl words are groups of
+&quot;\w+&quot;, but that&rsquo;s not what you want to
+capitalize. How is Perl supposed to know not to capitalize
+that &quot;s&quot; after the apostrophe? You could try a
+regular expression:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$string =~ s/ (
+<br>
+(^\w) #at the beginning of the line <br>
+| # or <br>
+(\s\w) #preceded by whitespace <br>
+) <br>
+/\U$1/xg; <br>
+$string =~ s/([\w']+)/\u\L$1/g;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now, what if
+you don&rsquo;t want to capitalize that &quot;and&quot;?
+Just use Text::Autoformat and get on with the next problem.
+:)</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+split a [character]&minus;delimited string except when
+inside [character]?</b> <br>
+Several modules can handle this sort of
+parsing--Text::Balanced, Text::CSV, Text::CSV_XS, and
+Text::ParseWords, among others.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Take the
+example case of trying to split a string that is
+comma-separated into its different fields. You can&rsquo;t
+use &quot;split(/,/)&quot; because you shouldn&rsquo;t split
+if the comma is inside quotes. For example, take a data line
+like this:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">SAR001,&quot;&quot;,&quot;Cimetrix,
+Inc&quot;,&quot;Bob
+Smith&quot;,&quot;CAM&quot;,N,8,1,0,7,&quot;Error, Core
+Dumped&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Due to the
+restriction of the quotes, this is a fairly complex problem.
+Thankfully, we have Jeffrey Friedl, author of <i>Mastering
+Regular Expressions</i>, to handle these for us. He suggests
+(assuming your string is contained in $text):</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @new = ();
+<br>
+push(@new, $+) while $text =~ m{ <br>
+&quot;([^\&quot;\\]*(?:\\.[^\&quot;\\]*)*)&quot;,? # groups
+the phrase inside the quotes <br>
+| ([^,]+),? <br>
+| , <br>
+}gx; <br>
+push(@new, undef) if substr($text,&minus;1,1) eq ',';</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+represent quotation marks inside a quotation-mark-delimited
+field, escape them with backslashes (eg, &quot;like
+\&quot;this\&quot;&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+the Text::ParseWords module (part of the standard Perl
+distribution) lets you say:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Text::ParseWords; <br>
+@new = quotewords(&quot;,&quot;, 0, $text);</p>
+
+<p style="margin-left:11%; margin-top: 1em">For parsing or
+generating <small>CSV,</small> though, using Text::CSV
+rather than implementing it yourself is highly recommended;
+you&rsquo;ll save yourself odd bugs popping up later by just
+using code which has already been tried and tested in
+production for years.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+strip blank space from the beginning/end of a string?</b>
+<br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">A substitution
+can do this for you. For a single line, you want to replace
+all the leading or trailing whitespace with nothing. You can
+do that with a pair of substitutions:</p>
+
+<p style="margin-left:11%; margin-top: 1em">s/^\s+//; <br>
+s/\s+$//;</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+write that as a single substitution, although it turns out
+the combined statement is slower than the separate ones.
+That might not matter to you, though:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">s/^\s+|\s+$//g;</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this regular
+expression, the alternation matches either at the beginning
+or the end of the string since the anchors have a lower
+precedence than the alternation. With the &quot;/g&quot;
+flag, the substitution makes all possible matches, so it
+gets both. Remember, the trailing newline matches the
+&quot;\s+&quot;, and the &quot;$&quot; anchor can match to
+the absolute end of the string, so the newline disappears
+too. Just add the newline to the output, which has the added
+benefit of preserving &quot;blank&quot; (consisting entirely
+of whitespace) lines which the &quot;^\s+&quot; would remove
+all by itself:</p>
+
+<p style="margin-left:11%; margin-top: 1em">while( &lt;&gt;
+) { <br>
+s/^\s+|\s+$//g; <br>
+print &quot;$_\n&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">For a
+multi-line string, you can apply the regular expression to
+each logical line in the string by adding the &quot;/m&quot;
+flag (for &quot;multi-line&quot;). With the &quot;/m&quot;
+flag, the &quot;$&quot; matches <i>before</i> an embedded
+newline, so it doesn&rsquo;t remove it. This pattern still
+removes the newline at the end of the string:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$string =~
+s/^\s+|\s+$//gm;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Remember that
+lines consisting entirely of whitespace will disappear,
+since the first part of the alternation can match the entire
+string and replace it with nothing. If you need to keep
+embedded blank lines, you have to do a little more work.
+Instead of matching any whitespace (since that includes a
+newline), just match the other whitespace:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$string =~
+s/^[\t\f ]+|[\t\f ]+$//mg;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I pad
+a string with blanks or pad a number with zeroes?</b> <br>
+In the following examples, $pad_len is the length to which
+you wish to pad the string, $text or $num contains the
+string to be padded, and $pad_char contains the padding
+character. You can use a single character string constant
+instead of the $pad_char variable if you know what it is in
+advance. And in the same way you can use an integer in place
+of $pad_len if you know the pad length in advance.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The simplest
+method uses the &quot;sprintf&quot; function. It can pad on
+the left or right with blanks and on the left with zeroes
+and it will not truncate the result. The &quot;pack&quot;
+function can only pad strings on the right with blanks and
+it will truncate the result to a maximum length of
+$pad_len.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Left padding
+a string with blanks (no truncation): <br>
+my $padded = sprintf(&quot;%${pad_len}s&quot;, $text); <br>
+my $padded = sprintf(&quot;%*s&quot;, $pad_len, $text); #
+same thing <br>
+# Right padding a string with blanks (no truncation): <br>
+my $padded = sprintf(&quot;%&minus;${pad_len}s&quot;,
+$text); <br>
+my $padded = sprintf(&quot;%&minus;*s&quot;, $pad_len,
+$text); # same thing <br>
+# Left padding a number with 0 (no truncation): <br>
+my $padded = sprintf(&quot;%0${pad_len}d&quot;, $num); <br>
+my $padded = sprintf(&quot;%0*d&quot;, $pad_len, $num); #
+same thing <br>
+# Right padding a string with blanks using pack (will
+truncate): <br>
+my $padded = pack(&quot;A$pad_len&quot;,$text);</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you need to
+pad with a character other than blank or zero you can use
+one of the following methods. They all generate a pad string
+with the &quot;x&quot; operator and combine that with $text.
+These methods do not truncate $text.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Left and right
+padding with any character, creating a new string:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $padded =
+$pad_char x ( $pad_len &minus; length( $text ) ) . $text;
+<br>
+my $padded = $text . $pad_char x ( $pad_len &minus; length(
+$text ) );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Left and right
+padding with any character, modifying $text directly:</p>
+
+<p style="margin-left:11%; margin-top: 1em">substr( $text,
+0, 0 ) = $pad_char x ( $pad_len &minus; length( $text ) );
+<br>
+$text .= $pad_char x ( $pad_len &minus; length( $text )
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+extract selected columns from a string?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you know the
+columns that contain the data, you can use
+&quot;substr&quot; to extract a single column.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $column =
+substr( $line, $start_column, $length );</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use
+&quot;split&quot; if the columns are separated by whitespace
+or some other delimiter, as long as whitespace or the
+delimiter cannot appear as part of the data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $line = '
+fred barney betty '; <br>
+my @columns = split /\s+/, $line; <br>
+# ( '', 'fred', 'barney', 'betty' ); <br>
+my $line = 'fred||barney||betty'; <br>
+my @columns = split /\|/, $line; <br>
+# ( 'fred', '', 'barney', '', 'betty' );</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+work with comma-separated values, don&rsquo;t do this since
+that format is a bit more complicated. Use one of the
+modules that handle that format, such as Text::CSV,
+Text::CSV_XS, or Text::CSV_PP.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+break apart an entire line of fixed columns, you can use
+&quot;unpack&quot; with the A ( <small>ASCII</small> )
+format. By using a number after the format specifier, you
+can denote the column width. See the &quot;pack&quot; and
+&quot;unpack&quot; entries in perlfunc for more details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @fields =
+unpack( $line, &quot;A8 A8 A8 A16 A4&quot; );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+spaces in the format argument to &quot;unpack&quot; do not
+denote literal spaces. If you have space separated data, you
+may want &quot;split&quot; instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+find the soundex value of a string?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use the
+&quot;Text::Soundex&quot; module. If you want to do fuzzy or
+close matching, you might also try the String::Approx, and
+Text::Metaphone, and Text::DoubleMetaphone modules.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+expand variables in text strings?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you can
+avoid it, don&rsquo;t, or if you can use a templating
+system, such as Text::Template or Template Toolkit, do that
+instead. You might even be able to get the job done with
+&quot;sprintf&quot; or &quot;printf&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $string =
+sprintf 'Say hello to %s and %s', $foo, $bar;</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, for
+the one-off simple case where I don&rsquo;t want to pull out
+a full templating system, I&rsquo;ll use a string that has
+two Perl scalar variables in it. In this example, I want to
+expand $foo and $bar to their variable&rsquo;s values:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $foo =
+'Fred'; <br>
+my $bar = 'Barney'; <br>
+$string = 'Say hello to $foo and $bar';</p>
+
+<p style="margin-left:11%; margin-top: 1em">One way I can
+do this involves the substitution operator and a double
+&quot;/e&quot; flag. The first &quot;/e&quot; evaluates $1
+on the replacement side and turns it into $foo. The second
+/e starts with $foo and replaces it with its value. $foo,
+then, turns into &rsquo;Fred&rsquo;, and that&rsquo;s
+finally what&rsquo;s left in the string:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$string =~
+s/(\$\w+)/$1/eeg; # 'Say hello to Fred and Barney'</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;/e&quot; will also silently ignore violations of
+strict, replacing undefined variable names with the empty
+string. Since I&rsquo;m using the &quot;/e&quot; flag (twice
+even!), I have all of the same security problems I have with
+&quot;eval&quot; in its string form. If there&rsquo;s
+something odd in $foo, perhaps something like &quot;@{[
+system &quot;rm &minus;rf /&quot; ]}&quot;, then I could get
+myself in trouble.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To get around
+the security problem, I could also pull the values from a
+hash instead of evaluating variable names. Using a single
+&quot;/e&quot;, I can check the hash to ensure the value
+exists, and if it doesn&rsquo;t, I can replace the missing
+value with a marker, in this case &quot;???&quot; to signal
+that I missed something:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $string =
+'This has $foo and $bar'; <br>
+my %Replacements = ( <br>
+foo =&gt; 'Fred', <br>
+); <br>
+# $string =~ s/\$(\w+)/$Replacements{$1}/g; <br>
+$string =~ s/\$(\w+)/ <br>
+exists $Replacements{$1} ? $Replacements{$1} : '???' <br>
+/eg; <br>
+print $string;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Does Perl
+have anything like Ruby&rsquo;s #{} or Python&rsquo;s f
+string?</b> <br>
+Unlike the others, Perl allows you to embed a variable naked
+in a double quoted string, e.g. &quot;variable
+$variable&quot;. When there isn&rsquo;t whitespace or other
+non-word characters following the variable name, you can add
+braces (e.g. &quot;foo ${foo}bar&quot;) to ensure correct
+parsing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An array can
+also be embedded directly in a string, and will be expanded
+by default with spaces between the elements. The default
+<small>LIST_SEPARATOR</small> can be changed by assigning a
+different string to the special variable $&quot;, such as
+&quot;local $&quot; = ', ';&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl also
+supports references within a string providing the equivalent
+of the features in the other two languages.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;${\ ...
+}&quot; embedded within a string will work for most simple
+statements such as an object&minus;&gt;method call. More
+complex code can be wrapped in a do block &quot;${\ do{...}
+}&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When you want a
+list to be expanded per $&quot;, use &quot;@{[ ...
+]}&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Time::Piece; <br>
+use Time::Seconds; <br>
+my $scalar = 'STRING'; <br>
+my @array = ( 'zorro', 'a', 1, 'B', 3 ); <br>
+# Print the current date and time and then Tommorrow <br>
+my $t = Time::Piece&minus;&gt;new; <br>
+say &quot;Now is: ${\ $t&minus;&gt;cdate() }&quot;; <br>
+say &quot;Tomorrow: ${\ do{ my $T=Time::Piece&minus;&gt;new
++ ONE_DAY ; $T&minus;&gt;fullday }}&quot;; <br>
+# some variables in strings <br>
+say &quot;This is some scalar I have $scalar, this is an
+array @array.&quot;; <br>
+say &quot;You can also write it like this ${scalar}
+@{array}.&quot;; <br>
+# Change the $LIST_SEPARATOR <br>
+local $&quot; = ':'; <br>
+say &quot;Set \$\&quot; to delimit with ':' and sort the
+Array @{[ sort @array ]}&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">You may also
+want to look at the module Quote::Code, and templating tools
+such as Template::Toolkit and Mojo::Template.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also:
+&quot;How can I expand variables in text strings?&quot; and
+&quot;How do I expand function calls in a string?&quot; in
+this <small>FAQ.</small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>What&rsquo;s
+wrong with always quoting &quot;$vars&quot;?</b> <br>
+The problem is that those double-quotes force
+stringification--coercing numbers and references into
+strings--even when you don&rsquo;t want them to be strings.
+Think of it this way: double-quote expansion is used to
+produce new strings. If you already have a string, why do
+you need more?</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you get used
+to writing odd things like these:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print
+&quot;$var&quot;; # BAD <br>
+my $new = &quot;$old&quot;; # BAD <br>
+somefunc(&quot;$var&quot;); # BAD</p>
+
+<p style="margin-left:11%; margin-top: 1em">You&rsquo;ll be
+in trouble. Those should (in 99.8% of the cases) be the
+simpler and more direct:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print $var;
+<br>
+my $new = $old; <br>
+somefunc($var);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Otherwise,
+besides slowing you down, you&rsquo;re going to break code
+when the thing in the scalar is actually neither a string
+nor a number, but a reference:</p>
+
+<p style="margin-left:11%; margin-top: 1em">func(\@array);
+<br>
+sub func { <br>
+my $aref = shift; <br>
+my $oref = &quot;$aref&quot;; # WRONG <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+get into subtle problems on those few operations in Perl
+that actually do care about the difference between a string
+and a number, such as the magical &quot;++&quot;
+autoincrement operator or the <b>syscall()</b> function.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Stringification
+also destroys arrays.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @lines =
+`command`; <br>
+print &quot;@lines&quot;; # WRONG &minus; extra blanks <br>
+print @lines; # right</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Why
+don&rsquo;t my &lt;&lt; <small>HERE</small> documents
+work?</b> <br>
+Here documents are found in perlop. Check for these three
+things: <br>
+There must be no space after the &lt;&lt; part. <br>
+There (probably) should be a semicolon at the end of the
+opening token <br>
+You can&rsquo;t (easily) have any space in front of the tag.
+<br>
+There needs to be at least a line separator after the end
+token.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+indent the text in the here document, you can do this:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># all in one
+<br>
+(my $VAR = &lt;&lt;HERE_TARGET) =~ s/^\s+//gm; <br>
+your text <br>
+goes here <br>
+HERE_TARGET</p>
+
+<p style="margin-left:11%; margin-top: 1em">But the
+<small>HERE_TARGET</small> must still be flush against the
+margin. If you want that indented also, you&rsquo;ll have to
+quote in the indentation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">(my $quote =
+&lt;&lt;' FINIS') =~ s/^\s+//gm; <br>
+...we will have peace, when you and all your works have <br>
+perished&minus;&minus;and the works of your dark master to
+whom you <br>
+would deliver us. You are a liar, Saruman, and a corrupter
+<br>
+of men's hearts. &minus;&minus;Theoden in
+/usr/src/perl/taint.c <br>
+FINIS <br>
+$quote =~ s/\s+&minus;&minus;/\n&minus;&minus;/;</p>
+
+<p style="margin-left:11%; margin-top: 1em">A nice
+general-purpose fixer-upper function for indented here
+documents follows. It expects to be called with a here
+document as its argument. It looks to see whether each line
+begins with a common substring, and if so, strips that
+substring off. Otherwise, it takes the amount of leading
+whitespace found on the first line and removes that much off
+each subsequent line.</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub fix { <br>
+local $_ = shift; <br>
+my ($white, $leader); # common whitespace and common leading
+string <br>
+if (/^\s*(?:([^\w\s]+)(\s*).*\n)(?:\s*\g1\g2?.*\n)+$/) {
+<br>
+($white, $leader) = ($2, quotemeta($1)); <br>
+} else { <br>
+($white, $leader) = (/^(\s+)/, ''); <br>
+} <br>
+s/^\s*?$leader(?:$white)?//gm; <br>
+return $_; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This works with
+leading special strings, dynamically determined:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my
+$remember_the_main = fix&lt;&lt;' MAIN_INTERPRETER_LOOP';
+<br>
+@@@ int <br>
+@@@ runops() { <br>
+@@@ SAVEI32(runlevel); <br>
+@@@ runlevel++; <br>
+@@@ while ( op = (*op&minus;&gt;op_ppaddr)() ); <br>
+@@@ TAINT_NOT; <br>
+@@@ return 0; <br>
+@@@ } <br>
+MAIN_INTERPRETER_LOOP</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or with a fixed
+amount of leading whitespace, with remaining indentation
+correctly preserved:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $poem =
+fix&lt;&lt;EVER_ON_AND_ON; <br>
+Now far ahead the Road has gone, <br>
+And I must follow, if I can, <br>
+Pursuing it with eager feet, <br>
+Until it joins some larger way <br>
+Where many paths and errands meet. <br>
+And whither then? I cannot say. <br>
+&minus;&minus;Bilbo in /usr/src/perl/pp_ctl.c <br>
+EVER_ON_AND_ON</p>
+
+<p style="margin-left:11%; margin-top: 1em">Beginning with
+Perl version 5.26, a much simpler and cleaner way to write
+indented here documents has been added to the language: the
+tilde (~) modifier. See &quot;Indented Here-docs&quot; in
+perlop for details.</p>
+
+<h2>Data: Arrays
+<a name="Data: Arrays"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>What is the
+difference between a list and an array?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">A list is a
+fixed collection of scalars. An array is a variable that
+holds a variable collection of scalars. An array can supply
+its collection for list operations, so list operations also
+work on arrays:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># slices <br>
+( 'dog', 'cat', 'bird' )[2,3]; <br>
+@animals[2,3]; <br>
+# iteration <br>
+foreach ( qw( dog cat bird ) ) { ... } <br>
+foreach ( @animals ) { ... } <br>
+my @three = grep { length == 3 } qw( dog cat bird ); <br>
+my @three = grep { length == 3 } @animals; <br>
+# supply an argument list <br>
+wash_animals( qw( dog cat bird ) ); <br>
+wash_animals( @animals );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Array
+operations, which change the scalars, rearrange them, or add
+or subtract some scalars, only work on arrays. These
+can&rsquo;t work on a list, which is fixed. Array operations
+include &quot;shift&quot;, &quot;unshift&quot;,
+&quot;push&quot;, &quot;pop&quot;, and
+&quot;splice&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An array can
+also change its length:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$#animals = 1;
+# truncate to two elements <br>
+$#animals = 10000; # pre&minus;extend to 10,001 elements</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can change
+an array element, but you can&rsquo;t change a list
+element:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$animals[0] =
+'Rottweiler'; <br>
+qw( dog cat bird )[0] = 'Rottweiler'; # syntax error! <br>
+foreach ( @animals ) { <br>
+s/^d/fr/; # works fine <br>
+} <br>
+foreach ( qw( dog cat bird ) ) { <br>
+s/^d/fr/; # Error! Modification of read only value! <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, if the
+list element is itself a variable, it appears that you can
+change a list element. However, the list element is the
+variable, not the data. You&rsquo;re not changing the list
+element, but something the list element refers to. The list
+element itself doesn&rsquo;t change: it&rsquo;s still the
+same variable.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You also have
+to be careful about context. You can assign an array to a
+scalar to get the number of elements in the array. This only
+works for arrays, though:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $count =
+@animals; # only works with arrays</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you try to
+do the same thing with what you think is a list, you get a
+quite different result. Although it looks like you have a
+list on the righthand side, Perl actually sees a bunch of
+scalars separated by a comma:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $scalar = (
+'dog', 'cat', 'bird' ); # $scalar gets bird</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since
+you&rsquo;re assigning to a scalar, the righthand side is in
+scalar context. The comma operator (yes, it&rsquo;s an
+operator!) in scalar context evaluates its lefthand side,
+throws away the result, and evaluates it&rsquo;s righthand
+side and returns the result. In effect, that list-lookalike
+assigns to $scalar it&rsquo;s rightmost value. Many people
+mess this up because they choose a list-lookalike whose last
+element is also the count they expect:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $scalar = (
+1, 2, 3 ); # $scalar gets 3, accidentally</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>What is the
+difference between $array[1] and @array[1]?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The difference
+is the sigil, that special character in front of the array
+name. The &quot;$&quot; sigil means &quot;exactly one
+item&quot;, while the &quot;@&quot; sigil means &quot;zero
+or more items&quot;. The &quot;$&quot; gets you a single
+scalar, while the &quot;@&quot; gets you a list.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The confusion
+arises because people incorrectly assume that the sigil
+denotes the variable type.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The $array[1]
+is a single-element access to the array. It&rsquo;s going to
+return the item in index 1 (or undef if there is no item
+there). If you intend to get exactly one element from the
+array, this is the form you should use.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The @array[1]
+is an array slice, although it has only one index. You can
+pull out multiple elements simultaneously by specifying
+additional indices as a list, like @array[1,4,3,0].</p>
+
+<p style="margin-left:11%; margin-top: 1em">Using a slice
+on the lefthand side of the assignment supplies list context
+to the righthand side. This can lead to unexpected results.
+For instance, if you want to read a single line from a
+filehandle, assigning to a scalar value is fine:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$array[1] =
+&lt;STDIN&gt;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, in
+list context, the line input operator returns all of the
+lines as a list. The first line goes into @array[1] and the
+rest of the lines mysteriously disappear:</p>
+
+<p style="margin-left:11%; margin-top: 1em">@array[1] =
+&lt;STDIN&gt;; # most likely not what you want</p>
+
+<p style="margin-left:11%; margin-top: 1em">Either the
+&quot;use warnings&quot; pragma or the <b>&minus;w</b> flag
+will warn you when you use an array slice with a single
+index.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+remove duplicate elements from a list or array?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Use a hash.
+When you think the words &quot;unique&quot; or
+&quot;duplicated&quot;, think &quot;hash keys&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you
+don&rsquo;t care about the order of the elements, you could
+just create the hash then extract the keys. It&rsquo;s not
+important how you create that hash: just that you use
+&quot;keys&quot; to get the unique elements.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %hash = map
+{ $_, 1 } @array; <br>
+# or a hash slice: @hash{ @array } = (); <br>
+# or a foreach: $hash{$_} = 1 foreach ( @array ); <br>
+my @unique = keys %hash;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+use a module, try the &quot;uniq&quot; function from
+List::MoreUtils. In list context it returns the unique
+elements, preserving their order in the list. In scalar
+context, it returns the number of unique elements.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+List::MoreUtils qw(uniq); <br>
+my @unique = uniq( 1, 2, 3, 4, 4, 5, 6, 5, 7 ); #
+1,2,3,4,5,6,7 <br>
+my $unique = uniq( 1, 2, 3, 4, 4, 5, 6, 5, 7 ); # 7</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also go
+through each element and skip the ones you&rsquo;ve seen
+before. Use a hash to keep track. The first time the loop
+sees an element, that element has no key in %Seen. The
+&quot;next&quot; statement creates the key and immediately
+uses its value, which is &quot;undef&quot;, so the loop
+continues to the &quot;push&quot; and increments the value
+for that key. The next time the loop sees that same element,
+its key exists in the hash <i>and</i> the value for that key
+is true (since it&rsquo;s not 0 or &quot;undef&quot;), so
+the next skips that iteration and the loop goes to the next
+element.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @unique =
+(); <br>
+my %seen = (); <br>
+foreach my $elem ( @array ) { <br>
+next if $seen{ $elem }++; <br>
+push @unique, $elem; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can write
+this more briefly using a grep, which does the same
+thing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %seen = ();
+<br>
+my @unique = grep { ! $seen{ $_ }++ } @array;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+tell whether a certain element is contained in a list or
+array?</b> <br>
+(portions of this answer contributed by Anno Siegel and
+brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Hearing the
+word &quot;in&quot; is an <i>in</i>dication that you
+probably should have used a hash, not a list or array, to
+store your data. Hashes are designed to answer this question
+quickly and efficiently. Arrays aren&rsquo;t.</p>
+
+<p style="margin-left:11%; margin-top: 1em">That being
+said, there are several ways to approach this. If you are
+going to make this query many times over arbitrary string
+values, the fastest way is probably to invert the original
+array and maintain a hash whose keys are the first
+array&rsquo;s values:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @blues =
+qw/azure cerulean teal turquoise lapis&minus;lazuli/; <br>
+my %is_blue = (); <br>
+for (@blues) { $is_blue{$_} = 1 }</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now you can
+check whether $is_blue{$some_color}. It might have been a
+good idea to keep the blues all in a hash in the first
+place.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the values
+are all small integers, you could use a simple indexed
+array. This kind of an array will take up less space:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @primes =
+(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31); <br>
+my @is_tiny_prime = (); <br>
+for (@primes) { $is_tiny_prime[$_] = 1 } <br>
+# or simply @istiny_prime[@primes] = (1) x @primes;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now you check
+whether $is_tiny_prime[$some_number].</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the values
+in question are integers instead of strings, you can save
+quite a lot of space by using bit strings instead:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @articles =
+( 1..10, 150..2000, 2017 ); <br>
+undef $read; <br>
+for (@articles) { vec($read,$_,1) = 1 }</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now check
+whether &quot;vec($read,$n,1)&quot; is true for some $n.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These methods
+guarantee fast individual tests but require a
+re-organization of the original list or array. They only pay
+off if you have to test multiple values against the same
+array.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+testing only once, the standard module List::Util exports
+the function &quot;any&quot; for this purpose. It works by
+stopping once it finds the element. It&rsquo;s written in C
+for speed, and its Perl equivalent looks like this
+subroutine:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub any
+(&amp;@) { <br>
+my $code = shift; <br>
+foreach (@_) { <br>
+return 1 if $code&minus;&gt;(); <br>
+} <br>
+return 0; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If speed is of
+little concern, the common idiom uses grep in scalar context
+(which returns the number of items that passed its
+condition) to traverse the entire list. This does have the
+benefit of telling you how many matches it found,
+though.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $is_there =
+grep $_ eq $whatever, @array;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+actually extract the matching elements, simply use grep in
+list context.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @matches =
+grep $_ eq $whatever, @array;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+compute the difference of two arrays? How do I compute the
+intersection of two arrays?</b> <br>
+Use a hash. Here&rsquo;s code to do both and more. It
+assumes that each element is unique in a given array:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my (@union,
+@intersection, @difference); <br>
+my %count = (); <br>
+foreach my $element (@array1, @array2) { $count{$element}++
+} <br>
+foreach my $element (keys %count) { <br>
+push @union, $element; <br>
+push @{ $count{$element} &gt; 1 ? \@intersection :
+\@difference }, $element; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+is the <i>symmetric difference</i>, that is, all elements in
+either A or in B but not in both. Think of it as an xor
+operation.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+test whether two arrays or hashes are equal?</b> <br>
+The following code works for single-level arrays. It uses a
+stringwise comparison, and does not distinguish defined
+versus undefined empty strings. Modify if you have other
+needs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$are_equal =
+compare_arrays(\@frogs, \@toads); <br>
+sub compare_arrays { <br>
+my ($first, $second) = @_; <br>
+no warnings; # silence spurious &minus;w undef complaints
+<br>
+return 0 unless @$first == @$second; <br>
+for (my $i = 0; $i &lt; @$first; $i++) { <br>
+return 0 if $first&minus;&gt;[$i] ne $second&minus;&gt;[$i];
+<br>
+} <br>
+return 1; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">For multilevel
+structures, you may wish to use an approach more like this
+one. It uses the <small>CPAN</small> module FreezeThaw:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use FreezeThaw
+qw(cmpStr); <br>
+my @a = my @b = ( &quot;this&quot;, &quot;that&quot;, [
+&quot;more&quot;, &quot;stuff&quot; ] ); <br>
+printf &quot;a and b contain %s arrays\n&quot;, <br>
+cmpStr(\@a, \@b) == 0 <br>
+? &quot;the same&quot; <br>
+: &quot;different&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This approach
+also works for comparing hashes. Here we&rsquo;ll
+demonstrate two different answers:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use FreezeThaw
+qw(cmpStr cmpStrHard); <br>
+my %a = my %b = ( &quot;this&quot; =&gt; &quot;that&quot;,
+&quot;extra&quot; =&gt; [ &quot;more&quot;,
+&quot;stuff&quot; ] ); <br>
+$a{EXTRA} = \%b; <br>
+$b{EXTRA} = \%a; <br>
+printf &quot;a and b contain %s hashes\n&quot;, <br>
+cmpStr(\%a, \%b) == 0 ? &quot;the same&quot; :
+&quot;different&quot;; <br>
+printf &quot;a and b contain %s hashes\n&quot;, <br>
+cmpStrHard(\%a, \%b) == 0 ? &quot;the same&quot; :
+&quot;different&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first
+reports that both those the hashes contain the same data,
+while the second reports that they do not. Which you prefer
+is left as an exercise to the reader.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+find the first array element for which a condition is
+true?</b> <br>
+To find the first array element which satisfies a condition,
+you can use the &quot;first()&quot; function in the
+List::Util module, which comes with Perl 5.8. This example
+finds the first element that contains &quot;Perl&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use List::Util
+qw(first); <br>
+my $element = first { /Perl/ } @array;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you cannot
+use List::Util, you can make your own loop to do the same
+thing. Once you find the element, you stop the loop with
+last.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $found; <br>
+foreach ( @array ) { <br>
+if( /Perl/ ) { $found = $_; last } <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want the
+array index, use the &quot;firstidx()&quot; function from
+&quot;List::MoreUtils&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+List::MoreUtils qw(firstidx); <br>
+my $index = firstidx { /Perl/ } @array;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or write it
+yourself, iterating through the indices and checking the
+array element at each index until you find one that
+satisfies the condition:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my( $found,
+$index ) = ( undef, &minus;1 ); <br>
+for( $i = 0; $i &lt; @array; $i++ ) { <br>
+if( $array[$i] =~ /Perl/ ) { <br>
+$found = $array[$i]; <br>
+$index = $i; <br>
+last; <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+handle linked lists?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl&rsquo;s
+arrays do not have a fixed size, so you don&rsquo;t need
+linked lists if you just want to add or remove items. You
+can use array operations such as &quot;push&quot;,
+&quot;pop&quot;, &quot;shift&quot;, &quot;unshift&quot;, or
+&quot;splice&quot; to do that.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Sometimes,
+however, linked lists can be useful in situations where you
+want to &quot;shard&quot; an array so you have many small
+arrays instead of a single big array. You can keep arrays
+longer than Perl&rsquo;s largest array index, lock smaller
+arrays separately in threaded programs, reallocate less
+memory, or quickly insert elements in the middle of the
+chain.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Steve Lembark
+goes through the details in his <small>YAPC::NA 2009</small>
+talk &quot;Perly Linked Lists&quot; (
+&lt;http://www.slideshare.net/lembark/perly&minus;linked&minus;lists&gt;
+), although you can just use his LinkedList::Single
+module.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+handle circular lists?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+cycle through an array endlessly, you can increment the
+index modulo the number of elements in the array:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @array = qw(
+a b c ); <br>
+my $i = 0; <br>
+while( 1 ) { <br>
+print $array[ $i++ % @array ], &quot;\n&quot;; <br>
+last if $i &gt; 20; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+use Tie::Cycle to use a scalar that always has the next
+element of the circular array:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Tie::Cycle;
+<br>
+tie my $cycle, 'Tie::Cycle', [ qw( FFFFFF 000000 FFFF00 ) ];
+<br>
+print $cycle; # FFFFFF <br>
+print $cycle; # 000000 <br>
+print $cycle; # FFFF00</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+Array::Iterator::Circular creates an iterator object for
+circular arrays:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Array::Iterator::Circular; <br>
+my $color_iterator =
+Array::Iterator::Circular&minus;&gt;new( <br>
+qw(red green blue orange) <br>
+); <br>
+foreach ( 1 .. 20 ) { <br>
+print $color_iterator&minus;&gt;next, &quot;\n&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+shuffle an array randomly?</b> <br>
+If you either have Perl 5.8.0 or later installed, or if you
+have Scalar-List-Utils 1.03 or later installed, you can
+say:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use List::Util
+'shuffle'; <br>
+@shuffled = shuffle(@list);</p>
+
+<p style="margin-left:11%; margin-top: 1em">If not, you can
+use a Fisher-Yates shuffle.</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub
+fisher_yates_shuffle { <br>
+my $deck = shift; # $deck is a reference to an array <br>
+return unless @$deck; # must not be empty! <br>
+my $i = @$deck; <br>
+while (&minus;&minus;$i) { <br>
+my $j = int rand ($i+1); <br>
+@$deck[$i,$j] = @$deck[$j,$i]; <br>
+} <br>
+} <br>
+# shuffle my mpeg collection <br>
+# <br>
+my @mpeg = &lt;audio/*/*.mp3&gt;; <br>
+fisher_yates_shuffle( \@mpeg ); # randomize @mpeg in place
+<br>
+print @mpeg;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+above implementation shuffles an array in place, unlike the
+&quot;List::Util::shuffle()&quot; which takes a list and
+returns a new shuffled list.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You&rsquo;ve
+probably seen shuffling algorithms that work using splice,
+randomly picking another element to swap the current element
+with</p>
+
+<p style="margin-left:11%; margin-top: 1em">srand; <br>
+@new = (); <br>
+@old = 1 .. 10; # just a demo <br>
+while (@old) { <br>
+push(@new, splice(@old, rand @old, 1)); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is bad
+because splice is already O(N), and since you do it N times,
+you just invented a quadratic algorithm; that is, O(N**2).
+This does not scale, although Perl is so efficient that you
+probably won&rsquo;t notice this until you have rather
+largish arrays.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+process/modify each element of an array?</b> <br>
+Use &quot;for&quot;/&quot;foreach&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">for (@lines) {
+<br>
+s/foo/bar/; # change that word <br>
+tr/XZ/ZX/; # swap those letters <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s
+another; let&rsquo;s compute spherical volumes:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @volumes =
+@radii; <br>
+for (@volumes) { # @volumes has changed parts <br>
+$_ **= 3; <br>
+$_ *= (4/3) * 3.14159; # this will be constant folded <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">which can also
+be done with &quot;map()&quot; which is made to transform
+one list into another:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @volumes =
+map {$_ ** 3 * (4/3) * 3.14159} @radii;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+do the same thing to modify the values of the hash, you can
+use the &quot;values&quot; function. As of Perl 5.6 the
+values are not copied, so if you modify $orbit (in this
+case), you modify the value.</p>
+
+<p style="margin-left:11%; margin-top: 1em">for my $orbit (
+values %orbits ) { <br>
+($orbit **= 3) *= (4/3) * 3.14159; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Prior to perl
+5.6 &quot;values&quot; returned copies of the values, so
+older perl code often contains constructions such as
+@orbits{keys %orbits} instead of &quot;values %orbits&quot;
+where the hash is to be modified.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+select a random element from an array?</b> <br>
+Use the &quot;rand()&quot; function (see &quot;rand&quot; in
+perlfunc):</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $index =
+rand @array; <br>
+my $element = $array[$index];</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or, simply:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $element =
+$array[ rand @array ];</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+permute N elements of a list?</b> <br>
+Use the List::Permutor module on <small>CPAN.</small> If the
+list is actually an array, try the Algorithm::Permute module
+(also on <small>CPAN</small> ). It&rsquo;s written in
+<small>XS</small> code and is very efficient:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Algorithm::Permute; <br>
+my @array = 'a'..'d'; <br>
+my $p_iterator = Algorithm::Permute&minus;&gt;new ( \@array
+); <br>
+while (my @perm = $p_iterator&minus;&gt;next) { <br>
+print &quot;next permutation: (@perm)\n&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">For even faster
+execution, you could do:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Algorithm::Permute; <br>
+my @array = 'a'..'d'; <br>
+Algorithm::Permute::permute { <br>
+print &quot;next permutation: (@array)\n&quot;; <br>
+} @array;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s a
+little program that generates all permutations of all the
+words on each line of input. The algorithm embodied in the
+&quot;permute()&quot; function is discussed in Volume 4
+(still unpublished) of Knuth&rsquo;s <i>The Art of Computer
+Programming</i> and will work on any list:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">#!/usr/bin/perl
+&minus;n <br>
+# Fischer&minus;Krause ordered permutation generator <br>
+sub permute (&amp;@) { <br>
+my $code = shift; <br>
+my @idx = 0..$#_; <br>
+while ( $code&minus;&gt;(@_[@idx]) ) { <br>
+my $p = $#idx; <br>
+&minus;&minus;$p while $idx[$p&minus;1] &gt; $idx[$p]; <br>
+my $q = $p or return; <br>
+push @idx, reverse splice @idx, $p; <br>
+++$q while $idx[$p&minus;1] &gt; $idx[$q]; <br>
+@idx[$p&minus;1,$q]=@idx[$q,$p&minus;1]; <br>
+} <br>
+} <br>
+permute { print &quot;@_\n&quot; } split;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+Algorithm::Loops module also provides the
+&quot;NextPermute&quot; and &quot;NextPermuteNum&quot;
+functions which efficiently find all unique permutations of
+an array, even if it contains duplicate values, modifying it
+in-place: if its elements are in reverse-sorted order then
+the array is reversed, making it sorted, and it returns
+false; otherwise the next permutation is returned.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;NextPermute&quot;
+uses string order and &quot;NextPermuteNum&quot; numeric
+order, so you can enumerate all the permutations of 0..9
+like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Algorithm::Loops qw(NextPermuteNum); <br>
+my @list= 0..9; <br>
+do { print &quot;@list\n&quot; } while NextPermuteNum
+@list;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+sort an array by (anything)?</b> <br>
+Supply a comparison function to <b>sort()</b> (described in
+&quot;sort&quot; in perlfunc):</p>
+
+<p style="margin-left:11%; margin-top: 1em">@list = sort {
+$a &lt;=&gt; $b } @list;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default
+sort function is cmp, string comparison, which would sort
+&quot;(1, 2, 10)&quot; into &quot;(1, 10, 2)&quot;.
+&quot;&lt;=&gt;&quot;, used above, is the numerical
+comparison operator.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you have a
+complicated function needed to pull out the part you want to
+sort on, then don&rsquo;t do it inside the sort function.
+Pull it out first, because the sort <small>BLOCK</small> can
+be called many times for the same element. Here&rsquo;s an
+example of how to pull out the first word after the first
+number on each item, and then sort those words
+case-insensitively.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @idx; <br>
+for (@data) { <br>
+my $item; <br>
+($item) = /\d+\s*(\S+)/; <br>
+push @idx, uc($item); <br>
+} <br>
+my @sorted = @data[ sort { $idx[$a] cmp $idx[$b] } 0 ..
+$#idx ];</p>
+
+<p style="margin-left:11%; margin-top: 1em">which could
+also be written this way, using a trick that&rsquo;s come to
+be known as the Schwartzian Transform:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @sorted =
+map { $_&minus;&gt;[0] } <br>
+sort { $a&minus;&gt;[1] cmp $b&minus;&gt;[1] } <br>
+map { [ $_, uc( (/\d+\s*(\S+)/)[0]) ] } @data;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you need to
+sort on several fields, the following paradigm is
+useful.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @sorted =
+sort { <br>
+field1($a) &lt;=&gt; field1($b) || <br>
+field2($a) cmp field2($b) || <br>
+field3($a) cmp field3($b) <br>
+} @data;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This can be
+conveniently combined with precalculation of keys as given
+above.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See the
+<i>sort</i> article in the &quot;Far More Than You Ever
+Wanted To Know&quot; collection in
+&lt;http://www.cpan.org/misc/olddoc/FMTEYEWTK.tgz&gt; for
+more about this approach.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also the
+question later in perlfaq4 on sorting hashes.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+manipulate arrays of bits?</b> <br>
+Use &quot;pack()&quot; and &quot;unpack()&quot;, or else
+&quot;vec()&quot; and the bitwise operations.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example,
+you don&rsquo;t have to store individual bits in an array
+(which would mean that you&rsquo;re wasting a lot of space).
+To convert an array of bits to a string, use
+&quot;vec()&quot; to set the right bits. This sets $vec to
+have bit N set only if $ints[N] was set:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @ints =
+(...); # array of bits, e.g. ( 1, 0, 0, 1, 1, 0 ... ) <br>
+my $vec = ''; <br>
+foreach( 0 .. $#ints ) { <br>
+vec($vec,$_,1) = 1 if $ints[$_]; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The string $vec
+only takes up as many bits as it needs. For instance, if you
+had 16 entries in @ints, $vec only needs two bytes to store
+them (not counting the scalar variable overhead).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s
+how, given a vector in $vec, you can get those bits into
+your @ints array:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub
+bitvec_to_list { <br>
+my $vec = shift; <br>
+my @ints; <br>
+# Find null&minus;byte density then select best algorithm
+<br>
+if ($vec =~ tr/\0// / length $vec &gt; 0.95) { <br>
+use integer; <br>
+my $i; <br>
+# This method is faster with mostly null&minus;bytes <br>
+while($vec =~ /[^\0]/g ) { <br>
+$i = &minus;9 + 8 * pos $vec; <br>
+push @ints, $i if vec($vec, ++$i, 1); <br>
+push @ints, $i if vec($vec, ++$i, 1); <br>
+push @ints, $i if vec($vec, ++$i, 1); <br>
+push @ints, $i if vec($vec, ++$i, 1); <br>
+push @ints, $i if vec($vec, ++$i, 1); <br>
+push @ints, $i if vec($vec, ++$i, 1); <br>
+push @ints, $i if vec($vec, ++$i, 1); <br>
+push @ints, $i if vec($vec, ++$i, 1); <br>
+} <br>
+} <br>
+else { <br>
+# This method is a fast general algorithm <br>
+use integer; <br>
+my $bits = unpack &quot;b*&quot;, $vec; <br>
+push @ints, 0 if $bits =~ s/^(\d)// &amp;&amp; $1; <br>
+push @ints, pos $bits while($bits =~ /1/g); <br>
+} <br>
+return \@ints; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+gets faster the more sparse the bit vector is. (Courtesy of
+Tim Bunce and Winfried Koenig.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can make
+the while loop a lot shorter with this suggestion from
+Benjamin Goldberg:</p>
+
+<p style="margin-left:11%; margin-top: 1em">while($vec =~
+/[^\0]+/g ) { <br>
+push @ints, grep vec($vec, $_, 1), $&minus;[0] * 8 .. $+[0]
+* 8; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or use the
+<small>CPAN</small> module Bit::Vector:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $vector =
+Bit::Vector&minus;&gt;new($num_of_bits); <br>
+$vector&minus;&gt;Index_List_Store(@ints); <br>
+my @ints = $vector&minus;&gt;Index_List_Read();</p>
+
+<p style="margin-left:11%; margin-top: 1em">Bit::Vector
+provides efficient methods for bit vector, sets of small
+integers and &quot;big int&quot; math.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s a
+more extensive illustration using <b>vec()</b>:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># vec demo <br>
+my $vector = &quot;\xff\x0f\xef\xfe&quot;; <br>
+print &quot;Ilya's string \\xff\\x0f\\xef\\xfe represents
+the number &quot;, <br>
+unpack(&quot;N&quot;, $vector), &quot;\n&quot;; <br>
+my $is_set = vec($vector, 23, 1); <br>
+print &quot;Its 23rd bit is &quot;, $is_set ?
+&quot;set&quot; : &quot;clear&quot;, &quot;.\n&quot;; <br>
+pvec($vector); <br>
+set_vec(1,1,1); <br>
+set_vec(3,1,1); <br>
+set_vec(23,1,1); <br>
+set_vec(3,1,3); <br>
+set_vec(3,2,3); <br>
+set_vec(3,4,3); <br>
+set_vec(3,4,7); <br>
+set_vec(3,8,3); <br>
+set_vec(3,8,7); <br>
+set_vec(0,32,17); <br>
+set_vec(1,32,17); <br>
+sub set_vec { <br>
+my ($offset, $width, $value) = @_; <br>
+my $vector = ''; <br>
+vec($vector, $offset, $width) = $value; <br>
+print &quot;offset=$offset width=$width
+value=$value\n&quot;; <br>
+pvec($vector); <br>
+} <br>
+sub pvec { <br>
+my $vector = shift; <br>
+my $bits = unpack(&quot;b*&quot;, $vector); <br>
+my $i = 0; <br>
+my $BASE = 8; <br>
+print &quot;vector length in bytes: &quot;, length($vector),
+&quot;\n&quot;; <br>
+@bytes = unpack(&quot;A8&quot; x length($vector), $bits);
+<br>
+print &quot;bits are: @bytes\n\n&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Why does
+defined() return true on empty arrays and hashes?</b> <br>
+The short story is that you should probably only use defined
+on scalars or functions, not on aggregates (arrays and
+hashes). See &quot;defined&quot; in perlfunc in the 5.004
+release or later of Perl for more detail.</p>
+
+<h2>Data: Hashes (Associative Arrays)
+<a name="Data: Hashes (Associative Arrays)"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+process an entire hash?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are a
+couple of ways that you can process an entire hash. You can
+get a list of keys, then go through each key, or grab a one
+key-value pair at a time.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To go through
+all of the keys, use the &quot;keys&quot; function. This
+extracts all of the keys of the hash and gives them back to
+you as a list. You can then get the value through the
+particular key you&rsquo;re processing:</p>
+
+<p style="margin-left:11%; margin-top: 1em">foreach my $key
+( keys %hash ) { <br>
+my $value = $hash{$key} <br>
+... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once you have
+the list of keys, you can process that list before you
+process the hash elements. For instance, you can sort the
+keys so you can process them in lexical order:</p>
+
+<p style="margin-left:11%; margin-top: 1em">foreach my $key
+( sort keys %hash ) { <br>
+my $value = $hash{$key} <br>
+... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or, you might
+want to only process some of the items. If you only want to
+deal with the keys that start with &quot;text:&quot;, you
+can select just those using &quot;grep&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">foreach my $key
+( grep /^text:/, keys %hash ) { <br>
+my $value = $hash{$key} <br>
+... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the hash is
+very large, you might not want to create a long list of
+keys. To save some memory, you can grab one key-value pair
+at a time using &quot;each()&quot;, which returns a pair you
+haven&rsquo;t seen yet:</p>
+
+<p style="margin-left:11%; margin-top: 1em">while( my(
+$key, $value ) = each( %hash ) ) { <br>
+... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;each&quot; operator returns the pairs in apparently
+random order, so if ordering matters to you, you&rsquo;ll
+have to stick with the &quot;keys&quot; method.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;each()&quot; operator can be a bit tricky though. You
+can&rsquo;t add or delete keys of the hash while
+you&rsquo;re using it without possibly skipping or
+re-processing some pairs after Perl internally rehashes all
+of the elements. Additionally, a hash has only one iterator,
+so if you mix &quot;keys&quot;, &quot;values&quot;, or
+&quot;each&quot; on the same hash, you risk resetting the
+iterator and messing up your processing. See the
+&quot;each&quot; entry in perlfunc for more details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+merge two hashes?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Before you
+decide to merge two hashes, you have to decide what to do if
+both hashes contain keys that are the same and if you want
+to leave the original hashes as they were.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+preserve the original hashes, copy one hash (%hash1) to a
+new hash (%new_hash), then add the keys from the other hash
+(%hash2 to the new hash. Checking that the key already
+exists in %new_hash gives you a chance to decide what to do
+with the duplicates:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %new_hash =
+%hash1; # make a copy; leave %hash1 alone <br>
+foreach my $key2 ( keys %hash2 ) { <br>
+if( exists $new_hash{$key2} ) { <br>
+warn &quot;Key [$key2] is in both hashes!&quot;; <br>
+# handle the duplicate (perhaps only warning) <br>
+... <br>
+next; <br>
+} <br>
+else { <br>
+$new_hash{$key2} = $hash2{$key2}; <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you
+don&rsquo;t want to create a new hash, you can still use
+this looping technique; just change the %new_hash to
+%hash1.</p>
+
+<p style="margin-left:11%; margin-top: 1em">foreach my
+$key2 ( keys %hash2 ) { <br>
+if( exists $hash1{$key2} ) { <br>
+warn &quot;Key [$key2] is in both hashes!&quot;; <br>
+# handle the duplicate (perhaps only warning) <br>
+... <br>
+next; <br>
+} <br>
+else { <br>
+$hash1{$key2} = $hash2{$key2}; <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you
+don&rsquo;t care that one hash overwrites keys and values
+from the other, you could just use a hash slice to add one
+hash to another. In this case, values from %hash2 replace
+values from %hash1 when they have keys in common:</p>
+
+<p style="margin-left:11%; margin-top: 1em">@hash1{ keys
+%hash2 } = values %hash2;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>What happens
+if I add or remove keys from a hash while iterating over
+it?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The easy answer
+is &quot;Don&rsquo;t do that!&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you iterate
+through the hash with <b>each()</b>, you can delete the key
+most recently returned without worrying about it. If you
+delete or add other keys, the iterator may skip or double up
+on them since perl may rearrange the hash table. See the
+entry for &quot;each()&quot; in perlfunc.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+look up a hash element by value?</b> <br>
+Create a reverse hash:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %by_value =
+reverse %by_key; <br>
+my $key = $by_value{$value};</p>
+
+<p style="margin-left:11%; margin-top: 1em">That&rsquo;s
+not particularly efficient. It would be more space-efficient
+to use:</p>
+
+<p style="margin-left:11%; margin-top: 1em">while (my
+($key, $value) = each %by_key) { <br>
+$by_value{$value} = $key; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If your hash
+could have repeated values, the methods above will only find
+one of the associated keys. This may or may not worry you.
+If it does worry you, you can always reverse the hash into a
+hash of arrays instead:</p>
+
+<p style="margin-left:11%; margin-top: 1em">while (my
+($key, $value) = each %by_key) { <br>
+push @{$key_list_by_value{$value}}, $key; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+know how many entries are in a hash?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is very
+similar to &quot;How do I process an entire hash?&quot;,
+also in perlfaq4, but a bit simpler in the common cases.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use the
+&quot;keys()&quot; built-in function in scalar context to
+find out have many entries you have in a hash:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $key_count =
+keys %hash; # must be scalar context!</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+find out how many entries have a defined value, that&rsquo;s
+a bit different. You have to check each value. A
+&quot;grep&quot; is handy:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my
+$defined_value_count = grep { defined } values %hash;</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use
+that same structure to count the entries any way that you
+like. If you want the count of the keys with vowels in them,
+you just test for that instead:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $vowel_count
+= grep { /[aeiou]/ } keys %hash;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;grep&quot; in scalar context returns the count. If you
+want the list of matching items, just use it in list context
+instead:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my
+@defined_values = grep { defined } values %hash;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;keys()&quot; function also resets the iterator, which
+means that you may see strange results if you use this
+between uses of other hash operators such as
+&quot;each()&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+sort a hash (optionally by value instead of key)?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">To sort a hash,
+start with the keys. In this example, we give the list of
+keys to the sort function which then compares them
+ASCIIbetically (which might be affected by your locale
+settings). The output list has the keys in ASCIIbetical
+order. Once we have the keys, we can go through them to
+create a report which lists the keys in ASCIIbetical
+order.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @keys = sort
+{ $a cmp $b } keys %hash; <br>
+foreach my $key ( @keys ) { <br>
+printf &quot;%&minus;20s %6d\n&quot;, $key, $hash{$key};
+<br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">We could get
+more fancy in the &quot;sort()&quot; block though. Instead
+of comparing the keys, we can compute a value with them and
+use that value as the comparison.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For instance,
+to make our report order case-insensitive, we use
+&quot;lc&quot; to lowercase the keys before comparing
+them:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @keys = sort
+{ lc $a cmp lc $b } keys %hash;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: if the
+computation is expensive or the hash has many elements, you
+may want to look at the Schwartzian Transform to cache the
+computation results.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If we want to
+sort by the hash value instead, we use the hash key to look
+it up. We still get out a list of keys, but this time they
+are ordered by their value.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @keys = sort
+{ $hash{$a} &lt;=&gt; $hash{$b} } keys %hash;</p>
+
+<p style="margin-left:11%; margin-top: 1em">From there we
+can get more complex. If the hash values are the same, we
+can provide a secondary sort on the hash key.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @keys = sort
+{ <br>
+$hash{$a} &lt;=&gt; $hash{$b} <br>
+or <br>
+&quot;\L$a&quot; cmp &quot;\L$b&quot; <br>
+} keys %hash;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+always keep my hash sorted?</b> <br>
+You can look into using the &quot;DB_File&quot; module and
+&quot;tie()&quot; using the $DB_BTREE hash bindings as
+documented in &quot;In Memory Databases&quot; in DB_File.
+The Tie::IxHash module from <small>CPAN</small> might also
+be instructive. Although this does keep your hash sorted,
+you might not like the slowdown you suffer from the tie
+interface. Are you sure you need to do this? :)</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>What&rsquo;s
+the difference between &quot;delete&quot; and
+&quot;undef&quot; with hashes?</b> <br>
+Hashes contain pairs of scalars: the first is the key, the
+second is the value. The key will be coerced to a string,
+although the value can be any kind of scalar: string,
+number, or reference. If a key $key is present in %hash,
+&quot;exists($hash{$key})&quot; will return true. The value
+for a given key can be &quot;undef&quot;, in which case
+$hash{$key} will be &quot;undef&quot; while &quot;exists
+$hash{$key}&quot; will return true. This corresponds to
+($key, &quot;undef&quot;) being in the hash.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Pictures
+help... Here&rsquo;s the %hash table:</p>
+
+<p style="margin-left:11%; margin-top: 1em">keys values
+<br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| a | 3 | <br>
+| x | 7 | <br>
+| d | 0 | <br>
+| e | 2 | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;+</p>
+
+<p style="margin-left:11%; margin-top: 1em">And these
+conditions hold</p>
+
+<p style="margin-left:11%; margin-top: 1em">$hash{'a'} is
+true <br>
+$hash{'d'} is false <br>
+defined $hash{'d'} is true <br>
+defined $hash{'a'} is true <br>
+exists $hash{'a'} is true (Perl 5 only) <br>
+grep ($_ eq 'a', keys %hash) is true</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you now
+say</p>
+
+<p style="margin-left:11%; margin-top: 1em">undef
+$hash{'a'}</p>
+
+<p style="margin-left:11%; margin-top: 1em">your table now
+reads:</p>
+
+<p style="margin-left:11%; margin-top: 1em">keys values
+<br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| a | undef| <br>
+| x | 7 | <br>
+| d | 0 | <br>
+| e | 2 | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;+</p>
+
+<p style="margin-left:11%; margin-top: 1em">and these
+conditions now hold; changes in caps:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$hash{'a'} is
+FALSE <br>
+$hash{'d'} is false <br>
+defined $hash{'d'} is true <br>
+defined $hash{'a'} is FALSE <br>
+exists $hash{'a'} is true (Perl 5 only) <br>
+grep ($_ eq 'a', keys %hash) is true</p>
+
+<p style="margin-left:11%; margin-top: 1em">Notice the last
+two: you have an undef value, but a defined key!</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now, consider
+this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">delete
+$hash{'a'}</p>
+
+<p style="margin-left:11%; margin-top: 1em">your table now
+reads:</p>
+
+<p style="margin-left:11%; margin-top: 1em">keys values
+<br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| x | 7 | <br>
+| d | 0 | <br>
+| e | 2 | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;+</p>
+
+<p style="margin-left:11%; margin-top: 1em">and these
+conditions now hold; changes in caps:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$hash{'a'} is
+false <br>
+$hash{'d'} is false <br>
+defined $hash{'d'} is true <br>
+defined $hash{'a'} is false <br>
+exists $hash{'a'} is FALSE (Perl 5 only) <br>
+grep ($_ eq 'a', keys %hash) is FALSE</p>
+
+<p style="margin-left:11%; margin-top: 1em">See, the whole
+entry is gone!</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Why
+don&rsquo;t my tied hashes make the defined/exists
+distinction?</b> <br>
+This depends on the tied hash&rsquo;s implementation of
+<b><small>EXISTS</small> ()</b>. For example, there
+isn&rsquo;t the concept of undef with hashes that are tied
+to DBM* files. It also means that <b>exists()</b> and
+<b>defined()</b> do the same thing with a DBM* file, and
+what they end up doing is not what they do with ordinary
+hashes.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+reset an each() operation part-way through?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use the
+&quot;keys&quot; or &quot;values&quot; functions to reset
+&quot;each&quot;. To simply reset the iterator used by
+&quot;each&quot; without doing anything else, use one of
+them in void context:</p>
+
+<p style="margin-left:11%; margin-top: 1em">keys %hash; #
+resets iterator, nothing else. <br>
+values %hash; # resets iterator, nothing else.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See the
+documentation for &quot;each&quot; in perlfunc.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+get the unique keys from two hashes?</b> <br>
+First you extract the keys from the hashes into lists, then
+solve the &quot;removing duplicates&quot; problem described
+above. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %seen = ();
+<br>
+for my $element (keys(%foo), keys(%bar)) { <br>
+$seen{$element}++; <br>
+} <br>
+my @uniq = keys %seen;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or more
+succinctly:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @uniq = keys
+%{{%foo,%bar}};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or if you
+really want to save space:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %seen = ();
+<br>
+while (defined ($key = each %foo)) { <br>
+$seen{$key}++; <br>
+} <br>
+while (defined ($key = each %bar)) { <br>
+$seen{$key}++; <br>
+} <br>
+my @uniq = keys %seen;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+store a multidimensional array in a <small>DBM</small>
+file?</b> <br>
+Either stringify the structure yourself (no fun), or else
+get the <small>MLDBM</small> (which uses Data::Dumper)
+module from <small>CPAN</small> and layer it on top of
+either DB_File or GDBM_File. You might also try DBM::Deep,
+but it can be a bit slow.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+make my hash remember the order I put elements into it?</b>
+<br>
+Use the Tie::IxHash from <small>CPAN.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Tie::IxHash; <br>
+tie my %myhash, 'Tie::IxHash'; <br>
+for (my $i=0; $i&lt;20; $i++) { <br>
+$myhash{$i} = 2*$i; <br>
+} <br>
+my @keys = keys %myhash; <br>
+# @keys = (0,1,2,3,...)</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Why does
+passing a subroutine an undefined element in a hash create
+it?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Are you using a
+really old version of Perl?</p>
+
+<p style="margin-left:11%; margin-top: 1em">Normally,
+accessing a hash key&rsquo;s value for a nonexistent key
+will <i>not</i> create the key.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %hash = ();
+<br>
+my $value = $hash{ 'foo' }; <br>
+print &quot;This won't print\n&quot; if exists $hash{ 'foo'
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Passing $hash{
+'foo' } to a subroutine used to be a special case, though.
+Since you could assign directly to $_[0], Perl had to be
+ready to make that assignment so it created the hash key
+ahead of time:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my_sub( $hash{
+'foo' } ); <br>
+print &quot;This will print before 5.004\n&quot; if exists
+$hash{ 'foo' }; <br>
+sub my_sub { <br>
+# $_[0] = 'bar'; # create hash key in case you do this <br>
+1; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since Perl
+5.004, however, this situation is a special case and Perl
+creates the hash key only when you make the assignment:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my_sub( $hash{
+'foo' } ); <br>
+print &quot;This will print, even after 5.004\n&quot; if
+exists $hash{ 'foo' }; <br>
+sub my_sub { <br>
+$_[0] = 'bar'; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, if you
+want the old behavior (and think carefully about that
+because it&rsquo;s a weird side effect), you can pass a hash
+slice instead. Perl 5.004 didn&rsquo;t make this a special
+case:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my_sub( @hash{
+qw/foo/ } );</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+make the Perl equivalent of a C structure/C
+<small>++</small> class/hash or array of hashes or
+arrays?</b> <br>
+Usually a hash ref, perhaps like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$record = {
+<br>
+NAME =&gt; &quot;Jason&quot;, <br>
+EMPNO =&gt; 132, <br>
+TITLE =&gt; &quot;deputy peon&quot;, <br>
+AGE =&gt; 23, <br>
+SALARY =&gt; 37_000, <br>
+PALS =&gt; [ &quot;Norbert&quot;, &quot;Rhys&quot;,
+&quot;Phineas&quot;], <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">References are
+documented in perlref and perlreftut. Examples of complex
+data structures are given in perldsc and perllol. Examples
+of structures and object-oriented classes are in
+perlootut.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+use a reference as a hash key?</b> <br>
+(contributed by brian d foy and Ben Morrow)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Hash keys are
+strings, so you can&rsquo;t really use a reference as the
+key. When you try to do that, perl turns the reference into
+its stringified form (for instance,
+&quot;HASH(0xDEADBEEF)&quot;). From there you can&rsquo;t
+get back the reference from the stringified form, at least
+without doing some extra work on your own.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Remember that
+the entry in the hash will still be there even if the
+referenced variable goes out of scope, and that it is
+entirely possible for Perl to subsequently allocate a
+different variable at the same address. This will mean a new
+variable might accidentally be associated with the value for
+an old.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you have
+Perl 5.10 or later, and you just want to store a value
+against the reference for lookup later, you can use the core
+Hash::Util::Fieldhash module. This will also handle renaming
+the keys if you use multiple threads (which causes all
+variables to be reallocated at new addresses, changing their
+stringification), and garbage-collecting the entries when
+the referenced variable goes out of scope.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you actually
+need to be able to get a real reference back from each hash
+entry, you can use the Tie::RefHash module, which does the
+required work for you.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+check if a key exists in a multilevel hash?</b> <br>
+(contributed by brian d foy)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The trick to
+this problem is avoiding accidental autovivification. If you
+want to check three keys deep, you might naievely try
+this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %hash; <br>
+if( exists $hash{key1}{key2}{key3} ) { <br>
+...; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Even though you
+started with a completely empty hash, after that call to
+&quot;exists&quot; you&rsquo;ve created the structure you
+needed to check for &quot;key3&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">%hash = ( <br>
+'key1' =&gt; { <br>
+'key2' =&gt; {} <br>
+} <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">That&rsquo;s
+autovivification. You can get around this in a few ways. The
+easiest way is to just turn it off. The lexical
+&quot;autovivification&quot; pragma is available on
+<small>CPAN.</small> Now you don&rsquo;t add to the
+hash:</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ <br>
+no autovivification; <br>
+my %hash; <br>
+if( exists $hash{key1}{key2}{key3} ) { <br>
+...; <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Data::Diver
+module on <small>CPAN</small> can do it for you too. Its
+&quot;Dive&quot; subroutine can tell you not only if the
+keys exist but also get the value:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Data::Diver
+qw(Dive); <br>
+my @exists = Dive( \%hash, qw(key1 key2 key3) ); <br>
+if( ! @exists ) { <br>
+...; # keys do not exist <br>
+} <br>
+elsif( ! defined $exists[0] ) { <br>
+...; # keys exist but value is undef <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can easily
+do this yourself too by checking each level of the hash
+before you move onto the next level. This is essentially
+what Data::Diver does for you:</p>
+
+<p style="margin-left:11%; margin-top: 1em">if( check_hash(
+\%hash, qw(key1 key2 key3) ) ) { <br>
+...; <br>
+} <br>
+sub check_hash { <br>
+my( $hash, @keys ) = @_; <br>
+return unless @keys; <br>
+foreach my $key ( @keys ) { <br>
+return unless eval { exists $hash&minus;&gt;{$key} }; <br>
+$hash = $hash&minus;&gt;{$key}; <br>
+} <br>
+return 1; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How can I
+prevent addition of unwanted keys into a hash?</b> <br>
+Since version 5.8.0, hashes can be <i>restricted</i> to a
+fixed number of given keys. Methods for creating and dealing
+with restricted hashes are exported by the Hash::Util
+module.</p>
+
+<h2>Data: Misc
+<a name="Data: Misc"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+handle binary data correctly?</b> <br>
+Perl is binary-clean, so it can handle binary data just
+fine. On Windows or <small>DOS,</small> however, you have to
+use &quot;binmode&quot; for binary files to avoid
+conversions for line endings. In general, you should use
+&quot;binmode&quot; any time you want to work with binary
+data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also see
+&quot;binmode&quot; in perlfunc or perlopentut.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;re
+concerned about 8&minus;bit textual data then see
+perllocale. If you want to deal with multibyte characters,
+however, there are some gotchas. See the section on Regular
+Expressions.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+determine whether a scalar is a
+number/whole/integer/float?</b> <br>
+Assuming that you don&rsquo;t care about <small>IEEE</small>
+notations like &quot;NaN&quot; or &quot;Infinity&quot;, you
+probably just want to use a regular expression (see also
+perlretut and perlre):</p>
+
+<p style="margin-left:11%; margin-top: 1em">use 5.010; <br>
+if ( /\D/ ) <br>
+{ say &quot;\thas nondigits&quot;; } <br>
+if ( /^\d+\z/ ) <br>
+{ say &quot;\tis a whole number&quot;; } <br>
+if ( /^&minus;?\d+\z/ ) <br>
+{ say &quot;\tis an integer&quot;; } <br>
+if ( /^[+&minus;]?\d+\z/ ) <br>
+{ say &quot;\tis a +/&minus; integer&quot;; } <br>
+if ( /^&minus;?(?:\d+\.?|\.\d)\d*\z/ ) <br>
+{ say &quot;\tis a real number&quot;; } <br>
+if ( /^[+&minus;]?(?=\.?\d)\d*\.?\d*(?:e[+&minus;]?\d+)?\z/i
+) <br>
+{ say &quot;\tis a C float&quot; }</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are also
+some commonly used modules for the task. Scalar::Util
+(distributed with 5.8) provides access to perl&rsquo;s
+internal function &quot;looks_like_number&quot; for
+determining whether a variable looks like a number.
+Data::Types exports functions that validate data types using
+both the above and other regular expressions. Thirdly, there
+is Regexp::Common which has regular expressions to match
+various types of numbers. Those three modules are available
+from the <small>CPAN.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;re
+on a <small>POSIX</small> system, Perl supports the
+&quot;POSIX::strtod&quot; function for converting strings to
+doubles (and also &quot;POSIX::strtol&quot; for longs). Its
+semantics are somewhat cumbersome, so here&rsquo;s a
+&quot;getnum&quot; wrapper function for more convenient
+access. This function takes a string and returns the number
+it found, or &quot;undef&quot; for input that isn&rsquo;t a
+C float. The &quot;is_numeric&quot; function is a front end
+to &quot;getnum&quot; if you just want to say, &quot;Is this
+a float?&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub getnum {
+<br>
+use POSIX qw(strtod); <br>
+my $str = shift; <br>
+$str =~ s/^\s+//; <br>
+$str =~ s/\s+$//; <br>
+$! = 0; <br>
+my($num, $unparsed) = strtod($str); <br>
+if (($str eq '') || ($unparsed != 0) || $!) { <br>
+return undef; <br>
+} <br>
+else { <br>
+return $num; <br>
+} <br>
+} <br>
+sub is_numeric { defined getnum($_[0]) }</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or you could
+check out the String::Scanf module on the
+<small>CPAN</small> instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+keep persistent data across program calls?</b> <br>
+For some specific applications, you can use one of the
+<small>DBM</small> modules. See AnyDBM_File. More
+generically, you should consult the FreezeThaw or Storable
+modules from <small>CPAN.</small> Starting from Perl 5.8,
+Storable is part of the standard distribution. Here&rsquo;s
+one example using Storable&rsquo;s &quot;store&quot; and
+&quot;retrieve&quot; functions:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Storable;
+<br>
+store(\%hash, &quot;filename&quot;); <br>
+# later on... <br>
+$href = retrieve(&quot;filename&quot;); # by ref <br>
+%hash = %{ retrieve(&quot;filename&quot;) }; # direct to
+hash</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+print out or copy a recursive data structure?</b> <br>
+The Data::Dumper module on <small>CPAN</small> (or the 5.005
+release of Perl) is great for printing out data structures.
+The Storable module on <small>CPAN</small> (or the 5.8
+release of Perl), provides a function called
+&quot;dclone&quot; that recursively copies its argument.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Storable
+qw(dclone); <br>
+$r2 = dclone($r1);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Where $r1 can
+be a reference to any kind of data structure you&rsquo;d
+like. It will be deeply copied. Because &quot;dclone&quot;
+takes and returns references, you&rsquo;d have to add extra
+punctuation if you had a hash of arrays that you wanted to
+copy.</p>
+
+<p style="margin-left:11%; margin-top: 1em">%newhash = %{
+dclone(\%oldhash) };</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+define methods for every class/object?</b> <br>
+(contributed by Ben Morrow)</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use the
+&quot;UNIVERSAL&quot; class (see <small>UNIVERSAL</small> ).
+However, please be very careful to consider the consequences
+of doing this: adding methods to every object is very likely
+to have unintended consequences. If possible, it would be
+better to have all your object inherit from some common base
+class, or to use an object system like Moose that supports
+roles.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+verify a credit card checksum?</b> <br>
+Get the Business::CreditCard module from
+<small>CPAN.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+pack arrays of doubles or floats for <small>XS</small>
+code?</b> <br>
+The arrays.h/arrays.c code in the <small>PGPLOT</small>
+module on <small>CPAN</small> does just this. If
+you&rsquo;re doing a lot of float or double processing,
+consider using the <small>PDL</small> module from
+<small>CPAN</small> instead--it makes number-crunching
+easy.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+&lt;https://metacpan.org/release/PGPLOT&gt; for the
+code.</p>
+
+<h2>AUTHOR AND COPYRIGHT
+<a name="AUTHOR AND COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (c)
+1997&minus;2010 Tom Christiansen, Nathan Torkington, and
+other authors as noted. All rights reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+documentation is free; you can redistribute it and/or modify
+it under the same terms as Perl itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Irrespective of
+its distribution, all code examples in this file are hereby
+placed into the public domain. You are permitted and
+encouraged to use this code in your own programs for fun or
+for profit as you see fit. A simple comment in the code
+giving credit would be courteous but is not required.</p>
+<hr>
+</body>
+</html>

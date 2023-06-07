@@ -1,0 +1,4227 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:46 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Parse::RecDescent</title>
+
+</head>
+<body>
+<h1>Parse::RecDescent</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Parse::RecDescent
+&minus; Generate Recursive&minus;Descent Parsers</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+describes version 1.967015 of Parse::RecDescent released
+April 4th, 2017.</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Parse::RecDescent; <br>
+# Generate a parser from the specification in $grammar: <br>
+$parser = new Parse::RecDescent ($grammar); <br>
+# Generate a parser from the specification in $othergrammar
+<br>
+$anotherparser = new Parse::RecDescent ($othergrammar); <br>
+# Parse $text using rule 'startrule' (which must be <br>
+# defined in $grammar): <br>
+$parser&minus;&gt;startrule($text); <br>
+# Parse $text using rule 'otherrule' (which must also <br>
+# be defined in $grammar): <br>
+$parser&minus;&gt;otherrule($text); <br>
+# Change the universal token prefix pattern <br>
+# before building a grammar <br>
+# (the default is: '\s*'): <br>
+$Parse::RecDescent::skip = '[ \t]+'; <br>
+# Replace productions of existing rules (or create new ones)
+<br>
+# with the productions defined in $newgrammar: <br>
+$parser&minus;&gt;Replace($newgrammar); <br>
+# Extend existing rules (or create new ones) <br>
+# by adding extra productions defined in $moregrammar: <br>
+$parser&minus;&gt;Extend($moregrammar); <br>
+# Global flags (useful as command line arguments under
+&minus;s): <br>
+$::RD_ERRORS # unless undefined, report fatal errors <br>
+$::RD_WARN # unless undefined, also report non&minus;fatal
+problems <br>
+$::RD_HINT # if defined, also suggestion remedies <br>
+$::RD_TRACE # if defined, also trace parsers' behaviour <br>
+$::RD_AUTOSTUB # if defined, generates &quot;stubs&quot; for
+undefined rules <br>
+$::RD_AUTOACTION # if defined, appends specified action to
+productions</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Overview</b>
+<br>
+Parse::RecDescent incrementally generates top-down
+recursive-descent text parsers from simple
+<i>yacc</i>&minus;like grammar specifications. It
+provides:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Regular expressions or literal strings as terminals
+(tokens),</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Multiple (non-contiguous) productions for any rule,</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Repeated and optional subrules within productions,</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Full access to Perl within actions specified as part of
+the grammar,</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Simple automated error reporting during parser
+generation and parsing,</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The ability to commit to, uncommit to, or reject
+particular productions during a parse,</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The ability to pass data up and down the parse tree
+(&quot;down&quot; via subrule argument lists, &quot;up&quot;
+via subrule return values)</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Incremental extension of the parsing grammar (even
+during a parse),</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Precompilation of parser objects,</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>User-definable reduce-reduce conflict resolution via
+&quot;scoring&quot; of matching productions.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Using
+&quot;Parse::RecDescent&quot;</b> <br>
+Parser objects are created by calling
+&quot;Parse::RecDescent::new&quot;, passing in a grammar
+specification (see the following subsections). If the
+grammar is correct, &quot;new&quot; returns a blessed
+reference which can then be used to initiate parsing through
+any rule specified in the original grammar. A typical
+sequence looks like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$grammar = q {
+<br>
+# GRAMMAR SPECIFICATION HERE <br>
+}; <br>
+$parser = new Parse::RecDescent ($grammar) or die &quot;Bad
+grammar!\n&quot;; <br>
+# acquire $text <br>
+defined $parser&minus;&gt;startrule($text) or print
+&quot;Bad text!\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The rule
+through which parsing is initiated must be explicitly
+defined in the grammar (i.e. for the above example, the
+grammar must include a rule of the form: &quot;startrule:
+&lt;subrules&gt;&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the starting
+rule succeeds, its value (see below) is returned. Failure to
+generate the original parser or failure to match a text is
+indicated by returning &quot;undef&quot;. Note that
+it&rsquo;s easy to set up grammars that can succeed, but
+which return a value of 0, &quot;0&quot;, or &quot;&quot;.
+So don&rsquo;t be tempted to write:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$parser&minus;&gt;startrule($text)
+or print &quot;Bad text!\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Normally, the
+parser has no effect on the original text. So in the
+previous example the value of $text would be unchanged after
+having been parsed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If, however,
+the text to be matched is passed by reference:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$parser&minus;&gt;startrule(\$text)</p>
+
+<p style="margin-left:11%; margin-top: 1em">then any text
+which was consumed during the match will be removed from the
+start of $text.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Rules</b>
+<br>
+In the grammar from which the parser is built, rules are
+specified by giving an identifier (which must satisfy
+/[A&minus;Za&minus;z]\w*/), followed by a colon <i>on the
+same line</i>, followed by one or more productions,
+separated by single vertical bars. The layout of the
+productions is entirely free-format:</p>
+
+<p style="margin-left:11%; margin-top: 1em">rule1:
+production1 <br>
+| production2 | <br>
+production3 | production4</p>
+
+<p style="margin-left:11%; margin-top: 1em">At any point in
+the grammar previously defined rules may be extended with
+additional productions. This is achieved by redeclaring the
+rule with the new productions. Thus:</p>
+
+<p style="margin-left:11%; margin-top: 1em">rule1: a | b |
+c <br>
+rule2: d | e | f <br>
+rule1: g | h</p>
+
+<p style="margin-left:11%; margin-top: 1em">is exactly
+equivalent to:</p>
+
+<p style="margin-left:11%; margin-top: 1em">rule1: a | b |
+c | g | h <br>
+rule2: d | e | f</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each production
+in a rule consists of zero or more items, each of which may
+be either: the name of another rule to be matched (a
+&quot;subrule&quot;), a pattern or string literal to be
+matched directly (a &quot;token&quot;), a block of Perl code
+to be executed (an &quot;action&quot;), a special
+instruction to the parser (a &quot;directive&quot;), or a
+standard Perl comment (which is ignored).</p>
+
+<p style="margin-left:11%; margin-top: 1em">A rule matches
+a text if one of its productions matches. A production
+matches if each of its items match consecutive substrings of
+the text. The productions of a rule being matched are tried
+in the same order that they appear in the original grammar,
+and the first matching production terminates the match
+attempt (successfully). If all productions are tried and
+none matches, the match attempt fails.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+behaviour is quite different from the &quot;prefer the
+longer match&quot; behaviour of <i>yacc</i>. For example, if
+<i>yacc</i> were parsing the rule:</p>
+
+<p style="margin-left:11%; margin-top: 1em">seq : 'A' 'B'
+<br>
+| 'A' 'B' 'C'</p>
+
+<p style="margin-left:11%; margin-top: 1em">upon matching
+&quot; <small>AB&quot;</small> it would look ahead to see if
+a &rsquo;C&rsquo; is next and, if so, will match the second
+production in preference to the first. In other words,
+<i>yacc</i> effectively tries all the productions of a rule
+breadth-first in parallel, and selects the &quot;best&quot;
+match, where &quot;best&quot; means longest (note that this
+is a gross simplification of the true behaviour of
+<i>yacc</i> but it will do for our purposes).</p>
+
+<p style="margin-left:11%; margin-top: 1em">In contrast,
+&quot;Parse::RecDescent&quot; tries each production
+depth-first in sequence, and selects the &quot;best&quot;
+match, where &quot;best&quot; means first. This is the
+fundamental difference between &quot;bottom-up&quot; and
+&quot;recursive descent&quot; parsing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each
+successfully matched item in a production is assigned a
+value, which can be accessed in subsequent actions within
+the same production (or, in some cases, as the return value
+of a successful subrule call). Unsuccessful items
+don&rsquo;t have an associated value, since the failure of
+an item causes the entire surrounding production to
+immediately fail. The following sections describe the
+various types of items and their success values.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Subrules</b>
+<br>
+A subrule which appears in a production is an instruction to
+the parser to attempt to match the named rule at that point
+in the text being parsed. If the named subrule is not
+defined when requested the production containing it
+immediately fails (unless it was &quot;autostubbed&quot;
+&minus; see Autostubbing).</p>
+
+<p style="margin-left:11%; margin-top: 1em">A rule may
+(recursively) call itself as a subrule, but <i>not</i> as
+the left-most item in any of its productions (since such
+recursions are usually non-terminating).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The value
+associated with a subrule is the value associated with its
+$return variable (see &quot;Actions&quot; below), or with
+the last successfully matched item in the subrule match.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Subrules may
+also be specified with a trailing repetition specifier,
+indicating that they are to be (greedily) matched the
+specified number of times. The available specifiers are:</p>
+
+<p style="margin-left:11%; margin-top: 1em">subrule(?) #
+Match one&minus;or&minus;zero times <br>
+subrule(s) # Match one&minus;or&minus;more times <br>
+subrule(s?) # Match zero&minus;or&minus;more times <br>
+subrule(N) # Match exactly N times for integer N &gt; 0 <br>
+subrule(N..M) # Match between N and M times <br>
+subrule(..M) # Match between 1 and M times <br>
+subrule(N..) # Match at least N times</p>
+
+<p style="margin-left:11%; margin-top: 1em">Repeated
+subrules keep matching until either the subrule fails to
+match, or it has matched the minimal number of times but
+fails to consume any of the parsed text (this second
+condition prevents the subrule matching forever in some
+cases).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since a
+repeated subrule may match many instances of the subrule
+itself, the value associated with it is not a simple scalar,
+but rather a reference to a list of scalars, each of which
+is the value associated with one of the individual subrule
+matches. In other words in the rule:</p>
+
+<p style="margin-left:11%; margin-top: 1em">program:
+statement(s)</p>
+
+<p style="margin-left:11%; margin-top: 1em">the value
+associated with the repeated subrule
+&quot;statement(s)&quot; is a reference to an array
+containing the values matched by each call to the individual
+subrule &quot;statement&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Repetition
+modifiers may include a separator pattern:</p>
+
+<p style="margin-left:11%; margin-top: 1em">program:
+statement(s /;/)</p>
+
+<p style="margin-left:11%; margin-top: 1em">specifying some
+sequence of characters to be skipped between each
+repetition. This is really just a shorthand for the
+&lt;leftop:...&gt; directive (see below).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Tokens</b>
+<br>
+If a quote-delimited string or a Perl regex appears in a
+production, the parser attempts to match that string or
+pattern at that point in the text. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef:
+&quot;typedef&quot; typename identifier ';' <br>
+identifier:
+/[A&minus;Za&minus;z_][A&minus;Za&minus;z0&minus;9_]*/</p>
+
+<p style="margin-left:11%; margin-top: 1em">As in regular
+Perl, a single quoted string is uninterpolated, whilst a
+double-quoted string or a pattern is interpolated (at the
+time of matching, <i>not</i> when the parser is
+constructed). Hence, it is possible to define rules in which
+tokens can be set at run-time:</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef:
+&quot;$::typedefkeyword&quot; typename identifier ';' <br>
+identifier: /$::identpat/</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that,
+since each rule is implemented inside a special namespace
+belonging to its parser, it is necessary to explicitly
+quantify variables from the main package.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Regex tokens
+can be specified using just slashes as delimiters or with
+the explicit
+&quot;m&lt;delimiter&gt;......&lt;delimiter&gt;&quot;
+syntax:</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef:
+&quot;typedef&quot; typename identifier ';' <br>
+typename:
+/[A&minus;Za&minus;z_][A&minus;Za&minus;z0&minus;9_]*/ <br>
+identifier:
+m{[A&minus;Za&minus;z_][A&minus;Za&minus;z0&minus;9_]*}</p>
+
+<p style="margin-left:11%; margin-top: 1em">A regex of
+either type can also have any valid trailing parameter(s)
+(that is, any of [cgimsox]):</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef:
+&quot;typedef&quot; typename identifier ';' <br>
+identifier: / [a&minus;z_] # LEADING ALPHA OR UNDERSCORE
+<br>
+[a&minus;z0&minus;9_]* # THEN DIGITS ALSO ALLOWED <br>
+/ix # CASE/SPACE/COMMENT INSENSITIVE</p>
+
+<p style="margin-left:11%; margin-top: 1em">The value
+associated with any successfully matched token is a string
+containing the actual text which was matched by the
+token.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is important
+to remember that, since each grammar is specified in a Perl
+string, all instances of the universal escape character
+&rsquo;\&rsquo; within a grammar must be
+&quot;doubled&quot;, so that they interpolate to single
+&rsquo;\&rsquo;s when the string is compiled. For example,
+to use the grammar:</p>
+
+<p style="margin-left:11%; margin-top: 1em">word: /\S+/ |
+backslash <br>
+line: prefix word(s) &quot;\n&quot; <br>
+backslash: '\\'</p>
+
+<p style="margin-left:11%; margin-top: 1em">the following
+code is required:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$parser = new
+Parse::RecDescent (q{ <br>
+word: /\\S+/ | backslash <br>
+line: prefix word(s) &quot;\\n&quot; <br>
+backslash: '\\\\' <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Anonymous
+subrules</b> <br>
+Parentheses introduce a nested scope that is very like a
+call to an anonymous subrule. Hence they are useful for
+&quot;in-lining&quot; subroutine calls, and other kinds of
+grouping behaviour. For example, instead of:</p>
+
+<p style="margin-left:11%; margin-top: 1em">word: /\S+/ |
+backslash <br>
+line: prefix word(s) &quot;\n&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">you could
+write:</p>
+
+<p style="margin-left:11%; margin-top: 1em">line: prefix (
+/\S+/ | backslash )(s) &quot;\n&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">and get exactly
+the same effects.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Parentheses are
+also use for collecting unrepeated alternations within a
+single production.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">secret_identity:
+&quot;Mr&quot;
+(&quot;Incredible&quot;|&quot;Fantastic&quot;|&quot;Sheen&quot;)
+&quot;, Esq.&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Terminal
+Separators</b> <br>
+For the purpose of matching, each terminal in a production
+is considered to be preceded by a &quot;prefix&quot; &minus;
+a pattern which must be matched before a token match is
+attempted. By default, the prefix is optional whitespace
+(which always matches, at least trivially), but this default
+may be reset in any production.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The variable
+$Parse::RecDescent::skip stores the universal prefix, which
+is the default for all terminal matches in all parsers built
+with &quot;Parse::RecDescent&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+change the universal prefix using $Parse::RecDescent::skip,
+be careful to set it <i>before</i> creating the grammar
+object, because it is applied statically (when a grammar is
+built) rather than dynamically (when the grammar is used).
+Alternatively you can provide a global
+&quot;&lt;skip:...&gt;&quot; directive in your grammar
+before any rules (described later).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The prefix for
+an individual production can be altered by using the
+&quot;&lt;skip:...&gt;&quot; directive (described later).
+Setting this directive in the top-level rule is an
+alternative approach to setting $Parse::RecDescent::skip
+before creating the object, but in this case you don&rsquo;t
+get the intended skipping behaviour if you directly invoke
+methods different from the top-level rule.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Actions</b>
+<br>
+An action is a block of Perl code which is to be executed
+(as the block of a &quot;do&quot; statement) when the parser
+reaches that point in a production. The action executes
+within a special namespace belonging to the active parser,
+so care must be taken in correctly qualifying variable names
+(see also &quot;Start-up Actions&quot; below).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The action is
+considered to succeed if the final value of the block is
+defined (that is, if the implied &quot;do&quot; statement
+evaluates to a defined value &minus; <i>even one which would
+be treated as &quot;false&quot;</i>). Note that the value
+associated with a successful action is also the final value
+in the block.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An action will
+<i>fail</i> if its last evaluated value is
+&quot;undef&quot;. This is surprisingly easy to accomplish
+by accident. For instance, here&rsquo;s an infuriating case
+of an action that makes its production fail, but only when
+debugging <i>isn&rsquo;t</i> activated:</p>
+
+<p style="margin-left:11%; margin-top: 1em">description:
+name rank serial_number <br>
+{ print &quot;Got $item[2] $item[1] ($item[3])\n&quot; <br>
+if $::debugging <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If $debugging
+is false, no statement in the block is executed, so the
+final value is &quot;undef&quot;, and the entire production
+fails. The solution is:</p>
+
+<p style="margin-left:11%; margin-top: 1em">description:
+name rank serial_number <br>
+{ print &quot;Got $item[2] $item[1] ($item[3])\n&quot; <br>
+if $::debugging; <br>
+1; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Within an
+action, a number of useful parse-time variables are
+available in the special parser namespace (there are other
+variables also accessible, but meddling with them will
+probably just break your parser. As a general rule, if you
+avoid referring to unqualified variables &minus; especially
+those starting with an underscore &minus; inside an action,
+things should be okay): <br>
+@item and %item</p>
+
+<p style="margin-left:17%;">The array slice
+@item[1..$#item] stores the value associated with each item
+(that is, each subrule, token, or action) in the current
+production. The analogy is to $1, $2, etc. in a <i>yacc</i>
+grammar. Note that, for obvious reasons, @item only contains
+the values of items <i>before</i> the current point in the
+production.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The first
+element ($item[0]) stores the name of the current rule being
+matched.</p>
+
+<p style="margin-left:17%; margin-top: 1em">@item is a
+standard Perl array, so it can also be indexed with negative
+numbers, representing the number of items <i>back</i> from
+the current position in the parse:</p>
+
+<p style="margin-left:17%; margin-top: 1em">stuff:
+/various/ bits 'and' pieces &quot;then&quot; data 'end' <br>
+{ print $item[&minus;2] } # PRINTS data <br>
+# (EASIER THAN: $item[6])</p>
+
+<p style="margin-left:17%; margin-top: 1em">The %item hash
+complements the &lt;@item&gt; array, providing named access
+to the same item values:</p>
+
+<p style="margin-left:17%; margin-top: 1em">stuff:
+/various/ bits 'and' pieces &quot;then&quot; data 'end' <br>
+{ print $item{data} # PRINTS data <br>
+# (EVEN EASIER THAN USING @item)</p>
+
+<p style="margin-left:17%; margin-top: 1em">The results of
+named subrules are stored in the hash under each
+subrule&rsquo;s name (including the repetition specifier, if
+any), whilst all other items are stored under a &quot;named
+positional&quot; key that indicates their ordinal position
+within their item type: __STRING<i>n</i>__,
+__PATTERN<i>n</i>__, __DIRECTIVE<i>n</i>__,
+__ACTION<i>n</i>__:</p>
+
+<p style="margin-left:17%; margin-top: 1em">stuff:
+/various/ bits 'and' pieces &quot;then&quot; data 'end' {
+save } <br>
+{ print $item{__PATTERN1__}, # PRINTS 'various' <br>
+$item{__STRING2__}, # PRINTS 'then' <br>
+$item{__ACTION1__}, # PRINTS RETURN <br>
+# VALUE OF save <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you want
+proper <i>named</i> access to patterns or literals, you need
+to turn them into separate rules:</p>
+
+<p style="margin-left:17%; margin-top: 1em">stuff: various
+bits 'and' pieces &quot;then&quot; data 'end' <br>
+{ print $item{various} # PRINTS various <br>
+} <br>
+various: /various/</p>
+
+<p style="margin-left:17%; margin-top: 1em">The special
+entry $item{__RULE__} stores the name of the current rule
+(i.e. the same value as $item[0].</p>
+
+<p style="margin-left:17%; margin-top: 1em">The advantage
+of using %item, instead of @items is that it removes the
+need to track items positions that may change as a grammar
+evolves. For example, adding an interim
+&quot;&lt;skip&gt;&quot; directive of action can silently
+ruin a trailing action, by moving an @item element
+&quot;down&quot; the array one place. In contrast, the named
+entry of %item is unaffected by such an insertion.</p>
+
+<p style="margin-left:17%; margin-top: 1em">A limitation of
+the %item hash is that it only records the <i>last</i> value
+of a particular subrule. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">range: '('
+number '..' number )' <br>
+{ $return = $item{number} }</p>
+
+<p style="margin-left:17%; margin-top: 1em">will return
+only the value corresponding to the <i>second</i> match of
+the &quot;number&quot; subrule. In other words, successive
+calls to a subrule overwrite the corresponding entry in
+%item. Once again, the solution is to rename each subrule in
+its own rule:</p>
+
+<p style="margin-left:17%; margin-top: 1em">range: '('
+from_num '..' to_num ')' <br>
+{ $return = $item{from_num} } <br>
+from_num: number <br>
+to_num: number</p>
+
+<p style="margin-left:11%;">@arg and %arg</p>
+
+<p style="margin-left:17%;">The array @arg and the hash
+%arg store any arguments passed to the rule from some other
+rule (see &quot;Subrule argument lists&quot;). Changes to
+the elements of either variable do not propagate back to the
+calling rule (data can be passed back from a subrule via the
+$return variable &minus; see next item).</p>
+
+<p style="margin-left:11%;">$return</p>
+
+<p style="margin-left:17%;">If a value is assigned to
+$return within an action, that value is returned if the
+production containing the action eventually matches
+successfully. Note that setting $return <i>doesn&rsquo;t</i>
+cause the current production to succeed. It merely tells it
+what to return if it <i>does</i> succeed. Hence $return is
+analogous to $$ in a <i>yacc</i> grammar.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If $return is
+not assigned within a production, the value of the last
+component of the production (namely: $item[$#item]) is
+returned if the production succeeds.</p>
+
+<p style="margin-left:11%;">$commit</p>
+
+<p style="margin-left:17%;">The current state of commitment
+to the current production (see &quot;Directives&quot;
+below).</p>
+
+<p style="margin-left:11%;">$skip</p>
+
+<p style="margin-left:17%;">The current terminal prefix
+(see &quot;Directives&quot; below).</p>
+
+<p style="margin-left:11%;">$text</p>
+
+<p style="margin-left:17%;">The remaining (unparsed) text.
+Changes to $text <i>do not propagate</i> out of unsuccessful
+productions, but <i>do</i> survive successful productions.
+Hence it is possible to dynamically alter the text being
+parsed &minus; for example, to provide a
+&quot;#include&quot;&minus;like facility:</p>
+
+<p style="margin-left:17%; margin-top: 1em">hash_include:
+'#include' filename <br>
+{ $text = ::loadfile($item[2]) . $text } <br>
+filename: '&lt;' /[a&minus;z0&minus;9._&minus;]+/i '&gt;' {
+$return = $item[2] } <br>
+| '&quot;' /[a&minus;z0&minus;9._&minus;]+/i '&quot;' {
+$return = $item[2] }</p>
+
+<p style="margin-left:11%;">$thisline and $prevline</p>
+
+<p style="margin-left:17%;">$thisline stores the current
+line number within the current parse (starting from 1).
+$prevline stores the line number for the last character
+which was already successfully parsed (this will be
+different from $thisline at the end of each line).</p>
+
+<p style="margin-left:17%; margin-top: 1em">For efficiency,
+$thisline and $prevline are actually tied hashes, and only
+recompute the required line number when the variable&rsquo;s
+value is used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Assignment to
+$thisline adjusts the line number calculator, so that it
+believes that the current line number is the value being
+assigned. Note that this adjustment will be reflected in all
+subsequent line numbers calculations.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Modifying the
+value of the variable $text (as in the previous
+&quot;hash_include&quot; example, for instance) will confuse
+the line counting mechanism. To prevent this, you should
+call
+&quot;Parse::RecDescent::LineCounter::resync($thisline)&quot;
+<i>immediately</i> after any assignment to the variable
+$text (or, at least, before the next attempt to use
+$thisline).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that if a
+production fails after assigning to or resync&rsquo;ing
+$thisline, the parser&rsquo;s line counter mechanism will
+usually be corrupted.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Also see the
+entry for @itempos.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The line number
+can be set to values other than 1, by calling the start rule
+with a second argument. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$parser = new
+Parse::RecDescent ($grammar); <br>
+$parser&minus;&gt;input($text, 10); # START LINE NUMBERS AT
+10</p>
+
+<p style="margin-left:11%;">$thiscolumn and $prevcolumn</p>
+
+<p style="margin-left:17%;">$thiscolumn stores the current
+column number within the current line being parsed (starting
+from 1). $prevcolumn stores the column number of the last
+character which was actually successfully parsed. Usually
+&quot;$prevcolumn == $thiscolumn&minus;1&quot;, but not at
+the end of lines.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For efficiency,
+$thiscolumn and $prevcolumn are actually tied hashes, and
+only recompute the required column number when the
+variable&rsquo;s value is used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Assignment to
+$thiscolumn or $prevcolumn is a fatal error.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Modifying the
+value of the variable $text (as in the previous
+&quot;hash_include&quot; example, for instance) may confuse
+the column counting mechanism.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+$thiscolumn reports the column number <i>before</i> any
+whitespace that might be skipped before reading a token.
+Hence if you wish to know where a token started (and ended)
+use something like this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">rule: token1
+token2 startcol token3 endcol token4 <br>
+{ print &quot;token3: columns $item[3] to $item[5]&quot;; }
+<br>
+startcol: '' { $thiscolumn } # NEED THE '' TO STEP PAST
+TOKEN SEP <br>
+endcol: { $prevcolumn }</p>
+
+<p style="margin-left:17%; margin-top: 1em">Also see the
+entry for @itempos.</p>
+
+<p style="margin-left:11%;">$thisoffset and $prevoffset</p>
+
+<p style="margin-left:17%;">$thisoffset stores the offset
+of the current parsing position within the complete text
+being parsed (starting from 0). $prevoffset stores the
+offset of the last character which was actually successfully
+parsed. In all cases &quot;$prevoffset ==
+$thisoffset&minus;1&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For efficiency,
+$thisoffset and $prevoffset are actually tied hashes, and
+only recompute the required offset when the variable&rsquo;s
+value is used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Assignment to
+$thisoffset or &lt;$prevoffset&gt; is a fatal error.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Modifying the
+value of the variable $text will <i>not</i> affect the
+offset counting mechanism.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Also see the
+entry for @itempos.</p>
+
+<p style="margin-left:11%;">@itempos</p>
+
+<p style="margin-left:17%;">The array @itempos stores a
+hash reference corresponding to each element of @item. The
+elements of the hash provide the following:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$itempos[$n]{offset}{from}
+# VALUE OF $thisoffset BEFORE $item[$n] <br>
+$itempos[$n]{offset}{to} # VALUE OF $prevoffset AFTER
+$item[$n] <br>
+$itempos[$n]{line}{from} # VALUE OF $thisline BEFORE
+$item[$n] <br>
+$itempos[$n]{line}{to} # VALUE OF $prevline AFTER $item[$n]
+<br>
+$itempos[$n]{column}{from} # VALUE OF $thiscolumn BEFORE
+$item[$n] <br>
+$itempos[$n]{column}{to} # VALUE OF $prevcolumn AFTER
+$item[$n]</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that the
+various &quot;$itempos[$n]...{from}&quot; values record the
+appropriate value <i>after</i> any token prefix has been
+skipped.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Hence, instead
+of the somewhat tedious and error-prone:</p>
+
+<p style="margin-left:17%; margin-top: 1em">rule: startcol
+token1 endcol <br>
+startcol token2 endcol <br>
+startcol token3 endcol <br>
+{ print &quot;token1: columns $item[1] <br>
+to $item[3] <br>
+token2: columns $item[4] <br>
+to $item[6] <br>
+token3: columns $item[7] <br>
+to $item[9]&quot; } <br>
+startcol: '' { $thiscolumn } # NEED THE '' TO STEP PAST
+TOKEN SEP <br>
+endcol: { $prevcolumn }</p>
+
+<p style="margin-left:17%; margin-top: 1em">it is possible
+to write:</p>
+
+<p style="margin-left:17%; margin-top: 1em">rule: token1
+token2 token3 <br>
+{ print &quot;token1: columns $itempos[1]{column}{from} <br>
+to $itempos[1]{column}{to} <br>
+token2: columns $itempos[2]{column}{from} <br>
+to $itempos[2]{column}{to} <br>
+token3: columns $itempos[3]{column}{from} <br>
+to $itempos[3]{column}{to}&quot; }</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note however
+that (in the current implementation) the use of @itempos
+anywhere in a grammar implies that item positioning
+information is collected <i>everywhere</i> during the parse.
+Depending on the grammar and the size of the text to be
+parsed, this may be prohibitively expensive and the explicit
+use of $thisline, $thiscolumn, etc. may be a better
+choice.</p>
+
+<p style="margin-left:11%;">$thisparser</p>
+
+<p style="margin-left:17%;">A reference to the
+&quot;Parse::RecDescent&quot; object through which parsing
+was initiated.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The value of
+$thisparser propagates down the subrules of a parse but not
+back up. Hence, you can invoke subrules from another parser
+for the scope of the current rule as follows:</p>
+
+<p style="margin-left:17%; margin-top: 1em">rule: subrule1
+subrule2 <br>
+| { $thisparser = $::otherparser } &lt;reject&gt; <br>
+| subrule3 subrule4 <br>
+| subrule5</p>
+
+<p style="margin-left:17%; margin-top: 1em">The result is
+that the production calls &quot;subrule1&quot; and
+&quot;subrule2&quot; of the current parser, and the
+remaining productions call the named subrules from
+$::otherparser. Note, however that &quot;Bad Things&quot;
+will happen if &quot;::otherparser&quot; isn&rsquo;t a
+blessed reference and/or doesn&rsquo;t have methods with the
+same names as the required subrules!</p>
+
+<p style="margin-left:11%;">$thisrule</p>
+
+<p style="margin-left:17%;">A reference to the
+&quot;Parse::RecDescent::Rule&quot; object corresponding to
+the rule currently being matched.</p>
+
+<p style="margin-left:11%;">$thisprod</p>
+
+<p style="margin-left:17%;">A reference to the
+&quot;Parse::RecDescent::Production&quot; object
+corresponding to the production currently being matched.</p>
+
+<p style="margin-left:11%;">$score and $score_return</p>
+
+<p style="margin-left:17%;">$score stores the best
+production score to date, as specified by an earlier
+&quot;&lt;score:...&gt;&quot; directive. $score_return
+stores the corresponding return value for the successful
+production.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See
+&quot;Scored productions&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Warning:</b>
+the parser relies on the information in the various
+&quot;this...&quot; objects in some non-obvious ways.
+Tinkering with the other members of these objects will
+probably cause Bad Things to happen, unless you
+<i>really</i> know what you&rsquo;re doing. The only
+exception to this advice is that the use of
+&quot;$this...&minus;&gt;{local}&quot; is always safe.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Start-up
+Actions</b> <br>
+Any actions which appear <i>before</i> the first rule
+definition in a grammar are treated as &quot;start-up&quot;
+actions. Each such action is stripped of its outermost
+brackets and then evaluated (in the parser&rsquo;s special
+namespace) just before the rules of the grammar are first
+compiled.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The main use of
+start-up actions is to declare local variables within the
+parser&rsquo;s special namespace:</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ my $lastitem
+= '???'; } <br>
+list: item(s) { $return = $lastitem } <br>
+item: book { $lastitem = 'book'; } <br>
+bell { $lastitem = 'bell'; } <br>
+candle { $lastitem = 'candle'; }</p>
+
+<p style="margin-left:11%; margin-top: 1em">but start-up
+actions can be used to execute <i>any</i> valid Perl code
+within a parser&rsquo;s special namespace.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Start-up
+actions can appear within a grammar extension or replacement
+(that is, a partial grammar installed via
+&quot;Parse::RecDescent::Extend()&quot; or
+&quot;Parse::RecDescent::Replace()&quot; &minus; see
+&quot;Incremental Parsing&quot;), and will be executed
+before the new grammar is installed. Note, however, that a
+particular start-up action is only ever executed once.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Autoactions</b>
+<br>
+It is sometimes desirable to be able to specify a default
+action to be taken at the end of every production (for
+example, in order to easily build a parse tree). If the
+variable $::RD_AUTOACTION is defined when
+&quot;Parse::RecDescent::new()&quot; is called, the contents
+of that variable are treated as a specification of an action
+which is to appended to each production in the corresponding
+grammar.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+you can hard-code the autoaction within a grammar, using the
+&quot;&lt;autoaction:...&gt;&quot; directive.</p>
+
+<p style="margin-left:11%; margin-top: 1em">So, for
+example, to construct a simple parse tree you could
+write:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$::RD_AUTOACTION
+= q { [@item] }; <br>
+parser = Parse::RecDescent&minus;&gt;new(q{ <br>
+expression: and_expr '||' expression | and_expr <br>
+and_expr: not_expr '&amp;&amp;' and_expr | not_expr <br>
+not_expr: '!' brack_expr | brack_expr <br>
+brack_expr: '(' expression ')' | identifier <br>
+identifier: /[a&minus;z]+/i <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">or:</p>
+
+<p style="margin-left:11%; margin-top: 1em">parser =
+Parse::RecDescent&minus;&gt;new(q{ <br>
+&lt;autoaction: { [@item] } &gt; <br>
+expression: and_expr '||' expression | and_expr <br>
+and_expr: not_expr '&amp;&amp;' and_expr | not_expr <br>
+not_expr: '!' brack_expr | brack_expr <br>
+brack_expr: '(' expression ')' | identifier <br>
+identifier: /[a&minus;z]+/i <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">Either of these
+is equivalent to:</p>
+
+<p style="margin-left:11%; margin-top: 1em">parser = new
+Parse::RecDescent (q{ <br>
+expression: and_expr '||' expression <br>
+{ [@item] } <br>
+| and_expr <br>
+{ [@item] } <br>
+and_expr: not_expr '&amp;&amp;' and_expr <br>
+{ [@item] } <br>
+| not_expr <br>
+{ [@item] } <br>
+not_expr: '!' brack_expr <br>
+{ [@item] } <br>
+| brack_expr <br>
+{ [@item] } <br>
+brack_expr: '(' expression ')' <br>
+{ [@item] } <br>
+| identifier <br>
+{ [@item] } <br>
+identifier: /[a&minus;z]+/i <br>
+{ [@item] } <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+we could take an object-oriented approach, use different
+classes for each node (and also eliminating redundant
+intermediate nodes):</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$::RD_AUTOACTION
+= q <br>
+{ $#item==1 ? $item[1] :
+&quot;$item[0]_node&quot;&minus;&gt;new(@item[1..$#item]) };
+<br>
+parser = Parse::RecDescent&minus;&gt;new(q{ <br>
+expression: and_expr '||' expression | and_expr <br>
+and_expr: not_expr '&amp;&amp;' and_expr | not_expr <br>
+not_expr: '!' brack_expr | brack_expr <br>
+brack_expr: '(' expression ')' | identifier <br>
+identifier: /[a&minus;z]+/i <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">or:</p>
+
+<p style="margin-left:11%; margin-top: 1em">parser =
+Parse::RecDescent&minus;&gt;new(q{ <br>
+&lt;autoaction: <br>
+$#item==1 ? $item[1] :
+&quot;$item[0]_node&quot;&minus;&gt;new(@item[1..$#item])
+<br>
+&gt; <br>
+expression: and_expr '||' expression | and_expr <br>
+and_expr: not_expr '&amp;&amp;' and_expr | not_expr <br>
+not_expr: '!' brack_expr | brack_expr <br>
+brack_expr: '(' expression ')' | identifier <br>
+identifier: /[a&minus;z]+/i <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">which are
+equivalent to:</p>
+
+<p style="margin-left:11%; margin-top: 1em">parser =
+Parse::RecDescent&minus;&gt;new(q{ <br>
+expression: and_expr '||' expression <br>
+{ &quot;expression_node&quot;&minus;&gt;new(@item[1..3]) }
+<br>
+| and_expr <br>
+and_expr: not_expr '&amp;&amp;' and_expr <br>
+{ &quot;and_expr_node&quot;&minus;&gt;new(@item[1..3]) }
+<br>
+| not_expr <br>
+not_expr: '!' brack_expr <br>
+{ &quot;not_expr_node&quot;&minus;&gt;new(@item[1..2]) }
+<br>
+| brack_expr <br>
+brack_expr: '(' expression ')' <br>
+{ &quot;brack_expr_node&quot;&minus;&gt;new(@item[1..3]) }
+<br>
+| identifier <br>
+identifier: /[a&minus;z]+/i <br>
+{ &quot;identifer_node&quot;&minus;&gt;new(@item[1]) } <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that, if a
+production already ends in an action, no autoaction is
+appended to it. For example, in this version:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$::RD_AUTOACTION
+= q <br>
+{ $#item==1 ? $item[1] :
+&quot;$item[0]_node&quot;&minus;&gt;new(@item[1..$#item]) };
+<br>
+parser = Parse::RecDescent&minus;&gt;new(q{ <br>
+expression: and_expr '&amp;&amp;' expression | and_expr <br>
+and_expr: not_expr '&amp;&amp;' and_expr | not_expr <br>
+not_expr: '!' brack_expr | brack_expr <br>
+brack_expr: '(' expression ')' | identifier <br>
+identifier: /[a&minus;z]+/i <br>
+{ 'terminal_node'&minus;&gt;new($item[1]) } <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">each
+&quot;identifier&quot; match produces a
+&quot;terminal_node&quot; object, <i>not</i> an
+&quot;identifier_node&quot; object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A level 1
+warning is issued each time an &quot;autoaction&quot; is
+added to some production.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Autotrees</b>
+<br>
+A commonly needed autoaction is one that builds a
+parse-tree. It is moderately tricky to set up such an action
+(which must treat terminals differently from non-terminals),
+so Parse::RecDescent simplifies the process by providing the
+&quot;&lt;autotree&gt;&quot; directive.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If this
+directive appears at the start of grammar, it causes
+Parse::RecDescent to insert autoactions at the end of any
+rule except those which already end in an action. The action
+inserted depends on whether the production is an
+intermediate rule (two or more items), or a terminal of the
+grammar (i.e. a single pattern or string item).</p>
+
+<p style="margin-left:11%; margin-top: 1em">So, for
+example, the following grammar:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;autotree&gt;
+<br>
+file : command(s) <br>
+command : get | set | vet <br>
+get : 'get' ident ';' <br>
+set : 'set' ident 'to' value ';' <br>
+vet : 'check' ident 'is' value ';' <br>
+ident : /\w+/ <br>
+value : /\d+/</p>
+
+<p style="margin-left:11%; margin-top: 1em">is equivalent
+to:</p>
+
+<p style="margin-left:11%; margin-top: 1em">file :
+command(s) { bless \%item, $item[0] } <br>
+command : get { bless \%item, $item[0] } <br>
+| set { bless \%item, $item[0] } <br>
+| vet { bless \%item, $item[0] } <br>
+get : 'get' ident ';' { bless \%item, $item[0] } <br>
+set : 'set' ident 'to' value ';' { bless \%item, $item[0] }
+<br>
+vet : 'check' ident 'is' value ';' { bless \%item, $item[0]
+} <br>
+ident : /\w+/ { bless {__VALUE__=&gt;$item[1]}, $item[0] }
+<br>
+value : /\d+/ { bless {__VALUE__=&gt;$item[1]}, $item[0]
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that each
+node in the tree is blessed into a class of the same name as
+the rule itself. This makes it easy to build object-oriented
+processors for the parse-trees that the grammar produces.
+Note too that the last two rules produce special objects
+with the single attribute &rsquo;__VALUE__&rsquo;. This is
+because they consist solely of a single terminal.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+autoaction-ed grammar would then produce a parse tree in a
+data structure like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ <br>
+file =&gt; { <br>
+command =&gt; { <br>
+[ get =&gt; { <br>
+identifier =&gt; { __VALUE__ =&gt; 'a' }, <br>
+}, <br>
+set =&gt; { <br>
+identifier =&gt; { __VALUE__ =&gt; 'b' }, <br>
+value =&gt; { __VALUE__ =&gt; '7' }, <br>
+}, <br>
+vet =&gt; { <br>
+identifier =&gt; { __VALUE__ =&gt; 'b' }, <br>
+value =&gt; { __VALUE__ =&gt; '7' }, <br>
+}, <br>
+], <br>
+}, <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">(except, of
+course, that each nested hash would also be blessed into the
+appropriate class).</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+specify a base class for the &quot;&lt;autotree&gt;&quot;
+directive. The supplied prefix will be prepended to the rule
+names when creating tree nodes. The following are
+equivalent:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;autotree:MyBase::Class&gt;
+<br>
+&lt;autotree:MyBase::Class::&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">And will
+produce a root node blessed into the
+&quot;MyBase::Class::file&quot; package in the example
+above.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Autostubbing</b>
+<br>
+Normally, if a subrule appears in some production, but no
+rule of that name is ever defined in the grammar, the
+production which refers to the non-existent subrule fails
+immediately. This typically occurs as a result of
+misspellings, and is a sufficiently common occurrence that a
+warning is generated for such situations.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, when
+prototyping a grammar it is sometimes useful to be able to
+use subrules before a proper specification of them is really
+possible. For example, a grammar might include a section
+like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">function_call:
+identifier '(' arg(s?) ')' <br>
+identifier: /[a&minus;z]\w*/i</p>
+
+<p style="margin-left:11%; margin-top: 1em">where the
+possible format of an argument is sufficiently complex that
+it is not worth specifying in full until the general
+function call syntax has been debugged. In this situation it
+is convenient to leave the real rule &quot;arg&quot;
+undefined and just slip in a placeholder (or
+&quot;stub&quot;):</p>
+
+<p style="margin-left:11%; margin-top: 1em">arg: 'arg'</p>
+
+<p style="margin-left:11%; margin-top: 1em">so that the
+function call syntax can be tested with dummy input such
+as:</p>
+
+<p style="margin-left:11%; margin-top: 1em">f0() <br>
+f1(arg) <br>
+f2(arg arg) <br>
+f3(arg arg arg)</p>
+
+<p style="margin-left:11%; margin-top: 1em">et cetera.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Early in
+prototyping, many such &quot;stubs&quot; may be required, so
+&quot;Parse::RecDescent&quot; provides a means of automating
+their definition. If the variable $::RD_AUTOSTUB is defined
+when a parser is built, a subrule reference to any
+non-existent rule (say, &quot;subrule&quot;), will cause a
+&quot;stub&quot; rule to be automatically defined in the
+generated parser. If &quot;$::RD_AUTOSTUB eq '1'&quot; or is
+false, a stub rule of the form:</p>
+
+<p style="margin-left:11%; margin-top: 1em">subrule:
+'subrule'</p>
+
+<p style="margin-left:11%; margin-top: 1em">will be
+generated. The special-case for a value of '1' is to allow
+the use of the <b>perl &minus;s</b> with
+<b>&minus;RD_AUTOSTUB</b> without generating &quot;subrule:
+'1'&quot; per below. If $::RD_AUTOSTUB is true, a stub rule
+of the form:</p>
+
+<p style="margin-left:11%; margin-top: 1em">subrule:
+$::RD_AUTOSTUB</p>
+
+<p style="margin-left:11%; margin-top: 1em">will be
+generated. $::RD_AUTOSTUB must contain a valid production
+item, no checking is performed. No lazy evaluation of
+$::RD_AUTOSTUB is performed, it is evaluated at the time the
+Parser is generated.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Hence, with
+$::RD_AUTOSTUB defined, it is possible to only partially
+specify a grammar, and then &quot;fake&quot; matches of the
+unspecified (sub)rules by just typing in their name, or a
+literal value that was assigned to $::RD_AUTOSTUB.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Look-ahead</b>
+<br>
+If a subrule, token, or action is prefixed by
+&quot;...&quot;, then it is treated as a
+&quot;look-ahead&quot; request. That means that the current
+production can (as usual) only succeed if the specified item
+is matched, but that the matching <i>does not consume any of
+the text being parsed</i>. This is very similar to the
+&quot;/(?=...)/&quot; look-ahead construct in Perl patterns.
+Thus, the rule:</p>
+
+<p style="margin-left:11%; margin-top: 1em">inner_word:
+word ...word</p>
+
+<p style="margin-left:11%; margin-top: 1em">will match
+whatever the subrule &quot;word&quot; matches, provided that
+match is followed by some more text which subrule
+&quot;word&quot; would also match (although this second
+substring is not actually consumed by
+&quot;inner_word&quot;)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Likewise, a
+&quot;...!&quot; prefix, causes the following item to
+succeed (without consuming any text) if and only if it would
+normally fail. Hence, a rule such as:</p>
+
+<p style="margin-left:11%; margin-top: 1em">identifier:
+...!keyword ...!'_' /[A&minus;Za&minus;z_]\w*/</p>
+
+<p style="margin-left:11%; margin-top: 1em">matches a
+string of characters which satisfies the pattern
+&quot;/[A&minus;Za&minus;z_]\w*/&quot;, but only if the same
+sequence of characters would not match either subrule
+&quot;keyword&quot; or the literal token
+&rsquo;_&rsquo;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Sequences of
+look-ahead prefixes accumulate, multiplying their positive
+and/or negative senses. Hence:</p>
+
+<p style="margin-left:11%; margin-top: 1em">inner_word:
+word ...!......!word</p>
+
+<p style="margin-left:11%; margin-top: 1em">is exactly
+equivalent to the original example above (a warning is
+issued in cases like these, since they often indicate
+something left out, or misunderstood).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+actions can also be treated as look-aheads. In such cases,
+the state of the parser text (in the local variable $text)
+<i>after</i> the look-ahead action is guaranteed to be
+identical to its state <i>before</i> the action, regardless
+of how it&rsquo;s changed <i>within</i> the action (unless
+you actually undefine $text, in which case you get the
+disaster you deserve :&minus;).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Directives</b>
+<br>
+Directives are special pre-defined actions which may be used
+to alter the behaviour of the parser. There are currently
+twenty-three directives: &quot;&lt;commit&gt;&quot;,
+&quot;&lt;uncommit&gt;&quot;, &quot;&lt;reject&gt;&quot;,
+&quot;&lt;score&gt;&quot;, &quot;&lt;autoscore&gt;&quot;,
+&quot;&lt;skip&gt;&quot;, &quot;&lt;resync&gt;&quot;,
+&quot;&lt;error&gt;&quot;, &quot;&lt;warn&gt;&quot;,
+&quot;&lt;hint&gt;&quot;, &quot;&lt;trace_build&gt;&quot;,
+&quot;&lt;trace_parse&gt;&quot;,
+&quot;&lt;nocheck&gt;&quot;, &quot;&lt;rulevar&gt;&quot;,
+&quot;&lt;matchrule&gt;&quot;, &quot;&lt;leftop&gt;&quot;,
+&quot;&lt;rightop&gt;&quot;, &quot;&lt;defer&gt;&quot;,
+&quot;&lt;nocheck&gt;&quot;,
+&quot;&lt;perl_quotelike&gt;&quot;,
+&quot;&lt;perl_codeblock&gt;&quot;,
+&quot;&lt;perl_variable&gt;&quot;, and
+&quot;&lt;token&gt;&quot;. <br>
+Committing and uncommitting</p>
+
+<p style="margin-left:17%;">The &quot;&lt;commit&gt;&quot;
+and &quot;&lt;uncommit&gt;&quot; directives permit the
+recursive descent of the parse tree to be pruned (or
+&quot;cut&quot;) for efficiency. Within a rule, a
+&quot;&lt;commit&gt;&quot; directive instructs the rule to
+ignore subsequent productions if the current production
+fails. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">command: 'find'
+&lt;commit&gt; filename <br>
+| 'open' &lt;commit&gt; filename <br>
+| 'move' filename filename</p>
+
+<p style="margin-left:17%; margin-top: 1em">Clearly, if the
+leading token &rsquo;find&rsquo; is matched in the first
+production but that production fails for some other reason,
+then the remaining productions cannot possibly match. The
+presence of the &quot;&lt;commit&gt;&quot; causes the
+&quot;command&quot; rule to fail immediately if an invalid
+&quot;find&quot; command is found, and likewise if an
+invalid &quot;open&quot; command is encountered.</p>
+
+<p style="margin-left:17%; margin-top: 1em">It is also
+possible to revoke a previous commitment. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">if_statement:
+'if' &lt;commit&gt; condition <br>
+'then' block &lt;uncommit&gt; <br>
+'else' block <br>
+| 'if' &lt;commit&gt; condition <br>
+'then' block</p>
+
+<p style="margin-left:17%; margin-top: 1em">In this case, a
+failure to find an &quot;else&quot; block in the first
+production shouldn&rsquo;t preclude trying the second
+production, but a failure to find a &quot;condition&quot;
+certainly should.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As a special
+case, any production in which the <i>first</i> item is an
+&quot;&lt;uncommit&gt;&quot; immediately revokes a preceding
+&quot;&lt;commit&gt;&quot; (even though the production would
+not otherwise have been tried). For example, in the
+rule:</p>
+
+<p style="margin-left:17%; margin-top: 1em">request:
+'explain' expression <br>
+| 'explain' &lt;commit&gt; keyword <br>
+| 'save' <br>
+| 'quit' <br>
+| &lt;uncommit&gt; term '?'</p>
+
+<p style="margin-left:17%; margin-top: 1em">if the text
+being matched was &quot;explain?&quot;, and the first two
+productions failed, then the &quot;&lt;commit&gt;&quot; in
+production two would cause productions three and four to be
+skipped, but the leading &quot;&lt;uncommit&gt;&quot; in the
+production five would allow that production to attempt a
+match.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note in the
+preceding example, that the &quot;&lt;commit&gt;&quot; was
+only placed in production two. If production one had
+been:</p>
+
+<p style="margin-left:17%; margin-top: 1em">request:
+'explain' &lt;commit&gt; expression</p>
+
+<p style="margin-left:17%; margin-top: 1em">then production
+two would be (inappropriately) skipped if a leading
+&quot;explain...&quot; was encountered.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Both
+&quot;&lt;commit&gt;&quot; and &quot;&lt;uncommit&gt;&quot;
+directives always succeed, and their value is always 1.</p>
+
+<p style="margin-left:11%;">Rejecting a production</p>
+
+<p style="margin-left:17%;">The &quot;&lt;reject&gt;&quot;
+directive immediately causes the current production to fail
+(it is exactly equivalent to, but more obvious than, the
+action &quot;{undef}&quot;). A &quot;&lt;reject&gt;&quot; is
+useful when it is desirable to get the side effects of the
+actions in one production, without prejudicing a match by
+some other production later in the rule. For example, to
+insert tracing code into the parse:</p>
+
+<p style="margin-left:17%; margin-top: 1em">complex_rule: {
+print &quot;In complex rule...\n&quot;; } &lt;reject&gt;
+<br>
+complex_rule: simple_rule '+' 'i' '*' simple_rule <br>
+| 'i' '*' simple_rule <br>
+| simple_rule</p>
+
+<p style="margin-left:17%; margin-top: 1em">It is also
+possible to specify a conditional rejection, using the form
+&quot;&lt;reject:<i>condition</i>&gt;&quot;, which only
+rejects if the specified condition is true. This form of
+rejection is exactly equivalent to the action
+&quot;{(<i>condition</i>)?undef:1}&gt;&quot;. For
+example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">command:
+save_command <br>
+| restore_command <br>
+| &lt;reject: defined $::tolerant&gt; { exit } <br>
+| &lt;error: Unknown command. Ignored.&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">A
+&quot;&lt;reject&gt;&quot; directive never succeeds (and
+hence has no associated value). A conditional rejection may
+succeed (if its condition is not satisfied), in which case
+its value is 1.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As an extra
+optimization, &quot;Parse::RecDescent&quot; ignores any
+production which <i>begins</i> with an unconditional
+&quot;&lt;reject&gt;&quot; directive, since any such
+production can never successfully match or have any useful
+side-effects. A level 1 warning is issued in all such
+cases.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+productions beginning with conditional
+&quot;&lt;reject:...&gt;&quot; directives are <i>never</i>
+&quot;optimized away&quot; in this manner, even if they are
+always guaranteed to fail (for example:
+&quot;&lt;reject:1&gt;&quot;)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Due to the way
+grammars are parsed, there is a minor restriction on the
+condition of a conditional &quot;&lt;reject:...&gt;&quot;:
+it cannot contain any raw &rsquo;&lt;&rsquo; or
+&rsquo;&gt;&rsquo; characters. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">line: cmd
+&lt;reject: $thiscolumn &gt; max&gt; data</p>
+
+<p style="margin-left:17%; margin-top: 1em">results in an
+error when a parser is built from this grammar (since the
+grammar parser has no way of knowing whether the first &gt;
+is a &quot;less than&quot; or the end of the
+&quot;&lt;reject:...&gt;&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To overcome
+this problem, put the condition inside a do{} block:</p>
+
+<p style="margin-left:17%; margin-top: 1em">line: cmd
+&lt;reject: do{$thiscolumn &gt; max}&gt; data</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that the
+same problem may occur in other directives that take
+arguments. The same solution will work in all cases.</p>
+
+<p style="margin-left:11%;">Skipping between terminals</p>
+
+<p style="margin-left:17%;">The &quot;&lt;skip&gt;&quot;
+directive enables the terminal prefix used in a production
+to be changed. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">OneLiner:
+Command &lt;skip:'[ \t]*'&gt; Arg(s) /;/</p>
+
+<p style="margin-left:17%; margin-top: 1em">causes only
+blanks and tabs to be skipped before terminals in the
+&quot;Arg&quot; subrule (and any of <i>its</i> subrules&gt;,
+and also before the final &quot;/;/&quot; terminal. Once the
+production is complete, the previous terminal prefix is
+reinstated. Note that this implies that distinct productions
+of a rule must reset their terminal prefixes
+individually.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;&lt;skip&gt;&quot; directive evaluates to the
+<i>previous</i> terminal prefix, so it&rsquo;s easy to
+reinstate a prefix later in a production:</p>
+
+<p style="margin-left:17%; margin-top: 1em">Command:
+&lt;skip:&quot;,&quot;&gt; CSV(s) &lt;skip:$item[1]&gt;
+Modifier</p>
+
+<p style="margin-left:17%; margin-top: 1em">The value
+specified after the colon is interpolated into a pattern, so
+all of the following are equivalent (though their efficiency
+increases down the list):</p>
+
+<p style="margin-left:17%; margin-top: 1em">&lt;skip:
+&quot;$colon|$comma&quot;&gt; # ASSUMING THE VARS HOLD THE
+OBVIOUS VALUES <br>
+&lt;skip: ':|,'&gt; <br>
+&lt;skip: q{[:,]}&gt; <br>
+&lt;skip: qr/[:,]/&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">There is no way
+of directly setting the prefix for an entire rule, except as
+follows:</p>
+
+<p style="margin-left:17%; margin-top: 1em">Rule: &lt;skip:
+'[ \t]*'&gt; Prod1 <br>
+| &lt;skip: '[ \t]*'&gt; Prod2a Prod2b <br>
+| &lt;skip: '[ \t]*'&gt; Prod3</p>
+
+<p style="margin-left:17%; margin-top: 1em">or, better:</p>
+
+<p style="margin-left:17%; margin-top: 1em">Rule: &lt;skip:
+'[ \t]*'&gt; <br>
+( <br>
+Prod1 <br>
+| Prod2a Prod2b <br>
+| Prod3 <br>
+)</p>
+
+<p style="margin-left:17%; margin-top: 1em">The skip
+pattern is passed down to subrules, so setting the skip for
+the top-level rule as described above actually sets the
+prefix for the entire grammar (provided that you only call
+the method corresponding to the top-level rule itself).
+Alternatively, or if you have more than one top-level rule
+in your grammar, you can provide a global
+&quot;&lt;skip&gt;&quot; directive prior to defining any
+rules in the grammar. These are the preferred alternatives
+to setting $Parse::RecDescent::skip.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Additionally,
+using &quot;&lt;skip&gt;&quot; actually allows you to have a
+completely dynamic skipping behaviour. For example:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">Rule_with_dynamic_skip:
+&lt;skip: $::skip_pattern&gt; Rule</p>
+
+<p style="margin-left:17%; margin-top: 1em">Then you can
+set $::skip_pattern before invoking
+&quot;Rule_with_dynamic_skip&quot; and have it skip whatever
+you specified.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Note: Up to
+release 1.51 of Parse::RecDescent, an entirely different
+mechanism was used for specifying terminal prefixes. The
+current method is not backwards-compatible with that early
+approach. The current approach is stable and will not change
+again.</b></p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Note: the
+global &quot;&lt;skip&gt;&quot; directive added in 1.967_004
+did not interpolate the pattern argument, instead the
+pattern was placed inside of single quotes and then
+interpolated. This behavior was changed in 1.967_010 so that
+all &quot;&lt;skip&gt;&quot; directives behavior
+similarly.</b></p>
+
+<p style="margin-left:11%;">Resynchronization</p>
+
+<p style="margin-left:17%;">The &quot;&lt;resync&gt;&quot;
+directive provides a visually distinctive means of consuming
+some of the text being parsed, usually to skip an erroneous
+input. In its simplest form &quot;&lt;resync&gt;&quot;
+simply consumes text up to and including the next newline
+(&quot;\n&quot;) character, succeeding only if the newline
+is found, in which case it causes its surrounding rule to
+return zero on success.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In other words,
+a &quot;&lt;resync&gt;&quot; is exactly equivalent to the
+token &quot;/[^\n]*\n/&quot; followed by the action
+&quot;{&nbsp;$return&nbsp;=&nbsp;0&nbsp;}&quot; (except that
+productions beginning with a &quot;&lt;resync&gt;&quot; are
+ignored when generating error messages). A typical use might
+be:</p>
+
+<p style="margin-left:17%; margin-top: 1em">script :
+command(s) <br>
+command: save_command <br>
+| restore_command <br>
+| &lt;resync&gt; # TRY NEXT LINE, IF POSSIBLE</p>
+
+<p style="margin-left:17%; margin-top: 1em">It is also
+possible to explicitly specify a resynchronization pattern,
+using the &quot;&lt;resync:<i>pattern</i>&gt;&quot; variant.
+This version succeeds only if the specified pattern matches
+(and consumes) the parsed text. In other words,
+&quot;&lt;resync:<i>pattern</i>&gt;&quot; is exactly
+equivalent to the token &quot;/<i>pattern</i>/&quot;
+(followed by a
+&quot;{&nbsp;$return&nbsp;=&nbsp;0&nbsp;}&quot; action). For
+example, if commands were terminated by newlines or
+semi-colons:</p>
+
+<p style="margin-left:17%; margin-top: 1em">command:
+save_command <br>
+| restore_command <br>
+| &lt;resync:[^;\n]*[;\n]&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">The value of a
+successfully matched &quot;&lt;resync&gt;&quot; directive
+(of either type) is the text that it consumed. Note,
+however, that since the directive also sets $return, a
+production consisting of a lone &quot;&lt;resync&gt;&quot;
+succeeds but returns the value zero (which a calling rule
+may find useful to distinguish between &quot;true&quot;
+matches and &quot;tolerant&quot; matches). Remember that
+returning a zero value indicates that the rule
+<i>succeeded</i> (since only an &quot;undef&quot; denotes
+failure within &quot;Parse::RecDescent&quot; parsers.</p>
+
+<p style="margin-left:11%;">Error handling</p>
+
+<p style="margin-left:17%;">The &quot;&lt;error&gt;&quot;
+directive provides automatic or user-defined generation of
+error messages during a parse. In its simplest form
+&quot;&lt;error&gt;&quot; prepares an error message based on
+the mismatch between the last item expected and the text
+which cause it to fail. For example, given the rule:</p>
+
+<p style="margin-left:17%; margin-top: 1em">McCoy: curse
+',' name ', I'm a doctor, not a' a_profession '!' <br>
+| pronoun 'dead,' name '!' <br>
+| &lt;error&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">the following
+strings would produce the following messages: <br>
+&quot;Amen, Jim!&quot;</p>
+
+<p style="margin-left:23%;">ERROR (line 1): Invalid McCoy:
+Expected curse or pronoun <br>
+not found</p>
+
+<p style="margin-left:17%;">&quot;Dammit, Jim, I&rsquo;m a
+doctor!&quot;</p>
+
+<p style="margin-left:23%;">ERROR (line 1): Invalid McCoy:
+Expected &quot;, I'm a doctor, not a&quot; <br>
+but found &quot;, I'm a doctor!&quot; instead</p>
+
+<p style="margin-left:17%;">&quot;He&rsquo;s
+dead,\n&quot;</p>
+
+<p style="margin-left:23%;">ERROR (line 2): Invalid McCoy:
+Expected name not found</p>
+
+<p style="margin-left:17%;">&quot;He&rsquo;s
+alive!&quot;</p>
+
+<p style="margin-left:23%;">ERROR (line 1): Invalid McCoy:
+Expected 'dead,' but found <br>
+&quot;alive!&quot; instead</p>
+
+<p style="margin-left:17%;">&quot;Dammit, Jim, I&rsquo;m a
+doctor, not a pointy-eared Vulcan!&quot;</p>
+
+<p style="margin-left:23%;">ERROR (line 1): Invalid McCoy:
+Expected a profession but found <br>
+&quot;pointy&minus;eared Vulcan!&quot; instead</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that, when
+autogenerating error messages, all underscores in any rule
+name used in a message are replaced by single spaces (for
+example &quot;a_production&quot; becomes &quot;a
+production&quot;). Judicious choice of rule names can
+therefore considerably improve the readability of automatic
+error messages (as well as the maintainability of the
+original grammar).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+automatically generated error is not sufficient, it is
+possible to provide an explicit message as part of the error
+directive. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">Spock:
+&quot;Fascinating ',' (name | 'Captain') '.' <br>
+| &quot;Highly illogical, doctor.&quot; <br>
+| &lt;error: He never said that!&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">which would
+result in <i>all</i> failures to parse a &quot;Spock&quot;
+subrule printing the following message:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ERROR (line
+&lt;N&gt;): Invalid Spock: He never said that!</p>
+
+<p style="margin-left:17%; margin-top: 1em">The error
+message is treated as a &quot;qq{...}&quot; string and
+interpolated when the error is generated (<i>not</i> when
+the directive is specified!). Hence:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&lt;error:
+Mystical error near &quot;$text&quot;&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">would correctly
+insert the ambient text string which caused the error.</p>
+
+<p style="margin-left:17%; margin-top: 1em">There are two
+other forms of error directive: &quot;&lt;error?&gt;&quot;
+and &quot;&lt;error?:&nbsp;msg&gt;&quot;. These behave just
+like &quot;&lt;error&gt;&quot; and
+&quot;&lt;error:&nbsp;msg&gt;&quot; respectively, except
+that they are only triggered if the rule is
+&quot;committed&quot; at the time they are encountered. For
+example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">Scotty:
+&quot;Ya kenna change the Laws of Phusics,&quot;
+&lt;commit&gt; name <br>
+| name &lt;commit&gt; ',' 'she's goanta blaw!' <br>
+| &lt;error?&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">will only
+generate an error for a string beginning with &quot;Ya kenna
+change the Laws o&rsquo; Phusics,&quot; or a valid name, but
+which still fails to match the corresponding production.
+That is, &quot;$parser&minus;&gt;Scotty(&quot;Aye,
+Cap'ain&quot;)&quot; will fail silently (since neither
+production will &quot;commit&quot; the rule on that input),
+whereas
+&quot;$parser&minus;&gt;Scotty(&quot;Mr&nbsp;Spock,&nbsp;ah&nbsp;jest&nbsp;kenna&nbsp;do'ut!&quot;)&quot;
+will fail with the error message:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ERROR (line 1):
+Invalid Scotty: expected 'she's goanta blaw!' <br>
+but found 'I jest kenna do'ut!' instead.</p>
+
+<p style="margin-left:17%; margin-top: 1em">since in that
+case the second production would commit after matching the
+leading name.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that to
+allow this behaviour, all &quot;&lt;error&gt;&quot;
+directives which are the first item in a production
+automatically uncommit the rule just long enough to allow
+their production to be attempted (that is, when their
+production fails, the commitment is reinstated so that
+subsequent productions are skipped).</p>
+
+<p style="margin-left:17%; margin-top: 1em">In order to
+<i>permanently</i> uncommit the rule before an error
+message, it is necessary to put an explicit
+&quot;&lt;uncommit&gt;&quot; before the
+&quot;&lt;error&gt;&quot;. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">line: 'Kirk:'
+&lt;commit&gt; Kirk <br>
+| 'Spock:' &lt;commit&gt; Spock <br>
+| 'McCoy:' &lt;commit&gt; McCoy <br>
+| &lt;uncommit&gt; &lt;error?&gt; &lt;reject&gt; <br>
+| &lt;resync&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Error messages
+generated by the various &quot;&lt;error...&gt;&quot;
+directives are not displayed immediately. Instead, they are
+&quot;queued&quot; in a buffer and are only displayed once
+parsing ultimately fails. Moreover,
+&quot;&lt;error...&gt;&quot; directives that cause one
+production of a rule to fail are automatically removed from
+the message queue if another production subsequently causes
+the entire rule to succeed. This means that you can put
+&quot;&lt;error...&gt;&quot; directives wherever useful
+diagnosis can be done, and only those associated with actual
+parser failure will ever be displayed. Also see &quot;
+<small>GOTCHAS&quot;</small> .</p>
+
+<p style="margin-left:17%; margin-top: 1em">As a general
+rule, the most useful diagnostics are usually generated
+either at the very lowest level within the grammar, or at
+the very highest. A good rule of thumb is to identify those
+subrules which consist mainly (or entirely) of terminals,
+and then put an &quot;&lt;error...&gt;&quot; directive at
+the end of any other rule which calls one or more of those
+subrules.</p>
+
+<p style="margin-left:17%; margin-top: 1em">There is one
+other situation in which the output of the various types of
+error directive is suppressed; namely, when the rule
+containing them is being parsed as part of a
+&quot;look-ahead&quot; (see &quot;Look-ahead&quot;). In this
+case, the error directive will still cause the rule to fail,
+but will do so silently.</p>
+
+<p style="margin-left:17%; margin-top: 1em">An
+unconditional &quot;&lt;error&gt;&quot; directive always
+fails (and hence has no associated value). This means that
+encountering such a directive always causes the production
+containing it to fail. Hence an &quot;&lt;error&gt;&quot;
+directive will inevitably be the last (useful) item of a
+rule (a level 3 warning is issued if a production contains
+items after an unconditional &quot;&lt;error&gt;&quot;
+directive).</p>
+
+<p style="margin-left:17%; margin-top: 1em">An
+&quot;&lt;error?&gt;&quot; directive will <i>succeed</i>
+(that is: fail to fail :&minus;), if the current rule is
+uncommitted when the directive is encountered. In that case
+the directive&rsquo;s associated value is zero. Hence, this
+type of error directive <i>can</i> be used before the end of
+a production. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">command: 'do'
+&lt;commit&gt; something <br>
+| 'report' &lt;commit&gt; something <br>
+| &lt;error?: Syntax error&gt; &lt;error: Unknown
+command&gt;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>Warning:</b>
+The &quot;&lt;error?&gt;&quot; directive does <i>not</i>
+mean &quot;always fail (but do so silently unless
+committed)&quot;. It actually means &quot;only fail (and
+report) if committed, otherwise <i>succeed</i>&quot;. To
+achieve the &quot;fail silently if uncommitted&quot;
+semantics, it is necessary to use:</p>
+
+<p style="margin-left:17%; margin-top: 1em">rule: item
+&lt;commit&gt; item(s) <br>
+| &lt;error?&gt; &lt;reject&gt; # FAIL SILENTLY UNLESS
+COMMITTED</p>
+
+<p style="margin-left:17%; margin-top: 1em">However,
+because people seem to expect a lone
+&quot;&lt;error?&gt;&quot; directive to work like this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">rule: item
+&lt;commit&gt; item(s) <br>
+| &lt;error?: Error message if committed&gt; <br>
+| &lt;error: Error message if uncommitted&gt;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">Parse::RecDescent
+automatically appends a &quot;&lt;reject&gt;&quot; directive
+if the &quot;&lt;error?&gt;&quot; directive is the only item
+in a production. A level 2 warning (see below) is issued
+when this happens.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The level of
+error reporting during both parser construction and parsing
+is controlled by the presence or absence of four global
+variables: $::RD_ERRORS, $::RD_WARN, $::RD_HINT, and
+&lt;$::RD_TRACE&gt;. If $::RD_ERRORS is defined (and, by
+default, it is) then fatal errors are reported.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Whenever
+$::RD_WARN is defined, certain non-fatal problems are also
+reported.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Warnings have
+an associated &quot;level&quot;: 1, 2, or 3. The higher the
+level, the more serious the warning. The value of the
+corresponding global variable ($::RD_WARN) determines the
+<i>lowest</i> level of warning to be displayed. Hence, to
+see <i>all</i> warnings, set $::RD_WARN to 1. To see only
+the most serious warnings set $::RD_WARN to 3. By default
+$::RD_WARN is initialized to 3, ensuring that serious but
+non-fatal errors are automatically reported.</p>
+
+<p style="margin-left:17%; margin-top: 1em">There is also a
+grammar directive to turn on warnings from within the
+grammar: &quot;&lt;warn&gt;&quot;. It takes an optional
+argument, which specifies the warning level: &quot;&lt;warn:
+2&gt;&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See <i>&quot;
+<small>DIAGNOSTICS&quot;</small></i> for a list of the
+various error and warning messages that Parse::RecDescent
+generates when these two variables are defined.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Defining any of
+the remaining variables (which are not defined by default)
+further increases the amount of information reported.
+Defining $::RD_HINT causes the parser generator to offer
+more detailed analyses and hints on both errors and
+warnings. Note that setting $::RD_HINT at any point
+automagically sets $::RD_WARN to 1. There is also a
+&quot;&lt;hint&gt;&quot; directive, which can be hard-coded
+into a grammar.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Defining
+$::RD_TRACE causes the parser generator and the parser to
+report their progress to <small>STDERR</small> in
+excruciating detail (although, without hints unless
+$::RD_HINT is separately defined). This detail can be
+moderated in only one respect: if $::RD_TRACE has an integer
+value (<i>N</i>) greater than 1, only the <i>N</i>
+characters of the &quot;current parsing context&quot; (that
+is, where in the input string we are at any point in the
+parse) is reported at any time.</p>
+
+<p style="margin-left:17%; margin-top: 1em">$::RD_TRACE is
+mainly useful for debugging a grammar that isn&rsquo;t
+behaving as you expected it to. To this end, if $::RD_TRACE
+is defined when a parser is built, any actual parser code
+which is generated is also written to a file named &quot;
+<small>RD_TRACE&quot;</small> in the local directory.</p>
+
+<p style="margin-left:17%; margin-top: 1em">There are two
+directives associated with the $::RD_TRACE variable. If a
+grammar contains a &quot;&lt;trace_build&gt;&quot; directive
+anywhere in its specification, $::RD_TRACE is turned on
+during the parser construction phase. If a grammar contains
+a &quot;&lt;trace_parse&gt;&quot; directive anywhere in its
+specification, $::RD_TRACE is turned on during any parse the
+parser performs.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that the
+four variables belong to the &quot;main&quot; package, which
+makes them easier to refer to in the code controlling the
+parser, and also makes it easy to turn them into command
+line flags (&quot;&minus;RD_ERRORS&quot;,
+&quot;&minus;RD_WARN&quot;, &quot;&minus;RD_HINT&quot;,
+&quot;&minus;RD_TRACE&quot;) under <b>perl &minus;s</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+corresponding directives are useful to &quot;hardwire&quot;
+the various debugging features into a particular grammar
+(rather than having to set and reset external
+variables).</p>
+
+<p style="margin-left:11%;">Redirecting diagnostics</p>
+
+<p style="margin-left:17%;">The diagnostics provided by the
+tracing mechanism always go to <small>STDERR.</small> If you
+need them to go elsewhere, localize and reopen
+<small>STDERR</small> prior to the parse.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For
+example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">{ <br>
+local *STDERR =
+IO::File&minus;&gt;new(&quot;&gt;$filename&quot;) or die $!;
+<br>
+my $result = $parser&minus;&gt;startrule($text); <br>
+}</p>
+
+<p style="margin-left:11%;">Consistency checks</p>
+
+<p style="margin-left:17%;">Whenever a parser is build,
+Parse::RecDescent carries out a number of (potentially
+expensive) consistency checks. These include: verifying that
+the grammar is not left-recursive and that no rules have
+been left undefined.</p>
+
+<p style="margin-left:17%; margin-top: 1em">These checks
+are important safeguards during development, but unnecessary
+overheads when the grammar is stable and ready to be
+deployed. So Parse::RecDescent provides a directive to
+disable them: &quot;&lt;nocheck&gt;&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If a grammar
+contains a &quot;&lt;nocheck&gt;&quot; directive anywhere in
+its specification, the extra compile-time checks are
+by-passed.</p>
+
+<p style="margin-left:11%;">Specifying local variables</p>
+
+<p style="margin-left:17%;">It is occasionally convenient
+to specify variables which are local to a single rule. This
+may be achieved by including a
+&quot;&lt;rulevar:...&gt;&quot; directive anywhere in the
+rule. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">markup:
+&lt;rulevar: $tag&gt; <br>
+markup: tag {($tag=$item[1]) =~ s/^&lt;|&gt;$//g}
+body[$tag]</p>
+
+<p style="margin-left:17%; margin-top: 1em">The example
+&quot;&lt;rulevar: $tag&gt;&quot; directive causes a
+&quot;my&quot; variable named $tag to be declared at the
+start of the subroutine implementing the &quot;markup&quot;
+rule (that is, <i>before</i> the first production,
+regardless of where in the rule it is specified).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Specifically,
+any directive of the form:
+&quot;&lt;rulevar:<i>text</i>&gt;&quot; causes a line of the
+form &quot;my <i>text</i>;&quot; to be added at the
+beginning of the rule subroutine, immediately after the
+definitions of the following local variables:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$thisparser
+$commit <br>
+$thisrule @item <br>
+$thisline @arg <br>
+$text %arg</p>
+
+<p style="margin-left:17%; margin-top: 1em">This means that
+the following &quot;&lt;rulevar&gt;&quot; directives work as
+expected:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&lt;rulevar:
+$count = 0 &gt; <br>
+&lt;rulevar: $firstarg = $arg[0] || '' &gt; <br>
+&lt;rulevar: $myItems = \@item &gt; <br>
+&lt;rulevar: @context = ( $thisline, $text, @arg ) &gt; <br>
+&lt;rulevar: ($name,$age) =
+$arg{&quot;name&quot;,&quot;age&quot;} &gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">If a variable
+that is also visible to subrules is required, it needs to be
+&quot;local&quot;&rsquo;d, not &quot;my&quot;&rsquo;d.
+&quot;rulevar&quot; defaults to &quot;my&quot;, but if
+&quot;local&quot; is explicitly specified:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&lt;rulevar:
+local $count = 0 &gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">then a
+&quot;local&quot;&minus;ized variable is declared instead,
+and will be available within subrules.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note however
+that, because all such variables are &quot;my&quot;
+variables, their values <i>do not persist</i> between match
+attempts on a given rule. To preserve values between match
+attempts, values can be stored within the &quot;local&quot;
+member of the $thisrule object:</p>
+
+<p style="margin-left:17%; margin-top: 1em">countedrule: {
+$thisrule&minus;&gt;{&quot;local&quot;}{&quot;count&quot;}++
+} <br>
+&lt;reject&gt; <br>
+| subrule1 <br>
+| subrule2 <br>
+| &lt;reject:
+$thisrule&minus;&gt;{&quot;local&quot;}{&quot;count&quot;}
+== 1&gt; <br>
+subrule3</p>
+
+<p style="margin-left:17%; margin-top: 1em">When matching a
+rule, each &quot;&lt;rulevar&gt;&quot; directive is matched
+as if it were an unconditional &quot;&lt;reject&gt;&quot;
+directive (that is, it causes any production in which it
+appears to immediately fail to match). For this reason (and
+to improve readability) it is usual to specify any
+&quot;&lt;rulevar&gt;&quot; directive in a separate
+production at the start of the rule (this has the added
+advantage that it enables &quot;Parse::RecDescent&quot; to
+optimize away such productions, just as it does for the
+&quot;&lt;reject&gt;&quot; directive).</p>
+
+<p style="margin-left:11%;">Dynamically matched rules</p>
+
+<p style="margin-left:17%;">Because regexes and
+double-quoted strings are interpolated, it is relatively
+easy to specify productions with &quot;context
+sensitive&quot; tokens. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">command:
+keyword body &quot;end $item[1]&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">which ensures
+that a command block is bounded by a
+&quot;<i>&lt;keyword&gt;</i>...end <i>&lt;same
+keyword&gt;</i>&quot; pair.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Building
+productions in which subrules are context sensitive is also
+possible, via the &quot;&lt;matchrule:...&gt;&quot;
+directive. This directive behaves identically to a subrule
+item, except that the rule which is invoked to match it is
+determined by the string specified after the colon. For
+example, we could rewrite the &quot;command&quot; rule like
+this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">command:
+keyword &lt;matchrule:body&gt; &quot;end $item[1]&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Whatever
+appears after the colon in the directive is treated as an
+interpolated string (that is, as if it appeared in
+&quot;qq{...}&quot; operator) and the value of that
+interpolated string is the name of the subrule to be
+matched.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Of course, just
+putting a constant string like &quot;body&quot; in a
+&quot;&lt;matchrule:...&gt;&quot; directive is of little
+interest or benefit. The power of directive is seen when we
+use a string that interpolates to something interesting. For
+example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">command:
+keyword &lt;matchrule:$item[1]_body&gt; &quot;end
+$item[1]&quot; <br>
+keyword: 'while' | 'if' | 'function' <br>
+while_body: condition block <br>
+if_body: condition block ('else' block)(?) <br>
+function_body: arglist block</p>
+
+<p style="margin-left:17%; margin-top: 1em">Now the
+&quot;command&quot; rule selects how to proceed on the basis
+of the keyword that is found. It is as if
+&quot;command&quot; were declared:</p>
+
+<p style="margin-left:17%; margin-top: 1em">command:
+'while' while_body &quot;end while&quot; <br>
+| 'if' if_body &quot;end if&quot; <br>
+| 'function' function_body &quot;end function&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">When a
+&quot;&lt;matchrule:...&gt;&quot; directive is used as a
+repeated subrule, the rule name expression is
+&quot;late-bound&quot;. That is, the name of the rule to be
+called is re-evaluated <i>each time</i> a match attempt is
+made. Hence, the following grammar:</p>
+
+<p style="margin-left:17%; margin-top: 1em">{ $::species =
+'dogs' } <br>
+pair: 'two' &lt;matchrule:$::species&gt;(s) <br>
+dogs: /dogs/ { $::species = 'cats' } <br>
+cats: /cats/</p>
+
+<p style="margin-left:17%; margin-top: 1em">will match the
+string &quot;two dogs cats cats&quot; completely, whereas it
+will only match the string &quot;two dogs dogs dogs&quot; up
+to the eighth letter. If the rule name were &quot;early
+bound&quot; (that is, evaluated only the first time the
+directive is encountered in a production), the reverse
+behaviour would be expected.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that the
+&quot;matchrule&quot; directive takes a string that is to be
+treated as a rule name, <i>not</i> as a rule invocation.
+That is, it&rsquo;s like a Perl symbolic reference, not an
+&quot;eval&quot;. Just as you can say:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$subname =
+'foo'; <br>
+# and later... <br>
+&amp;{$foo}(@args);</p>
+
+<p style="margin-left:17%; margin-top: 1em">but not:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$subname =
+'foo(@args)'; <br>
+# and later... <br>
+&amp;{$foo};</p>
+
+<p style="margin-left:17%; margin-top: 1em">likewise you
+can say:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$rulename =
+'foo'; <br>
+# and in the grammar... <br>
+&lt;matchrule:$rulename&gt;[@args]</p>
+
+<p style="margin-left:17%; margin-top: 1em">but not:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$rulename =
+'foo[@args]'; <br>
+# and in the grammar... <br>
+&lt;matchrule:$rulename&gt;</p>
+
+<p style="margin-left:11%;">Deferred actions</p>
+
+<p style="margin-left:17%;">The
+&quot;&lt;defer:...&gt;&quot; directive is used to specify
+an action to be performed when (and only if!) the current
+production ultimately succeeds.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Whenever a
+&quot;&lt;defer:...&gt;&quot; directive appears, the code it
+specifies is converted to a closure (an anonymous subroutine
+reference) which is queued within the active parser object.
+Note that, because the deferred code is converted to a
+closure, the values of any &quot;local&quot; variable (such
+as $text, &lt;@item&gt;, etc.) are preserved until the
+deferred code is actually executed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the parse
+ultimately succeeds <i>and</i> the production in which the
+&quot;&lt;defer:...&gt;&quot; directive was evaluated formed
+part of the successful parse, then the deferred code is
+executed immediately before the parse returns. If however
+the production which queued a deferred action fails, or one
+of the higher-level rules which called that production
+fails, then the deferred action is removed from the queue,
+and hence is never executed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example,
+given the grammar:</p>
+
+<p style="margin-left:17%; margin-top: 1em">sentence: noun
+trans noun <br>
+| noun intrans <br>
+noun: 'the dog' <br>
+{ print &quot;$item[1]\t(noun)\n&quot; } <br>
+| 'the meat' <br>
+{ print &quot;$item[1]\t(noun)\n&quot; } <br>
+trans: 'ate' <br>
+{ print &quot;$item[1]\t(transitive)\n&quot; } <br>
+intrans: 'ate' <br>
+{ print &quot;$item[1]\t(intransitive)\n&quot; } <br>
+| 'barked' <br>
+{ print &quot;$item[1]\t(intransitive)\n&quot; }</p>
+
+<p style="margin-left:17%; margin-top: 1em">then parsing
+the sentence &quot;the dog ate&quot; would produce the
+output:</p>
+
+<p style="margin-left:17%; margin-top: 1em">the dog (noun)
+<br>
+ate (transitive) <br>
+the dog (noun) <br>
+ate (intransitive)</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is
+because, even though the first production of
+&quot;sentence&quot; ultimately fails, its initial subrules
+&quot;noun&quot; and &quot;trans&quot; do match, and hence
+they execute their associated actions. Then the second
+production of &quot;sentence&quot; succeeds, causing the
+actions of the subrules &quot;noun&quot; and
+&quot;intrans&quot; to be executed as well.</p>
+
+<p style="margin-left:17%; margin-top: 1em">On the other
+hand, if the actions were replaced by
+&quot;&lt;defer:...&gt;&quot; directives:</p>
+
+<p style="margin-left:17%; margin-top: 1em">sentence: noun
+trans noun <br>
+| noun intrans <br>
+noun: 'the dog' <br>
+&lt;defer: print &quot;$item[1]\t(noun)\n&quot; &gt; <br>
+| 'the meat' <br>
+&lt;defer: print &quot;$item[1]\t(noun)\n&quot; &gt; <br>
+trans: 'ate' <br>
+&lt;defer: print &quot;$item[1]\t(transitive)\n&quot; &gt;
+<br>
+intrans: 'ate' <br>
+&lt;defer: print &quot;$item[1]\t(intransitive)\n&quot; &gt;
+<br>
+| 'barked' <br>
+&lt;defer: print &quot;$item[1]\t(intransitive)\n&quot;
+&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">the output
+would be:</p>
+
+<p style="margin-left:17%; margin-top: 1em">the dog (noun)
+<br>
+ate (intransitive)</p>
+
+<p style="margin-left:17%; margin-top: 1em">since deferred
+actions are only executed if they were evaluated in a
+production which ultimately contributes to the successful
+parse.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In this case,
+even though the first production of &quot;sentence&quot;
+caused the subrules &quot;noun&quot; and &quot;trans&quot;
+to match, that production ultimately failed and so the
+deferred actions queued by those subrules were subsequently
+discarded. The second production then succeeded, causing the
+entire parse to succeed, and so the deferred actions queued
+by the (second) match of the &quot;noun&quot; subrule and
+the subsequent match of &quot;intrans&quot; <i>are</i>
+preserved and eventually executed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Deferred
+actions provide a means of improving the performance of a
+parser, by only executing those actions which are part of
+the final parse-tree for the input data.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Alternatively,
+deferred actions can be viewed as a mechanism for building
+(and executing) a customized subroutine corresponding to the
+given input data, much in the same way that autoactions (see
+&quot;Autoactions&quot;) can be used to build a customized
+data structure for specific input.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Whether or not
+the action it specifies is ever executed, a
+&quot;&lt;defer:...&gt;&quot; directive always succeeds,
+returning the number of deferred actions currently queued at
+that point.</p>
+
+<p style="margin-left:11%;">Parsing Perl</p>
+
+<p style="margin-left:17%;">Parse::RecDescent provides
+limited support for parsing subsets of Perl, namely:
+quote-like operators, Perl variables, and complete code
+blocks.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;&lt;perl_quotelike&gt;&quot; directive can be used to
+parse any Perl quote-like operator: 'a string', &quot;m/a
+pattern/&quot;, &quot;tr{ans}{lation}&quot;, etc. It does
+this by calling <b>Text::Balanced::quotelike()</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If a quote-like
+operator is found, a reference to an array of eight elements
+is returned. Those elements are identical to the last eight
+elements returned by
+<b>Text::Balanced::extract_quotelike()</b> in an array
+context, namely:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p>[0]</p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>the name of the quotelike operator -- &rsquo;q&rsquo;,
+&rsquo;qq&rsquo;, &rsquo;m&rsquo;, &rsquo;s&rsquo;,
+&rsquo;tr&rsquo; -- if the operator was named; otherwise
+&quot;undef&quot;,</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p>[1]</p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>the left delimiter of the first block of the
+operation,</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p>[2]</p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>the text of the first block of the operation (that is,
+the contents of a quote, the regex of a match, or
+substitution or the target list of a translation),</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p>[3]</p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>the right delimiter of the first block of the
+operation,</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p>[4]</p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>the left delimiter of the second block of the operation
+if there is one (that is, if it is a &quot;s&quot;,
+&quot;tr&quot;, or &quot;y&quot;); otherwise
+&quot;undef&quot;,</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p>[5]</p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>the text of the second block of the operation if there
+is one (that is, the replacement of a substitution or the
+translation list of a translation); otherwise
+&quot;undef&quot;,</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p>[6]</p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>the right delimiter of the second block of the operation
+(if any); otherwise &quot;undef&quot;,</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p>[7]</p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>the trailing modifiers on the operation (if any);
+otherwise &quot;undef&quot;.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If a quote-like
+expression is not found, the directive fails with the usual
+&quot;undef&quot; value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;&lt;perl_variable&gt;&quot; directive can be used to
+parse any Perl variable: $scalar, @array, %hash,
+$ref&minus;&gt;{field}[$index], etc. It does this by calling
+<b>Text::Balanced::extract_variable()</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+directive matches text representing a valid Perl variable
+specification, it returns that text. Otherwise it fails with
+the usual &quot;undef&quot; value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;&lt;perl_codeblock&gt;&quot; directive can be used to
+parse curly-brace-delimited block of Perl code, such as: {
+$a = 1; f() =~ m/pat/; }. It does this by calling
+<b>Text::Balanced::extract_codeblock()</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+directive matches text representing a valid Perl code block,
+it returns that text. Otherwise it fails with the usual
+&quot;undef&quot; value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">You can also
+tell it what kind of brackets to use as the outermost
+delimiters. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">arglist:
+&lt;perl_codeblock ()&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">causes an
+arglist to match a perl code block whose outermost
+delimiters are &quot;(...)&quot; (rather than the default
+&quot;{...}&quot;).</p>
+
+<p style="margin-left:11%;">Constructing tokens</p>
+
+<p style="margin-left:17%;">Eventually, Parse::RecDescent
+will be able to parse tokenized input, as well as ordinary
+strings. In preparation for this joyous day, the
+&quot;&lt;token:...&gt;&quot; directive has been provided.
+This directive creates a token which will be suitable for
+input to a Parse::RecDescent parser (when it eventually
+supports tokenized input).</p>
+
+<p style="margin-left:17%; margin-top: 1em">The text of the
+token is the value of the immediately preceding item in the
+production. A &quot;&lt;token:...&gt;&quot; directive always
+succeeds with a return value which is the hash reference
+that is the new token. It also sets the return value for the
+production to that hash ref.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;&lt;token:...&gt;&quot; directive makes it easy to
+build a Parse::RecDescent&minus;compatible lexer in
+Parse::RecDescent:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $lexer = new
+Parse::RecDescent q <br>
+{ <br>
+lex: token(s) <br>
+token: /a\b/ &lt;token:INDEF&gt; <br>
+| /the\b/ &lt;token:DEF&gt; <br>
+| /fly\b/ &lt;token:NOUN,VERB&gt; <br>
+| /[a&minus;z]+/i { lc $item[1] } &lt;token:ALPHA&gt; <br>
+| &lt;error: Unknown token&gt; <br>
+};</p>
+
+<p style="margin-left:17%; margin-top: 1em">which will
+eventually be able to be used with a regular
+Parse::RecDescent grammar:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $parser =
+new Parse::RecDescent q <br>
+{ <br>
+startrule: subrule1 subrule 2 <br>
+# ETC... <br>
+};</p>
+
+<p style="margin-left:17%; margin-top: 1em">either with a
+pre-lexing phase:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$parser&minus;&gt;startrule(
+$lexer&minus;&gt;lex($data) );</p>
+
+<p style="margin-left:17%; margin-top: 1em">or with a
+lex-on-demand approach:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$parser&minus;&gt;startrule(
+sub{$lexer&minus;&gt;token(\$data)} );</p>
+
+<p style="margin-left:17%; margin-top: 1em">But at present,
+only the &quot;&lt;token:...&gt;&quot; directive is actually
+implemented. The rest is vapourware.</p>
+
+<p style="margin-left:11%;">Specifying operations</p>
+
+<p style="margin-left:17%;">One of the commonest
+requirements when building a parser is to specify binary
+operators. Unfortunately, in a normal grammar, the rules for
+such things are awkward:</p>
+
+<p style="margin-left:17%; margin-top: 1em">disjunction:
+conjunction ('or' conjunction)(s?) <br>
+{ $return = [ $item[1], @{$item[2]} ] } <br>
+conjunction: atom ('and' atom)(s?) <br>
+{ $return = [ $item[1], @{$item[2]} ] }</p>
+
+<p style="margin-left:17%; margin-top: 1em">or
+inefficient:</p>
+
+<p style="margin-left:17%; margin-top: 1em">disjunction:
+conjunction 'or' disjunction <br>
+{ $return = [ $item[1], @{$item[2]} ] } <br>
+| conjunction <br>
+{ $return = [ $item[1] ] } <br>
+conjunction: atom 'and' conjunction <br>
+{ $return = [ $item[1], @{$item[2]} ] } <br>
+| atom <br>
+{ $return = [ $item[1] ] }</p>
+
+<p style="margin-left:17%; margin-top: 1em">and either way
+is ugly and hard to get right.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;&lt;leftop:...&gt;&quot; and
+&quot;&lt;rightop:...&gt;&quot; directives provide an easier
+way of specifying such operations. Using
+&quot;&lt;leftop:...&gt;&quot; the above examples
+become:</p>
+
+<p style="margin-left:17%; margin-top: 1em">disjunction:
+&lt;leftop: conjunction 'or' conjunction&gt; <br>
+conjunction: &lt;leftop: atom 'and' atom&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;&lt;leftop:...&gt;&quot; directive specifies a
+left-associative binary operator. It is specified around
+three other grammar elements (typically subrules or
+terminals), which match the left operand, the operator
+itself, and the right operand respectively.</p>
+
+<p style="margin-left:17%; margin-top: 1em">A
+&quot;&lt;leftop:...&gt;&quot; directive such as:</p>
+
+<p style="margin-left:17%; margin-top: 1em">disjunction:
+&lt;leftop: conjunction 'or' conjunction&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">is converted to
+the following:</p>
+
+<p style="margin-left:17%; margin-top: 1em">disjunction: (
+conjunction ('or' conjunction)(s?) <br>
+{ $return = [ $item[1], @{$item[2]} ] } )</p>
+
+<p style="margin-left:17%; margin-top: 1em">In other words,
+a &quot;&lt;leftop:...&gt;&quot; directive matches the left
+operand followed by zero or more repetitions of both the
+operator and the right operand. It then flattens the matched
+items into an anonymous array which becomes the (single)
+value of the entire &quot;&lt;leftop:...&gt;&quot;
+directive.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example, an
+&quot;&lt;leftop:...&gt;&quot; directive such as:</p>
+
+<p style="margin-left:17%; margin-top: 1em">output:
+&lt;leftop: ident '&lt;&lt;' expr &gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">when given a
+string such as:</p>
+
+<p style="margin-left:17%; margin-top: 1em">cout &lt;&lt;
+var &lt;&lt; &quot;str&quot; &lt;&lt; 3</p>
+
+<p style="margin-left:17%; margin-top: 1em">would match,
+and $item[1] would be set to:</p>
+
+<p style="margin-left:17%; margin-top: 1em">[ 'cout',
+'var', '&quot;str&quot;', '3' ]</p>
+
+<p style="margin-left:17%; margin-top: 1em">In other
+words:</p>
+
+<p style="margin-left:17%; margin-top: 1em">output:
+&lt;leftop: ident '&lt;&lt;' expr &gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">is equivalent
+to a left-associative operator:</p>
+
+<p style="margin-left:17%; margin-top: 1em">output: ident {
+$return = [$item[1]] } <br>
+| ident '&lt;&lt;' expr { $return = [@item[1,3]] } <br>
+| ident '&lt;&lt;' expr '&lt;&lt;' expr { $return =
+[@item[1,3,5]] } <br>
+| ident '&lt;&lt;' expr '&lt;&lt;' expr '&lt;&lt;' expr {
+$return = [@item[1,3,5,7]] } <br>
+# ...etc...</p>
+
+<p style="margin-left:17%; margin-top: 1em">Similarly, the
+&quot;&lt;rightop:...&gt;&quot; directive takes a left
+operand, an operator, and a right operand:</p>
+
+<p style="margin-left:17%; margin-top: 1em">assign:
+&lt;rightop: var '=' expr &gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">and converts
+them to:</p>
+
+<p style="margin-left:17%; margin-top: 1em">assign: ( (var
+'=' {$return=$item[1]})(s?) expr <br>
+{ $return = [ @{$item[1]}, $item[2] ] } )</p>
+
+<p style="margin-left:17%; margin-top: 1em">which is
+equivalent to a right-associative operator:</p>
+
+<p style="margin-left:17%; margin-top: 1em">assign: expr {
+$return = [$item[1]] } <br>
+| var '=' expr { $return = [@item[1,3]] } <br>
+| var '=' var '=' expr { $return = [@item[1,3,5]] } <br>
+| var '=' var '=' var '=' expr { $return = [@item[1,3,5,7]]
+} <br>
+# ...etc...</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that for
+both the &quot;&lt;leftop:...&gt;&quot; and
+&quot;&lt;rightop:...&gt;&quot; directives, the directive
+does not normally return the operator itself, just a list of
+the operands involved. This is particularly handy for
+specifying lists:</p>
+
+<p style="margin-left:17%; margin-top: 1em">list: '('
+&lt;leftop: list_item ',' list_item&gt; ')' <br>
+{ $return = $item[2] }</p>
+
+<p style="margin-left:17%; margin-top: 1em">There is,
+however, a problem: sometimes the operator is itself
+significant. For example, in a Perl list a comma and a
+&quot;=&gt;&quot; are both valid separators, but the
+&quot;=&gt;&quot; has additional stringification semantics.
+Hence it&rsquo;s important to know which was used in each
+case.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To solve this
+problem the &quot;&lt;leftop:...&gt;&quot; and
+&quot;&lt;rightop:...&gt;&quot; directives <i>do</i> return
+the operator(s) as well, under two circumstances. The first
+case is where the operator is specified as a subrule. In
+that instance, whatever the operator matches is returned (on
+the assumption that if the operator is important enough to
+have its own subrule, then it&rsquo;s important enough to
+return).</p>
+
+<p style="margin-left:17%; margin-top: 1em">The second case
+is where the operator is specified as a regular expression.
+In that case, if the first bracketed subpattern of the
+regular expression matches, that matching value is returned
+(this is analogous to the behaviour of the Perl
+&quot;split&quot; function, except that only the first
+subpattern is returned).</p>
+
+<p style="margin-left:17%; margin-top: 1em">In other words,
+given the input:</p>
+
+<p style="margin-left:17%; margin-top: 1em">( a=&gt;1,
+b=&gt;2 )</p>
+
+<p style="margin-left:17%; margin-top: 1em">the
+specifications:</p>
+
+<p style="margin-left:17%; margin-top: 1em">list: '('
+&lt;leftop: list_item separator list_item&gt; ')' <br>
+separator: ',' | '=&gt;'</p>
+
+<p style="margin-left:17%; margin-top: 1em">or:</p>
+
+<p style="margin-left:17%; margin-top: 1em">list: '('
+&lt;leftop: list_item /(,|=&gt;)/ list_item&gt; ')'</p>
+
+<p style="margin-left:17%; margin-top: 1em">cause the list
+separators to be interleaved with the operands in the
+anonymous array in $item[2]:</p>
+
+<p style="margin-left:17%; margin-top: 1em">[ 'a', '=&gt;',
+'1', ',', 'b', '=&gt;', '2' ]</p>
+
+<p style="margin-left:17%; margin-top: 1em">But the
+following version:</p>
+
+<p style="margin-left:17%; margin-top: 1em">list: '('
+&lt;leftop: list_item /,|=&gt;/ list_item&gt; ')'</p>
+
+<p style="margin-left:17%; margin-top: 1em">returns only
+the operators:</p>
+
+<p style="margin-left:17%; margin-top: 1em">[ 'a', '1',
+'b', '2' ]</p>
+
+<p style="margin-left:17%; margin-top: 1em">Of course, none
+of the above specifications handle the case of an empty
+list, since the &quot;&lt;leftop:...&gt;&quot; and
+&quot;&lt;rightop:...&gt;&quot; directives require at least
+a single right or left operand to match. To specify that the
+operator can match &quot;trivially&quot;, it&rsquo;s
+necessary to add a &quot;(s?)&quot; qualifier to the
+directive:</p>
+
+<p style="margin-left:17%; margin-top: 1em">list: '('
+&lt;leftop: list_item /(,|=&gt;)/ list_item&gt;(s?) ')'</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that in
+almost all the above examples, the first and third arguments
+of the &quot;&lt;leftop:...&gt;&quot; directive were the
+same subrule. That is because
+&quot;&lt;leftop:...&gt;&quot;&rsquo;s are frequently used
+to specify &quot;separated&quot; lists of the same type of
+item. To make such lists easier to specify, the following
+syntax:</p>
+
+<p style="margin-left:17%; margin-top: 1em">list: element(s
+/,/)</p>
+
+<p style="margin-left:17%; margin-top: 1em">is exactly
+equivalent to:</p>
+
+<p style="margin-left:17%; margin-top: 1em">list:
+&lt;leftop: element /,/ element&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that the
+separator must be specified as a raw pattern (i.e. not a
+string or subrule).</p>
+
+<p style="margin-left:11%;">Scored productions</p>
+
+<p style="margin-left:17%;">By default, Parse::RecDescent
+grammar rules always accept the first production that
+matches the input. But if two or more productions may
+potentially match the same input, choosing the first that
+does so may not be optimal.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example, if
+you were parsing the sentence &quot;time flies like an
+arrow&quot;, you might use a rule like this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">sentence: verb
+noun preposition article noun { [@item] } <br>
+| adjective noun verb article noun { [@item] } <br>
+| noun verb preposition article noun { [@item] }</p>
+
+<p style="margin-left:17%; margin-top: 1em">Each of these
+productions matches the sentence, but the third one is the
+most likely interpretation. However, if the sentence had
+been &quot;fruit flies like a banana&quot;, then the second
+production is probably the right match.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To cater for
+such situations, the &quot;&lt;score:...&gt;&quot; can be
+used. The directive is equivalent to an unconditional
+&quot;&lt;reject&gt;&quot;, except that it allows you to
+specify a &quot;score&quot; for the current production. If
+that score is numerically greater than the best score of any
+preceding production, the current production is cached for
+later consideration. If no later production matches, then
+the cached production is treated as having matched, and the
+value of the item immediately before its
+&quot;&lt;score:...&gt;&quot; directive is returned as the
+result.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In other words,
+by putting a &quot;&lt;score:...&gt;&quot; directive at the
+end of each production, you can select which production
+matches using criteria other than specification order. For
+example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">sentence: verb
+noun preposition article noun { [@item] } &lt;score:
+sensible(@item)&gt; <br>
+| adjective noun verb article noun { [@item] } &lt;score:
+sensible(@item)&gt; <br>
+| noun verb preposition article noun { [@item] } &lt;score:
+sensible(@item)&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Now, when each
+production reaches its respective
+&quot;&lt;score:...&gt;&quot; directive, the subroutine
+&quot;sensible&quot; will be called to evaluate the matched
+items (somehow). Once all productions have been tried, the
+one which &quot;sensible&quot; scored most highly will be
+the one that is accepted as a match for the rule.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The variable
+$score always holds the current best score of any
+production, and the variable $score_return holds the
+corresponding return value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As another
+example, the following grammar matches lines that may be
+separated by commas, colons, or semi-colons. This can be
+tricky if a colon-separated line also contains commas, or
+vice versa. The grammar resolves the ambiguity by selecting
+the rule that results in the fewest fields:</p>
+
+<p style="margin-left:17%; margin-top: 1em">line:
+seplist[sep=&gt;','] &lt;score: &minus;@{$item[1]}&gt; <br>
+| seplist[sep=&gt;':'] &lt;score: &minus;@{$item[1]}&gt;
+<br>
+| seplist[sep=&gt;&quot; &quot;] &lt;score:
+&minus;@{$item[1]}&gt; <br>
+seplist: &lt;skip:&quot;&quot;&gt; &lt;leftop:
+/[^$arg{sep}]*/ &quot;$arg{sep}&quot;
+/[^$arg{sep}]*/&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note the use of
+negation within the &quot;&lt;score:...&gt;&quot; directive
+to ensure that the seplist with the most items gets the
+lowest score.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As the above
+examples indicate, it is often the case that all productions
+in a rule use exactly the same &quot;&lt;score:...&gt;&quot;
+directive. It is tedious to have to repeat this identical
+directive in every production, so Parse::RecDescent also
+provides the &quot;&lt;autoscore:...&gt;&quot;
+directive.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If an
+&quot;&lt;autoscore:...&gt;&quot; directive appears in any
+production of a rule, the code it specifies is used as the
+scoring code for every production of that rule, except
+productions that already end with an explicit
+&quot;&lt;score:...&gt;&quot; directive. Thus the rules
+above could be rewritten:</p>
+
+<p style="margin-left:17%; margin-top: 1em">line:
+&lt;autoscore: &minus;@{$item[1]}&gt; <br>
+line: seplist[sep=&gt;','] <br>
+| seplist[sep=&gt;':'] <br>
+| seplist[sep=&gt;&quot; &quot;] <br>
+sentence: &lt;autoscore: sensible(@item)&gt; <br>
+| verb noun preposition article noun { [@item] } <br>
+| adjective noun verb article noun { [@item] } <br>
+| noun verb preposition article noun { [@item] }</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that the
+&quot;&lt;autoscore:...&gt;&quot; directive itself acts as
+an unconditional &quot;&lt;reject&gt;&quot;, and (like the
+&quot;&lt;rulevar:...&gt;&quot; directive) is pruned at
+compile-time wherever possible.</p>
+
+<p style="margin-left:11%;">Dispensing with grammar
+checks</p>
+
+<p style="margin-left:17%;">During the compilation phase of
+parser construction, Parse::RecDescent performs a small
+number of checks on the grammar it&rsquo;s given.
+Specifically it checks that the grammar is not
+left-recursive, that there are no &quot;insatiable&quot;
+constructs of the form:</p>
+
+<p style="margin-left:17%; margin-top: 1em">rule:
+subrule(s) subrule</p>
+
+<p style="margin-left:17%; margin-top: 1em">and that there
+are no rules missing (i.e. referred to, but never
+defined).</p>
+
+<p style="margin-left:17%; margin-top: 1em">These checks
+are important during development, but can slow down parser
+construction in stable code. So Parse::RecDescent provides
+the &lt;nocheck&gt; directive to turn them off. The
+directive can only appear before the first rule definition,
+and switches off checking throughout the rest of the current
+grammar.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Typically, this
+directive would be added when a parser has been thoroughly
+tested and is ready for release.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Subrule
+argument lists</b> <br>
+It is occasionally useful to pass data to a subrule which is
+being invoked. For example, consider the following grammar
+fragment:</p>
+
+<p style="margin-left:11%; margin-top: 1em">classdecl:
+keyword decl <br>
+keyword: 'struct' | 'class'; <br>
+decl: # WHATEVER</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;decl&quot; rule might wish to know which of the two
+keywords was used (since it may affect some aspect of the
+way the subsequent declaration is interpreted).
+&quot;Parse::RecDescent&quot; allows the grammar designer to
+pass data into a rule, by placing that data in an
+<i>argument list</i> (that is, in square brackets)
+immediately after any subrule item in a production. Hence,
+we could pass the keyword to &quot;decl&quot; as
+follows:</p>
+
+<p style="margin-left:11%; margin-top: 1em">classdecl:
+keyword decl[ $item[1] ] <br>
+keyword: 'struct' | 'class'; <br>
+decl: # WHATEVER</p>
+
+<p style="margin-left:11%; margin-top: 1em">The argument
+list can consist of any number (including zero!) of
+comma-separated Perl expressions. In other words, it looks
+exactly like a Perl anonymous array reference. For example,
+we could pass the keyword, the name of the surrounding rule,
+and the literal &rsquo;keyword&rsquo; to &quot;decl&quot;
+like so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">classdecl:
+keyword decl[$item[1],$item[0],'keyword'] <br>
+keyword: 'struct' | 'class'; <br>
+decl: # WHATEVER</p>
+
+<p style="margin-left:11%; margin-top: 1em">Within the rule
+to which the data is passed (&quot;decl&quot; in the above
+examples) that data is available as the elements of a local
+variable @arg. Hence &quot;decl&quot; might report its
+intentions as follows:</p>
+
+<p style="margin-left:11%; margin-top: 1em">classdecl:
+keyword decl[$item[1],$item[0],'keyword'] <br>
+keyword: 'struct' | 'class'; <br>
+decl: { print &quot;Declaring $arg[0] (a $arg[2])\n&quot;;
+<br>
+print &quot;(this rule called by $arg[1])&quot; }</p>
+
+<p style="margin-left:11%; margin-top: 1em">Subrule
+argument lists can also be interpreted as hashes, simply by
+using the local variable %arg instead of @arg. Hence we
+could rewrite the previous example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">classdecl:
+keyword decl[keyword =&gt; $item[1], <br>
+caller =&gt; $item[0], <br>
+type =&gt; 'keyword'] <br>
+keyword: 'struct' | 'class'; <br>
+decl: { print &quot;Declaring $arg{keyword} (a
+$arg{type})\n&quot;; <br>
+print &quot;(this rule called by $arg{caller})&quot; }</p>
+
+<p style="margin-left:11%; margin-top: 1em">Both @arg and
+%arg are always available, so the grammar designer may
+choose whichever convention (or combination of conventions)
+suits best.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Subrule
+argument lists are also useful for creating &quot;rule
+templates&quot; (especially when used in conjunction with
+the &quot;&lt;matchrule:...&gt;&quot; directive). For
+example, the subrule:</p>
+
+<p style="margin-left:11%; margin-top: 1em">list:
+&lt;matchrule:$arg{rule}&gt; /$arg{sep}/ list[%arg] <br>
+{ $return = [ $item[1], @{$item[3]} ] } <br>
+| &lt;matchrule:$arg{rule}&gt; <br>
+{ $return = [ $item[1]] }</p>
+
+<p style="margin-left:11%; margin-top: 1em">is a handy
+template for the common problem of matching a separated
+list. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">function:
+'func' name '(' list[rule=&gt;'param',sep=&gt;';'] ')' <br>
+param: list[rule=&gt;'name',sep=&gt;','] ':' typename <br>
+name: /\w+/ <br>
+typename: name</p>
+
+<p style="margin-left:11%; margin-top: 1em">When a subrule
+argument list is used with a repeated subrule, the argument
+list goes <i>before</i> the repetition specifier:</p>
+
+<p style="margin-left:11%; margin-top: 1em">list:
+/some|many/ thing[ $item[1] ](s)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The argument
+list is &quot;late bound&quot;. That is, it is re-evaluated
+for every repetition of the repeated subrule. This means
+that each repeated attempt to match the subrule may be
+passed a completely different set of arguments if the value
+of the expression in the argument list changes between
+attempts. So, for example, the grammar:</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ $::species =
+'dogs' } <br>
+pair: 'two' animal[$::species](s) <br>
+animal: /$arg[0]/ { $::species = 'cats' }</p>
+
+<p style="margin-left:11%; margin-top: 1em">will match the
+string &quot;two dogs cats cats&quot; completely, whereas it
+will only match the string &quot;two dogs dogs dogs&quot; up
+to the eighth letter. If the value of the argument list were
+&quot;early bound&quot; (that is, evaluated only the first
+time a repeated subrule match is attempted), one would
+expect the matching behaviours to be reversed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Of course, it
+is possible to effectively &quot;early bind&quot; such
+argument lists by passing them a value which does not change
+on each repetition. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ $::species =
+'dogs' } <br>
+pair: 'two' { $::species } animal[$item[2]](s) <br>
+animal: /$arg[0]/ { $::species = 'cats' }</p>
+
+<p style="margin-left:11%; margin-top: 1em">Arguments can
+also be passed to the start rule, simply by appending them
+to the argument list with which the start rule is called
+(<i>after</i> the &quot;line number&quot; parameter). For
+example, given:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$parser = new
+Parse::RecDescent ( $grammar ); <br>
+$parser&minus;&gt;data($text, 1, &quot;str&quot;, 2, \@arr);
+<br>
+# ^^^^^ ^ ^^^^^^^^^^^^^^^ <br>
+# | | | <br>
+# TEXT TO BE PARSED | | <br>
+# STARTING LINE NUMBER | <br>
+# ELEMENTS OF @arg WHICH IS PASSED TO RULE data</p>
+
+<p style="margin-left:11%; margin-top: 1em">then within the
+productions of the rule &quot;data&quot;, the array @arg
+will contain &quot;(&quot;str&quot;, 2, \@arr)&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Alternations</b>
+<br>
+Alternations are implicit (unnamed) rules defined as part of
+a production. An alternation is defined as a series of
+&rsquo;|&rsquo;&minus;separated productions inside a pair of
+round brackets. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">character:
+'the' ( good | bad | ugly ) /dude/</p>
+
+<p style="margin-left:11%; margin-top: 1em">Every
+alternation implicitly defines a new subrule, whose
+automatically-generated name indicates its origin:
+&quot;_alternation_&lt;I&gt;_of_production_&lt;P&gt;_of_rule&lt;R&gt;&quot;
+for the appropriate values of &lt;I&gt;, &lt;P&gt;, and
+&lt;R&gt;. A call to this implicit subrule is then inserted
+in place of the brackets. Hence the above example is merely
+a convenient short-hand for:</p>
+
+<p style="margin-left:11%; margin-top: 1em">character:
+'the' <br>
+_alternation_1_of_production_1_of_rule_character <br>
+/dude/ <br>
+_alternation_1_of_production_1_of_rule_character: <br>
+good | bad | ugly</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since
+alternations are parsed by recursively calling the parser
+generator, any type(s) of item can appear in an alternation.
+For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">character:
+'the' ( 'high' &quot;plains&quot; # Silent, with poncho <br>
+| /no[&minus; ]name/ # Silent, no poncho <br>
+| vengeance_seeking # Poncho&minus;optional <br>
+| &lt;error&gt; <br>
+) drifter</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this case,
+if an error occurred, the automatically generated message
+would be:</p>
+
+<p style="margin-left:11%; margin-top: 1em">ERROR (line
+&lt;N&gt;): Invalid implicit subrule: Expected <br>
+'high' or /no[&minus; ]name/ or generic, <br>
+but found &quot;pacifist&quot; instead</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since every
+alternation actually has a name, it&rsquo;s even possible to
+extend or replace them:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">parser&minus;&gt;Replace(
+<br>
+&quot;_alternation_1_of_production_1_of_rule_character: <br>
+'generic Eastwood'&quot; <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">More
+importantly, since alternations are a form of subrule, they
+can be given repetition specifiers:</p>
+
+<p style="margin-left:11%; margin-top: 1em">character:
+'the' ( good | bad | ugly )(?) /dude/</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Incremental
+Parsing</b> <br>
+&quot;Parse::RecDescent&quot; provides two methods &minus;
+&quot;Extend&quot; and &quot;Replace&quot; &minus; which can
+be used to alter the grammar matched by a parser. Both
+methods take the same argument as
+&quot;Parse::RecDescent::new&quot;, namely a grammar
+specification string</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Parse::RecDescent::Extend&quot;
+interprets the grammar specification and adds any
+productions it finds to the end of the rules for which they
+are specified. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$add =
+&quot;name: 'Jimmy&minus;Bob' | 'Bobby&minus;Jim'\ndesc:
+colour /necks?/&quot;; <br>
+parser&minus;&gt;Extend($add);</p>
+
+<p style="margin-left:11%; margin-top: 1em">adds two
+productions to the rule &quot;name&quot; (creating it if
+necessary) and one production to the rule
+&quot;desc&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Parse::RecDescent::Replace&quot;
+is identical, except that it first resets are rule specified
+in the additional grammar, removing any existing
+productions. Hence after:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$add =
+&quot;name: 'Jimmy&minus;Bob' | 'Bobby&minus;Jim'\ndesc:
+colour /necks?/&quot;; <br>
+parser&minus;&gt;Replace($add);</p>
+
+<p style="margin-left:11%; margin-top: 1em">there are
+<i>only</i> valid &quot;name&quot;s and the one possible
+description.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A more
+interesting use of the &quot;Extend&quot; and
+&quot;Replace&quot; methods is to call them inside the
+action of an executing parser. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef:
+'typedef' type_name identifier ';' <br>
+{ $thisparser&minus;&gt;Extend(&quot;type_name:
+'$item[3]'&quot;) } <br>
+| &lt;error&gt; <br>
+identifier: ...!type_name /[A&minus;Za&minus;z_]w*/</p>
+
+<p style="margin-left:11%; margin-top: 1em">which
+automatically prevents type names from being
+typedef&rsquo;d, or:</p>
+
+<p style="margin-left:11%; margin-top: 1em">command: 'map'
+key_name 'to' abort_key <br>
+{ $thisparser&minus;&gt;Replace(&quot;abort_key:
+'$item[2]'&quot;) } <br>
+| 'map' key_name 'to' key_name <br>
+{ map_key($item[2],$item[4]) } <br>
+| abort_key <br>
+{ exit if confirm(&quot;abort?&quot;) } <br>
+abort_key: 'q' <br>
+key_name: ...!abort_key /[A&minus;Za&minus;z]/</p>
+
+<p style="margin-left:11%; margin-top: 1em">which allows
+the user to change the abort key binding, but not to unbind
+it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The careful use
+of such constructs makes it possible to reconfigure a a
+running parser, eliminating the need for semantic feedback
+by providing syntactic feedback instead. However, as
+currently implemented, &quot;Replace()&quot; and
+&quot;Extend()&quot; have to regenerate and
+re&minus;&quot;eval&quot; the entire parser whenever they
+are called. This makes them quite slow for large
+grammars.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In such cases,
+the judicious use of an interpolated regex is likely to be
+far more efficient:</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef:
+'typedef' type_name/ identifier ';' <br>
+{ $thisparser&minus;&gt;{local}{type_name} .=
+&quot;|$item[3]&quot; } <br>
+| &lt;error&gt; <br>
+identifier: ...!type_name /[A&minus;Za&minus;z_]w*/ <br>
+type_name: /$thisparser&minus;&gt;{local}{type_name}/</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Precompiling
+parsers</b> <br>
+Normally Parse::RecDescent builds a parser from a grammar at
+run-time. That approach simplifies the design and
+implementation of parsing code, but has the disadvantage
+that it slows the parsing process down &minus; you have to
+wait for Parse::RecDescent to build the parser every time
+the program runs. Long or complex grammars can be
+particularly slow to build, leading to unacceptable delays
+at start-up.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To overcome
+this, the module provides a way of &quot;pre-building&quot;
+a parser object and saving it in a separate module. That
+module can then be used to create clones of the original
+parser.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A grammar may
+be precompiled using the &quot;Precompile&quot; class
+method. For example, to precompile a grammar stored in the
+scalar $grammar, and produce a class named PreGrammar in a
+module file named PreGrammar.pm, you could use:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Parse::RecDescent; <br>
+Parse::RecDescent&minus;&gt;Precompile([$options_hashref],
+$grammar, &quot;PreGrammar&quot;,
+[&quot;RuntimeClass&quot;]);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first
+required argument is the grammar string, the second is the
+name of the class to be built. The name of the module file
+is generated automatically by appending &quot;.pm&quot; to
+the last element of the class name. Thus</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Parse::RecDescent&minus;&gt;Precompile($grammar,
+&quot;My::New::Parser&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">would produce a
+module file named Parser.pm.</p>
+
+<p style="margin-left:11%; margin-top: 1em">After the class
+name, you may specify the name of the runtime_class called
+by the Precompiled parser. See &quot;Precompiled
+runtimes&quot; for more details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An optional
+hash reference may be supplied as the first argument to
+&quot;Precompile&quot;. This argument is currently
+<small>EXPERIMENTAL,</small> and may change in a future
+release of Parse::RecDescent. The only supported option is
+currently &quot;&minus;standalone&quot;, see
+&quot;Standalone precompiled parsers&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is somewhat
+tedious to have to write a small Perl program just to
+generate a precompiled grammar class, so Parse::RecDescent
+has some special magic that allows you to do the job
+directly from the command-line.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If your grammar
+is specified in a file named <i>grammar</i>, you can
+generate a class named Yet::Another::Grammar like so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">&gt; perl
+&minus;MParse::RecDescent &minus; grammar
+Yet::Another::Grammar [Runtime::Class]</p>
+
+<p style="margin-left:11%; margin-top: 1em">This would
+produce a file named <i>Grammar.pm</i> containing the full
+definition of a class called Yet::Another::Grammar. Of
+course, to use that class, you would need to put the
+<i>Grammar.pm</i> file in a directory named
+<i>Yet/Another</i>, somewhere in your Perl include path.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Having created
+the new class, it&rsquo;s very easy to use it to build a
+parser. You simply &quot;use&quot; the new module, and then
+call its &quot;new&quot; method to create a parser object.
+For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Yet::Another::Grammar; <br>
+my $parser = Yet::Another::Grammar&minus;&gt;new();</p>
+
+<p style="margin-left:11%; margin-top: 1em">The effect of
+these two lines is exactly the same as:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Parse::RecDescent; <br>
+open GRAMMAR_FILE, &quot;grammar&quot; or die; <br>
+local $/; <br>
+my $grammar = &lt;GRAMMAR_FILE&gt;; <br>
+my $parser = Parse::RecDescent&minus;&gt;new($grammar);</p>
+
+<p style="margin-left:11%; margin-top: 1em">only
+considerably faster.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note however
+that the parsers produced by either approach are exactly the
+same, so whilst precompilation has an effect on
+<i>set-up</i> speed, it has no effect on <i>parsing</i>
+speed. RecDescent 2.0 will address that problem.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Standalone
+precompiled parsers</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Until version
+1.967003 of Parse::RecDescent, parser modules built with
+&quot;Precompile&quot; were dependent on Parse::RecDescent.
+Future Parse::RecDescent releases with different internal
+implementations would break pre-existing precompiled
+parsers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Version
+1.967_005 added the ability for Parse::RecDescent to include
+itself in the resulting .pm file if you pass the boolean
+option &quot;&minus;standalone&quot; to
+&quot;Precompile&quot;:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Parse::RecDescent&minus;&gt;Precompile({
+&minus;standalone =&gt; 1, }, <br>
+$grammar, &quot;My::New::Parser&quot;);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Parse::RecDescent
+is included as $class::_Runtime in order to avoid conflicts
+between an installed version of Parse::RecDescent and other
+precompiled, standalone parser made with Parse::RecDescent.
+The name of this class may be changed with the
+&quot;&minus;runtime_class&quot; option to Precompile. This
+renaming is experimental, and is subject to change in future
+versions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Precompiled
+parsers remain dependent on Parse::RecDescent by default, as
+this feature is still considered experimental. In the
+future, standalone parsers will become the default.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Precompiled
+runtimes</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Standalone
+precompiled parsers each include a copy of
+Parse::RecDescent. For users who have a family of related
+precompiled parsers, this is very inefficient.
+&quot;Precompile&quot; now supports an experimental
+&quot;&minus;runtime_class&quot; option. To build a
+precompiled parser with a different runtime name, call:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Parse::RecDescent&minus;&gt;Precompile({
+<br>
+&minus;standalone =&gt; 1, <br>
+&minus;runtime_class =&gt; &quot;My::Runtime&quot;, <br>
+}, <br>
+$grammar, &quot;My::New::Parser&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The resulting
+standalone parser will contain a copy of Parse::RecDescent,
+renamed to &quot;My::Runtime&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To build a set
+of parsers that &quot;use&quot; a custom-named runtime,
+without including that runtime in the output, simply build
+those parsers with &quot;&minus;runtime_class&quot; and
+without &quot;&minus;standalone&quot;:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Parse::RecDescent&minus;&gt;Precompile({
+<br>
+&minus;runtime_class =&gt; &quot;My::Runtime&quot;, <br>
+}, <br>
+$grammar, &quot;My::New::Parser&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The runtime
+itself must be generated as well, so that it may be
+&quot;use&quot;d by My::New::Parser. To generate the runtime
+file, use one of the two folling calls:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Parse::RecDescent&minus;&gt;PrecompiledRuntime(&quot;My::Runtime&quot;);
+<br>
+Parse::RecDescent&minus;&gt;Precompile({ <br>
+&minus;standalone =&gt; 1, <br>
+&minus;runtime_class =&gt; &quot;My::Runtime&quot;, <br>
+}, <br>
+'', # empty grammar <br>
+&quot;My::Runtime&quot;);</p>
+
+<h2>GOTCHAS
+<a name="GOTCHAS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This section
+describes common mistakes that grammar writers seem to make
+on a regular basis.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>1. Expecting
+an error to always invalidate a parse</b> <br>
+A common mistake when using error messages is to write the
+grammar like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">file: line(s)
+<br>
+line: line_type_1 <br>
+| line_type_2 <br>
+| line_type_3 <br>
+| &lt;error&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The expectation
+seems to be that any line that is not of type 1, 2 or 3 will
+invoke the &quot;&lt;error&gt;&quot; directive and thereby
+cause the parse to fail.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unfortunately,
+that only happens if the error occurs in the very first
+line. The first rule states that a &quot;file&quot; is
+matched by one or more lines, so if even a single line
+succeeds, the first rule is completely satisfied and the
+parse as a whole succeeds. That means that any error
+messages generated by subsequent failures in the
+&quot;line&quot; rule are quietly ignored.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Typically
+what&rsquo;s really needed is this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">file: line(s)
+eofile { $return = $item[1] } <br>
+line: line_type_1 <br>
+| line_type_2 <br>
+| line_type_3 <br>
+| &lt;error&gt; <br>
+eofile: /^\Z/</p>
+
+<p style="margin-left:11%; margin-top: 1em">The addition of
+the &quot;eofile&quot; subrule to the first production means
+that a file only matches a series of successful
+&quot;line&quot; matches <i>that consume the complete input
+text</i>. If any input text remains after the lines are
+matched, there must have been an error in the last
+&quot;line&quot;. In that case the &quot;eofile&quot; rule
+will fail, causing the entire &quot;file&quot; rule to fail
+too.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note too that
+&quot;eofile&quot; must match &quot;/^\Z/&quot;
+(end-of-text), <i>not</i> &quot;/^\cZ/&quot; or
+&quot;/^\cD/&quot; (end-of-file).</p>
+
+<p style="margin-left:11%; margin-top: 1em">And don&rsquo;t
+forget the action at the end of the production. If you just
+write:</p>
+
+<p style="margin-left:11%; margin-top: 1em">file: line(s)
+eofile</p>
+
+<p style="margin-left:11%; margin-top: 1em">then the value
+returned by the &quot;file&quot; rule will be the value of
+its last item: &quot;eofile&quot;. Since &quot;eofile&quot;
+always returns an empty string on success, that will cause
+the &quot;file&quot; rule to return that empty string. Apart
+from returning the wrong value, returning an empty string
+will trip up code such as:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$parser&minus;&gt;file($filetext)
+|| die;</p>
+
+<p style="margin-left:11%; margin-top: 1em">(since
+&quot;&quot; is false).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Remember that
+Parse::RecDescent returns undef on failure, so the only safe
+test for failure is:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">defined($parser&minus;&gt;file($filetext))
+|| die;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>2. Using a
+&quot;return&quot; in an action</b> <br>
+An action is like a &quot;do&quot; block inside the
+subroutine implementing the surrounding rule. So if you put
+a &quot;return&quot; statement in an action:</p>
+
+<p style="margin-left:11%; margin-top: 1em">range: '('
+start '..' end )' <br>
+{ return $item{end} } <br>
+/\s+/</p>
+
+<p style="margin-left:11%; margin-top: 1em">that subroutine
+will immediately return, without checking the rest of the
+items in the current production (e.g. the &quot;/\s+/&quot;)
+and without setting up the necessary data structures to tell
+the parser that the rule has succeeded.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The correct way
+to set a return value in an action is to set the $return
+variable:</p>
+
+<p style="margin-left:11%; margin-top: 1em">range: '('
+start '..' end )' <br>
+{ $return = $item{end} } <br>
+/\s+/</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>2. Setting
+$Parse::RecDescent::skip at parse time</b> <br>
+If you want to change the default skipping behaviour (see
+&quot;Terminal Separators&quot; and the
+&quot;&lt;skip:...&gt;&quot; directive) by setting
+$Parse::RecDescent::skip you have to remember to set this
+variable <i>before</i> creating the grammar object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example,
+you might want to skip all Perl-like comments with this
+regular expression:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my
+$skip_spaces_and_comments = qr/ <br>
+(?mxs: <br>
+\s+ # either spaces <br>
+| \# .*?$ # or a dash and whatever up to the end of line
+<br>
+)* # repeated at will (in whatever order) <br>
+/;</p>
+
+<p style="margin-left:11%; margin-top: 1em">And then:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $parser1 =
+Parse::RecDescent&minus;&gt;new($grammar); <br>
+$Parse::RecDescent::skip = $skip_spaces_and_comments; <br>
+my $parser2 = Parse::RecDescent&minus;&gt;new($grammar);
+<br>
+$parser1&minus;&gt;parse($text); # this does not cope with
+comments <br>
+$parser2&minus;&gt;parse($text); # this skips comments
+correctly</p>
+
+<p style="margin-left:11%; margin-top: 1em">The two parsers
+behave differently, because any skipping behaviour specified
+via $Parse::RecDescent::skip is hard-coded when the grammar
+object is built, not at parse time.</p>
+
+<h2>DIAGNOSTICS
+<a name="DIAGNOSTICS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Diagnostics are
+intended to be self-explanatory (particularly if you use
+<b>&minus;RD_HINT</b> (under <b>perl &minus;s</b>) or define
+$::RD_HINT inside the program).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Parse::RecDescent&quot;
+currently diagnoses the following:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Invalid regular expressions used as pattern terminals
+(fatal error).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Invalid Perl code in code blocks (fatal error).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Lookahead used in the wrong place or in a nonsensical
+way (fatal error).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;Obvious&quot; cases of left-recursion (fatal
+error).</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Missing or extra components in a
+&quot;&lt;leftop&gt;&quot; or &quot;&lt;rightop&gt;&quot;
+directive.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Unrecognisable components in the grammar specification
+(fatal error).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;Orphaned&quot; rule components specified before
+the first rule (fatal error) or after an
+&quot;&lt;error&gt;&quot; directive (level 3 warning).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Missing rule definitions (this only generates a level 3
+warning, since you may be providing them later via
+&quot;Parse::RecDescent::Extend()&quot;).</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Instances where greedy repetition behaviour will almost
+certainly cause the failure of a production (a level 3
+warning &minus; see &quot;ON-GOING <small>ISSUES AND FUTURE
+DIRECTIONS&quot;</small> below).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Attempts to define rules named &rsquo;Replace&rsquo; or
+&rsquo;Extend&rsquo;, which cannot be called directly
+through the parser object because of the predefined meaning
+of &quot;Parse::RecDescent::Replace&quot; and
+&quot;Parse::RecDescent::Extend&quot;. (Only a level 2
+warning is generated, since such rules <i>can</i> still be
+used as subrules).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Productions which consist of a single
+&quot;&lt;error?&gt;&quot; directive, and which therefore
+may succeed unexpectedly (a level 2 warning, since this
+might conceivably be the desired effect).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Multiple consecutive lookahead specifiers (a level 1
+warning only, since their effects simply accumulate).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Productions which start with a
+&quot;&lt;reject&gt;&quot; or
+&quot;&lt;rulevar:...&gt;&quot; directive. Such productions
+are optimized away (a level 1 warning).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Rules which are autogenerated under $::AUTOSTUB (a level
+1 warning).</p></td></tr>
+</table>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Damian Conway
+(damian@conway.org) Jeremy T. Braun (JTBRAUN@CPAN.org)
+[current maintainer]</p>
+
+<h2>BUGS AND IRRITATIONS
+<a name="BUGS AND IRRITATIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">There are
+undoubtedly serious bugs lurking somewhere in this much code
+:&minus;) Bug reports, test cases and other feedback are
+most welcome.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ongoing
+annoyances include:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">There&rsquo;s no support for
+parsing directly from an input stream. If and when the Perl
+Gods give us regular expressions on streams, this should be
+trivial (ahem!) to implement.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The parser generator can get confused if actions
+aren&rsquo;t properly closed or if they contain particularly
+nasty Perl syntax errors (especially unmatched curly
+brackets).</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The generator only detects the most obvious form of left
+recursion (potential recursion on the first subrule in a
+rule). More subtle forms of left recursion (for example,
+through the second item in a rule after a &quot;zero&quot;
+match of a preceding &quot;zero-or-more&quot; repetition, or
+after a match of a subrule with an empty production) are not
+found.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Instead of complaining about left-recursion, the
+generator should silently transform the grammar to remove
+it. Don&rsquo;t expect this feature any time soon as it
+would require a more sophisticated approach to parser
+generation than is currently used.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The generated parsers don&rsquo;t always run as fast as
+might be wished.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The meta-parser should be bootstrapped using
+&quot;Parse::RecDescent&quot; :&minus;)</p></td></tr>
+</table>
+
+<h2>ON-GOING ISSUES AND FUTURE DIRECTIONS
+<a name="ON-GOING ISSUES AND FUTURE DIRECTIONS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">1.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Repetitions are
+&quot;incorrigibly greedy&quot; in that they will eat
+everything they can and won&rsquo;t backtrack if that
+behaviour causes a production to fail needlessly. So, for
+example:</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">rule:
+subrule(s) subrule</p>
+
+<p style="margin-left:17%; margin-top: 1em">will
+<i>never</i> succeed, because the repetition will eat all
+the subrules it finds, leaving none to match the second
+item. Such constructions are relatively rare (and
+&quot;Parse::RecDescent::new&quot; generates a warning
+whenever they occur) so this may not be a problem,
+especially since the insatiable behaviour can be overcome
+&quot;manually&quot; by writing:</p>
+
+<p style="margin-left:17%; margin-top: 1em">rule:
+penultimate_subrule(s) subrule <br>
+penultimate_subrule: subrule ...subrule</p>
+
+<p style="margin-left:17%; margin-top: 1em">The issue is
+that this construction is exactly twice as expensive as the
+original, whereas backtracking would add only 1/<i>N</i> to
+the cost (for matching <i>N</i> repetitions of
+&quot;subrule&quot;). I would welcome feedback on the need
+for backtracking; particularly on cases where the lack of it
+makes parsing performance problematical.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">2.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Having opened that can of worms,
+it&rsquo;s also necessary to consider whether there is a
+need for non-greedy repetition specifiers. Again, it&rsquo;s
+possible (at some cost) to manually provide the required
+functionality:</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">rule:
+nongreedy_subrule(s) othersubrule <br>
+nongreedy_subrule: subrule ...!othersubrule</p>
+
+<p style="margin-left:17%; margin-top: 1em">Overall, the
+issue is whether the benefit of this extra functionality
+outweighs the drawbacks of further complicating the
+(currently minimalist) grammar specification syntax, and
+(worse) introducing more overhead into the generated
+parsers.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">3.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">An
+&quot;&lt;autocommit&gt;&quot; directive would be nice. That
+is, it would be useful to be able to say:</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">command:
+&lt;autocommit&gt; <br>
+command: 'find' name <br>
+| 'find' address <br>
+| 'do' command 'at' time 'if' condition <br>
+| 'do' command 'at' time <br>
+| 'do' command <br>
+| unusual_command</p>
+
+<p style="margin-left:17%; margin-top: 1em">and have the
+generator work out that this should be &quot;pruned&quot;
+thus:</p>
+
+<p style="margin-left:17%; margin-top: 1em">command: 'find'
+name <br>
+| 'find' &lt;commit&gt; address <br>
+| 'do' &lt;commit&gt; command &lt;uncommit&gt; <br>
+'at' time <br>
+'if' &lt;commit&gt; condition <br>
+| 'do' &lt;commit&gt; command &lt;uncommit&gt; <br>
+'at' &lt;commit&gt; time <br>
+| 'do' &lt;commit&gt; command <br>
+| unusual_command</p>
+
+<p style="margin-left:17%; margin-top: 1em">There are
+several issues here. Firstly, should the
+&quot;&lt;autocommit&gt;&quot; automatically install an
+&quot;&lt;uncommit&gt;&quot; at the start of the last
+production (on the grounds that the &quot;command&quot; rule
+doesn&rsquo;t know whether an &quot;unusual_command&quot;
+might start with &quot;find&quot; or &quot;do&quot;) or
+should the &quot;unusual_command&quot; subgraph be analysed
+(to see if it <i>might</i> be viable after a
+&quot;find&quot; or &quot;do&quot;)?</p>
+
+<p style="margin-left:17%; margin-top: 1em">The second
+issue is how regular expressions should be treated. The
+simplest approach would be simply to uncommit before them
+(on the grounds that they <i>might</i> match). Better
+efficiency would be obtained by analyzing all preceding
+literal tokens to determine whether the pattern would match
+them.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Overall, the
+issues are: can such automated &quot;pruning&quot; approach
+a hand-tuned version sufficiently closely to warrant the
+extra set-up expense, and (more importantly) is the problem
+important enough to even warrant the non-trivial effort of
+building an automated solution?</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Source Code
+Repository</b> <br>
+
+&lt;http://github.com/jtbraun/Parse&minus;RecDescent&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Mailing
+List</b> <br>
+Visit
+&lt;http://www.perlfoundation.org/perl5/index.cgi?parse_recdescent&gt;
+to sign up for the mailing list.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;http://www.PerlMonks.org&gt;
+is also a good place to ask questions. Previous posts about
+Parse::RecDescent can typically be found with this search:
+&lt;http://perlmonks.org/index.pl?node=recdescent&gt;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>FAQ</small></b>
+<br>
+Visit Parse::RecDescent::FAQ for answers to frequently (and
+not so frequently) asked questions about
+Parse::RecDescent.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>View/Report
+Bugs</b> <br>
+To view the current bug list or report a new issue visit
+&lt;https://rt.cpan.org/Public/Dist/Display.html?Name=Parse&minus;RecDescent&gt;.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Regexp::Grammars
+provides Parse::RecDescent style parsing using native Perl
+5.10 regular expressions.</p>
+
+<h2>LICENCE AND COPYRIGHT
+<a name="LICENCE AND COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (c)
+1997&minus;2007, Damian Conway
+&quot;&lt;DCONWAY@CPAN.org&gt;&quot;. All rights
+reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This module is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself. See perlartistic.</p>
+
+<h2>DISCLAIMER OF WARRANTY
+<a name="DISCLAIMER OF WARRANTY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>BECAUSE
+THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO
+WARRANTY FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY
+APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE
+COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE SOFTWARE
+&quot;AS IS&quot; WITHOUT WARRANTY OF ANY KIND, EITHER
+EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND
+PERFORMANCE OF THE SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE
+PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY
+SERVICING, REPAIR, OR CORRECTION.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><small>IN NO
+EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN
+WRITING WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO
+MAY MODIFY AND/OR REDISTRIBUTE THE SOFTWARE AS PERMITTED BY
+THE ABOVE LICENCE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING
+ANY GENERAL, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OR INABILITY TO USE THE
+SOFTWARE</small> ( <small>INCLUDING BUT NOT LIMITED TO LOSS
+OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES
+SUSTAINED BY YOU OR THIRD PARTIES OR A FAILURE OF THE
+SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE</small> ),
+<small>EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGES.</small></p>
+<hr>
+</body>
+</html>

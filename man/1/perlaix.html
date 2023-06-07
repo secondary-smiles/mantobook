@@ -1,0 +1,841 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:57 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERLAIX</title>
+
+</head>
+<body>
+<h1>perlaix</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perlaix &minus;
+Perl version 5 on IBM AIX (UNIX) systems</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+describes various features of <small>IBM</small> &rsquo;s
+<small>UNIX</small> operating system <small>AIX</small> that
+will affect how Perl version 5 (hereafter just Perl) is
+compiled and/or runs.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Compiling
+Perl 5 on <small>AIX</small></b> <br>
+For information on compilers on older versions of
+<small>AIX,</small> see &quot;Compiling Perl 5 on older
+<small>AIX</small> versions up to 4.3.3&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When compiling
+Perl, you must use an <small>ANSI C</small> compiler.
+<small>AIX</small> does not ship an <small>ANSI</small>
+compliant C compiler with <small>AIX</small> by default, but
+binary builds of gcc for <small>AIX</small> are widely
+available. A version of gcc is also included in the
+<small>AIX</small> Toolbox which is shipped with
+<small>AIX.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Supported
+Compilers</b> <br>
+Currently all versions of <small>IBM</small> &rsquo;s
+&quot;xlc&quot;, &quot;xlc_r&quot;, &quot;cc&quot;,
+&quot;cc_r&quot; or &quot;vac&quot; <small>ANSI/C</small>
+compiler will work for building Perl if that compiler works
+on your system.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you plan to
+link Perl to any module that requires thread-support, like
+DBD::Oracle, it is better to use the _r version of the
+compiler. This will not build a threaded Perl, but a
+thread-enabled Perl. See also &quot;Threaded Perl&quot;
+later on.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As of writing
+(2010&minus;09) only the <i><small>IBM XL C</small> for
+<small>AIX</small></i> or <i><small>IBM XL C/C <small>++ for
+<small>AIX</small></small></small></i>
+<small><small>compiler is supported by <small>IBM</small> on
+<small>AIX 5L/6.1/7.1.</small></small></small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><small>The
+following compiler versions are currently supported by
+<small>IBM:</small></small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><small>IBM XL C
+and IBM XL C/C++ V8, V9, V10, V11</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><small>The
+<small>XL C</small> for <small>AIX</small> is integrated in
+the <small>XL C/C <small>++ for <small>AIX</small> compiler
+and therefore also supported.</small></small></small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><small>If you
+choose <small>XL C/C <small>++</small> V9 <small>you need
+<small>APAR IZ35785</small> installed otherwise the
+integrated SDBM_File do not compile correctly due to an
+optimization bug. You can circumvent this problem by adding
+&minus;qipa to the optimization flags
+(&minus;Doptimize=&rsquo;&minus;O &minus;qipa&rsquo;). The
+<small>PTF</small> for <small>APAR IZ35785</small> which
+solves this problem is available from <small>IBM</small>
+(April 2009 <small>PTF</small> for <small>XL C/C
+<small>++EnterpriseEditionfor <small>AIX,V9.0</small>
+).</small></small></small></small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>If
+you choose <small>XL C/C <small>++</small> V11 <small>you
+need the April 2010 <small>PTF</small> (or newer) installed
+otherwise you will not get a working Perl
+version.</small></small></small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>Perl
+can be compiled with either <small>IBM</small> &rsquo;s
+<small>ANSI C</small> compiler or with gcc. The former is
+recommended, as not only it can compile Perl with no
+difficulty, but also can take advantage of features listed
+later that require the use of <small>IBM</small>
+compiler-specific command-line flags.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>If
+you decide to use gcc, make sure your installation is recent
+and complete, and be sure to read the Perl
+<small>INSTALL</small> file for more gcc-specific details.
+Please report any hoops you had to jump through to the
+development team.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Incompatibility
+with <small>AIX</small> Toolbox lib gdbm</b> <br>
+If the <small>AIX</small> Toolbox version of lib gdbm &lt;
+1.8.3&minus;5 is installed on your system then Perl will not
+work. This library contains the header files
+/opt/freeware/include/gdbm/dbm.h|ndbm.h which conflict with
+the <small>AIX</small> system versions. The lib gdbm will be
+automatically removed from the wanted libraries if the
+presence of one of these two header files is detected. If
+you want to build Perl with <small>GDBM</small> support then
+please install at least gdbm&minus;devel&minus;1.8.3&minus;5
+(or higher).</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Perl
+5 was successfully compiled and tested on:</b> <br>
+Perl | AIX Level | Compiler Level | w th | w/o th <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+5.12.2 |5.1 TL9 32 bit | XL C/C++ V7 | OK | OK <br>
+5.12.2 |5.1 TL9 64 bit | XL C/C++ V7 | OK | OK <br>
+5.12.2 |5.2 TL10 SP8 32 bit | XL C/C++ V8 | OK | OK <br>
+5.12.2 |5.2 TL10 SP8 32 bit | gcc 3.2.2 | OK | OK <br>
+5.12.2 |5.2 TL10 SP8 64 bit | XL C/C++ V8 | OK | OK <br>
+5.12.2 |5.3 TL8 SP8 32 bit | XL C/C++ V9 + IZ35785 | OK | OK
+<br>
+5.12.2 |5.3 TL8 SP8 32 bit | gcc 4.2.4 | OK | OK <br>
+5.12.2 |5.3 TL8 SP8 64 bit | XL C/C++ V9 + IZ35785 | OK | OK
+<br>
+5.12.2 |5.3 TL10 SP3 32 bit | XL C/C++ V11 + Apr 2010 | OK |
+OK <br>
+5.12.2 |5.3 TL10 SP3 64 bit | XL C/C++ V11 + Apr 2010 | OK |
+OK <br>
+5.12.2 |6.1 TL1 SP7 32 bit | XL C/C++ V10 | OK | OK <br>
+5.12.2 |6.1 TL1 SP7 64 bit | XL C/C++ V10 | OK | OK <br>
+5.13 |7.1 TL0 SP1 32 bit | XL C/C++ V11 + Jul 2010 | OK | OK
+<br>
+5.13 |7.1 TL0 SP1 64 bit | XL C/C++ V11 + Jul 2010 | OK | OK
+<br>
+w th = with thread support <br>
+w/o th = without thread support <br>
+OK = tested</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>Successfully
+tested means that all &quot;make test&quot; runs finish with
+a result of 100% <small>OK.</small> All tests were conducted
+with &minus;Duseshrplib set.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>All
+tests were conducted on the oldest supported
+<small>AIX</small> technology level with the latest support
+package applied. If the tested <small>AIX</small> version is
+out of support ( <small>AIX 4.3.3, 5.1, 5.2</small> ) then
+the last available support level was
+used.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Building
+Dynamic Extensions on <small>AIX</small></b> <br>
+Starting from Perl 5.7.2 (and consequently 5.8.x / 5.10.x /
+5.12.x) and <small>AIX 4.3</small> or newer Perl uses the
+<small>AIX</small> native dynamic loading interface in the
+so called runtime linking mode instead of the emulated
+interface that was used in Perl releases 5.6.1 and earlier
+or, for <small>AIX</small> releases 4.2 and earlier. This
+change does break backward compatibility with compiled
+modules from earlier Perl releases. The change was made to
+make Perl more compliant with other applications like
+Apache/mod_perl which are using the <small>AIX</small>
+native interface. This change also enables the use of C
+<small>++</small> code with static constructors and
+destructors in Perl extensions, which was not possible using
+the emulated interface.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>It
+is highly recommended to use the new
+interface.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Using
+Large Files with Perl</b> <br>
+Should yield no problems.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Threaded
+Perl</b> <br>
+Should yield no problems with <small>AIX 5.1 / 5.2 / 5.3 /
+6.1 / 7.1.</small></small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><small>IBM</small>
+uses the <small>AIX</small> system Perl (V5.6.0 on
+<small>AIX 5.1</small> and V5.8.2 on <small>AIX 5.2 /
+5.3</small> and 6.1; V5.8.8 on <small>AIX 5.3 TL11</small>
+and <small>AIX 6.1 TL4</small> ; V5.10.1 on <small>AIX
+7.1</small> ) for some <small>AIX</small> system scripts. If
+you switch the links in /usr/bin from the <small>AIX</small>
+system Perl (/usr/opt/perl5) to the newly build Perl then
+you get the same features as with the <small>IBM AIX</small>
+system Perl if the threaded options are
+used.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>The
+threaded Perl build works also on <small>AIX 5.1</small> but
+the <small>IBM</small> Perl build (Perl v5.6.0) is not
+threaded on <small>AIX 5.1.</small></small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>Perl
+5.12 an newer is not compatible with the <small>IBM</small>
+fileset perl.libext.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>64&minus;bit
+Perl</b> <br>
+If your <small>AIX</small> system is installed with
+64&minus;bit support, you can expect 64&minus;bit
+configurations to work. If you want to use 64&minus;bit Perl
+on <small>AIX 6.1</small> you need an <small>APAR</small>
+for a libc.a bug which affects (n)dbm_XXX functions. The
+<small>APAR</small> number for this problem is
+<small>IZ39077.</small></small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>If
+you need more memory (larger data segment) for your Perl
+programs you can set:</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>/etc/security/limits
+<br>
+default: (or your user) <br>
+data = &minus;1 (default is 262144 * 512
+byte)</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>With
+the default setting the size is limited to 128MB. The
+&minus;1 removes this limit. If the &quot;make test&quot;
+fails please change your /etc/security/limits as stated
+above.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Long
+doubles</b> <small><br>
+IBM</small> calls its implementation of long doubles
+128&minus;bit, but it is not the <small>IEEE</small>
+128&minus;bit (&quot;quadruple precision&quot;) which would
+give 116 bit of mantissa (nor it is implemented in
+hardware), instead it&rsquo;s a special software
+implementation called &quot;double-double&quot;, which gives
+106 bits of mantissa.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>There
+seem to be various problems in this long double
+implementation. If Configure detects this brokenness, it
+will disable the long double support. This can be overridden
+with explicit &quot;&minus;Duselongdouble&quot; (or
+&quot;&minus;Dusemorebits&quot;, which enables both long
+doubles and 64 bit integers). If you decide to enable long
+doubles, for most of the broken things Perl has implemented
+workarounds, but the handling of the special values infinity
+and NaN remains badly broken: for example infinity plus zero
+results in NaN.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Recommended
+Options <small>AIX 5.1/5.2/5.3/6.1</small> and 7.1
+(threaded/32&minus;bit)</b> <br>
+With the following options you get a threaded Perl version
+which passes all make tests in threaded 32&minus;bit mode,
+which is the default configuration for the Perl builds that
+<small>AIX</small> ships with.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>rm
+config.sh <br>
+./Configure \ <br>
+&minus;d \ <br>
+&minus;Dcc=cc_r \ <br>
+&minus;Duseshrplib \ <br>
+&minus;Dusethreads \ <br>
+&minus;Dprefix=/usr/opt/perl5_32</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>The
+&minus;Dprefix option will install Perl in a directory
+parallel to the <small>IBM AIX</small> system Perl
+installation.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Recommended
+Options <small>AIX 5.1/5.2/5.3/6.1</small> and 7.1
+(32&minus;bit)</b> <br>
+With the following options you get a Perl version which
+passes all make tests in 32&minus;bit
+mode.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>rm
+config.sh <br>
+./Configure \ <br>
+&minus;d \ <br>
+&minus;Dcc=cc_r \ <br>
+&minus;Duseshrplib \ <br>
+&minus;Dprefix=/usr/opt/perl5_32</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>The
+&minus;Dprefix option will install Perl in a directory
+parallel to the <small>IBM AIX</small> system Perl
+installation.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Recommended
+Options <small>AIX 5.1/5.2/5.3/6.1</small> and 7.1
+(threaded/64&minus;bit)</b> <br>
+With the following options you get a threaded Perl version
+which passes all make tests in 64&minus;bit
+mode.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>export
+OBJECT_MODE=64 / setenv OBJECT_MODE 64 (depending on your
+shell) <br>
+rm config.sh <br>
+./Configure \ <br>
+&minus;d \ <br>
+&minus;Dcc=cc_r \ <br>
+&minus;Duseshrplib \ <br>
+&minus;Dusethreads \ <br>
+&minus;Duse64bitall \ <br>
+&minus;Dprefix=/usr/opt/perl5_64</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Recommended
+Options <small>AIX 5.1/5.2/5.3/6.1</small> and 7.1
+(64&minus;bit)</b> <br>
+With the following options you get a Perl version which
+passes all make tests in 64&minus;bit
+mode.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>export
+OBJECT_MODE=64 / setenv OBJECT_MODE 64 (depending on your
+shell) <br>
+rm config.sh <br>
+./Configure \ <br>
+&minus;d \ <br>
+&minus;Dcc=cc_r \ <br>
+&minus;Duseshrplib \ <br>
+&minus;Duse64bitall \ <br>
+&minus;Dprefix=/usr/opt/perl5_64</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>The
+&minus;Dprefix option will install Perl in a directory
+parallel to the <small>IBM AIX</small> system Perl
+installation.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>If
+you choose gcc to compile 64&minus;bit Perl then you need to
+add the following option:</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>&minus;Dcc='gcc
+&minus;maix64'</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Compiling
+Perl 5 on <small>AIX 7.1.0</small></b> <br>
+A regression in <small>AIX 7</small> causes a failure in
+make test in Time::Piece during daylight savings time.
+<small>APAR IV16514</small> provides the fix for this. A
+quick test to see if it&rsquo;s required, assuming it is
+currently daylight savings in Eastern Time, would be to run
+&quot; TZ=EST5 date +%Z &quot;. This will come back with
+&quot;EST&quot; normally, but nothing if you have the
+problem.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Compiling
+Perl 5 on older <small>AIX</small> versions up to 4.3.3</b>
+<br>
+Due to the fact that <small>AIX 4.3.3</small> reached
+end-of-service in December 31, 2003 this information is
+provided as is. The Perl versions prior to Perl 5.8.9 could
+be compiled on <small>AIX</small> up to 4.3.3 with the
+following settings (your mileage may
+vary):</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>When
+compiling Perl, you must use an <small>ANSI C</small>
+compiler. <small>AIX</small> does not ship an
+<small>ANSI</small> compliant C&minus;compiler with
+<small>AIX</small> by default, but binary builds of gcc for
+<small>AIX</small> are widely available.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>At
+the moment of writing, <small>AIX</small> supports two
+different native C compilers, for which you have to pay:
+<b>xlC</b> and <b>vac</b>. If you decide to use either of
+these two (which is quite a lot easier than using gcc), be
+sure to upgrade to the latest available patch level.
+Currently:</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>xlC.C
+3.1.4.10 or 3.6.6.0 or 4.0.2.2 or 5.0.2.9 or 6.0.0.3 <br>
+vac.C 4.4.0.3 or 5.0.2.6 or 6.0.0.1</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>note
+that xlC has the <small>OS</small> version in the name as of
+version 4.0.2.0, so you will find xlC.C for
+<small>AIX&minus;5.0</small> as package</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>xlC.aix50.rte
+5.0.2.0 or 6.0.0.3</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>subversions
+are not the same &quot;latest&quot; on all <small>OS</small>
+versions. For example, the latest xlC&minus;5 on aix41 is
+5.0.2.9, while on aix43, it is 5.0.2.7.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>Perl
+can be compiled with either <small>IBM</small> &rsquo;s
+<small>ANSI C</small> compiler or with gcc. The former is
+recommended, as not only can it compile Perl with no
+difficulty, but also can take advantage of features listed
+later that require the use of <small>IBM</small>
+compiler-specific command-line flags.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>The
+<small>IBM</small> &rsquo;s compiler patch levels 5.0.0.0
+and 5.0.1.0 have compiler optimization bugs that affect
+compiling perl.c and regcomp.c, respectively. If
+Perl&rsquo;s configuration detects those compiler patch
+levels, optimization is turned off for the said source code
+files. Upgrading to at least 5.0.2.0 is
+recommended.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>If
+you decide to use gcc, make sure your installation is recent
+and complete, and be sure to read the Perl
+<small>INSTALL</small> file for more gcc-specific details.
+Please report any hoops you had to jump through to the
+development team.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b><small>OS</small>
+level</b> <br>
+Before installing the patches to the <small>IBM</small>
+C&minus;compiler you need to know the level of patching for
+the Operating System. <small>IBM</small> &rsquo;s command
+&rsquo;oslevel&rsquo; will show the base, but is not always
+complete (in this example oslevel shows 4.3.NULL, whereas
+the system might run most of 4.3.THREE):</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>#
+oslevel <br>
+4.3.0.0 <br>
+# lslpp &minus;l | grep 'bos.rte ' <br>
+bos.rte 4.3.3.75 COMMITTED Base Operating System Runtime
+<br>
+bos.rte 4.3.2.0 COMMITTED Base Operating System Runtime <br>
+#</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>The
+same might happen to <small>AIX 5.1</small> or other
+<small>OS</small> levels. As a side note, Perl cannot be
+built without bos.adt.syscalls and bos.adt.libm
+installed</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>#
+lslpp &minus;l | egrep &quot;syscalls|libm&quot; <br>
+bos.adt.libm 5.1.0.25 COMMITTED Base Application Development
+<br>
+bos.adt.syscalls 5.1.0.36 COMMITTED System Calls Application
+<br>
+#</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Building
+Dynamic Extensions on <small>AIX</small> &lt; 5L</b>
+<small><br>
+AIX</small> supports dynamically loadable objects as well as
+shared libraries. Shared libraries by convention end with
+the suffix .a, which is a bit misleading, as an archive can
+contain static as well as dynamic members. For Perl
+dynamically loaded objects we use the .so suffix also used
+on many other platforms.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>Note
+that starting from Perl 5.7.2 (and consequently 5.8.0) and
+<small>AIX 4.3</small> or newer Perl uses the
+<small>AIX</small> native dynamic loading interface in the
+so called runtime linking mode instead of the emulated
+interface that was used in Perl releases 5.6.1 and earlier
+or, for <small>AIX</small> releases 4.2 and earlier. This
+change does break backward compatibility with compiled
+modules from earlier Perl releases. The change was made to
+make Perl more compliant with other applications like
+Apache/mod_perl which are using the <small>AIX</small>
+native interface. This change also enables the use of C
+<small>++</small> code with static constructors and
+destructors in Perl extensions, which was not possible using
+the emulated interface.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>The
+<small>IBM ANSI C</small> Compiler</b> <br>
+All defaults for Configure can be used.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>If
+you&rsquo;ve chosen to use vac 4, be sure to run 4.4.0.3.
+Older versions will turn up nasty later on. For vac 5 be
+sure to run at least 5.0.1.0, but vac 5.0.2.6 or up is
+highly recommended. Note that since <small>IBM</small> has
+removed vac 5.0.2.1 through 5.0.2.5 from the software depot,
+these versions should be considered
+obsolete.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>Here&rsquo;s
+a brief lead of how to upgrade the compiler to the latest
+level. Of course this is subject to changes. You can only
+upgrade versions from ftp-available updates if the first
+three digit groups are the same (in where you can skip
+intermediate unlike the patches in the developer snapshots
+of Perl), or to one version up where the &quot;base&quot; is
+available. In other words, the <small>AIX</small> compiler
+patches are cumulative.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>vac.C.4.4.0.1
+=&gt; vac.C.4.4.0.3 is OK (vac.C.4.4.0.2 not needed) <br>
+xlC.C.3.1.3.3 =&gt; xlC.C.3.1.4.10 is NOT OK (xlC.C.3.1.4.0
+is not <br>
+available) <br>
+# ftp ftp.software.ibm.com <br>
+Connected to service.boulder.ibm.com. <br>
+: welcome message ... <br>
+Name (ftp.software.ibm.com:merijn): anonymous <br>
+331 Guest login ok, send your complete e&minus;mail address
+as password. <br>
+Password: <br>
+... accepted login stuff <br>
+ftp&gt; cd /aix/fixes/v4/ <br>
+ftp&gt; dir other other.ll <br>
+output to local&minus;file: other.ll? y <br>
+200 PORT command successful. <br>
+150 Opening ASCII mode data connection for /bin/ls. <br>
+226 Transfer complete. <br>
+ftp&gt; dir xlc xlc.ll <br>
+output to local&minus;file: xlc.ll? y <br>
+200 PORT command successful. <br>
+150 Opening ASCII mode data connection for /bin/ls. <br>
+226 Transfer complete. <br>
+ftp&gt; bye <br>
+... goodbye messages <br>
+# ls &minus;l *.ll <br>
+&minus;rw&minus;rw&minus;rw&minus; 1 merijn system 1169432
+Nov 2 17:29 other.ll <br>
+&minus;rw&minus;rw&minus;rw&minus; 1 merijn system 29170 Nov
+2 17:29 xlc.ll</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>On
+<small>AIX 4.2</small> using xlC, we
+continue:</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>#
+lslpp &minus;l | fgrep 'xlC.C ' <br>
+xlC.C 3.1.4.9 COMMITTED C for AIX Compiler <br>
+xlC.C 3.1.4.0 COMMITTED C for AIX Compiler <br>
+# grep 'xlC.C.3.1.4.*.bff' xlc.ll <br>
+&minus;rw&minus;r&minus;&minus;r&minus;&minus; 1 45776101 1
+6286336 Jul 22 1996 xlC.C.3.1.4.1.bff <br>
+&minus;rw&minus;rw&minus;r&minus;&minus; 1 45776101 1
+6173696 Aug 24 1998 xlC.C.3.1.4.10.bff <br>
+&minus;rw&minus;r&minus;&minus;r&minus;&minus; 1 45776101 1
+6319104 Aug 14 1996 xlC.C.3.1.4.2.bff <br>
+&minus;rw&minus;r&minus;&minus;r&minus;&minus; 1 45776101 1
+6316032 Oct 21 1996 xlC.C.3.1.4.3.bff <br>
+&minus;rw&minus;r&minus;&minus;r&minus;&minus; 1 45776101 1
+6315008 Dec 20 1996 xlC.C.3.1.4.4.bff <br>
+&minus;rw&minus;rw&minus;r&minus;&minus; 1 45776101 1
+6178816 Mar 28 1997 xlC.C.3.1.4.5.bff <br>
+&minus;rw&minus;rw&minus;r&minus;&minus; 1 45776101 1
+6188032 May 22 1997 xlC.C.3.1.4.6.bff <br>
+&minus;rw&minus;rw&minus;r&minus;&minus; 1 45776101 1
+6191104 Sep 5 1997 xlC.C.3.1.4.7.bff <br>
+&minus;rw&minus;rw&minus;r&minus;&minus; 1 45776101 1
+6185984 Jan 13 1998 xlC.C.3.1.4.8.bff <br>
+&minus;rw&minus;rw&minus;r&minus;&minus; 1 45776101 1
+6169600 May 27 1998 xlC.C.3.1.4.9.bff <br>
+# wget
+ftp://ftp.software.ibm.com/aix/fixes/v4/xlc/xlC.C.3.1.4.10.bff
+<br>
+#</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>On
+<small>AIX 4.3</small> using vac, we
+continue:</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>#
+lslpp &minus;l | grep 'vac.C ' <br>
+vac.C 5.0.2.2 COMMITTED C for AIX Compiler <br>
+vac.C 5.0.2.0 COMMITTED C for AIX Compiler <br>
+# grep 'vac.C.5.0.2.*.bff' other.ll <br>
+&minus;rw&minus;rw&minus;r&minus;&minus; 1 45776101 1
+13592576 Apr 16 2001 vac.C.5.0.2.0.bff <br>
+&minus;rw&minus;rw&minus;r&minus;&minus; 1 45776101 1
+14133248 Apr 9 2002 vac.C.5.0.2.3.bff <br>
+&minus;rw&minus;rw&minus;r&minus;&minus; 1 45776101 1
+14173184 May 20 2002 vac.C.5.0.2.4.bff <br>
+&minus;rw&minus;rw&minus;r&minus;&minus; 1 45776101 1
+14192640 Nov 22 2002 vac.C.5.0.2.6.bff <br>
+# wget
+ftp://ftp.software.ibm.com/aix/fixes/v4/other/vac.C.5.0.2.6.bff
+<br>
+#</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>Likewise
+on all other <small>OS</small> levels. Then execute the
+following command, and fill in its
+choices</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>#
+smit install_update <br>
+&minus;&gt; Install and Update from LATEST Available
+Software <br>
+* INPUT device / directory for software [ vac.C.5.0.2.6.bff
+] <br>
+[ OK ] <br>
+[ OK ]</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>Follow
+the messages ... and you&rsquo;re done.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>If
+you like a more web-like approach, a good start point can be
+&lt;http://www14.software.ibm.com/webapp/download/downloadaz.jsp&gt;
+and click &quot;C for <small>AIX&quot;,</small> and follow
+the instructions.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>The
+usenm option</b> <br>
+If linking miniperl</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>cc
+&minus;o miniperl ... miniperlmain.o opmini.o perl.o ...
+&minus;lm &minus;lc ...</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>causes
+error like this</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>ld:
+0711&minus;317 ERROR: Undefined symbol: .aintl <br>
+ld: 0711&minus;317 ERROR: Undefined symbol: .copysignl <br>
+ld: 0711&minus;317 ERROR: Undefined symbol: .syscall <br>
+ld: 0711&minus;317 ERROR: Undefined symbol: .eaccess <br>
+ld: 0711&minus;317 ERROR: Undefined symbol: .setresuid <br>
+ld: 0711&minus;317 ERROR: Undefined symbol: .setresgid <br>
+ld: 0711&minus;317 ERROR: Undefined symbol: .setproctitle
+<br>
+ld: 0711&minus;345 Use the &minus;bloadmap or
+&minus;bnoquiet option to obtain more <br>
+information.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>you
+could retry with</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>make
+realclean <br>
+rm config.sh <br>
+./Configure &minus;Dusenm ...</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>which
+makes Configure to use the &quot;nm&quot; tool when scanning
+for library symbols, which usually is not done in
+<small>AIX.</small></small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>Related
+to this, you probably should not use the
+&quot;&minus;r&quot; option of Configure in
+<small>AIX,</small> because that affects of how the
+&quot;nm&quot; tool is used.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Using
+<small>GNU</small> &rsquo;s gcc for building Perl</b> <br>
+Using gcc&minus;3.x (tested with 3.0.4, 3.1, and 3.2) now
+works out of the box, as do recent gcc&minus;2.9 builds
+available directly from <small>IBM</small> as part of their
+Linux compatibility packages, available
+here:</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>http://www.ibm.com/servers/aix/products/aixos/linux/</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Using
+Large Files with Perl &lt; 5L</b> <br>
+Should yield no problems.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>Threaded
+Perl &lt; 5L</b> <br>
+Threads seem to work <small>OK,</small> though at the moment
+not all tests pass when threads are used in combination with
+64&minus;bit configurations.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>You
+may get a warning when doing a threaded
+build:</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>&quot;pp_sys.c&quot;,
+line 4640.39: 1506&minus;280 (W) Function argument
+assignment <br>
+between types &quot;unsigned char*&quot; and &quot;const
+void*&quot; is not allowed.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>The
+exact line number may vary, but if the warning (W) comes
+from a line line this</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>hent
+= PerlSock_gethostbyaddr(addr, (Netdb_hlen_t) addrlen,
+addrtype);</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>in
+the &quot;pp_ghostent&quot; function, you may ignore it
+safely. The warning is caused by the reentrant variant of
+<b>gethostbyaddr()</b> having a slightly different prototype
+than its non-reentrant variant, but the difference is not
+really significant here.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b>64&minus;bit
+Perl &lt; 5L</b> <br>
+If your <small>AIX</small> is installed with 64&minus;bit
+support, you can expect 64&minus;bit configurations to work.
+In combination with threads some tests might still
+fail.</small></small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small><b><small>AIX
+4.2</small> and extensions using C <small>++</small> with
+statics</b> <br>
+In <small>AIX 4.2</small> Perl extensions that use C
+<small>++</small> functions that use statics may have
+problems in that the statics are not getting initialized. In
+newer <small>AIX</small> releases this has been solved by
+linking Perl with the libC_r library, but unfortunately in
+<small>AIX 4.2</small> the said library has an obscure bug
+where the various functions related to time (such as
+<b>time()</b> and <b>gettimeofday()</b>) return broken
+values, and therefore in <small>AIX 4.2</small> Perl is not
+linked against the libC_r.</small></small></p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><small><small>Rainer
+Tammer &lt;tammer@tammer.net&gt;</small></small></p>
+<hr>
+</body>
+</html>

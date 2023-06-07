@@ -1,0 +1,3770 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:11 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>CPAN</title>
+
+</head>
+<body>
+<h1>CPAN</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">CPAN &minus;
+query, download and build perl modules from CPAN sites</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Interactive
+mode:</p>
+
+<p style="margin-left:11%; margin-top: 1em">perl
+&minus;MCPAN &minus;e shell</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;or--</p>
+
+<p style="margin-left:11%; margin-top: 1em">cpan</p>
+
+<p style="margin-left:11%; margin-top: 1em">Basic
+commands:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Modules: <br>
+cpan&gt; install Acme::Meta # in the shell <br>
+CPAN::Shell&minus;&gt;install(&quot;Acme::Meta&quot;); # in
+perl <br>
+# Distributions: <br>
+cpan&gt; install NWCLARK/Acme&minus;Meta&minus;0.02.tar.gz #
+in the shell <br>
+CPAN::Shell&minus;&gt; <br>
+
+install(&quot;NWCLARK/Acme&minus;Meta&minus;0.02.tar.gz&quot;);
+# in perl <br>
+# module objects: <br>
+$mo = CPAN::Shell&minus;&gt;expandany($mod); <br>
+$mo = CPAN::Shell&minus;&gt;expand(&quot;Module&quot;,$mod);
+# same thing <br>
+# distribution objects: <br>
+$do =
+CPAN::Shell&minus;&gt;expand(&quot;Module&quot;,$mod)&minus;&gt;distribution;
+<br>
+$do = CPAN::Shell&minus;&gt;expandany($distro); # same thing
+<br>
+$do = CPAN::Shell&minus;&gt;expand(&quot;Distribution&quot;,
+<br>
+$distro); # same thing</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<small>CPAN</small> module automates or at least simplifies
+the make and install of perl modules and extensions. It
+includes some primitive searching capabilities and knows how
+to use <small>LWP,</small> HTTP::Tiny, Net::FTP and certain
+external download clients to fetch distributions from the
+net.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These are
+fetched from one or more mirrored <small>CPAN</small>
+(Comprehensive Perl Archive Network) sites and unpacked in a
+dedicated directory.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<small>CPAN</small> module also supports named and versioned
+<i>bundles</i> of modules. Bundles simplify handling of sets
+of related modules. See Bundles below.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The package
+contains a session manager and a cache manager. The session
+manager keeps track of what has been fetched, built, and
+installed in the current session. The cache manager keeps
+track of the disk space occupied by the make processes and
+deletes excess space using a simple <small>FIFO</small>
+mechanism.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All methods
+provided are accessible in a programmer style and in an
+interactive shell style.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>CPAN::shell([$prompt,
+$command]) Starting Interactive Mode</b> <br>
+Enter interactive mode by running</p>
+
+<p style="margin-left:11%; margin-top: 1em">perl
+&minus;MCPAN &minus;e shell</p>
+
+<p style="margin-left:11%; margin-top: 1em">or</p>
+
+<p style="margin-left:11%; margin-top: 1em">cpan</p>
+
+<p style="margin-left:11%; margin-top: 1em">which puts you
+into a readline interface. If &quot;Term::ReadKey&quot; and
+either of &quot;Term::ReadLine::Perl&quot; or
+&quot;Term::ReadLine::Gnu&quot; are installed, history and
+command completion are supported.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once at the
+command line, type &quot;h&quot; for one-page help screen;
+the rest should be self-explanatory.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The function
+call &quot;shell&quot; takes two optional arguments: one the
+prompt, the second the default initial command line (the
+latter only works if a real ReadLine interface module is
+installed).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The most common
+uses of the interactive modes are <br>
+Searching for authors, bundles, distribution files and
+modules</p>
+
+<p style="margin-left:14%;">There are corresponding
+one-letter commands &quot;a&quot;, &quot;b&quot;,
+&quot;d&quot;, and &quot;m&quot; for each of the four
+categories and another, &quot;i&quot; for any of the
+mentioned four. Each of the four entities is implemented as
+a class with slightly differing methods for displaying an
+object.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Arguments to
+these commands are either strings exactly matching the
+identification string of an object, or regular expressions
+matched case-insensitively against various attributes of the
+objects. The parser only recognizes a regular expression
+when you enclose it with slashes.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The principle
+is that the number of objects found influences how an item
+is displayed. If the search finds one item, the result is
+displayed with the rather verbose method
+&quot;as_string&quot;, but if more than one is found, each
+object is displayed with the terse method
+&quot;as_glimpse&quot;.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Examples:</p>
+
+<p style="margin-left:14%; margin-top: 1em">cpan&gt; m
+Acme::MetaSyntactic <br>
+Module id = Acme::MetaSyntactic <br>
+CPAN_USERID BOOK (Philippe Bruhat (BooK) &lt;[...]&gt;) <br>
+CPAN_VERSION 0.99 <br>
+CPAN_FILE
+B/BO/BOOK/Acme&minus;MetaSyntactic&minus;0.99.tar.gz <br>
+UPLOAD_DATE 2006&minus;11&minus;06 <br>
+MANPAGE Acme::MetaSyntactic &minus; Themed metasyntactic
+variables names <br>
+INST_FILE /usr/local/lib/perl/5.10.0/Acme/MetaSyntactic.pm
+<br>
+INST_VERSION 0.99 <br>
+cpan&gt; a BOOK <br>
+Author id = BOOK <br>
+EMAIL [...] <br>
+FULLNAME Philippe Bruhat (BooK) <br>
+cpan&gt; d BOOK/Acme&minus;MetaSyntactic&minus;0.99.tar.gz
+<br>
+Distribution id =
+B/BO/BOOK/Acme&minus;MetaSyntactic&minus;0.99.tar.gz <br>
+CPAN_USERID BOOK (Philippe Bruhat (BooK) &lt;[...]&gt;) <br>
+CONTAINSMODS Acme::MetaSyntactic Acme::MetaSyntactic::Alias
+[...] <br>
+UPLOAD_DATE 2006&minus;11&minus;06 <br>
+cpan&gt; m /lorem/ <br>
+Module = Acme::MetaSyntactic::loremipsum
+(BOOK/Acme&minus;MetaSyntactic&minus;0.99.tar.gz) <br>
+Module Text::Lorem
+(ADEOLA/Text&minus;Lorem&minus;0.3.tar.gz) <br>
+Module Text::Lorem::More
+(RKRIMEN/Text&minus;Lorem&minus;More&minus;0.12.tar.gz) <br>
+Module Text::Lorem::More::Source
+(RKRIMEN/Text&minus;Lorem&minus;More&minus;0.12.tar.gz) <br>
+cpan&gt; i /berlin/ <br>
+Distribution
+BEATNIK/Filter&minus;NumberLines&minus;0.02.tar.gz <br>
+Module = DateTime::TimeZone::Europe::Berlin
+(DROLSKY/DateTime&minus;TimeZone&minus;0.7904.tar.gz) <br>
+Module Filter::NumberLines
+(BEATNIK/Filter&minus;NumberLines&minus;0.02.tar.gz) <br>
+Author [...]</p>
+
+<p style="margin-left:14%; margin-top: 1em">The examples
+illustrate several aspects: the first three queries target
+modules, authors, or distros directly and yield exactly one
+result. The last two use regular expressions and yield
+several results. The last one targets all of bundles,
+modules, authors, and distros simultaneously. When more than
+one result is available, they are printed in one-line
+format.</p>
+
+<p style="margin-left:11%;">&quot;get&quot;,
+&quot;make&quot;, &quot;test&quot;, &quot;install&quot;,
+&quot;clean&quot; modules or distributions</p>
+
+<p style="margin-left:14%;">These commands take any number
+of arguments and investigate what is necessary to perform
+the action. Argument processing is as follows:</p>
+
+<p style="margin-left:14%; margin-top: 1em">known module
+name in format Foo/Bar.pm module <br>
+other embedded slash distribution <br>
+&minus; with trailing slash dot directory <br>
+enclosing slashes regexp <br>
+known module name in format Foo::Bar module</p>
+
+<p style="margin-left:14%; margin-top: 1em">If the argument
+is a distribution file name (recognized by embedded
+slashes), it is processed. If it is a module,
+<small>CPAN</small> determines the distribution file in
+which this module is included and processes that, following
+any dependencies named in the module&rsquo;s
+<small>META</small> .yml or Makefile.PL (this behavior is
+controlled by the configuration parameter
+&quot;prerequisites_policy&quot;). If an argument is
+enclosed in slashes it is treated as a regular expression:
+it is expanded and if the result is a single object
+(distribution, bundle or module), this object is
+processed.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Example:</p>
+
+<p style="margin-left:14%; margin-top: 1em">install
+Dummy::Perl # installs the module <br>
+install AUXXX/Dummy&minus;Perl&minus;3.14.tar.gz # installs
+that distribution <br>
+install /Dummy&minus;Perl&minus;3.14/ # same if the regexp
+is unambiguous</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">&quot;get&quot;
+downloads a distribution file and untars or unzips it,
+&quot;make&quot; builds it, &quot;test&quot; runs the test
+suite, and &quot;install&quot; installs it.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Any
+&quot;make&quot; or &quot;test&quot; is run unconditionally.
+An</p>
+
+<p style="margin-left:14%; margin-top: 1em">install
+&lt;distribution_file&gt;</p>
+
+<p style="margin-left:14%; margin-top: 1em">is also run
+unconditionally. But for</p>
+
+<p style="margin-left:14%; margin-top: 1em">install
+&lt;module&gt;</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><small>CPAN</small>
+checks whether an install is needed and prints <i>module up
+to date</i> if the distribution file containing the module
+doesn&rsquo;t need updating.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><small>CPAN</small>
+also keeps track of what it has done within the current
+session and doesn&rsquo;t try to build a package a second
+time regardless of whether it succeeded or not. It does not
+repeat a test run if the test has been run successfully
+before. Same for install runs.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The
+&quot;force&quot; pragma may precede another command
+(currently: &quot;get&quot;, &quot;make&quot;,
+&quot;test&quot;, or &quot;install&quot;) to execute the
+command from scratch and attempt to continue past certain
+errors. See the section below on the &quot;force&quot; and
+the &quot;fforce&quot; pragma.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The
+&quot;notest&quot; pragma skips the test part in the build
+process.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Example:</p>
+
+<p style="margin-left:14%; margin-top: 1em">cpan&gt; notest
+install Tk</p>
+
+<p style="margin-left:14%; margin-top: 1em">A
+&quot;clean&quot; command results in a</p>
+
+<p style="margin-left:14%; margin-top: 1em">make clean</p>
+
+<p style="margin-left:14%; margin-top: 1em">being executed
+within the distribution file&rsquo;s working directory.</p>
+
+<p style="margin-left:11%;">&quot;readme&quot;,
+&quot;perldoc&quot;, &quot;look&quot; module or
+distribution</p>
+
+<p style="margin-left:14%;">&quot;readme&quot; displays the
+<small>README</small> file of the associated distribution.
+&quot;Look&quot; gets and untars (if not yet done) the
+distribution file, changes to the appropriate directory and
+opens a subshell process in that directory.
+&quot;perldoc&quot; displays the module&rsquo;s pod
+documentation in html or plain text format.</p>
+
+<p style="margin-left:11%;">&quot;ls&quot; author <br>
+&quot;ls&quot; globbing_expression</p>
+
+<p style="margin-left:14%;">The first form lists all
+distribution files in and below an author&rsquo;s
+<small>CPAN</small> directory as stored in the
+<small>CHECKSUMS</small> files distributed on
+<small>CPAN.</small> The listing recurses into
+subdirectories.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The second form
+limits or expands the output with shell globbing as in the
+following examples:</p>
+
+<p style="margin-left:14%; margin-top: 1em">ls JV/make*
+<br>
+ls GSAR/*make* <br>
+ls */*make*</p>
+
+<p style="margin-left:14%; margin-top: 1em">The last
+example is very slow and outputs extra progress indicators
+that break the alignment of the result.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Note that
+globbing only lists directories explicitly asked for, for
+example FOO/* will not list
+FOO/bar/Acme&minus;Sthg&minus;n.nn.tar.gz. This may be
+regarded as a bug that may be changed in some future
+version.</p>
+
+<p style="margin-left:11%;">&quot;failed&quot;</p>
+
+<p style="margin-left:14%;">The &quot;failed&quot; command
+reports all distributions that failed on one of
+&quot;make&quot;, &quot;test&quot; or &quot;install&quot;
+for some reason in the currently running shell session.</p>
+
+<p style="margin-left:11%;">Persistence between
+sessions</p>
+
+<p style="margin-left:14%;">If the &quot;YAML&quot; or the
+&quot;YAML::Syck&quot; module is installed a record of the
+internal state of all modules is written to disk after each
+step. The files contain a signature of the currently running
+perl version for later perusal.</p>
+
+<p style="margin-left:14%; margin-top: 1em">If the
+configurations variable &quot;build_dir_reuse&quot; is set
+to a true value, then <small>CPAN</small> .pm reads the
+collected <small>YAML</small> files. If the stored signature
+matches the currently running perl, the stored state is
+loaded into memory such that persistence between sessions is
+effectively established.</p>
+
+<p style="margin-left:11%;">The &quot;force&quot; and the
+&quot;fforce&quot; pragma</p>
+
+<p style="margin-left:14%;">To speed things up in complex
+installation scenarios, <small>CPAN</small> .pm keeps track
+of what it has already done and refuses to do some things a
+second time. A &quot;get&quot;, a &quot;make&quot;, and an
+&quot;install&quot; are not repeated. A &quot;test&quot; is
+repeated only if the previous test was unsuccessful. The
+diagnostic message when <small>CPAN</small> .pm refuses to
+do something a second time is one of <i>Has already been</i>
+&quot;unwrapped|made|tested successfully&quot; or something
+similar. Another situation where <small>CPAN</small> refuses
+to act is an &quot;install&quot; if the corresponding
+&quot;test&quot; was not successful.</p>
+
+<p style="margin-left:14%; margin-top: 1em">In all these
+cases, the user can override this stubborn behaviour by
+prepending the command with the word force, for example:</p>
+
+<p style="margin-left:14%; margin-top: 1em">cpan&gt; force
+get Foo <br>
+cpan&gt; force make AUTHOR/Bar&minus;3.14.tar.gz <br>
+cpan&gt; force test Baz <br>
+cpan&gt; force install Acme::Meta</p>
+
+<p style="margin-left:14%; margin-top: 1em">Each
+<i>forced</i> command is executed with the corresponding
+part of its memory erased.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The
+&quot;fforce&quot; pragma is a variant that emulates a
+&quot;force get&quot; which erases the entire memory
+followed by the action specified, effectively restarting the
+whole get/make/test/install procedure from scratch.</p>
+
+<p style="margin-left:11%;">Lockfile</p>
+
+<p style="margin-left:14%;">Interactive sessions maintain a
+lockfile, by default &quot;~/.cpan/.lock&quot;. Batch jobs
+can run without a lockfile and not disturb each other.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The shell
+offers to run in <i>downgraded mode</i> when another process
+is holding the lockfile. This is an experimental feature
+that is not yet tested very well. This second shell then
+does not write the history file, does not use the metadata
+file, and has a different prompt.</p>
+
+<p style="margin-left:11%;">Signals</p>
+
+<p style="margin-left:14%;"><small>CPAN</small> .pm
+installs signal handlers for <small>SIGINT</small> and
+<small>SIGTERM.</small> While you are in the cpan-shell, it
+is intended that you can press &quot;^C&quot; anytime and
+return to the cpan-shell prompt. A <small>SIGTERM</small>
+will cause the cpan-shell to clean up and leave the shell
+loop. You can emulate the effect of a <small>SIGTERM</small>
+by sending two consecutive SIGINTs, which usually means by
+pressing &quot;^C&quot; twice.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><small>CPAN</small>
+.pm ignores <small>SIGPIPE.</small> If the user sets
+&quot;inactivity_timeout&quot;, a <small>SIGALRM</small> is
+used during the run of the &quot;perl Makefile.PL&quot; or
+&quot;perl Build.PL&quot; subprocess. A
+<small>SIGALRM</small> is also used during module version
+parsing, and is controlled by
+&quot;version_timeout&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>CPAN::Shell</b>
+<br>
+The commands available in the shell interface are methods in
+the package CPAN::Shell. If you enter the shell command,
+your input is split by the
+<b>Text::ParseWords::shellwords()</b> routine, which acts
+like most shells do. The first word is interpreted as the
+method to be invoked, and the rest of the words are treated
+as the method&rsquo;s arguments. Continuation lines are
+supported by ending a line with a literal backslash.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>autobundle</b>
+<br>
+&quot;autobundle&quot; writes a bundle file into the
+&quot;$CPAN::Config&minus;&gt;{cpan_home}/Bundle&quot;
+directory. The file contains a list of all modules that are
+both available from <small>CPAN</small> and currently
+installed within @INC. Duplicates of each distribution are
+suppressed. The name of the bundle file is based on the
+current date and a counter, e.g.
+<i>Bundle/Snapshot_2012_05_21_00.pm</i>. This is installed
+again by running &quot;cpan
+Bundle::Snapshot_2012_05_21_00&quot;, or installing
+&quot;Bundle::Snapshot_2012_05_21_00&quot; from the
+<small>CPAN</small> shell.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Return value:
+path to the written file.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>hosts</b>
+<br>
+Note: this feature is still in alpha state and may change in
+future versions of <small>CPAN</small> .pm</p>
+
+<p style="margin-left:11%; margin-top: 1em">This commands
+provides a statistical overview over recent download
+activities. The data for this is collected in the
+<small>YAML</small> file &quot;FTPstats.yml&quot; in your
+&quot;cpan_home&quot; directory. If no <small>YAML</small>
+module is configured or <small>YAML</small> not installed,
+no stats are provided. <br>
+install_tested</p>
+
+<p style="margin-left:17%;">Install all distributions that
+have been tested successfully but have not yet been
+installed. See also &quot;is_tested&quot;.</p>
+
+<p style="margin-left:11%;">is_tested</p>
+
+<p style="margin-left:17%;">List all build directories of
+distributions that have been tested successfully but have
+not yet been installed. See also
+&quot;install_tested&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>mkmyconfig
+<br>
+mkmyconfig()</b> writes your own CPAN::MyConfig file into
+your &quot;~/.cpan/&quot; directory so that you can save
+your own preferences instead of the system-wide ones.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>r
+[Module|/Regexp/]...</b> <br>
+scans current perl installation for modules that have a
+newer version available on <small>CPAN</small> and provides
+a list of them. If called without argument, all potential
+upgrades are listed; if called with arguments the list is
+filtered to the modules and regexps given as arguments.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The listing
+looks something like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Package
+namespace installed latest in CPAN file <br>
+CPAN 1.94_64 1.9600 ANDK/CPAN&minus;1.9600.tar.gz <br>
+CPAN::Reporter 1.1801 1.1902
+DAGOLDEN/CPAN&minus;Reporter&minus;1.1902.tar.gz <br>
+YAML 0.70 0.73 INGY/YAML&minus;0.73.tar.gz <br>
+YAML::Syck 1.14 1.17 AVAR/YAML&minus;Syck&minus;1.17.tar.gz
+<br>
+YAML::Tiny 1.44 1.50 ADAMK/YAML&minus;Tiny&minus;1.50.tar.gz
+<br>
+CGI 3.43 3.55 MARKSTOS/CGI.pm&minus;3.55.tar.gz <br>
+Module::Build::YAML 1.40 1.41
+DAGOLDEN/Module&minus;Build&minus;0.3800.tar.gz <br>
+TAP::Parser::Result::YAML 3.22 3.23
+ANDYA/Test&minus;Harness&minus;3.23.tar.gz <br>
+YAML::XS 0.34 0.35
+INGY/YAML&minus;LibYAML&minus;0.35.tar.gz</p>
+
+<p style="margin-left:11%; margin-top: 1em">It suppresses
+duplicates in the column &quot;in CPAN file&quot; such that
+distributions with many upgradeable modules are listed only
+once.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+list is not sorted.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>recent
+***EXPERIMENTAL COMMAND***</b> <br>
+The &quot;recent&quot; command downloads a list of recent
+uploads to <small>CPAN</small> and displays them
+<i>slowly</i>. While the command is running, a $SIG{
+<small>INT</small> } exits the loop after displaying the
+current item.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>:
+This command requires XML::LibXML installed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>:
+This whole command currently is just a hack and will
+probably change in future versions of <small>CPAN</small>
+.pm, but the general approach will likely remain.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>:
+See also smoke</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>recompile
+<br>
+recompile()</b> is a special command that takes no argument
+and runs the make/test/install cycle with brute force over
+all installed dynamically loadable extensions (a.k.a.
+<small>XS</small> modules) with &rsquo;force&rsquo; in
+effect. The primary purpose of this command is to finish a
+network installation. Imagine you have a common source tree
+for two different architectures. You decide to do a
+completely independent fresh installation. You start on one
+architecture with the help of a Bundle file produced
+earlier. <small>CPAN</small> installs the whole Bundle for
+you, but when you try to repeat the job on the second
+architecture, <small>CPAN</small> responds with a &quot;Foo
+up to date&quot; message for all modules. So you invoke
+<small>CPAN</small> &rsquo;s recompile on the second
+architecture and you&rsquo;re done.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Another popular
+use for &quot;recompile&quot; is to act as a rescue in case
+your perl breaks binary compatibility. If one of the modules
+that <small>CPAN</small> uses is in turn depending on binary
+compatibility (so you cannot run <small>CPAN</small>
+commands), then you should try the CPAN::Nox module for
+recovery.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>report
+Bundle|Distribution|Module</b> <br>
+The &quot;report&quot; command temporarily turns on the
+&quot;test_report&quot; config variable, then runs the
+&quot;force test&quot; command with the given arguments. The
+&quot;force&quot; pragma reruns the tests and repeats every
+step that might have failed before.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>smoke
+***EXPERIMENTAL COMMAND*** <br>
+*** <small>WARNING:</small> this command downloads and
+executes software from <small>CPAN</small> to your computer
+of completely unknown status. You should never do this with
+your normal account and better have a dedicated well
+separated and secured machine to do this. ***</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;smoke&quot; command takes the list of recent uploads
+to <small>CPAN</small> as provided by the &quot;recent&quot;
+command and tests them all. While the command is running
+$SIG{ <small>INT</small> } is defined to mean that the
+current item shall be skipped.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>:
+This whole command currently is just a hack and will
+probably change in future versions of <small>CPAN</small>
+.pm, but the general approach will likely remain.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>:
+See also recent</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>upgrade
+[Module|/Regexp/]...</b> <br>
+The &quot;upgrade&quot; command first runs an &quot;r&quot;
+command with the given arguments and then installs the
+newest versions of all modules that were listed by that.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>The four
+&quot;CPAN::*&quot; Classes: Author, Bundle, Module,
+Distribution</b> <br>
+Although it may be considered internal, the class hierarchy
+does matter for both users and programmer.
+<small>CPAN</small> .pm deals with the four classes
+mentioned above, and those classes all share a set of
+methods. Classical single polymorphism is in effect. A
+metaclass object registers all objects of all kinds and
+indexes them with a string. The strings referencing objects
+have a separated namespace (well, not completely
+separated):</p>
+
+<p style="margin-left:11%; margin-top: 1em">Namespace Class
+<br>
+words containing a &quot;/&quot; (slash) Distribution <br>
+words starting with Bundle:: Bundle <br>
+everything else Module or Author</p>
+
+<p style="margin-left:11%; margin-top: 1em">Modules know
+their associated Distribution objects. They always refer to
+the most recent official release. Developers may mark their
+releases as unstable development versions (by inserting an
+underscore into the module version number which will also be
+reflected in the distribution name when you run &rsquo;make
+dist&rsquo;), so the really hottest and newest distribution
+is not always the default. If a module Foo circulates on
+<small>CPAN</small> in both version 1.23 and 1.23_90,
+<small>CPAN</small> .pm offers a convenient way to install
+version 1.23 by saying</p>
+
+<p style="margin-left:11%; margin-top: 1em">install Foo</p>
+
+<p style="margin-left:11%; margin-top: 1em">This would
+install the complete distribution file (say
+BAR/Foo&minus;1.23.tar.gz) with all accompanying material.
+But if you would like to install version 1.23_90, you need
+to know where the distribution file resides on
+<small>CPAN</small> relative to the authors/id/ directory.
+If the author is <small>BAR,</small> this might be
+BAR/Foo&minus;1.23_90.tar.gz; so you would have to say</p>
+
+<p style="margin-left:11%; margin-top: 1em">install
+BAR/Foo&minus;1.23_90.tar.gz</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first
+example will be driven by an object of the class
+CPAN::Module, the second by an object of class
+CPAN::Distribution.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Integrating
+local directories</b> <br>
+Note: this feature is still in alpha state and may change in
+future versions of <small>CPAN</small> .pm</p>
+
+<p style="margin-left:11%; margin-top: 1em">Distribution
+objects are normally distributions from the
+<small>CPAN,</small> but there is a slightly degenerate case
+for Distribution objects, too, of projects held on the local
+disk. These distribution objects have the same name as the
+local directory and end with a dot. A dot by itself is also
+allowed for the current directory at the time
+<small>CPAN</small> .pm was used. All actions such as
+&quot;make&quot;, &quot;test&quot;, and &quot;install&quot;
+are applied directly to that directory. This gives the
+command &quot;cpan .&quot; an interesting touch: while the
+normal mantra of installing a <small>CPAN</small> module
+without <small>CPAN</small> .pm is one of</p>
+
+<p style="margin-left:11%; margin-top: 1em">perl
+Makefile.PL perl Build.PL <br>
+( go and get prerequisites ) <br>
+make ./Build <br>
+make test ./Build test <br>
+make install ./Build install</p>
+
+<p style="margin-left:11%; margin-top: 1em">the command
+&quot;cpan .&quot; does all of this at once. It figures out
+which of the two mantras is appropriate, fetches and
+installs all prerequisites, takes care of them recursively,
+and finally finishes the installation of the module in the
+current directory, be it a <small>CPAN</small> module or
+not.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The typical
+usage case is for private modules or working copies of
+projects from remote repositories on the local disk.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Redirection</b>
+<br>
+The usual shell redirection symbols &quot; | &quot; and
+&quot;&gt;&quot; are recognized by the cpan shell <b>only
+when surrounded by whitespace</b>. So piping to pager or
+redirecting output into a file works somewhat as in a normal
+shell, with the stipulation that you must type extra
+spaces.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Plugin
+support ***EXPERIMENTAL***</b> <br>
+Plugins are objects that implement any of currently eight
+methods:</p>
+
+<p style="margin-left:11%; margin-top: 1em">pre_get <br>
+post_get <br>
+pre_make <br>
+post_make <br>
+pre_test <br>
+post_test <br>
+pre_install <br>
+post_install</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;plugin_list&quot; configuration parameter holds a list
+of strings of the form</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Modulename=arg0,arg1,arg2,arg3,...</p>
+
+<p style="margin-left:11%; margin-top: 1em">eg:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">CPAN::Plugin::Flurb=dir,/opt/pkgs/flurb/raw,verbose,1</p>
+
+<p style="margin-left:11%; margin-top: 1em">At run time,
+each listed plugin is instantiated as a singleton object by
+running the equivalent of this pseudo code:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $plugin =
+&lt;string representation from config&gt;; <br>
+&lt;generate Modulename and arguments from $plugin&gt;; <br>
+my $p = $instance{$plugin} ||=
+Modulename&minus;&gt;new($arg0,$arg1,...);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The generated
+singletons are kept around from instantiation until the end
+of the shell session. &lt;plugin_list&gt; can be
+reconfigured at any time at run time. While the cpan shell
+is running, it checks all activated plugins at each of the 8
+reference points listed above and runs the respective method
+if it is implemented for that object. The method is called
+with the active CPAN::Distribution object passed in as an
+argument.</p>
+
+<h2>CONFIGURATION
+<a name="CONFIGURATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When the
+<small>CPAN</small> module is used for the first time, a
+configuration dialogue tries to determine a couple of site
+specific options. The result of the dialog is stored in a
+hash reference $CPAN::Config in a file CPAN/Config.pm.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Default values
+defined in the CPAN/Config.pm file can be overridden in a
+user specific file: CPAN/MyConfig.pm. Such a file is best
+placed in &quot;$HOME/.cpan/CPAN/MyConfig.pm&quot;, because
+&quot;$HOME/.cpan&quot; is added to the search path of the
+<small>CPAN</small> module before the <b>use()</b> or
+<b>require()</b> statements. The mkmyconfig command writes
+this file for you.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The &quot;o
+conf&quot; command has various bells and whistles: <br>
+completion support</p>
+
+<p style="margin-left:17%;">If you have a ReadLine module
+installed, you can hit <small>TAB</small> at any point of
+the commandline and &quot;o conf&quot; will offer you
+completion for the built-in subcommands and/or config
+variable names.</p>
+
+<p style="margin-left:11%;">displaying some help: o conf
+help</p>
+
+<p style="margin-left:17%;">Displays a short help</p>
+
+<p style="margin-left:11%;">displaying current values: o
+conf [ <small>KEY</small> ]</p>
+
+<p style="margin-left:17%;">Displays the current value(s)
+for this config variable. Without <small>KEY,</small>
+displays all subcommands and config variables.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">o conf
+shell</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+<small>KEY</small> starts and ends with a slash, the string
+in between is treated as a regular expression and only keys
+matching this regexp are displayed</p>
+
+<p style="margin-left:17%; margin-top: 1em">Example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">o conf
+/color/</p>
+
+<p style="margin-left:11%;">changing of scalar values: o
+conf <small>KEY VALUE</small></p>
+
+<p style="margin-left:17%;">Sets the config variable
+<small>KEY</small> to <small>VALUE.</small> The empty string
+can be specified as usual in shells, with '' or
+&quot;&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">o conf wget
+/usr/bin/wget</p>
+
+<p style="margin-left:11%;">changing of list values: o conf
+<small>KEY</small> SHIFT|UNSHIFT|PUSH|POP|SPLICE|LIST</p>
+
+<p style="margin-left:17%;">If a config variable name ends
+with &quot;list&quot;, it is a list. &quot;o conf KEY
+shift&quot; removes the first element of the list, &quot;o
+conf KEY pop&quot; removes the last element of the list.
+&quot;o conf KEYS unshift LIST&quot; prepends a list of
+values to the list, &quot;o conf KEYS push LIST&quot;
+appends a list of valued to the list.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Likewise,
+&quot;o conf KEY splice LIST&quot; passes the
+<small>LIST</small> to the corresponding splice command.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Finally, any
+other list of arguments is taken as a new list value for the
+<small>KEY</small> variable discarding the previous
+value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Examples:</p>
+
+<p style="margin-left:17%; margin-top: 1em">o conf urllist
+unshift http://cpan.dev.local/CPAN <br>
+o conf urllist splice 3 1 <br>
+o conf urllist http://cpan1.local http://cpan2.local
+ftp://ftp.perl.org</p>
+
+<p style="margin-left:11%;">reverting to saved: o conf
+defaults</p>
+
+<p style="margin-left:17%;">Reverts all config variables to
+the state in the saved config file.</p>
+
+<p style="margin-left:11%;">saving the config: o conf
+commit</p>
+
+<p style="margin-left:17%;">Saves all config variables to
+the current config file (CPAN/Config.pm or CPAN/MyConfig.pm
+that was loaded at start).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+configuration dialog can be started any time later again by
+issuing the command &quot; o conf init &quot; in the
+<small>CPAN</small> shell. A subset of the configuration
+dialog can be run by issuing &quot;o conf init WORD&quot;
+where <small>WORD</small> is any valid config variable or a
+regular expression.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Config
+Variables</b> <br>
+The following keys in the hash reference $CPAN::Config are
+currently defined:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">allow_installing_module_downgrades
+<br>
+allow or disallow installing module downgrades <br>
+allow_installing_outdated_dists <br>
+allow or disallow installing modules that are <br>
+indexed in the cpan index pointing to a distro <br>
+with a higher distro&minus;version number <br>
+applypatch path to external prg <br>
+auto_commit commit all changes to config variables to disk
+<br>
+build_cache size of cache for directories to build modules
+<br>
+build_dir locally accessible directory to build modules <br>
+build_dir_reuse boolean if distros in build_dir are
+persistent <br>
+build_requires_install_policy <br>
+to install or not to install when a module is <br>
+only needed for building. yes|no|ask/yes|ask/no <br>
+bzip2 path to external prg <br>
+cache_metadata use serializer to cache metadata <br>
+check_sigs if signatures should be verified <br>
+cleanup_after_install <br>
+remove build directory immediately after a <br>
+successful install and remember that for the <br>
+duration of the session <br>
+colorize_debug Term::ANSIColor attributes for debugging
+output <br>
+colorize_output boolean if Term::ANSIColor should colorize
+output <br>
+colorize_print Term::ANSIColor attributes for normal output
+<br>
+colorize_warn Term::ANSIColor attributes for warnings <br>
+commandnumber_in_prompt <br>
+boolean if you want to see current command number <br>
+commands_quote preferred character to use for quoting
+external <br>
+commands when running them. Defaults to double <br>
+quote on Windows, single tick everywhere else; <br>
+can be set to space to disable quoting <br>
+connect_to_internet_ok <br>
+whether to ask if opening a connection is ok before <br>
+urllist is specified <br>
+cpan_home local directory reserved for this package <br>
+curl path to external prg <br>
+dontload_hash DEPRECATED <br>
+dontload_list arrayref: modules in the list will not be <br>
+loaded by the CPAN::has_inst() routine <br>
+ftp path to external prg <br>
+ftp_passive if set, the environment variable FTP_PASSIVE is
+set <br>
+for downloads <br>
+ftp_proxy proxy host for ftp requests <br>
+ftpstats_period max number of days to keep download
+statistics <br>
+ftpstats_size max number of items to keep in the download
+statistics <br>
+getcwd see below <br>
+gpg path to external prg <br>
+gzip location of external program gzip <br>
+halt_on_failure stop processing after the first failure of
+queued <br>
+items or dependencies <br>
+histfile file to maintain history between sessions <br>
+histsize maximum number of lines to keep in histfile <br>
+http_proxy proxy host for http requests <br>
+inactivity_timeout breaks interactive Makefile.PLs or
+Build.PLs <br>
+after this many seconds inactivity. Set to 0 to <br>
+disable timeouts. <br>
+index_expire refetch index files after this many days <br>
+inhibit_startup_message <br>
+if true, suppress the startup message <br>
+keep_source_where directory in which to keep the source (if
+we do) <br>
+load_module_verbosity <br>
+report loading of optional modules used by CPAN.pm <br>
+lynx path to external prg <br>
+make location of external make program <br>
+make_arg arguments that should always be passed to 'make'
+<br>
+make_install_make_command <br>
+the make command for running 'make install', for <br>
+example 'sudo make' <br>
+make_install_arg same as make_arg for 'make install' <br>
+makepl_arg arguments passed to 'perl Makefile.PL' <br>
+mbuild_arg arguments passed to './Build' <br>
+mbuild_install_arg arguments passed to './Build install'
+<br>
+mbuild_install_build_command <br>
+command to use instead of './Build' when we are <br>
+in the install stage, for example 'sudo ./Build' <br>
+mbuildpl_arg arguments passed to 'perl Build.PL' <br>
+ncftp path to external prg <br>
+ncftpget path to external prg <br>
+no_proxy don't proxy to these hosts/domains (comma separated
+list) <br>
+pager location of external program more (or any pager) <br>
+password your password if you CPAN server wants one <br>
+patch path to external prg <br>
+patches_dir local directory containing patch files <br>
+perl5lib_verbosity verbosity level for PERL5LIB additions
+<br>
+plugin_list list of active hooks (see Plugin support above
+<br>
+and the CPAN::Plugin module) <br>
+prefer_external_tar <br>
+per default all untar operations are done with <br>
+Archive::Tar; by setting this variable to true <br>
+the external tar command is used if available <br>
+prefer_installer legal values are MB and EUMM: if a module
+comes <br>
+with both a Makefile.PL and a Build.PL, use the <br>
+former (EUMM) or the latter (MB); if the module <br>
+comes with only one of the two, that one will be <br>
+used no matter the setting <br>
+prerequisites_policy <br>
+what to do if you are missing module prerequisites <br>
+('follow' automatically, 'ask' me, or 'ignore') <br>
+For 'follow', also sets PERL_AUTOINSTALL and <br>
+PERL_EXTUTILS_AUTOINSTALL for
+&quot;&minus;&minus;defaultdeps&quot; if <br>
+not already set <br>
+prefs_dir local directory to store per&minus;distro build
+options <br>
+proxy_user username for accessing an authenticating proxy
+<br>
+proxy_pass password for accessing an authenticating proxy
+<br>
+pushy_https use https to cpan.org when possible, otherwise
+use http <br>
+to cpan.org and issue a warning <br>
+randomize_urllist add some randomness to the sequence of the
+urllist <br>
+recommends_policy whether recommended prerequisites should
+be included <br>
+scan_cache controls scanning of cache ('atstart', 'atexit'
+or 'never') <br>
+shell your favorite shell <br>
+show_unparsable_versions <br>
+boolean if r command tells which modules are versionless
+<br>
+show_upload_date boolean if commands should try to determine
+upload date <br>
+show_zero_versions boolean if r command tells for which
+modules $version==0 <br>
+suggests_policy whether suggested prerequisites should be
+included <br>
+tar location of external program tar <br>
+tar_verbosity verbosity level for the tar command <br>
+term_is_latin deprecated: if true Unicode is translated to
+ISO&minus;8859&minus;1 <br>
+(and nonsense for characters outside latin range) <br>
+term_ornaments boolean to turn ReadLine ornamenting on/off
+<br>
+test_report email test reports (if CPAN::Reporter is
+installed) <br>
+trust_test_report_history <br>
+skip testing when previously tested ok (according to <br>
+CPAN::Reporter history) <br>
+unzip location of external program unzip <br>
+urllist arrayref to nearby CPAN sites (or equivalent
+locations) <br>
+urllist_ping_external <br>
+use external ping command when autoselecting mirrors <br>
+urllist_ping_verbose <br>
+increase verbosity when autoselecting mirrors <br>
+use_prompt_default set PERL_MM_USE_DEFAULT for
+configure/make/test/install <br>
+use_sqlite use CPAN::SQLite for metadata storage (fast and
+lean) <br>
+username your username if you CPAN server wants one <br>
+version_timeout stops version parsing after this many
+seconds. <br>
+Default is 15 secs. Set to 0 to disable. <br>
+wait_list arrayref to a wait server to try (See CPAN::WAIT)
+<br>
+wget path to external prg <br>
+yaml_load_code enable YAML code deserialisation via
+CPAN::DeferredCode <br>
+yaml_module which module to use to read/write YAML files</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can set and
+query each of these options interactively in the cpan shell
+with the &quot;o conf&quot; or the &quot;o conf init&quot;
+command as specified below. <br>
+&quot;o conf &lt;scalar option&gt;&quot;</p>
+
+<p style="margin-left:14%;">prints the current value of the
+<i>scalar option</i></p>
+
+<p style="margin-left:11%;">&quot;o conf &lt;scalar
+option&gt; &lt;value&gt;&quot;</p>
+
+<p style="margin-left:14%;">Sets the value of the <i>scalar
+option</i> to <i>value</i></p>
+
+<p style="margin-left:11%;">&quot;o conf &lt;list
+option&gt;&quot;</p>
+
+<p style="margin-left:14%;">prints the current value of the
+<i>list option</i> in MakeMaker&rsquo;s neatvalue
+format.</p>
+
+<p style="margin-left:11%;">&quot;o conf &lt;list
+option&gt; [shift|pop]&quot;</p>
+
+<p style="margin-left:14%;">shifts or pops the array in the
+<i>list option</i> variable</p>
+
+<p style="margin-left:11%;">&quot;o conf &lt;list
+option&gt; [unshift|push|splice] &lt;list&gt;&quot;</p>
+
+<p style="margin-left:14%;">works like the corresponding
+perl commands.</p>
+
+<p style="margin-left:11%;">interactive editing: o conf
+init [MATCH|LIST]</p>
+
+<p style="margin-left:14%;">Runs an interactive
+configuration dialog for matching variables. Without
+argument runs the dialog over all supported config
+variables. To specify a <small>MATCH</small> the argument
+must be enclosed by slashes.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Examples:</p>
+
+<p style="margin-left:14%; margin-top: 1em">o conf init
+ftp_passive ftp_proxy <br>
+o conf init /color/</p>
+
+<p style="margin-left:14%; margin-top: 1em">Note: this
+method of setting config variables often provides more
+explanation about the functioning of a variable than the
+manpage.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>CPAN::anycwd($path):
+Note on config variable getcwd</b> <small><br>
+CPAN</small> .pm changes the current working directory often
+and needs to determine its own current working directory. By
+default it uses Cwd::cwd, but if for some reason this
+doesn&rsquo;t work on your system, configure alternatives
+according to the following table:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>cwd</p></td>
+<td width="2%"></td>
+<td width="21%">
+
+
+<p>Calls Cwd::cwd</p></td>
+<td width="62%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;">getcwd</p>
+
+<p style="margin-left:17%;">Calls Cwd::getcwd</p>
+
+<p style="margin-left:11%;">fastcwd</p>
+
+<p style="margin-left:17%;">Calls Cwd::fastcwd</p>
+
+<p style="margin-left:11%;">getdcwd</p>
+
+<p style="margin-left:17%;">Calls Cwd::getdcwd</p>
+
+<p style="margin-left:11%;">backtickcwd</p>
+
+<p style="margin-left:17%;">Calls the external command
+cwd.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note on the
+format of the urllist parameter</b> <br>
+urllist parameters are URLs according to <small>RFC
+1738.</small> We do a little guessing if your
+<small>URL</small> is not compliant, but if you have
+problems with &quot;file&quot; URLs, please try the correct
+format. Either:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">file://localhost/whatever/ftp/pub/CPAN/</p>
+
+<p style="margin-left:11%; margin-top: 1em">or</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">file:///home/ftp/pub/CPAN/</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>The urllist
+parameter has CD-ROM support</b> <br>
+The &quot;urllist&quot; parameter of the configuration table
+contains a list of URLs used for downloading. If the list
+contains any &quot;file&quot; URLs, <small>CPAN</small>
+always tries there first. This feature is disabled for index
+files. So the recommendation for the owner of a CD-ROM with
+<small>CPAN</small> contents is: include your local,
+possibly outdated CD-ROM as a &quot;file&quot;
+<small>URL</small> at the end of urllist, e.g.</p>
+
+<p style="margin-left:11%; margin-top: 1em">o conf urllist
+push file://localhost/CDROM/CPAN</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>CPAN</small>
+.pm will then fetch the index files from one of the
+<small>CPAN</small> sites that come at the beginning of
+urllist. It will later check for each module to see whether
+there is a local copy of the most recent version.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Another
+peculiarity of urllist is that the site that we could
+successfully fetch the last file from automatically gets a
+preference token and is tried as the first site for the next
+request. So if you add a new site at runtime it may happen
+that the previously preferred site will be tried another
+time. This means that if you want to disallow a site for the
+next transfer, it must be explicitly removed from
+urllist.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Maintaining
+the urllist parameter</b> <br>
+If you have <small>YAML</small> .pm (or some other
+<small>YAML</small> module configured in
+&quot;yaml_module&quot;) installed, <small>CPAN</small> .pm
+collects a few statistical data about recent downloads. You
+can view the statistics with the &quot;hosts&quot; command
+or inspect them directly by looking into the
+&quot;FTPstats.yml&quot; file in your &quot;cpan_home&quot;
+directory.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To get some
+interesting statistics, it is recommended that
+&quot;randomize_urllist&quot; be set; this introduces some
+amount of randomness into the <small>URL</small>
+selection.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>The
+&quot;requires&quot; and &quot;build_requires&quot;
+dependency declarations</b> <br>
+Since <small>CPAN</small> .pm version 1.88_51 modules
+declared as &quot;build_requires&quot; by a distribution are
+treated differently depending on the config variable
+&quot;build_requires_install_policy&quot;. By setting
+&quot;build_requires_install_policy&quot; to &quot;no&quot;,
+such a module is not installed. It is only built and tested,
+and then kept in the list of tested but uninstalled modules.
+As such, it is available during the build of the dependent
+module by integrating the path to the &quot;blib/arch&quot;
+and &quot;blib/lib&quot; directories in the environment
+variable <small>PERL5LIB.</small> If
+&quot;build_requires_install_policy&quot; is set to
+&quot;yes&quot;, then both modules declared as
+&quot;requires&quot; and those declared as
+&quot;build_requires&quot; are treated alike. By setting to
+&quot;ask/yes&quot; or &quot;ask/no&quot;,
+<small>CPAN</small> .pm asks the user and sets the default
+accordingly.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Configuration
+of the allow_installing_* parameters</b> <br>
+The &quot;allow_installing_*&quot; parameters are evaluated
+during the &quot;make&quot; phase. If set to
+&quot;yes&quot;, they allow the testing and the installation
+of the current distro and otherwise have no effect. If set
+to &quot;no&quot;, they may abort the build (preventing
+testing and installing), depending on the contents of the
+&quot;blib/&quot; directory. The &quot;blib/&quot; directory
+is the directory that holds all the files that would usually
+be installed in the &quot;install&quot; phase.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;allow_installing_outdated_dists&quot;
+compares the &quot;blib/&quot; directory with the
+<small>CPAN</small> index. If it finds something there that
+belongs, according to the index, to a different dist, it
+aborts the current build.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;allow_installing_module_downgrades&quot;
+compares the &quot;blib/&quot; directory with already
+installed modules, actually their version numbers, as
+determined by ExtUtils::MakeMaker or equivalent. If a
+to-be-installed module would downgrade an already installed
+module, the current build is aborted.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An interesting
+twist occurs when a distroprefs document demands the
+installation of an outdated dist via goto while
+&quot;allow_installing_outdated_dists&quot; forbids it.
+Without additional provisions, this would let the
+&quot;allow_installing_outdated_dists&quot; win and the
+distroprefs lose. So the proper arrangement in such a case
+is to write a second distroprefs document for the distro
+that &quot;goto&quot; points to and overrule the
+&quot;cpanconfig&quot; there. E.g.:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;&minus;
+<br>
+match: <br>
+distribution:
+&quot;^MAUKE/Keyword&minus;Simple&minus;0.04.tar.gz&quot;
+<br>
+goto:
+&quot;MAUKE/Keyword&minus;Simple&minus;0.03.tar.gz&quot;
+<br>
+&minus;&minus;&minus; <br>
+match: <br>
+distribution:
+&quot;^MAUKE/Keyword&minus;Simple&minus;0.03.tar.gz&quot;
+<br>
+cpanconfig: <br>
+allow_installing_outdated_dists: yes</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Configuration
+for individual distributions (</b><i>Distroprefs</i><b>)</b>
+<br>
+(<b>Note:</b> This feature has been introduced in
+<small>CPAN</small> .pm 1.8854)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Distributions
+on <small>CPAN</small> usually behave according to what we
+call the <small>CPAN</small> mantra. Or since the advent of
+Module::Build we should talk about two mantras:</p>
+
+<p style="margin-left:11%; margin-top: 1em">perl
+Makefile.PL perl Build.PL <br>
+make ./Build <br>
+make test ./Build test <br>
+make install ./Build install</p>
+
+<p style="margin-left:11%; margin-top: 1em">But some
+modules cannot be built with this mantra. They try to get
+some extra data from the user via the environment, extra
+arguments, or interactively--thus disturbing the
+installation of large bundles like Phalanx100 or modules
+with many dependencies like Plagger.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The distroprefs
+system of &quot;CPAN.pm&quot; addresses this problem by
+allowing the user to specify extra informations and recipes
+in <small>YAML</small> files to either</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>pass additional arguments to one of the four
+commands,</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>set environment variables</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>instantiate an Expect object that reads from the
+console, waits for some regular expressions and enters some
+answers</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>temporarily override assorted &quot;CPAN.pm&quot;
+configuration variables</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>specify dependencies the original maintainer forgot</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>disable the installation of an object altogether</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">See the
+<small>YAML</small> and Data::Dumper files that come with
+the &quot;CPAN.pm&quot; distribution in the
+&quot;distroprefs/&quot; directory for examples.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Filenames</b>
+<br>
+The <small>YAML</small> files themselves must have the
+&quot;.yml&quot; extension; all other files are ignored (for
+two exceptions see <i>Fallback Data::Dumper and Storable</i>
+below). The containing directory can be specified in
+&quot;CPAN.pm&quot; in the &quot;prefs_dir&quot; config
+variable. Try &quot;o conf init prefs_dir&quot; in the
+<small>CPAN</small> shell to set and activate the
+distroprefs system.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Every
+<small>YAML</small> file may contain arbitrary documents
+according to the <small>YAML</small> specification, and
+every document is treated as an entity that can specify the
+treatment of a single distribution.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Filenames can
+be picked arbitrarily; &quot;CPAN.pm&quot; always reads all
+files (in alphabetical order) and takes the key
+&quot;match&quot; (see below in <i>Language Specs</i>) as a
+hashref containing match criteria that determine if the
+current distribution matches the <small>YAML</small>
+document or not.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Fallback
+Data::Dumper and Storable</b> <br>
+If neither your configured &quot;yaml_module&quot; nor
+<small>YAML</small> .pm is installed, <small>CPAN</small>
+.pm falls back to using Data::Dumper and Storable and looks
+for files with the extensions &quot;.dd&quot; or
+&quot;.st&quot; in the &quot;prefs_dir&quot; directory.
+These files are expected to contain one or more hashrefs.
+For Data::Dumper generated files, this is expected to be
+done with by defining $VAR1, $VAR2, etc. The
+<small>YAML</small> shell would produce these with the
+command</p>
+
+<p style="margin-left:11%; margin-top: 1em">ysh &lt;
+somefile.yml &gt; somefile.dd</p>
+
+<p style="margin-left:11%; margin-top: 1em">For Storable
+files the rule is that they must be constructed such that
+&quot;Storable::retrieve(file)&quot; returns an array
+reference and the array elements represent one distropref
+object each. The conversion from <small>YAML</small> would
+look like so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">perl
+&minus;MYAML=LoadFile &minus;MStorable=nstore &minus;e '
+<br>
+@y=LoadFile(shift); <br>
+nstore(\@y, shift)' somefile.yml somefile.st</p>
+
+<p style="margin-left:11%; margin-top: 1em">In
+bootstrapping situations it is usually sufficient to
+translate only a few <small>YAML</small> files to
+Data::Dumper for crucial modules like
+&quot;YAML::Syck&quot;, &quot;YAML.pm&quot; and
+&quot;Expect.pm&quot;. If you prefer Storable over
+Data::Dumper, remember to pull out a Storable version that
+writes an older format than all the other Storable versions
+that will need to read them.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Blueprint</b>
+<br>
+The following example contains all supported keywords and
+structures with the exception of &quot;eexpect&quot; which
+can be used instead of &quot;expect&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;&minus;
+<br>
+comment: &quot;Demo&quot; <br>
+match: <br>
+module: &quot;Dancing::Queen&quot; <br>
+distribution: &quot;^CHACHACHA/Dancing&minus;&quot; <br>
+not_distribution: &quot;\.zip$&quot; <br>
+perl: &quot;/usr/local/cariba&minus;perl/bin/perl&quot; <br>
+perlconfig: <br>
+archname: &quot;freebsd&quot; <br>
+not_cc: &quot;gcc&quot; <br>
+env: <br>
+DANCING_FLOOR: &quot;Shubiduh&quot; <br>
+disabled: 1 <br>
+cpanconfig: <br>
+make: gmake <br>
+pl: <br>
+args: <br>
+&minus; &quot;&minus;&minus;somearg=specialcase&quot; <br>
+env: {} <br>
+expect: <br>
+&minus; &quot;Which is your favorite fruit&quot; <br>
+&minus; &quot;apple\n&quot; <br>
+make: <br>
+args: <br>
+&minus; all <br>
+&minus; extra&minus;all <br>
+env: {} <br>
+expect: [] <br>
+commandline: &quot;echo SKIPPING make&quot; <br>
+test: <br>
+args: [] <br>
+env: {} <br>
+expect: [] <br>
+install: <br>
+args: [] <br>
+env: <br>
+WANT_TO_INSTALL: YES <br>
+expect: <br>
+&minus; &quot;Do you really want to install&quot; <br>
+&minus; &quot;y\n&quot; <br>
+patches: <br>
+&minus;
+&quot;ABCDE/Fedcba&minus;3.14&minus;ABCDE&minus;01.patch&quot;
+<br>
+depends: <br>
+configure_requires: <br>
+LWP: 5.8 <br>
+build_requires: <br>
+Test::Exception: 0.25 <br>
+requires: <br>
+Spiffy: 0.30</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Language
+Specs</b> <br>
+Every <small>YAML</small> document represents a single hash
+reference. The valid keys in this hash are as follows: <br>
+comment [scalar]</p>
+
+<p style="margin-left:17%;">A comment</p>
+
+<p style="margin-left:11%;">cpanconfig [hash]</p>
+
+<p style="margin-left:17%;">Temporarily override assorted
+&quot;CPAN.pm&quot; configuration variables.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Supported are:
+&quot;build_requires_install_policy&quot;,
+&quot;check_sigs&quot;, &quot;make&quot;,
+&quot;make_install_make_command&quot;,
+&quot;prefer_installer&quot;, &quot;test_report&quot;.
+Please report as a bug when you need another one
+supported.</p>
+
+<p style="margin-left:11%;">depends [hash] ***
+<small>EXPERIMENTAL FEATURE</small> ***</p>
+
+<p style="margin-left:17%;">All three types, namely
+&quot;configure_requires&quot;, &quot;build_requires&quot;,
+and &quot;requires&quot; are supported in the way specified
+in the <small>META</small> .yml specification. The current
+implementation <i>merges</i> the specified dependencies with
+those declared by the package maintainer. In a future
+implementation this may be changed to override the original
+declaration.</p>
+
+<p style="margin-left:11%;">disabled [boolean]</p>
+
+<p style="margin-left:17%;">Specifies that this
+distribution shall not be processed at all.</p>
+
+<p style="margin-left:11%;">features [array] ***
+<small>EXPERIMENTAL FEATURE</small> ***</p>
+
+<p style="margin-left:17%;">Experimental implementation to
+deal with optional_features from <small>META</small> .yml.
+Still needs coordination with installer software and
+currently works only for <small>META</small> .yml declaring
+&quot;dynamic_config=0&quot;. Use with caution.</p>
+
+<p style="margin-left:11%;">goto [string]</p>
+
+<p style="margin-left:17%;">The canonical name of a
+delegate distribution to install instead. Useful when a new
+version, although it tests <small>OK</small> itself, breaks
+something else or a developer release or a fork is already
+uploaded that is better than the last released version.</p>
+
+<p style="margin-left:11%;">install [hash]</p>
+
+<p style="margin-left:17%;">Processing instructions for the
+&quot;make install&quot; or &quot;./Build install&quot;
+phase of the <small>CPAN</small> mantra. See below under
+<i>Processing Instructions</i>.</p>
+
+<p style="margin-left:11%;">make [hash]</p>
+
+<p style="margin-left:17%;">Processing instructions for the
+&quot;make&quot; or &quot;./Build&quot; phase of the
+<small>CPAN</small> mantra. See below under <i>Processing
+Instructions</i>.</p>
+
+<p style="margin-left:11%;">match [hash]</p>
+
+<p style="margin-left:17%;">A hashref with one or more of
+the keys &quot;distribution&quot;, &quot;module&quot;,
+&quot;perl&quot;, &quot;perlconfig&quot;, and
+&quot;env&quot; that specify whether a document is targeted
+at a specific <small>CPAN</small> distribution or
+installation. Keys prefixed with &quot;not_&quot; negates
+the corresponding match.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+corresponding values are interpreted as regular expressions.
+The &quot;distribution&quot; related one will be matched
+against the canonical distribution name, e.g.
+&quot;AUTHOR/Foo&minus;Bar&minus;3.14.tar.gz&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;module&quot; related one will be matched against
+<i>all</i> modules contained in the distribution until one
+module matches.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;perl&quot; related one will be matched against $^X
+(but with the absolute path).</p>
+
+<p style="margin-left:17%; margin-top: 1em">The value
+associated with &quot;perlconfig&quot; is itself a hashref
+that is matched against corresponding values in the
+%Config::Config hash living in the &quot;Config.pm&quot;
+module. Keys prefixed with &quot;not_&quot; negates the
+corresponding match.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The value
+associated with &quot;env&quot; is itself a hashref that is
+matched against corresponding values in the %ENV hash. Keys
+prefixed with &quot;not_&quot; negates the corresponding
+match.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If more than
+one restriction of &quot;module&quot;,
+&quot;distribution&quot;, etc. is specified, the results of
+the separately computed match values must all match. If so,
+the hashref represented by the <small>YAML</small> document
+is returned as the preference structure for the current
+distribution.</p>
+
+<p style="margin-left:11%;">patches [array]</p>
+
+<p style="margin-left:17%;">An array of patches on
+<small>CPAN</small> or on the local disk to be applied in
+order via an external patch program. If the value for the
+&quot;&minus;p&quot; parameter is 0 or 1 is determined by
+reading the patch beforehand. The path to each patch is
+either an absolute path on the local filesystem or relative
+to a patch directory specified in the
+&quot;patches_dir&quot; configuration variable or in the
+format of a canonical distro name. For examples please
+consult the distroprefs/ directory in the
+<small>CPAN</small> .pm distribution (these examples are not
+installed by default).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note: if the
+&quot;applypatch&quot; program is installed and
+&quot;CPAN::Config&quot; knows about it <b>and</b> a patch
+is written by the &quot;makepatch&quot; program, then
+&quot;CPAN.pm&quot; lets &quot;applypatch&quot; apply the
+patch. Both &quot;makepatch&quot; and &quot;applypatch&quot;
+are available from <small>CPAN</small> in the
+&quot;JV/makepatch&minus;*&quot; distribution.</p>
+
+<p style="margin-left:11%;">pl [hash]</p>
+
+<p style="margin-left:17%;">Processing instructions for the
+&quot;perl Makefile.PL&quot; or &quot;perl Build.PL&quot;
+phase of the <small>CPAN</small> mantra. See below under
+<i>Processing Instructions</i>.</p>
+
+<p style="margin-left:11%;">test [hash]</p>
+
+<p style="margin-left:17%;">Processing instructions for the
+&quot;make test&quot; or &quot;./Build test&quot; phase of
+the <small>CPAN</small> mantra. See below under
+<i>Processing Instructions</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Processing
+Instructions</b> <br>
+args [array]</p>
+
+<p style="margin-left:17%;">Arguments to be added to the
+command line</p>
+
+<p style="margin-left:11%;">commandline</p>
+
+<p style="margin-left:17%;">A full commandline to run via
+&quot;system()&quot;. During execution, the environment
+variable <small>PERL</small> is set to $^X (but with an
+absolute path). If &quot;commandline&quot; is specified,
+&quot;args&quot; is not used.</p>
+
+<p style="margin-left:11%;">eexpect [hash]</p>
+
+<p style="margin-left:17%;">Extended &quot;expect&quot;.
+This is a hash reference with four allowed keys,
+&quot;mode&quot;, &quot;timeout&quot;, &quot;reuse&quot;,
+and &quot;talk&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">You must
+install the &quot;Expect&quot; module to use
+&quot;eexpect&quot;. <small>CPAN</small> .pm does not
+install it for you.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;mode&quot;
+may have the values &quot;deterministic&quot; for the case
+where all questions come in the order written down and
+&quot;anyorder&quot; for the case where the questions may
+come in any order. The default mode is
+&quot;deterministic&quot;.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;timeout&quot;
+denotes a timeout in seconds. Floating-point timeouts are
+<small>OK.</small> With &quot;mode=deterministic&quot;, the
+timeout denotes the timeout per question; with
+&quot;mode=anyorder&quot; it denotes the timeout per byte
+received from the stream or questions.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;talk&quot;
+is a reference to an array that contains alternating
+questions and answers. Questions are regular expressions and
+answers are literal strings. The Expect module watches the
+stream from the execution of the external program
+(&quot;perl Makefile.PL&quot;, &quot;perl Build.PL&quot;,
+&quot;make&quot;, etc.).</p>
+
+<p style="margin-left:17%; margin-top: 1em">For
+&quot;mode=deterministic&quot;, the <small>CPAN</small> .pm
+injects the corresponding answer as soon as the stream
+matches the regular expression.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For
+&quot;mode=anyorder&quot; <small>CPAN</small> .pm answers a
+question as soon as the timeout is reached for the next byte
+in the input stream. In this mode you can use the
+&quot;reuse&quot; parameter to decide what will happen with
+a question-answer pair after it has been used. In the
+default case (reuse=0) it is removed from the array,
+avoiding being used again accidentally. If you want to
+answer the question &quot;Do you really want to do
+that&quot; several times, then it must be included in the
+array at least as often as you want this answer to be given.
+Setting the parameter &quot;reuse&quot; to 1 makes this
+repetition unnecessary.</p>
+
+<p style="margin-left:11%;">env [hash]</p>
+
+<p style="margin-left:17%;">Environment variables to be set
+during the command</p>
+
+<p style="margin-left:11%;">expect [array]</p>
+
+<p style="margin-left:17%;">You must install the
+&quot;Expect&quot; module to use &quot;expect&quot;.
+<small>CPAN</small> .pm does not install it for you.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&quot;expect:
+&lt;array&gt;&quot; is a short notation for this
+&quot;eexpect&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">eexpect: <br>
+mode: deterministic <br>
+timeout: 15 <br>
+talk: &lt;array&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Schema
+verification with &quot;Kwalify&quot;</b> <br>
+If you have the &quot;Kwalify&quot; module installed (which
+is part of the Bundle::CPANxxl), then all your distroprefs
+files are checked for syntactic correctness.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example
+Distroprefs Files</b> <br>
+&quot;CPAN.pm&quot; comes with a collection of example
+<small>YAML</small> files. Note that these are really just
+examples and should not be used without care because they
+cannot fit everybody&rsquo;s purpose. After all, the authors
+of the packages that ask questions had a need to ask, so you
+should watch their questions and adjust the examples to your
+environment and your needs. You have been
+warned:&minus;)</p>
+
+<h2>PROGRAMMER&rsquo;S INTERFACE
+<a name="PROGRAMMER&rsquo;S INTERFACE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you do not
+enter the shell, shell commands are available both as
+methods (&quot;CPAN::Shell&minus;&gt;install(...)&quot;) and
+as functions in the calling package
+(&quot;install(...)&quot;). Before calling low-level
+commands, it makes sense to initialize components of
+<small>CPAN</small> you need, e.g.:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">CPAN::HandleConfig&minus;&gt;load;
+<br>
+CPAN::Shell::setup_output; <br>
+CPAN::Index&minus;&gt;reload;</p>
+
+<p style="margin-left:11%; margin-top: 1em">High-level
+commands do such initializations automatically.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There&rsquo;s
+currently only one class that has a stable interface &minus;
+CPAN::Shell. All commands that are available in the
+<small>CPAN</small> shell are methods of the class
+CPAN::Shell. The arguments on the commandline are passed as
+arguments to the method.</p>
+
+<p style="margin-left:11%; margin-top: 1em">So if you take
+for example the shell command</p>
+
+<p style="margin-left:11%; margin-top: 1em">notest install
+A B C</p>
+
+<p style="margin-left:11%; margin-top: 1em">the actually
+executed command is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">CPAN::Shell&minus;&gt;notest(&quot;install&quot;,&quot;A&quot;,&quot;B&quot;,&quot;C&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each of the
+commands that produce listings of modules (&quot;r&quot;,
+&quot;autobundle&quot;, &quot;u&quot;) also return a list of
+the IDs of all modules within the list. <br>
+expand($type,@things)</p>
+
+<p style="margin-left:14%;">The IDs of all objects
+available within a program are strings that can be expanded
+to the corresponding real objects with the
+&quot;CPAN::Shell&minus;&gt;expand(&quot;Module&quot;,@things)&quot;
+method. Expand returns a list of CPAN::Module objects
+according to the @things arguments given. In scalar context,
+it returns only the first element of the list.</p>
+
+<p style="margin-left:11%;">expandany(@things)</p>
+
+<p style="margin-left:14%;">Like expand, but returns
+objects of the appropriate type, i.e. CPAN::Bundle objects
+for bundles, CPAN::Module objects for modules, and
+CPAN::Distribution objects for distributions. Note: it does
+not expand to CPAN::Author objects.</p>
+
+<p style="margin-left:11%;">Programming Examples</p>
+
+<p style="margin-left:14%;">This enables the programmer to
+do operations that combine functionalities that are
+available in the shell.</p>
+
+<p style="margin-left:14%; margin-top: 1em"># install
+everything that is outdated on my disk: <br>
+perl &minus;MCPAN &minus;e
+'CPAN::Shell&minus;&gt;install(CPAN::Shell&minus;&gt;r)'
+<br>
+# install my favorite programs if necessary: <br>
+for $mod (qw(Net::FTP Digest::SHA Data::Dumper)) { <br>
+CPAN::Shell&minus;&gt;install($mod); <br>
+} <br>
+# list all modules on my disk that have no VERSION number
+<br>
+for $mod
+(CPAN::Shell&minus;&gt;expand(&quot;Module&quot;,&quot;/./&quot;))
+{ <br>
+next unless $mod&minus;&gt;inst_file; <br>
+# MakeMaker convention for undefined $VERSION: <br>
+next unless $mod&minus;&gt;inst_version eq
+&quot;undef&quot;; <br>
+print &quot;No VERSION in &quot;, $mod&minus;&gt;id,
+&quot;\n&quot;; <br>
+} <br>
+# find out which distribution on CPAN contains a module:
+<br>
+print
+CPAN::Shell&minus;&gt;expand(&quot;Module&quot;,&quot;Apache::Constants&quot;)&minus;&gt;cpan_file</p>
+
+<p style="margin-left:14%; margin-top: 1em">Or if you want
+to schedule a <i>cron</i> job to watch <small>CPAN,</small>
+you could list all modules that need updating. First a quick
+and dirty way:</p>
+
+<p style="margin-left:14%; margin-top: 1em">perl &minus;e
+'use CPAN; CPAN::Shell&minus;&gt;r;'</p>
+
+<p style="margin-left:14%; margin-top: 1em">If you
+don&rsquo;t want any output should all modules be up to
+date, parse the output of above command for the regular
+expression &quot;/modules are up to date/&quot; and decide
+to mail the output only if it doesn&rsquo;t match.</p>
+
+<p style="margin-left:14%; margin-top: 1em">If you prefer
+to do it more in a programmerish style in one single
+process, something like this may better suit you:</p>
+
+<p style="margin-left:14%; margin-top: 1em"># list all
+modules on my disk that have newer versions on CPAN <br>
+for $mod
+(CPAN::Shell&minus;&gt;expand(&quot;Module&quot;,&quot;/./&quot;))
+{ <br>
+next unless $mod&minus;&gt;inst_file; <br>
+next if $mod&minus;&gt;uptodate; <br>
+printf &quot;Module %s is installed as %s, could be updated
+to %s from CPAN\n&quot;, <br>
+$mod&minus;&gt;id, $mod&minus;&gt;inst_version,
+$mod&minus;&gt;cpan_version; <br>
+}</p>
+
+<p style="margin-left:14%; margin-top: 1em">If that gives
+too much output every day, you may want to watch only for
+three modules. You can write</p>
+
+<p style="margin-left:14%; margin-top: 1em">for $mod
+(CPAN::Shell&minus;&gt;expand(&quot;Module&quot;,&quot;/Apache|LWP|CGI/&quot;))
+{</p>
+
+<p style="margin-left:14%; margin-top: 1em">as the first
+line instead. Or you can combine some of the above
+tricks:</p>
+
+<p style="margin-left:14%; margin-top: 1em"># watch only
+for a new mod_perl module <br>
+$mod =
+CPAN::Shell&minus;&gt;expand(&quot;Module&quot;,&quot;mod_perl&quot;);
+<br>
+exit if $mod&minus;&gt;uptodate; <br>
+# new mod_perl arrived, let me know all update
+recommendations <br>
+CPAN::Shell&minus;&gt;r;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Methods in
+the other Classes <br>
+CPAN::Author::as_glimpse()</b></p>
+
+<p style="margin-left:17%;">Returns a one-line description
+of the author</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Author::as_string()</b></p>
+
+<p style="margin-left:17%;">Returns a multi-line
+description of the author</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Author::email()</b></p>
+
+<p style="margin-left:17%;">Returns the author&rsquo;s
+email address</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Author::fullname()</b></p>
+
+<p style="margin-left:17%;">Returns the author&rsquo;s
+name</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Author::name()</b></p>
+
+<p style="margin-left:17%;">An alias for fullname</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::as_glimpse()</b></p>
+
+<p style="margin-left:17%;">Returns a one-line description
+of the bundle</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::as_string()</b></p>
+
+<p style="margin-left:17%;">Returns a multi-line
+description of the bundle</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::clean()</b></p>
+
+<p style="margin-left:17%;">Recursively runs the
+&quot;clean&quot; method on all items contained in the
+bundle.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::contains()</b></p>
+
+<p style="margin-left:17%;">Returns a list of
+objects&rsquo; IDs contained in a bundle. The associated
+objects may be bundles, modules or distributions.</p>
+
+
+<p style="margin-left:11%;">CPAN::Bundle::force($method,@args)</p>
+
+<p style="margin-left:17%;">Forces <small>CPAN</small> to
+perform a task that it normally would have refused to do.
+Force takes as arguments a method name to be called and any
+number of additional arguments that should be passed to the
+called method. The internals of the object get the needed
+changes so that <small>CPAN</small> .pm does not refuse to
+take the action. The &quot;force&quot; is passed recursively
+to all contained objects. See also the section above on the
+&quot;force&quot; and the &quot;fforce&quot; pragma.</p>
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::get()</b></p>
+
+<p style="margin-left:17%;">Recursively runs the
+&quot;get&quot; method on all items contained in the
+bundle</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::inst_file()</b></p>
+
+<p style="margin-left:17%;">Returns the highest installed
+version of the bundle in either @INC or
+&quot;$CPAN::Config&minus;&gt;{cpan_home}&quot;. Note that
+this is different from CPAN::Module::inst_file.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::inst_version()</b></p>
+
+<p style="margin-left:17%;">Like CPAN::Bundle::inst_file,
+but returns the $VERSION</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::uptodate()</b></p>
+
+<p style="margin-left:17%;">Returns 1 if the bundle itself
+and all its members are up-to-date.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::install()</b></p>
+
+<p style="margin-left:17%;">Recursively runs the
+&quot;install&quot; method on all items contained in the
+bundle</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::make()</b></p>
+
+<p style="margin-left:17%;">Recursively runs the
+&quot;make&quot; method on all items contained in the
+bundle</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::readme()</b></p>
+
+<p style="margin-left:17%;">Recursively runs the
+&quot;readme&quot; method on all items contained in the
+bundle</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Bundle::test()</b></p>
+
+<p style="margin-left:17%;">Recursively runs the
+&quot;test&quot; method on all items contained in the
+bundle</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::as_glimpse()</b></p>
+
+<p style="margin-left:17%;">Returns a one-line description
+of the distribution</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::as_string()</b></p>
+
+<p style="margin-left:17%;">Returns a multi-line
+description of the distribution</p>
+
+<p style="margin-left:11%;">CPAN::Distribution::author</p>
+
+<p style="margin-left:17%;">Returns the CPAN::Author object
+of the maintainer who uploaded this distribution</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::pretty_id()</b></p>
+
+<p style="margin-left:17%;">Returns a string of the form
+&quot; <small>AUTHORID/TARBALL&quot;,</small> where
+<small>AUTHORID</small> is the author&rsquo;s <small>PAUSE
+ID</small> and <small>TARBALL</small> is the distribution
+filename.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::base_id()</b></p>
+
+<p style="margin-left:17%;">Returns the distribution
+filename without any archive suffix. E.g
+&quot;Foo&minus;Bar&minus;0.01&quot;</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::clean()</b></p>
+
+<p style="margin-left:17%;">Changes to the directory where
+the distribution has been unpacked and runs &quot;make
+clean&quot; there.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::containsmods()</b></p>
+
+<p style="margin-left:17%;">Returns a list of IDs of
+modules contained in a distribution file. Works only for
+distributions listed in the 02packages.details.txt.gz file.
+This typically means that just most recent version of a
+distribution is covered.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::cvs_import()</b></p>
+
+<p style="margin-left:17%;">Changes to the directory where
+the distribution has been unpacked and runs something
+like</p>
+
+<p style="margin-left:17%; margin-top: 1em">cvs &minus;d
+$cvs_root import &minus;m $cvs_log $cvs_dir $userid
+v$version</p>
+
+<p style="margin-left:17%; margin-top: 1em">there.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::dir()</b></p>
+
+<p style="margin-left:17%;">Returns the directory into
+which this distribution has been unpacked.</p>
+
+
+<p style="margin-left:11%;">CPAN::Distribution::force($method,@args)</p>
+
+<p style="margin-left:17%;">Forces <small>CPAN</small> to
+perform a task that it normally would have refused to do.
+Force takes as arguments a method name to be called and any
+number of additional arguments that should be passed to the
+called method. The internals of the object get the needed
+changes so that <small>CPAN</small> .pm does not refuse to
+take the action. See also the section above on the
+&quot;force&quot; and the &quot;fforce&quot; pragma.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::get()</b></p>
+
+<p style="margin-left:17%;">Downloads the distribution from
+<small>CPAN</small> and unpacks it. Does nothing if the
+distribution has already been downloaded and unpacked within
+the current session.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::install()</b></p>
+
+<p style="margin-left:17%;">Changes to the directory where
+the distribution has been unpacked and runs the external
+command &quot;make install&quot; there. If &quot;make&quot;
+has not yet been run, it will be run first. A &quot;make
+test&quot; is issued in any case and if this fails, the
+install is cancelled. The cancellation can be avoided by
+letting &quot;force&quot; run the &quot;install&quot; for
+you.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This install
+method only has the power to install the distribution if
+there are no dependencies in the way. To install an object
+along with all its dependencies, use
+CPAN::Shell&minus;&gt;install.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+<b>install()</b> gives no meaningful return value. See
+<b>uptodate()</b>.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::isa_perl()</b></p>
+
+<p style="margin-left:17%;">Returns 1 if this distribution
+file seems to be a perl distribution. Normally this is
+derived from the file name only, but the index from
+<small>CPAN</small> can contain a hint to achieve a return
+value of true for other filenames too.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::look()</b></p>
+
+<p style="margin-left:17%;">Changes to the directory where
+the distribution has been unpacked and opens a subshell
+there. Exiting the subshell returns.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::make()</b></p>
+
+<p style="margin-left:17%;">First runs the &quot;get&quot;
+method to make sure the distribution is downloaded and
+unpacked. Changes to the directory where the distribution
+has been unpacked and runs the external commands &quot;perl
+Makefile.PL&quot; or &quot;perl Build.PL&quot; and
+&quot;make&quot; there.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::perldoc()</b></p>
+
+<p style="margin-left:17%;">Downloads the pod documentation
+of the file associated with a distribution (in
+<small>HTML</small> format) and runs it through the external
+command <i>lynx</i> specified in
+&quot;$CPAN::Config&minus;&gt;{lynx}&quot;. If <i>lynx</i>
+isn&rsquo;t available, it converts it to plain text with the
+external command <i>html2text</i> and runs it through the
+pager specified in
+&quot;$CPAN::Config&minus;&gt;{pager}&quot;.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::prefs()</b></p>
+
+<p style="margin-left:17%;">Returns the hash reference from
+the first matching <small>YAML</small> file that the user
+has deposited in the &quot;prefs_dir/&quot; directory. The
+first succeeding match wins. The files in the
+&quot;prefs_dir/&quot; are processed alphabetically, and the
+canonical distro name (e.g.
+AUTHOR/Foo&minus;Bar&minus;3.14.tar.gz) is matched against
+the regular expressions stored in the
+$root&minus;&gt;{match}{distribution} attribute value.
+Additionally all module names contained in a distribution
+are matched against the regular expressions in the
+$root&minus;&gt;{match}{module} attribute value. The two
+match values are ANDed together. Each of the two attributes
+are optional.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::prereq_pm()</b></p>
+
+<p style="margin-left:17%;">Returns the hash reference that
+has been announced by a distribution as the
+&quot;requires&quot; and &quot;build_requires&quot;
+elements. These can be declared either by the
+&quot;META.yml&quot; (if authoritative) or can be deposited
+after the run of &quot;Build.PL&quot; in the file
+&quot;./_build/prereqs&quot; or after the run of
+&quot;Makfile.PL&quot; written as the &quot;PREREQ_PM&quot;
+hash in a comment in the produced &quot;Makefile&quot;.
+<i>Note</i>: this method only works after an attempt has
+been made to &quot;make&quot; the distribution. Returns
+undef otherwise.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::readme()</b></p>
+
+<p style="margin-left:17%;">Downloads the
+<small>README</small> file associated with a distribution
+and runs it through the pager specified in
+&quot;$CPAN::Config&minus;&gt;{pager}&quot;.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::reports()</b></p>
+
+<p style="margin-left:17%;">Downloads report data for this
+distribution from www.cpantesters.org and displays a subset
+of them.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::read_yaml()</b></p>
+
+<p style="margin-left:17%;">Returns the content of the
+<small>META</small> .yml of this distro as a hashref. Note:
+works only after an attempt has been made to
+&quot;make&quot; the distribution. Returns undef otherwise.
+Also returns undef if the content of <small>META</small>
+.yml is not authoritative. (The rules about what exactly
+makes the content authoritative are still in flux.)</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::test()</b></p>
+
+<p style="margin-left:17%;">Changes to the directory where
+the distribution has been unpacked and runs &quot;make
+test&quot; there.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Distribution::uptodate()</b></p>
+
+<p style="margin-left:17%;">Returns 1 if all the modules
+contained in the distribution are up-to-date. Relies on
+containsmods.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Index::force_reload()</b></p>
+
+<p style="margin-left:17%;">Forces a reload of all
+indices.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Index::reload()</b></p>
+
+<p style="margin-left:17%;">Reloads all indices if they
+have not been read for more than
+&quot;$CPAN::Config&minus;&gt;{index_expire}&quot; days.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::InfoObj::dump()</b></p>
+
+<p style="margin-left:17%;">CPAN::Author, CPAN::Bundle,
+CPAN::Module, and CPAN::Distribution inherit this method. It
+prints the data structure associated with an object. Useful
+for debugging. Note: the data structure is considered
+internal and thus subject to change without notice.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::as_glimpse()</b></p>
+
+<p style="margin-left:17%;">Returns a one-line description
+of the module in four columns: The first column contains the
+word &quot;Module&quot;, the second column consists of one
+character: an equals sign if this module is already
+installed and up-to-date, a less-than sign if this module is
+installed but can be upgraded, and a space if the module is
+not installed. The third column is the name of the module
+and the fourth column gives maintainer or distribution
+information.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::as_string()</b></p>
+
+<p style="margin-left:17%;">Returns a multi-line
+description of the module</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::clean()</b></p>
+
+<p style="margin-left:17%;">Runs a clean on the
+distribution associated with this module.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::cpan_file()</b></p>
+
+<p style="margin-left:17%;">Returns the filename on
+<small>CPAN</small> that is associated with the module.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::cpan_version()</b></p>
+
+<p style="margin-left:17%;">Returns the latest version of
+this module available on <small>CPAN.</small></p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::cvs_import()</b></p>
+
+<p style="margin-left:17%;">Runs a cvs_import on the
+distribution associated with this module.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::description()</b></p>
+
+<p style="margin-left:17%;">Returns a 44 character
+description of this module. Only available for modules
+listed in The Module List (CPAN/modules/00modlist.long.html
+or 00modlist.long.txt.gz)</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::distribution()</b></p>
+
+<p style="margin-left:17%;">Returns the CPAN::Distribution
+object that contains the current version of this module.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::dslip_status()</b></p>
+
+<p style="margin-left:17%;">Returns a hash reference. The
+keys of the hash are the letters &quot;D&quot;,
+&quot;S&quot;, &quot;L&quot;, &quot;I&quot;, and &lt;P&gt;,
+for development status, support level, language, interface
+and public licence respectively. The data for the
+<small>DSLIP</small> status are collected by pause.perl.org
+when authors register their namespaces. The values of the 5
+hash elements are one-character words whose meaning is
+described in the table below. There are also 5 hash elements
+&quot;DV&quot;, &quot;SV&quot;, &quot;LV&quot;,
+&quot;IV&quot;, and &lt; <small>PV</small> &gt; that carry a
+more verbose value of the 5 status variables.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Where the
+&rsquo; <small>DSLIP</small> &rsquo; characters have the
+following meanings:</p>
+
+<p style="margin-left:17%; margin-top: 1em">D &minus;
+Development Stage (Note: *NO IMPLIED TIMESCALES*): <br>
+i &minus; Idea, listed to gain consensus or as a placeholder
+<br>
+c &minus; under construction but pre&minus;alpha (not yet
+released) <br>
+a/b &minus; Alpha/Beta testing <br>
+R &minus; Released <br>
+M &minus; Mature (no rigorous definition) <br>
+S &minus; Standard, supplied with Perl 5 <br>
+S &minus; Support Level: <br>
+m &minus; Mailing&minus;list <br>
+d &minus; Developer <br>
+u &minus; Usenet newsgroup comp.lang.perl.modules <br>
+n &minus; None known, try comp.lang.perl.modules <br>
+a &minus; abandoned; volunteers welcome to take over
+maintenance <br>
+L &minus; Language Used: <br>
+p &minus; Perl&minus;only, no compiler needed, should be
+platform independent <br>
+c &minus; C and perl, a C compiler will be needed <br>
+h &minus; Hybrid, written in perl with optional C code, no
+compiler needed <br>
++ &minus; C++ and perl, a C++ compiler will be needed <br>
+o &minus; perl and another language other than C or C++ <br>
+I &minus; Interface Style <br>
+f &minus; plain Functions, no references used <br>
+h &minus; hybrid, object and function interfaces available
+<br>
+n &minus; no interface at all (huh?) <br>
+r &minus; some use of unblessed References or ties <br>
+O &minus; Object oriented using blessed references and/or
+inheritance <br>
+P &minus; Public License <br>
+p &minus; Standard&minus;Perl: user may choose between GPL
+and Artistic <br>
+g &minus; GPL: GNU General Public License <br>
+l &minus; LGPL: &quot;GNU Lesser General Public
+License&quot; (previously known as <br>
+&quot;GNU Library General Public License&quot;) <br>
+b &minus; BSD: The BSD License <br>
+a &minus; Artistic license alone <br>
+2 &minus; Artistic license 2.0 or later <br>
+o &minus; open source: approved by www.opensource.org <br>
+d &minus; allows distribution without restrictions <br>
+r &minus; restricted distribution <br>
+n &minus; no license at all</p>
+
+
+<p style="margin-left:11%;">CPAN::Module::force($method,@args)</p>
+
+<p style="margin-left:17%;">Forces <small>CPAN</small> to
+perform a task it would normally refuse to do. Force takes
+as arguments a method name to be invoked and any number of
+additional arguments to pass that method. The internals of
+the object get the needed changes so that
+<small>CPAN</small> .pm does not refuse to take the action.
+See also the section above on the &quot;force&quot; and the
+&quot;fforce&quot; pragma.</p>
+
+<p style="margin-left:11%;"><b>CPAN::Module::get()</b></p>
+
+<p style="margin-left:17%;">Runs a get on the distribution
+associated with this module.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::inst_file()</b></p>
+
+<p style="margin-left:17%;">Returns the filename of the
+module found in @INC. The first file found is reported, just
+as perl itself stops searching @INC once it finds a
+module.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::available_file()</b></p>
+
+<p style="margin-left:17%;">Returns the filename of the
+module found in <small>PERL5LIB</small> or @INC. The first
+file found is reported. The advantage of this method over
+&quot;inst_file&quot; is that modules that have been tested
+but not yet installed are included because
+<small>PERL5LIB</small> keeps track of tested modules.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::inst_version()</b></p>
+
+<p style="margin-left:17%;">Returns the version number of
+the installed module in readable format.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::available_version()</b></p>
+
+<p style="margin-left:17%;">Returns the version number of
+the available module in readable format.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::install()</b></p>
+
+<p style="margin-left:17%;">Runs an &quot;install&quot; on
+the distribution associated with this module.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::look()</b></p>
+
+<p style="margin-left:17%;">Changes to the directory where
+the distribution associated with this module has been
+unpacked and opens a subshell there. Exiting the subshell
+returns.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::make()</b></p>
+
+<p style="margin-left:17%;">Runs a &quot;make&quot; on the
+distribution associated with this module.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::manpage_headline()</b></p>
+
+<p style="margin-left:17%;">If module is installed, peeks
+into the module&rsquo;s manpage, reads the headline, and
+returns it. Moreover, if the module has been downloaded
+within this session, does the equivalent on the downloaded
+module even if it hasn&rsquo;t been installed yet.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::perldoc()</b></p>
+
+<p style="margin-left:17%;">Runs a &quot;perldoc&quot; on
+this module.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::readme()</b></p>
+
+<p style="margin-left:17%;">Runs a &quot;readme&quot; on
+the distribution associated with this module.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::reports()</b></p>
+
+<p style="margin-left:17%;">Calls the <b>reports()</b>
+method on the associated distribution object.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::test()</b></p>
+
+<p style="margin-left:17%;">Runs a &quot;test&quot; on the
+distribution associated with this module.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::uptodate()</b></p>
+
+<p style="margin-left:17%;">Returns 1 if the module is
+installed and up-to-date.</p>
+
+
+<p style="margin-left:11%;"><b>CPAN::Module::userid()</b></p>
+
+<p style="margin-left:17%;">Returns the author&rsquo;s
+<small>ID</small> of the module.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Cache
+Manager</b> <br>
+Currently the cache manager only keeps track of the build
+directory ($CPAN::Config&minus;&gt;{build_dir}). It is a
+simple <small>FIFO</small> mechanism that deletes complete
+directories below &quot;build_dir&quot; as soon as the size
+of all directories there gets bigger than
+$CPAN::Config&minus;&gt;{build_cache} (in <small>MB</small>
+). The contents of this cache may be used for later
+re-installations that you intend to do manually, but will
+never be trusted by <small>CPAN</small> itself. This is due
+to the fact that the user might use these directories for
+building modules on different architectures.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There is
+another directory
+($CPAN::Config&minus;&gt;{keep_source_where}) where the
+original distribution files are kept. This directory is not
+covered by the cache manager and must be controlled by the
+user. If you choose to have the same directory as build_dir
+and as keep_source_where directory, then your sources will
+be deleted with the same fifo mechanism.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Bundles</b>
+<br>
+A bundle is just a perl module in the namespace Bundle::
+that does not define any functions or methods. It usually
+only contains documentation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It starts like
+a perl module with a package declaration and a $VERSION
+variable. After that the pod section looks like any other
+pod with the only difference being that <i>one special pod
+section</i> exists starting with (verbatim):</p>
+
+<p style="margin-left:11%; margin-top: 1em">=head1
+CONTENTS</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this pod
+section each line obeys the format</p>
+
+<p style="margin-left:11%; margin-top: 1em">Module_Name
+[Version_String] [&minus; optional text]</p>
+
+<p style="margin-left:11%; margin-top: 1em">The only
+required part is the first field, the name of a module (e.g.
+Foo::Bar, i.e. <i>not</i> the name of the distribution
+file). The rest of the line is optional. The comment part is
+delimited by a dash just as in the man page header.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+distribution of a bundle should follow the same convention
+as other distributions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Bundles are
+treated specially in the <small>CPAN</small> package. If you
+say &rsquo;install Bundle::Tkkit&rsquo; (assuming such a
+bundle exists), <small>CPAN</small> will install all the
+modules in the <small>CONTENTS</small> section of the pod.
+You can install your own Bundles locally by placing a
+conformant Bundle file somewhere into your @INC path. The
+<b>autobundle()</b> command which is available in the shell
+interface does that for you by including all currently
+installed modules in a snapshot bundle file.</p>
+
+<h2>PREREQUISITES
+<a name="PREREQUISITES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<small>CPAN</small> program is trying to depend on as little
+as possible so the user can use it in hostile environment.
+It works better the more goodies the environment provides.
+For example if you try in the <small>CPAN</small> shell</p>
+
+<p style="margin-left:11%; margin-top: 1em">install
+Bundle::CPAN</p>
+
+<p style="margin-left:11%; margin-top: 1em">or</p>
+
+<p style="margin-left:11%; margin-top: 1em">install
+Bundle::CPANxxl</p>
+
+<p style="margin-left:11%; margin-top: 1em">you will find
+the shell more convenient than the bare shell before.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you have a
+local mirror of <small>CPAN</small> and can access all files
+with &quot;file:&quot; URLs, then you only need a perl later
+than perl5.003 to run this module. Otherwise Net::FTP is
+strongly recommended. <small>LWP</small> may be required for
+non-UNIX systems, or if your nearest <small>CPAN</small>
+site is associated with a <small>URL</small> that is not
+&quot;ftp:&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you have
+neither Net::FTP nor <small>LWP,</small> there is a fallback
+mechanism implemented for an external ftp command or for an
+external lynx command.</p>
+
+<h2>UTILITIES
+<a name="UTILITIES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Finding
+packages and <small>VERSION</small></b> <br>
+This module presumes that all packages on
+<small>CPAN</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>declare their $VERSION variable in an easy to parse
+manner. This prerequisite can hardly be relaxed because it
+consumes far too much memory to load all packages into the
+running program just to determine the $VERSION variable.
+Currently all programs that are dealing with version use
+something like this</p></td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">perl
+&minus;MExtUtils::MakeMaker &minus;le \ <br>
+'print MM&minus;&gt;parse_version(shift)' filename</p>
+
+<p style="margin-left:14%; margin-top: 1em">If you are
+author of a package and wonder if your $VERSION can be
+parsed, please try the above method.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">come as compressed or gzipped
+tarfiles or as zip files and contain a
+&quot;Makefile.PL&quot; or &quot;Build.PL&quot; (well, we
+try to handle a bit more, but with little enthusiasm).</p></td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Debugging</b>
+<br>
+Debugging this module is more than a bit complex due to
+interference from the software producing the indices on
+<small>CPAN,</small> the mirroring process on
+<small>CPAN,</small> packaging, configuration,
+synchronicity, and even (gasp!) due to bugs within the
+<small>CPAN</small> .pm module itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For debugging
+the code of <small>CPAN</small> .pm itself in interactive
+mode, some debugging aid can be turned on for most packages
+within <small>CPAN</small> .pm with one of <br>
+o debug package...</p>
+
+<p style="margin-left:14%;">sets debug mode for
+packages.</p>
+
+<p style="margin-left:11%;">o debug &minus;package...</p>
+
+<p style="margin-left:14%;">unsets debug mode for
+packages.</p>
+
+<p style="margin-left:11%;">o debug all</p>
+
+<p style="margin-left:14%;">turns debugging on for all
+packages.</p>
+
+<p style="margin-left:11%;">o debug number</p>
+
+<p style="margin-left:11%; margin-top: 1em">which sets the
+debugging packages directly. Note that &quot;o debug 0&quot;
+turns debugging off.</p>
+
+<p style="margin-left:11%; margin-top: 1em">What seems a
+successful strategy is the combination of &quot;reload
+cpan&quot; and the debugging switches. Add a new debug
+statement while running in the shell and then issue a
+&quot;reload cpan&quot; and see the new debugging messages
+immediately without losing the current context.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;o
+debug&quot; without an argument lists the valid package
+names and the current set of packages in debugging mode.
+&quot;o debug&quot; has built-in completion support.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For debugging
+of <small>CPAN</small> data there is the &quot;dump&quot;
+command which takes the same arguments as make/test/install
+and outputs each object&rsquo;s Data::Dumper dump. If an
+argument looks like a perl variable and contains one of
+&quot;$&quot;, &quot;@&quot; or &quot;%&quot;, it is
+<b>eval()</b>ed and fed to Data::Dumper directly.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Floppy, Zip,
+Offline Mode</b> <small><br>
+CPAN</small> .pm works nicely without network access, too.
+If you maintain machines that are not networked at all, you
+should consider working with &quot;file:&quot; URLs.
+You&rsquo;ll have to collect your modules somewhere first.
+So you might use <small>CPAN</small> .pm to put together all
+you need on a networked machine. Then copy the
+$CPAN::Config&minus;&gt;{keep_source_where} (but not
+$CPAN::Config&minus;&gt;{build_dir}) directory on a floppy.
+This floppy is kind of a personal <small>CPAN. CPAN</small>
+.pm on the non-networked machines works nicely with this
+floppy. See also below the paragraph about CD-ROM
+support.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Basic
+Utilities for Programmers</b> <br>
+has_inst($module)</p>
+
+<p style="margin-left:14%;">Returns true if the module is
+installed. Used to load all modules into the running
+<small>CPAN</small> .pm that are considered optional. The
+config variable &quot;dontload_list&quot; intercepts the
+&quot;has_inst()&quot; call such that an optional module is
+not loaded despite being available. For example, the
+following command will prevent &quot;YAML.pm&quot; from
+being loaded:</p>
+
+<p style="margin-left:14%; margin-top: 1em">cpan&gt; o conf
+dontload_list push YAML</p>
+
+<p style="margin-left:14%; margin-top: 1em">See the source
+for details.</p>
+
+<p style="margin-left:11%;">use_inst($module)</p>
+
+<p style="margin-left:14%;">Similary to <b>has_inst()</b>
+tries to load optional library but also dies if library is
+not available</p>
+
+<p style="margin-left:11%;">has_usable($module)</p>
+
+<p style="margin-left:14%;">Returns true if the module is
+installed and in a usable state. Only useful for a handful
+of modules that are used internally. See the source for
+details.</p>
+
+<p style="margin-left:11%;">instance($module)</p>
+
+<p style="margin-left:14%;">The constructor for all the
+singletons used to represent modules, distributions,
+authors, and bundles. If the object already exists, this
+method returns the object; otherwise, it calls the
+constructor.</p>
+
+<p style="margin-left:11%;"><b>frontend()</b> <br>
+frontend($new_frontend)</p>
+
+<p style="margin-left:14%;">Getter/setter for frontend
+object. Method just allows to subclass <small>CPAN</small>
+.pm.</p>
+
+<h2>SECURITY
+<a name="SECURITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">There&rsquo;s
+no strong security layer in <small>CPAN</small> .pm.
+<small>CPAN</small> .pm helps you to install foreign,
+unmasked, unsigned code on your machine. We compare to a
+checksum that comes from the net just as the distribution
+file itself. But we try to make it easy to add security on
+demand:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Cryptographically
+signed modules</b> <br>
+Since release 1.77, <small>CPAN</small> .pm has been able to
+verify cryptographically signed module distributions using
+Module::Signature. The <small>CPAN</small> modules can be
+signed by their authors, thus giving more security. The
+simple unsigned <small>MD5</small> checksums that were used
+before by <small>CPAN</small> protect mainly against
+accidental file corruption.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You will need
+to have Module::Signature installed, which in turn requires
+that you have at least one of Crypt::OpenPGP module or the
+command-line <i>gpg</i> tool installed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You will also
+need to be able to connect over the Internet to the public
+key servers, like pgp.mit.edu, and their port 11731 (the
+<small>HKP</small> protocol).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+configuration parameter check_sigs is there to turn
+signature checking on or off.</p>
+
+<h2>EXPORT
+<a name="EXPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Most functions
+in package <small>CPAN</small> are exported by default. The
+reason for this is that the primary use is intended for the
+cpan shell or for one-liners.</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When the
+<small>CPAN</small> shell enters a subshell via the look
+command, it sets the environment
+<small>CPAN_SHELL_LEVEL</small> to 1, or increments that
+variable if it is already set.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When
+<small>CPAN</small> runs, it sets the environment variable
+<small>PERL5_CPAN_IS_RUNNING</small> to the
+<small>ID</small> of the running process. It also sets
+<small>PERL5_CPANPLUS_IS_RUNNING</small> to prevent runaway
+processes which could happen with older versions of
+Module::Install.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When running
+&quot;perl Makefile.PL&quot;, the environment variable
+&quot;PERL5_CPAN_IS_EXECUTING&quot; is set to the full path
+of the &quot;Makefile.PL&quot; that is being executed. This
+prevents runaway processes with newer versions of
+Module::Install.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When the config
+variable ftp_passive is set, all downloads will be run with
+the environment variable <small>FTP_PASSIVE</small> set to
+this value. This is in general a good idea as it influences
+both Net::FTP and <small>LWP</small> based connections. The
+same effect can be achieved by starting the cpan shell with
+this environment variable set. For Net::FTP alone, one can
+also always set passive mode by running libnetcfg.</p>
+
+<h2>POPULATE AN INSTALLATION WITH LOTS OF MODULES
+<a name="POPULATE AN INSTALLATION WITH LOTS OF MODULES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Populating a
+freshly installed perl with one&rsquo;s favorite modules is
+pretty easy if you maintain a private bundle definition
+file. To get a useful blueprint of a bundle definition file,
+the command autobundle can be used on the
+<small>CPAN</small> shell command line. This command writes
+a bundle definition file for all modules installed for the
+current perl interpreter. It&rsquo;s recommended to run this
+command once only, and from then on maintain the file
+manually under a private name, say Bundle/my_bundle.pm. With
+a clever bundle file you can then simply say</p>
+
+<p style="margin-left:11%; margin-top: 1em">cpan&gt;
+install Bundle::my_bundle</p>
+
+<p style="margin-left:11%; margin-top: 1em">then answer a
+few questions and go out for coffee (possibly even in a
+different city).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Maintaining a
+bundle definition file means keeping track of two things:
+dependencies and interactivity. <small>CPAN</small> .pm
+sometimes fails on calculating dependencies because not all
+modules define all MakeMaker attributes correctly, so a
+bundle definition file should specify prerequisites as early
+as possible. On the other hand, it&rsquo;s annoying that so
+many distributions need some interactive configuring. So
+what you can try to accomplish in your private bundle file
+is to have the packages that need to be configured early in
+the file and the gentle ones later, so you can go out for
+coffee after a few minutes and leave <small>CPAN</small> .pm
+to churn away unattended.</p>
+
+<h2>WORKING WITH CPAN.pm BEHIND FIREWALLS
+<a name="WORKING WITH CPAN.pm BEHIND FIREWALLS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Thanks to
+Graham Barr for contributing the following paragraphs about
+the interaction between perl, and various firewall
+configurations. For further information on firewalls, it is
+recommended to consult the documentation that comes with the
+<i>ncftp</i> program. If you are unable to go through the
+firewall with a simple Perl setup, it is likely that you can
+configure <i>ncftp</i> so that it works through your
+firewall.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Three basic
+types of firewalls</b> <br>
+Firewalls can be categorized into three basic types. <br>
+http firewall</p>
+
+<p style="margin-left:17%;">This is when the firewall
+machine runs a web server, and to access the outside world,
+you must do so via that web server. If you set environment
+variables like http_proxy or ftp_proxy to values beginning
+with http://, or in your web browser you&rsquo;ve proxy
+information set, then you know you are running behind an
+http firewall.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To access
+servers outside these types of firewalls with perl (even for
+ftp), you need <small>LWP</small> or HTTP::Tiny.</p>
+
+<p style="margin-left:11%;">ftp firewall</p>
+
+<p style="margin-left:17%;">This where the firewall machine
+runs an ftp server. This kind of firewall will only let you
+access ftp servers outside the firewall. This is usually
+done by connecting to the firewall with ftp, then entering a
+username like &quot;user@outside.host.com&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To access
+servers outside these type of firewalls with perl, you need
+Net::FTP.</p>
+
+<p style="margin-left:11%;">One-way visibility</p>
+
+<p style="margin-left:17%;">One-way visibility means these
+firewalls try to make themselves invisible to users inside
+the firewall. An <small>FTP</small> data connection is
+normally created by sending your <small>IP</small> address
+to the remote server and then listening for the return
+connection. But the remote server will not be able to
+connect to you because of the firewall. For these types of
+firewall, <small>FTP</small> connections need to be done in
+a passive mode.</p>
+
+<p style="margin-left:17%; margin-top: 1em">There are two
+that I can think off. <small><br>
+SOCKS</small></p>
+
+<p style="margin-left:23%;">If you are using a
+<small>SOCKS</small> firewall, you will need to compile perl
+and link it with the <small>SOCKS</small> library. This is
+what is normally called a &rsquo;socksified&rsquo; perl.
+With this executable you will be able to connect to servers
+outside the firewall as if it were not there.</p>
+
+<p style="margin-left:17%;"><small>IP</small>
+Masquerade</p>
+
+<p style="margin-left:23%;">This is when the firewall
+implemented in the kernel (via <small>NAT,</small> or
+networking address translation), it allows you to hide a
+complete network behind one <small>IP</small> address. With
+this firewall no special compiling is needed as you can
+access hosts directly.</p>
+
+<p style="margin-left:23%; margin-top: 1em">For accessing
+ftp servers behind such firewalls you usually need to set
+the environment variable &quot;FTP_PASSIVE&quot; or the
+config variable ftp_passive to a true value.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Configuring
+lynx or ncftp for going through a firewall</b> <br>
+If you can go through your firewall with e.g. lynx,
+presumably with a command such as</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">/usr/local/bin/lynx
+&minus;pscott:tiger</p>
+
+<p style="margin-left:11%; margin-top: 1em">then you would
+configure <small>CPAN</small> .pm with the command</p>
+
+<p style="margin-left:11%; margin-top: 1em">o conf lynx
+&quot;/usr/local/bin/lynx &minus;pscott:tiger&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">That&rsquo;s
+all. Similarly for ncftp or ftp, you would configure
+something like</p>
+
+<p style="margin-left:11%; margin-top: 1em">o conf ncftp
+&quot;/usr/bin/ncftp &minus;f
+/home/scott/ncftplogin.cfg&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Your mileage
+may vary...</p>
+
+<h2>FAQ
+<a name="FAQ"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">1)</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">I installed a new version of
+module X but <small>CPAN</small> keeps saying, I have the
+old version installed</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Probably you
+<b>do</b> have the old version installed. This can happen if
+a module installs itself into a different directory in the
+@INC path than it was previously installed. This is not
+really a <small>CPAN</small> .pm problem, you would have the
+same problem when installing the module manually. The
+easiest way to prevent this behaviour is to add the argument
+&quot;UNINST=1&quot; to the &quot;make install&quot; call,
+and that is why many people add this argument permanently by
+configuring</p>
+
+<p style="margin-left:17%; margin-top: 1em">o conf
+make_install_arg UNINST=1</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">2)</p></td>
+<td width="3%"></td>
+<td width="54%">
+
+
+<p style="margin-top: 1em">So why is UNINST=1 not the
+default?</p> </td>
+<td width="29%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Because there
+are people who have their precise expectations about who may
+install where in the @INC path and who uses which @INC
+array. In fine tuned environments &quot;UNINST=1&quot; can
+cause damage.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">3)</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">I want to clean up my mess, and
+install a new perl along with all modules I have. How do I
+go about it?</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Run the
+autobundle command for your old perl and optionally rename
+the resulting bundle file (e.g. Bundle/mybundle.pm), install
+the new perl with the Configure option prefix, e.g.</p>
+
+<p style="margin-left:17%; margin-top: 1em">./Configure
+&minus;Dprefix=/usr/local/perl&minus;5.6.78.9</p>
+
+<p style="margin-left:17%; margin-top: 1em">Install the
+bundle file you produced in the first step with something
+like</p>
+
+<p style="margin-left:17%; margin-top: 1em">cpan&gt;
+install Bundle::mybundle</p>
+
+<p style="margin-left:17%; margin-top: 1em">and
+you&rsquo;re done.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">4)</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">When I install bundles or
+multiple modules with one command there is too much output
+to keep track of.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">You may want to
+configure something like</p>
+
+<p style="margin-left:17%; margin-top: 1em">o conf make_arg
+&quot;| tee &minus;ai /root/.cpan/logs/make.out&quot; <br>
+o conf make_install_arg &quot;| tee &minus;ai
+/root/.cpan/logs/make_install.out&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">so that
+<small>STDOUT</small> is captured in a file for later
+inspection.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">5)</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">I am not root, how can I install
+a module in a personal directory?</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">As of
+<small>CPAN 1.9463,</small> if you do not have permission to
+write the default perl library directories,
+<small>CPAN</small> &rsquo;s configuration process will ask
+you whether you want to bootstrap &lt;local::lib&gt;, which
+makes keeping a personal perl library directory easy.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Another thing
+you should bear in mind is that the <small>UNINST</small>
+parameter can be dangerous when you are installing into a
+private area because you might accidentally remove modules
+that other people depend on that are not using the private
+area.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">6)</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">How to get a package, unwrap it,
+and make a change before building it?</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Have a look at
+the &quot;look&quot; (!) command.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">7)</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">I installed a Bundle and had a
+couple of fails. When I retried, everything resolved nicely.
+Can this be fixed to work on first try?</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The reason for
+this is that <small>CPAN</small> does not know the
+dependencies of all modules when it starts out. To decide
+about the additional items to install, it just uses data
+found in the <small>META</small> .yml file or the generated
+Makefile. An undetected missing piece breaks the process.
+But it may well be that your Bundle installs some
+prerequisite later than some depending item and thus your
+second try is able to resolve everything. Please note,
+<small>CPAN</small> .pm does not know the dependency tree in
+advance and cannot sort the queue of things to install in a
+topologically correct order. It resolves perfectly well
+<b>if</b> all modules declare the prerequisites correctly
+with the <small>PREREQ_PM</small> attribute to MakeMaker or
+the &quot;requires&quot; stanza of Module::Build. For
+bundles which fail and you need to install often, it is
+recommended to sort the Bundle definition file manually.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">8)</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">In our intranet, we have many
+modules for internal use. How can I integrate these modules
+with <small>CPAN</small> .pm but without uploading the
+modules to <small>CPAN</small> ?</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Have a look at
+the CPAN::Site module.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">9)</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">When I run <small>CPAN</small>
+&rsquo;s shell, I get an error message about things in my
+&quot;/etc/inputrc&quot; (or &quot;~/.inputrc&quot;)
+file.</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">These are
+readline issues and can only be fixed by studying readline
+configuration on your architecture and adjusting the
+referenced file accordingly. Please make a backup of the
+&quot;/etc/inputrc&quot; or &quot;~/.inputrc&quot; and edit
+them. Quite often harmless changes like uppercasing or
+lowercasing some arguments solves the problem.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">10)</p></td>
+<td width="2%"></td>
+<td width="80%">
+
+
+<p style="margin-top: 1em">Some authors have strange
+characters in their names.</p></td>
+<td width="3%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Internally
+<small>CPAN</small> .pm uses the <small>UTF&minus;8</small>
+charset. If your terminal is expecting
+<small>ISO&minus;8859&minus;1</small> charset, a converter
+can be activated by setting term_is_latin to a true value in
+your config file. One way of doing so would be</p>
+
+<p style="margin-left:17%; margin-top: 1em">cpan&gt; o conf
+term_is_latin 1</p>
+
+<p style="margin-left:17%; margin-top: 1em">If other
+charset support is needed, please file a bug report against
+<small>CPAN</small> .pm at rt.cpan.org and describe your
+needs. Maybe we can extend the support or maybe
+<small>UTF&minus;8</small> terminals become widely
+available.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note: this
+config variable is deprecated and will be removed in a
+future version of <small>CPAN</small> .pm. It will be
+replaced with the conventions around the family of $LANG and
+$LC_* environment variables.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">11)</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">When an install fails for some
+reason and then I correct the error condition and retry,
+<small>CPAN</small> .pm refuses to install the module,
+saying &quot;Already tried without success&quot;.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Use the force
+pragma like so</p>
+
+<p style="margin-left:17%; margin-top: 1em">force install
+Foo::Bar</p>
+
+<p style="margin-left:17%; margin-top: 1em">Or you can
+use</p>
+
+<p style="margin-left:17%; margin-top: 1em">look
+Foo::Bar</p>
+
+<p style="margin-left:17%; margin-top: 1em">and then
+&quot;make install&quot; directly in the subshell.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">12)</p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">How do I install a &quot;
+<small>DEVELOPER RELEASE&quot;</small> of a module?</p></td>
+<td width="5%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+<small>CPAN</small> will install the latest non-developer
+release of a module. If you want to install a dev release,
+you have to specify the partial path starting with the
+author id to the tarball you wish to install, like so:</p>
+
+<p style="margin-left:17%; margin-top: 1em">cpan&gt;
+install
+KWILLIAMS/Module&minus;Build&minus;0.27_07.tar.gz</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that you
+can use the &quot;ls&quot; command to get this path
+listed.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">13)</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">How do I install a module and
+all its dependencies from the commandline, without being
+prompted for anything, despite my <small>CPAN</small>
+configuration (or lack thereof)?</p></td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>CPAN</small>
+uses ExtUtils::MakeMaker&rsquo;s <b>prompt()</b> function to
+ask its questions, so if you set the
+<small>PERL_MM_USE_DEFAULT</small> environment variable, you
+shouldn&rsquo;t be asked any questions at all (assuming the
+modules you are installing are nice about obeying that
+variable as well):</p>
+
+<p style="margin-left:17%; margin-top: 1em">%
+PERL_MM_USE_DEFAULT=1 perl &minus;MCPAN &minus;e 'install
+My::Module'</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">14)</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">How do I create a Module::Build
+based Build.PL derived from an ExtUtils::MakeMaker focused
+Makefile.PL?</p> </td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em">http://search.cpan.org/dist/Module&minus;Build&minus;Convert/</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">15)</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">I&rsquo;m frequently irritated
+with the <small>CPAN</small> shell&rsquo;s inability to help
+me select a good mirror.</p></td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>CPAN</small>
+can now help you select a &quot;good&quot; mirror, based on
+which ones have the lowest &rsquo;ping&rsquo; round-trip
+times. From the shell, use the command &rsquo;o conf init
+urllist&rsquo; and allow <small>CPAN</small> to
+automatically select mirrors for you.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Beyond that
+help, the urllist config parameter is yours. You can add and
+remove sites at will. You should find out which sites have
+the best up-to-dateness, bandwidth, reliability, etc. and
+are topologically close to you. Some people prefer fast
+downloads, others up-to-dateness, others reliability. You
+decide which to try in which order.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Henk P. Penning
+maintains a site that collects data about
+<small>CPAN</small> sites:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">http://mirrors.cpan.org/</p>
+
+<p style="margin-left:17%; margin-top: 1em">Also, feel free
+to play with experimental features. Run</p>
+
+<p style="margin-left:17%; margin-top: 1em">o conf init
+randomize_urllist ftpstats_period ftpstats_size</p>
+
+<p style="margin-left:17%; margin-top: 1em">and choose your
+favorite parameters. After a few downloads running the
+&quot;hosts&quot; command will probably assist you in
+choosing the best mirror sites.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">16)</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Why do I get asked the same
+questions every time I start the shell?</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">You can make
+your configuration changes permanent by calling the command
+&quot;o conf commit&quot;. Alternatively set the
+&quot;auto_commit&quot; variable to true by running &quot;o
+conf init auto_commit&quot; and answering the following
+question with yes.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">17)</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Older versions of
+<small>CPAN</small> .pm had the original root directory of
+all tarballs in the build directory. Now there are always
+random characters appended to these directory names. Why was
+this done?</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The random
+characters are provided by File::Temp and ensure that each
+module&rsquo;s individual build directory is unique. This
+makes running <small>CPAN</small> .pm in concurrent
+processes simultaneously safe.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">18)</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Speaking of the build directory.
+Do I have to clean it up myself?</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">You have the
+choice to set the config variable &quot;scan_cache&quot; to
+&quot;never&quot;. Then you must clean it up yourself. The
+other possible values, &quot;atstart&quot; and
+&quot;atexit&quot; clean up the build directory when you
+start (or more precisely, after the first extraction into
+the build directory) or exit the <small>CPAN</small> shell,
+respectively. If you never start up the <small>CPAN</small>
+shell, you probably also have to clean up the build
+directory yourself.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">19)</p></td>
+<td width="2%"></td>
+<td width="72%">
+
+
+<p style="margin-top: 1em">How can I switch to sudo instead
+of local::lib?</p></td>
+<td width="11%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The following 5
+environment veriables need to be reset to the previous
+values: <small>PATH, PERL5LIB, PERL_LOCAL_LIB_ROOT,
+PERL_MB_OPT, PERL_MM_OPT</small> ; and these two
+<small>CPAN</small> .pm config variables must be
+reconfigured: make_install_make_command and
+mbuild_install_build_command. The five env variables have
+probably been overwritten in your $HOME/.bashrc or some
+equivalent. You either find them there and delete their
+traces and logout/login or you override them temporarily,
+depending on your exact desire. The two cpanpm config
+variables can be set with:</p>
+
+<p style="margin-left:17%; margin-top: 1em">o conf init
+/install_.*_command/</p>
+
+<p style="margin-left:17%; margin-top: 1em">probably
+followed by</p>
+
+<p style="margin-left:17%; margin-top: 1em">o conf
+commit</p>
+
+<h2>COMPATIBILITY
+<a name="COMPATIBILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>OLD
+PERL VERSIONS</small></b> <small><br>
+CPAN</small> .pm is regularly tested to run under 5.005 and
+assorted newer versions. It is getting more and more
+difficult to get the minimal prerequisites working on older
+perls. It is close to impossible to get the whole
+Bundle::CPAN working there. If you&rsquo;re in the position
+to have only these old versions, be advised that
+<small>CPAN</small> is designed to work fine without the
+Bundle::CPAN installed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To get things
+going, note that
+GBARR/Scalar&minus;List&minus;Utils&minus;1.18.tar.gz is
+compatible with ancient perls and that File::Temp is listed
+as a prerequisite but <small>CPAN</small> has reasonable
+workarounds if it is missing.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>CPANPLUS</small></b>
+<br>
+This module and its competitor, the <small>CPANPLUS</small>
+module, are both much cooler than the other.
+<small>CPAN</small> .pm is older. <small>CPANPLUS</small>
+was designed to be more modular, but it was never intended
+to be compatible with <small>CPAN</small> .pm.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>CPANMINUS</small></b>
+<br>
+In the year 2010 App::cpanminus was launched as a new
+approach to a cpan shell with a considerably smaller
+footprint. Very cool stuff.</p>
+
+<h2>SECURITY ADVICE
+<a name="SECURITY ADVICE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+enables you to upgrade software on your computer and so is
+inherently dangerous because the newly installed software
+may contain bugs and may alter the way your computer works
+or even make it unusable. Please consider backing up your
+data before every upgrade.</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Please report
+bugs via &lt;http://rt.cpan.org/&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Before
+submitting a bug, please make sure that the traditional
+method of building a Perl module package from a shell by
+following the installation instructions of that package
+still works in your environment.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Andreas Koenig
+&quot;&lt;andk@cpan.org&gt;&quot;</p>
+
+<h2>LICENSE
+<a name="LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This program is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+&lt;http://www.perl.com/perl/misc/Artistic.html&gt;</p>
+
+<h2>TRANSLATIONS
+<a name="TRANSLATIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Kawai,Takanori
+provides a Japanese translation of a very old version of
+this manpage at
+&lt;http://homepage3.nifty.com/hippo2000/perltips/CPAN.htm&gt;</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Many people
+enter the <small>CPAN</small> shell by running the cpan
+utility program which is installed in the same directory as
+perl itself. So if you have this directory in your
+<small>PATH</small> variable (or some equivalent in your
+operating system) then typing &quot;cpan&quot; in a console
+window will work for you as well. Above that the utility
+provides several commandline shortcuts.</p>
+
+<p style="margin-left:11%; margin-top: 1em">melezhik
+(Alexey) sent me a link where he published a chef recipe to
+work with <small>CPAN</small> .pm:
+http://community.opscode.com/cookbooks/cpan.</p>
+<hr>
+</body>
+</html>

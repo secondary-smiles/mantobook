@@ -1,0 +1,267 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:06 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>KPROPD</title>
+
+</head>
+<body>
+<h1>kpropd</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">kpropd &minus;
+Kerberos V5 replica KDC update server</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>kpropd</b>
+[<b>&minus;r</b> <i>realm</i>] [<b>&minus;A</b>
+<i>admin_server</i>] [<b>&minus;a</b> <i>acl_file</i>]
+[<b>&minus;f</b> <i>replica_dumpfile</i>] [<b>&minus;F</b>
+<i>principal_database</i>] [<b>&minus;p</b>
+<i>kdb5_util_prog</i>] [<b>&minus;P</b> <i>port</i>]
+[<b>&minus;&minus;pid&minus;file</b>=<i>pid_file</i>]
+[<b>&minus;D</b>] [<b>&minus;d</b>] [<b>&minus;s</b>
+<i>keytab_file</i>]</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>kpropd</i> command runs on the replica KDC server. It
+listens for update requests made by the kprop(8) program. If
+incremental propagation is enabled, it periodically requests
+incremental updates from the primary KDC.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When the
+replica receives a kprop request from the primary, kpropd
+accepts the dumped KDC database and places it in a file, and
+then runs kdb5_util(8) to load the dumped database into the
+active database which is used by krb5kdc(8). This allows the
+primary Kerberos server to use kprop(8) to propagate its
+database to the replica servers. Upon a successful download
+of the KDC database file, the replica Kerberos server will
+have an up&minus;to&minus;date KDC database.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Where
+incremental propagation is not used, kpropd is commonly
+invoked out of inetd(8) as a nowait service. This is done by
+adding a line to the <b>/etc/inetd.conf</b> file which looks
+like this:</p>
+
+<pre style="margin-left:15%; margin-top: 1em">kprop  stream  tcp  nowait  root  /usr/local/sbin/kpropd  kpropd</pre>
+
+
+<p style="margin-left:11%; margin-top: 1em">kpropd can also
+run as a standalone daemon, backgrounding itself and waiting
+for connections on port 754 (or the port specified with the
+<b>&minus;P</b> option if given). Standalone mode is
+required for incremental propagation. Starting in release
+1.11, kpropd automatically detects whether it was run from
+inetd and runs in standalone mode if it is not. Prior to
+release 1.11, the <b>&minus;S</b> option is required to run
+kpropd in standalone mode; this option is now accepted for
+backward compatibility but does nothing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Incremental
+propagation may be enabled with the <b>iprop_enable</b>
+variable in kdc.conf(5). If incremental propagation is
+enabled, the replica periodically polls the primary KDC for
+updates, at an interval determined by the
+<b>iprop_replica_poll</b> variable. If the replica receives
+updates, kpropd updates its log file with any updates from
+the primary. kproplog(8) can be used to view a summary of
+the update entry log on the replica KDC. If incremental
+propagation is enabled, the principal
+<b>kiprop/replicahostname@REALM</b> (where
+<i>replicahostname</i> is the name of the replica KDC host,
+and <i>REALM</i> is the name of the Kerberos realm) must be
+present in the replica's keytab file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">kproplog(8) can
+be used to force full replication when iprop is enabled.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;r</b>
+<i>realm</i></p>
+
+<p style="margin-left:22%;">Specifies the realm of the
+primary server.</p>
+
+<p style="margin-left:11%;"><b>&minus;A</b>
+<i>admin_server</i></p>
+
+<p style="margin-left:22%;">Specifies the server to be
+contacted for incremental updates; by default, the primary
+admin server is contacted.</p>
+
+<p style="margin-left:11%;"><b>&minus;f</b> <i>file</i></p>
+
+<p style="margin-left:22%;">Specifies the filename where
+the dumped principal database file is to be stored; by
+default the dumped database file is
+<b>/var/lib/krb5kdc/from_master</b>.</p>
+
+<p style="margin-left:11%;"><b>&minus;F</b>
+<i>kerberos_db</i></p>
+
+<p style="margin-left:22%;">Path to the Kerberos database
+file, if not the default.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>&minus;p</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>Allows the user to specify the pathname to the
+kdb5_util(8) program; by default the pathname used is
+<b>/usr/bin/kdb5_util</b>.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>&minus;D</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>In this mode, kpropd will not detach itself from the
+current job and run in the background. Instead, it will run
+in the foreground.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>&minus;d</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>Turn on debug mode. kpropd will print out debugging
+messages during the database propogation and will run in the
+foreground (implies <b>&minus;D</b>).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>&minus;P</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>Allow for an alternate port number for kpropd to listen
+on. This is only useful in combination with the
+<b>&minus;S</b> option.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>&minus;a</b>
+<i>acl_file</i></p>
+
+<p style="margin-left:22%;">Allows the user to specify the
+path to the kpropd.acl file; by default the path used is
+<b>/var/lib/krb5kdc/kpropd.acl</b>.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;&minus;pid&minus;file</b>=<i>pid_file</i></p>
+
+<p style="margin-left:22%;">In standalone mode, write the
+process ID of the daemon into <i>pid_file</i>.</p>
+
+<p style="margin-left:11%;"><b>&minus;s</b>
+<i>keytab_file</i></p>
+
+<p style="margin-left:22%;">Path to a keytab to use for
+acquiring acceptor credentials.</p>
+
+<p style="margin-left:11%;"><b>&minus;x</b>
+<i>db_args</i></p>
+
+<p style="margin-left:22%;">Database&minus;specific
+arguments. See Database Options in kadmin(1) for supported
+arguments.</p>
+
+<h2>FILES
+<a name="FILES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>kpropd.acl</b></p>
+
+<p style="margin-left:22%;">Access file for kpropd; the
+default location is
+<b>/usr/local/var/krb5kdc/kpropd.acl</b>. Each entry is a
+line containing the principal of a host from which the local
+machine will allow Kerberos database propagation via
+kprop(8).</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">See kerberos(7)
+for a description of Kerberos environment variables.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">kprop(8),
+kdb5_util(8), krb5kdc(8), kerberos(7), inetd(8)</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">MIT</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">1985-2022,
+MIT</p>
+<hr>
+</body>
+</html>

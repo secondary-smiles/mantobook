@@ -1,0 +1,383 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:45 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>XSLoader</title>
+
+</head>
+<body>
+<h1>XSLoader</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">XSLoader
+&minus; Dynamically load C libraries into Perl code</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Version
+0.31</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">package
+YourPackage; <br>
+require XSLoader; <br>
+XSLoader::load(__PACKAGE__, $VERSION);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+defines a standard <i>simplified</i> interface to the
+dynamic linking mechanisms available on many platforms. Its
+primary purpose is to implement cheap automatic dynamic
+loading of Perl modules.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For a more
+complicated interface, see DynaLoader. Many (most) features
+of &quot;DynaLoader&quot; are not implemented in
+&quot;XSLoader&quot;, like for example the
+&quot;dl_load_flags&quot;, not honored by
+&quot;XSLoader&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Migration
+from &quot;DynaLoader&quot;</b> <br>
+A typical module using DynaLoader starts like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+YourPackage; <br>
+require DynaLoader; <br>
+our @ISA = qw( OnePackage OtherPackage DynaLoader ); <br>
+our $VERSION = '0.01'; <br>
+__PACKAGE__&minus;&gt;bootstrap($VERSION);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Change this
+to</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+YourPackage; <br>
+use XSLoader; <br>
+our @ISA = qw( OnePackage OtherPackage ); <br>
+our $VERSION = '0.01'; <br>
+XSLoader::load(__PACKAGE__, $VERSION);</p>
+
+<p style="margin-left:11%; margin-top: 1em">In other words:
+replace &quot;require DynaLoader&quot; by &quot;use
+XSLoader&quot;, remove &quot;DynaLoader&quot; from @ISA,
+change &quot;bootstrap&quot; by &quot;XSLoader::load&quot;.
+Do not forget to quote the name of your package on the
+&quot;XSLoader::load&quot; line, and add comma
+(&quot;,&quot;) before the arguments ($VERSION above).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Of course, if
+@ISA contained only &quot;DynaLoader&quot;, there is no need
+to have the @ISA assignment at all; moreover, if instead of
+&quot;our&quot; one uses the more backward-compatible</p>
+
+<p style="margin-left:11%; margin-top: 1em">use vars
+qw($VERSION @ISA);</p>
+
+<p style="margin-left:11%; margin-top: 1em">one can remove
+this reference to @ISA together with the @ISA
+assignment.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no $VERSION
+was specified on the &quot;bootstrap&quot; line, the last
+line becomes</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">XSLoader::load(__PACKAGE__);</p>
+
+<p style="margin-left:11%; margin-top: 1em">in which case
+it can be further simplified to</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">XSLoader::load();</p>
+
+<p style="margin-left:11%; margin-top: 1em">as
+&quot;load&quot; will use &quot;caller&quot; to determine
+the package.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Backward
+compatible boilerplate</b> <br>
+If you want to have your cake and eat it too, you need a
+more complicated boilerplate.</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+YourPackage; <br>
+our @ISA = qw( OnePackage OtherPackage ); <br>
+our $VERSION = '0.01'; <br>
+eval { <br>
+require XSLoader; <br>
+XSLoader::load(__PACKAGE__, $VERSION); <br>
+1; <br>
+} or do { <br>
+require DynaLoader; <br>
+push @ISA, 'DynaLoader'; <br>
+__PACKAGE__&minus;&gt;bootstrap($VERSION); <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">The parentheses
+about &quot;XSLoader::load()&quot; arguments are needed
+since we replaced &quot;use XSLoader&quot; by
+&quot;require&quot;, so the compiler does not know that a
+function &quot;XSLoader::load()&quot; is present.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+boilerplate uses the low-overhead &quot;XSLoader&quot; if
+present; if used with an antique Perl which has no
+&quot;XSLoader&quot;, it falls back to using
+&quot;DynaLoader&quot;.</p>
+
+<h2>Order of initialization: early load()
+<a name="Order of initialization: early load()"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>Skip this
+section if the <small>XSUB</small> functions are supposed to
+be called from other modules only; read it only if you call
+your XSUBs from the code in your module, or have a
+&quot;BOOT:&quot; section in your <small>XS</small> file
+(see &quot;The <small>BOOT:</small> Keyword&quot; in
+perlxs). What is described here is equally applicable to the
+DynaLoader interface.</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">A sufficiently
+complicated module using <small>XS</small> would have both
+Perl code (defined in <i>YourPackage.pm</i>) and
+<small>XS</small> code (defined in <i>YourPackage.xs</i>).
+If this Perl code makes calls into this <small>XS</small>
+code, and/or this <small>XS</small> code makes calls to the
+Perl code, one should be careful with the order of
+initialization.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The call to
+&quot;XSLoader::load()&quot; (or &quot;bootstrap()&quot;)
+calls the module&rsquo;s bootstrap code. For modules build
+by <i>xsubpp</i> (nearly all modules) this has three side
+effects:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>A sanity check is done to ensure that the versions of
+the <i>.pm</i> and the (compiled) <i>.xs</i> parts are
+compatible. If $VERSION was specified, this is used for the
+check. If not specified, it defaults to &quot;$XS_VERSION //
+$VERSION&quot; (in the module&rsquo;s namespace)</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>the XSUBs are made accessible from Perl</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>if a &quot;BOOT:&quot; section was present in the
+<i>.xs</i> file, the code there is called.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">Consequently,
+if the code in the <i>.pm</i> file makes calls to these
+XSUBs, it is convenient to have XSUBs installed before the
+Perl code is defined; for example, this makes prototypes for
+XSUBs visible to this Perl code. Alternatively, if the
+&quot;BOOT:&quot; section makes calls to Perl functions (or
+uses Perl variables) defined in the <i>.pm</i> file, they
+must be defined prior to the call to
+&quot;XSLoader::load()&quot; (or
+&quot;bootstrap()&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first
+situation being much more frequent, it makes sense to
+rewrite the boilerplate as</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+YourPackage; <br>
+use XSLoader; <br>
+our ($VERSION, @ISA); <br>
+BEGIN { <br>
+@ISA = qw( OnePackage OtherPackage ); <br>
+$VERSION = '0.01'; <br>
+# Put Perl code used in the BOOT: section here <br>
+XSLoader::load(__PACKAGE__, $VERSION); <br>
+} <br>
+# Put Perl code making calls into XSUBs here</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>The most
+hairy case</b> <br>
+If the interdependence of your &quot;BOOT:&quot; section and
+Perl code is more complicated than this (e.g., the
+&quot;BOOT:&quot; section makes calls to Perl functions
+which make calls to XSUBs with prototypes), get rid of the
+&quot;BOOT:&quot; section altogether. Replace it with a
+function &quot;onBOOT()&quot;, and call it like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+YourPackage; <br>
+use XSLoader; <br>
+our ($VERSION, @ISA); <br>
+BEGIN { <br>
+@ISA = qw( OnePackage OtherPackage ); <br>
+$VERSION = '0.01'; <br>
+XSLoader::load(__PACKAGE__, $VERSION); <br>
+} <br>
+# Put Perl code used in onBOOT() function here; calls to
+XSUBs are <br>
+# prototype&minus;checked. <br>
+onBOOT; <br>
+# Put Perl initialization code assuming that XS is
+initialized here</p>
+
+<h2>DIAGNOSTICS
+<a name="DIAGNOSTICS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Can't
+find '%s' symbol in %s&quot;</p>
+
+<p style="margin-left:17%;"><b>(F)</b> The bootstrap symbol
+could not be found in the extension module.</p>
+
+<p style="margin-left:11%;">&quot;Can't load '%s' for
+module %s: %s&quot;</p>
+
+<p style="margin-left:17%;"><b>(F)</b> The loading or
+initialisation of the extension module failed. The detailed
+error follows.</p>
+
+<p style="margin-left:11%;">&quot;Undefined symbols present
+after loading %s: %s&quot;</p>
+
+<p style="margin-left:17%;"><b>(W)</b> As the message says,
+some symbols stay undefined although the extension module
+was correctly loaded and initialised. The list of undefined
+symbols follows.</p>
+
+<h2>LIMITATIONS
+<a name="LIMITATIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">To reduce the
+overhead as much as possible, only one possible location is
+checked to find the extension <small>DLL</small> (this
+location is where &quot;make install&quot; would put the
+<small>DLL</small> ). If not found, the search for the
+<small>DLL</small> is transparently delegated to
+&quot;DynaLoader&quot;, which looks for the
+<small>DLL</small> along the @INC list.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In particular,
+this is applicable to the structure of @INC used for testing
+not-yet-installed extensions. This means that running
+uninstalled extensions may have much more overhead than
+running the same extensions after &quot;make
+install&quot;.</p>
+
+<h2>KNOWN BUGS
+<a name="KNOWN BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The new simpler
+way to call &quot;XSLoader::load()&quot; with no arguments
+at all does not work on Perl 5.8.4 and 5.8.5.</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Please report
+any bugs or feature requests via the <b>perlbug</b>(1)
+utility.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">DynaLoader</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Ilya
+Zakharevich originally extracted &quot;XSLoader&quot; from
+&quot;DynaLoader&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>CPAN</small>
+version is currently maintained by Sebastien
+Aperghis-Tramoni &lt;sebastien@aperghis.net&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Previous
+maintainer was Michael G Schwern
+&lt;schwern@pobox.com&gt;.</p>
+
+<h2>COPYRIGHT &amp; LICENSE
+<a name="COPYRIGHT &amp; LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (C)
+1990&minus;2011 by Larry Wall and others.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This program is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+<hr>
+</body>
+</html>

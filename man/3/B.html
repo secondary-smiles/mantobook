@@ -1,0 +1,1386 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:19 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>B</title>
+
+</head>
+<body>
+<h1>B</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">B &minus; The
+Perl Compiler Backend</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use B;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;B&quot; module supplies classes which allow a Perl
+program to delve into its own innards. It is the module used
+to implement the &quot;backends&quot; of the Perl compiler.
+Usage of the compiler does not require knowledge of this
+module: see the <i>O</i> module for the user-visible part.
+The &quot;B&quot; module is of use to those who want to
+write new compiler backends. This documentation assumes that
+the reader knows a fair amount about perl&rsquo;s internals
+including such things as SVs, OPs and the internal symbol
+table and syntax tree of a program.</p>
+
+<h2>OVERVIEW
+<a name="OVERVIEW"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;B&quot; module contains a set of utility functions for
+querying the current state of the Perl interpreter;
+typically these functions return objects from the B::SV and
+B::OP classes, or their derived classes. These classes in
+turn define methods for querying the resulting objects about
+their own internal state.</p>
+
+<h2>Utility Functions
+<a name="Utility Functions"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;B&quot; module exports a variety of functions: some
+are simple utility functions, others provide a Perl program
+with a way to get an initial &quot;handle&quot; on an
+internal object.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Functions
+Returning &quot;B::SV&quot;, &quot;B::AV&quot;,
+&quot;B::HV&quot;, and &quot;B::CV&quot; objects</b> <br>
+For descriptions of the class hierarchy of these objects and
+the methods that can be called on them, see below, &quot;
+<small>OVERVIEW OF CLASSES&quot;</small> and
+&quot;SV-RELATED <small>CLASSES&quot;</small> . <br>
+sv_undef</p>
+
+<p style="margin-left:17%;">Returns the <small>SV</small>
+object corresponding to the C variable
+&quot;sv_undef&quot;.</p>
+
+<p style="margin-left:11%;">sv_yes</p>
+
+<p style="margin-left:17%;">Returns the <small>SV</small>
+object corresponding to the C variable
+&quot;sv_yes&quot;.</p>
+
+<p style="margin-left:11%;">sv_no</p>
+
+<p style="margin-left:17%;">Returns the <small>SV</small>
+object corresponding to the C variable
+&quot;sv_no&quot;.</p>
+
+<p style="margin-left:11%;">svref_2object(
+<small>SVREF</small> )</p>
+
+<p style="margin-left:17%;">Takes a reference to any Perl
+value, and turns the referred-to value into an object in the
+appropriate B::OP&minus;derived or B::SV&minus;derived
+class. Apart from functions such as &quot;main_root&quot;,
+this is the primary way to get an initial &quot;handle&quot;
+on an internal perl data structure which can then be
+followed with the other access methods.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The returned
+object will only be valid as long as the underlying OPs and
+SVs continue to exist. Do not attempt to use the object
+after the underlying structures are freed.</p>
+
+<p style="margin-left:11%;">amagic_generation</p>
+
+<p style="margin-left:17%;">Returns the <small>SV</small>
+object corresponding to the C variable
+&quot;amagic_generation&quot;. As of Perl 5.18, this is just
+an alias to &quot;PL_na&quot;, so its value is
+meaningless.</p>
+
+<p style="margin-left:11%;">init_av</p>
+
+<p style="margin-left:17%;">Returns the <small>AV</small>
+object (i.e. in class B::AV) representing
+<small>INIT</small> blocks.</p>
+
+<p style="margin-left:11%;">check_av</p>
+
+<p style="margin-left:17%;">Returns the <small>AV</small>
+object (i.e. in class B::AV) representing
+<small>CHECK</small> blocks.</p>
+
+<p style="margin-left:11%;">unitcheck_av</p>
+
+<p style="margin-left:17%;">Returns the <small>AV</small>
+object (i.e. in class B::AV) representing
+<small>UNITCHECK</small> blocks.</p>
+
+<p style="margin-left:11%;">begin_av</p>
+
+<p style="margin-left:17%;">Returns the <small>AV</small>
+object (i.e. in class B::AV) representing
+<small>BEGIN</small> blocks.</p>
+
+<p style="margin-left:11%;">end_av</p>
+
+<p style="margin-left:17%;">Returns the <small>AV</small>
+object (i.e. in class B::AV) representing <small>END</small>
+blocks.</p>
+
+<p style="margin-left:11%;">comppadlist</p>
+
+<p style="margin-left:17%;">Returns the
+<small>PADLIST</small> object (i.e. in class B::PADLIST) of
+the global comppadlist. In Perl 5.16 and earlier it returns
+an <small>AV</small> object (class B::AV).</p>
+
+<p style="margin-left:11%;">regex_padav</p>
+
+<p style="margin-left:17%;">Only when perl was compiled
+with ithreads.</p>
+
+<p style="margin-left:11%;">main_cv</p>
+
+<p style="margin-left:17%;">Return the (faked)
+<small>CV</small> corresponding to the main part of the Perl
+program.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Functions
+for Examining the Symbol Table</b> <br>
+walksymtable( <small>SYMREF, METHOD, RECURSE, PREFIX</small>
+)</p>
+
+<p style="margin-left:17%;">Walk the symbol table starting
+at <small>SYMREF</small> and call <small>METHOD</small> on
+each symbol (a B::GV object) visited. When the walk reaches
+package symbols (such as &quot;Foo::&quot;) it invokes
+<small>RECURSE,</small> passing in the symbol name, and only
+recurses into the package if that sub returns true.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>PREFIX</small>
+is the name of the <small>SYMREF</small> you&rsquo;re
+walking.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For
+example:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># Walk CGI's
+symbol table calling print_subs on each symbol. <br>
+# Recurse only into CGI::Util:: <br>
+walksymtable(\%CGI::, 'print_subs', <br>
+sub { $_[0] eq 'CGI::Util::' }, 'CGI::');</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>print_subs()</b>
+is a B::GV method you have declared. Also see &quot;B::GV
+Methods&quot;, below.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Functions
+Returning &quot;B::OP&quot; objects or for walking op
+trees</b> <br>
+For descriptions of the class hierarchy of these objects and
+the methods that can be called on them, see below, &quot;
+<small>OVERVIEW OF CLASSES&quot;</small> and
+&quot;OP-RELATED <small>CLASSES&quot;</small> . <br>
+main_root</p>
+
+<p style="margin-left:17%;">Returns the root op (i.e. an
+object in the appropriate B::OP&minus;derived class) of the
+main part of the Perl program.</p>
+
+<p style="margin-left:11%;">main_start</p>
+
+<p style="margin-left:17%;">Returns the starting op of the
+main part of the Perl program.</p>
+
+<p style="margin-left:11%;">walkoptree( <small>OP,
+METHOD</small> )</p>
+
+<p style="margin-left:17%;">Does a tree-walk of the syntax
+tree based at <small>OP</small> and calls
+<small>METHOD</small> on each op it visits. Each node is
+visited before its children. If &quot;walkoptree_debug&quot;
+(see below) has been called to turn debugging on then the
+method &quot;walkoptree_debug&quot; is called on each op
+before <small>METHOD</small> is called.</p>
+
+<p style="margin-left:11%;">walkoptree_debug(
+<small>DEBUG</small> )</p>
+
+<p style="margin-left:17%;">Returns the current debugging
+flag for &quot;walkoptree&quot;. If the optional
+<small>DEBUG</small> argument is non-zero, it sets the
+debugging flag to that. See the description of
+&quot;walkoptree&quot; above for what the debugging flag
+does.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Miscellaneous
+Utility Functions</b> <br>
+ppname( <small>OPNUM</small> )</p>
+
+<p style="margin-left:17%;">Return the <small>PP</small>
+function name (e.g. &quot;pp_add&quot;) of op number
+<small>OPNUM.</small></p>
+
+<p style="margin-left:11%;">hash( <small>STR</small> )</p>
+
+<p style="margin-left:17%;">Returns a string in the form
+&quot;0x...&quot; representing the value of the internal
+hash function used by perl on string <small>STR.</small></p>
+
+<p style="margin-left:11%;">cast_I32(I)</p>
+
+<p style="margin-left:17%;">Casts I to the internal I32
+type used by that perl.</p>
+
+<p style="margin-left:11%;">minus_c</p>
+
+<p style="margin-left:17%;">Does the equivalent of the
+&quot;&minus;c&quot; command-line option. Obviously, this is
+only useful in a <small>BEGIN</small> block or else the flag
+is set too late.</p>
+
+<p style="margin-left:11%;">cstring( <small>STR</small>
+)</p>
+
+<p style="margin-left:17%;">Returns a
+double-quote-surrounded escaped version of
+<small>STR</small> which can be used as a string in C source
+code.</p>
+
+<p style="margin-left:11%;">perlstring( <small>STR</small>
+)</p>
+
+<p style="margin-left:17%;">Returns a
+double-quote-surrounded escaped version of
+<small>STR</small> which can be used as a string in Perl
+source code.</p>
+
+<p style="margin-left:11%;">safename( <small>STR</small>
+)</p>
+
+<p style="margin-left:17%;">This function returns the
+string with the first character modified if it is a control
+character. It converts it to ^X format first, so that
+&quot;\cG&quot; becomes &quot;^G&quot;. This is used
+internally by B::GV::SAFENAME, but you can call it
+directly.</p>
+
+<p style="margin-left:11%;">class( <small>OBJ</small> )</p>
+
+<p style="margin-left:17%;">Returns the class of an object
+without the part of the classname preceding the first
+&quot;::&quot;. This is used to turn &quot;B::UNOP&quot;
+into &quot;UNOP&quot; for example.</p>
+
+<p style="margin-left:11%;">threadsv_names</p>
+
+<p style="margin-left:17%;">This used to provide support
+for the old 5.005 threading module. It now does nothing.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Exported
+utility variables</b> <br>
+@optype</p>
+
+<p style="margin-left:17%;">my $op_type =
+$optype[$op_type_num];</p>
+
+<p style="margin-left:17%; margin-top: 1em">A simple
+mapping of the op type number to its type (like &rsquo;
+<small>COP</small> &rsquo; or &rsquo; <small>BINOP</small>
+&rsquo;).</p>
+
+<p style="margin-left:11%;">@specialsv_name</p>
+
+<p style="margin-left:17%;">my $sv_name =
+$specialsv_name[$sv_index];</p>
+
+<p style="margin-left:17%; margin-top: 1em">Certain
+<small>SV</small> types are considered
+&rsquo;special&rsquo;. They&rsquo;re represented by
+B::SPECIAL and are referred to by a number from the
+specialsv_list. This array maps that number back to the name
+of the <small>SV</small> (like &rsquo;Nullsv&rsquo; or
+&rsquo;&amp;PL_sv_undef&rsquo;).</p>
+
+<h2>OVERVIEW OF CLASSES
+<a name="OVERVIEW OF CLASSES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The C
+structures used by Perl&rsquo;s internals to hold
+<small>SV</small> and <small>OP</small> information (
+<small>PVIV, AV, HV, ..., OP, SVOP, UNOP, ...</small> ) are
+modelled on a class hierarchy and the &quot;B&quot; module
+gives access to them via a true object hierarchy. Structure
+fields which point to other objects (whether types of
+<small>SV</small> or types of <small>OP</small> ) are
+represented by the &quot;B&quot; module as Perl objects of
+the appropriate class.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The bulk of the
+&quot;B&quot; module is the methods for accessing fields of
+these structures.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that all
+access is read-only. You cannot modify the internals by
+using this module. Also, note that the B::OP and B::SV
+objects created by this module are only valid for as long as
+the underlying objects exist; their creation doesn&rsquo;t
+increase the reference counts of the underlying objects.
+Trying to access the fields of a freed object will give
+incomprehensible results, or worse.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>SV-RELATED
+<small>CLASSES</small></b> <br>
+B::IV, B::NV, B::PV, B::PVIV, B::PVNV, B::PVMG, B::PVLV,
+B::AV, B::HV, B::CV, B::GV, B::FM, B::IO. These classes
+correspond in the obvious way to the underlying C structures
+of similar names. The inheritance hierarchy mimics the
+underlying C &quot;inheritance&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">B::SV <br>
+| <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| | | <br>
+B::PV B::IV B::NV <br>
+/ \ / / <br>
+/ \ / / <br>
+B::INVLIST B::PVIV / <br>
+\ / <br>
+\ / <br>
+\ / <br>
+B::PVNV <br>
+| <br>
+| <br>
+B::PVMG <br>
+| <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;+&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| | | | | | <br>
+B::AV B::GV B::HV B::CV B::IO B::REGEXP <br>
+| | <br>
+| | <br>
+B::PVLV B::FM</p>
+
+<p style="margin-left:11%; margin-top: 1em">Access methods
+correspond to the underlying C macros for field access,
+usually with the leading &quot;class indication&quot; prefix
+removed (Sv, Av, Hv, ...). The leading prefix is only left
+in cases where its removal would cause a clash in method
+name. For example, &quot;GvREFCNT&quot; stays as-is since
+its abbreviation would clash with the &quot;superclass&quot;
+method &quot;REFCNT&quot; (corresponding to the C function
+&quot;SvREFCNT&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::SV
+Methods</b> <small><br>
+REFCNT <br>
+FLAGS</small> <br>
+object_2svref</p>
+
+<p style="margin-left:17%;">Returns a reference to the
+regular scalar corresponding to this B::SV object. In other
+words, this method is the inverse operation to the
+<b>svref_2object()</b> subroutine. This scalar and other
+data it points at should be considered read-only: modifying
+them is neither safe nor guaranteed to have a sensible
+effect.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::IV
+Methods</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>IV</small></p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Returns the value of the <small>IV,</small>
+<i>interpreted as a signed integer</i>. This will be
+misleading if &quot;FLAGS &amp; SVf_IVisUV&quot;. Perhaps
+you want the &quot;int_value&quot; method instead?</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>IVX</small></p></td>
+<td width="2%"></td>
+<td width="83%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>UVX</small></p></td>
+<td width="2%"></td>
+<td width="83%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;">int_value</p>
+
+<p style="margin-left:17%;">This method returns the value
+of the <small>IV</small> as an integer. It differs from
+&quot;IV&quot; in that it returns the correct value
+regardless of whether it&rsquo;s stored signed or
+unsigned.</p>
+
+<p style="margin-left:11%;">needs64bits <br>
+packiv</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::NV
+Methods</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>NV</small></p></td>
+<td width="85%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>NVX</small></p></td>
+<td width="85%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>COP_SEQ_RANGE_LOW <br>
+COP_SEQ_RANGE_HIGH</small></p>
+
+<p style="margin-left:17%;">These last two are only valid
+for pad name SVs. They only existed in the B::NV class
+before Perl 5.22. In 5.22 they were moved to the B::PADNAME
+class.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::RV
+Methods</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><small>RV</small></p></td>
+<td width="86%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>B::PV Methods</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em"><small>PV</small></p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">This method is the one you
+usually want. It constructs a string using the length and
+offset information in the struct: for ordinary scalars it
+will return the string that you&rsquo;d see from Perl, even
+if it contains null characters.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>RV</small></p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Same as B::RV::RV, except that it will <b>die()</b> if
+the <small>PV</small> isn&rsquo;t a reference.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>PVX</small></p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>This method is less often useful. It assumes that the
+string stored in the struct is null-terminated, and
+disregards the length information.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">It is the
+appropriate method to use if you need to get the name of a
+lexical variable from a padname array. Lexical variable
+names are always stored with a null terminator, and the
+length field ( <small>CUR</small> ) is overloaded for other
+purposes and can&rsquo;t be relied on here.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em"><small>CUR</small></p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">This method returns the internal
+length field, which consists of the number of internal
+bytes, not necessarily the number of logical characters.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>LEN</small></p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>This method returns the number of bytes allocated (via
+malloc) for storing the string. This is 0 if the scalar does
+not &quot;own&quot; the string.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::PVMG
+Methods</b> <small><br>
+MAGIC</small> <br>
+SvSTASH</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::MAGIC
+Methods</b> <small><br>
+MOREMAGIC</small> <br>
+precomp</p>
+
+<p style="margin-left:17%;">Only valid on r&minus;magic,
+returns the string that generated the regexp.</p>
+
+<p style="margin-left:11%;"><small>PRIVATE <br>
+TYPE <br>
+FLAGS</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>OBJ</small></p></td>
+<td width="2%"></td>
+<td width="49%">
+
+
+<p>Will <b>die()</b> if called on r&minus;magic.</p></td>
+<td width="34%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>PTR</small></p></td>
+<td width="2%"></td>
+<td width="49%"></td>
+<td width="34%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>REGEX</small></p>
+
+<p style="margin-left:17%;">Only valid on r&minus;magic,
+returns the integer value of the <small>REGEX</small> stored
+in the <small>MAGIC.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::INVLIST
+Methods</b> <br>
+prev_index</p>
+
+<p style="margin-left:17%;">Returns the cache result of
+previous <b>invlist_search()</b> (internal usage)</p>
+
+<p style="margin-left:11%;">is_offset</p>
+
+<p style="margin-left:17%;">Returns a boolean value (0 or
+1) to know if the invlist is using an offset. When false the
+list begins with the code point U+0000. When true the list
+begins with the following elements.</p>
+
+<p style="margin-left:11%;">array_len</p>
+
+<p style="margin-left:17%;">Returns an integer with the
+size of the array used to define the invlist.</p>
+
+<p style="margin-left:11%;">get_invlist_array</p>
+
+<p style="margin-left:17%;">This method returns a list of
+integers representing the array used by the invlist. Note:
+this cannot be used while in middle of iterating on an
+invlist and croaks.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::PVLV
+Methods</b> <small><br>
+TARGOFF <br>
+TARGLEN <br>
+TYPE <br>
+TARG</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::BM
+Methods</b> <small><br>
+USEFUL <br>
+PREVIOUS <br>
+RARE <br>
+TABLE</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::REGEXP
+Methods</b> <small><br>
+REGEX</small> <br>
+precomp <br>
+qr_anoncv <br>
+compflags</p>
+
+<p style="margin-left:17%;">The last two were added in Perl
+5.22.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::GV
+Methods</b> <br>
+is_empty</p>
+
+<p style="margin-left:17%;">This method returns
+<small>TRUE</small> if the <small>GP</small> field of the
+<small>GV</small> is <small>NULL.</small></p>
+
+<p style="margin-left:11%;"><small>NAME <br>
+SAFENAME</small></p>
+
+<p style="margin-left:17%;">This method returns the name of
+the glob, but if the first character of the name is a
+control character, then it converts it to ^X first, so that
+*^G would return &quot;^G&quot; rather than
+&quot;\cG&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">It&rsquo;s
+useful if you want to print out the name of a variable. If
+you restrict yourself to globs which exist at compile-time
+then the result ought to be unambiguous, because code like
+&quot;${&quot;^G&quot;} = 1&quot; is compiled as two ops
+&minus; a constant string and a dereference (rv2gv) &minus;
+so that the glob is created at runtime.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you&rsquo;re
+working with globs at runtime, and need to disambiguate *^G
+from *{&quot;^G&quot;}, then you should use the raw
+<small>NAME</small> method.</p>
+
+<p style="margin-left:11%;"><small>STASH</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><small>SV</small></p></td>
+<td width="86%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><small>IO</small></p></td>
+<td width="86%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>FORM</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>AV</small></p></td>
+<td width="85%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>HV</small></p></td>
+<td width="85%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>EGV</small></p></td>
+<td width="85%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>CV</small></p></td>
+<td width="85%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>CVGEN <br>
+LINE <br>
+FILE <br>
+FILEGV</small> <br>
+GvREFCNT <small><br>
+FLAGS <br>
+GPFLAGS</small></p>
+
+<p style="margin-left:17%;">This last one is present only
+in perl 5.22.0 and higher.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::IO
+Methods</b> <br>
+B::IO objects derive from <small>IO</small> objects and you
+will get more information from the <small>IO</small> object
+itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$gvio =
+B::svref_2object(\*main::stdin)&minus;&gt;IO; <br>
+$IO = $gvio&minus;&gt;object_2svref(); <br>
+$fd = $IO&minus;&gt;fileno(); <small><br>
+LINES <br>
+PAGE <br>
+PAGE_LEN <br>
+LINES_LEFT <br>
+TOP_NAME <br>
+TOP_GV <br>
+FMT_NAME <br>
+FMT_GV <br>
+BOTTOM_NAME <br>
+BOTTOM_GV <br>
+SUBPROCESS</small> <br>
+IoTYPE</p>
+
+<p style="margin-left:17%;">A character symbolizing the
+type of <small>IO</small> Handle.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&minus;
+STDIN/OUT <br>
+I STDIN/OUT/ERR <br>
+&lt; read&minus;only <br>
+&gt; write&minus;only <br>
+a append <br>
++ read and write <br>
+s socket <br>
+| pipe <br>
+I IMPLICIT <br>
+# NUMERIC <br>
+space closed handle <br>
+\0 closed internal handle</p>
+
+<p style="margin-left:11%;">IoFLAGS <br>
+IsSTD</p>
+
+<p style="margin-left:17%;">Takes one argument (
+&rsquo;stdin&rsquo; | &rsquo;stdout&rsquo; |
+&rsquo;stderr&rsquo; ) and returns true if the IoIFP of the
+object is equal to the handle whose name was passed as
+argument; i.e., $io&minus;&gt;IsSTD(&rsquo;stderr&rsquo;) is
+true if IoIFP($io) == <b>PerlIO_stderr()</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::AV
+Methods</b> <small><br>
+FILL</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>MAX</small></p></td>
+<td width="85%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>ARRAY</small> <br>
+ARRAYelt</p>
+
+<p style="margin-left:17%;">Like &quot;ARRAY&quot;, but
+takes an index as an argument to get only one element,
+rather than a list of all of them.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::CV
+Methods</b> <small><br>
+STASH <br>
+START <br>
+ROOT</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><small>GV</small></p></td>
+<td width="86%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>FILE <br>
+DEPTH <br>
+PADLIST</small></p>
+
+<p style="margin-left:17%;">Returns a B::PADLIST
+object.</p>
+
+<p style="margin-left:11%;"><small>OUTSIDE <br>
+OUTSIDE_SEQ <br>
+XSUB <br>
+XSUBANY</small></p>
+
+<p style="margin-left:17%;">For constant subroutines,
+returns the constant <small>SV</small> returned by the
+subroutine.</p>
+
+<p style="margin-left:11%;">CvFLAGS <br>
+const_sv <small><br>
+NAME_HEK</small></p>
+
+<p style="margin-left:17%;">Returns the name of a lexical
+sub, otherwise &quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::HV
+Methods</b> <small><br>
+FILL</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>MAX</small></p></td>
+<td width="85%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>KEYS <br>
+RITER <br>
+NAME <br>
+ARRAY</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>OP-RELATED
+<small>CLASSES</small></b> <br>
+&quot;B::OP&quot;, &quot;B::UNOP&quot;,
+&quot;B::UNOP_AUX&quot;, &quot;B::BINOP&quot;,
+&quot;B::LOGOP&quot;, &quot;B::LISTOP&quot;,
+&quot;B::PMOP&quot;, &quot;B::SVOP&quot;,
+&quot;B::PADOP&quot;, &quot;B::PVOP&quot;,
+&quot;B::LOOP&quot;, &quot;B::COP&quot;,
+&quot;B::METHOP&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These classes
+correspond in the obvious way to the underlying C structures
+of similar names. The inheritance hierarchy mimics the
+underlying C &quot;inheritance&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">B::OP <br>
+| <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| | | | | | <br>
+B::UNOP B::SVOP B::PADOP B::COP B::PVOP B::METHOP <br>
+| <br>
+
++&minus;&minus;&minus;+&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| | | <br>
+B::BINOP B::LOGOP B::UNOP_AUX <br>
+| <br>
+| <br>
+B::LISTOP <br>
+| <br>
++&minus;&minus;&minus;+&minus;&minus;&minus;+ <br>
+| | <br>
+B::LOOP B::PMOP</p>
+
+<p style="margin-left:11%; margin-top: 1em">Access methods
+correspond to the underlying C structure field names, with
+the leading &quot;class indication&quot; prefix
+(&quot;op_&quot;) removed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::OP
+Methods</b> <br>
+These methods get the values of similarly named fields
+within the <small>OP</small> data structure. See top of
+&quot;op.h&quot; for more info. <br>
+next <br>
+sibling <br>
+parent</p>
+
+<p style="margin-left:17%;">Returns the <small>OP</small>
+&rsquo;s parent. If it has no parent, or if your perl
+wasn&rsquo;t built with &quot;&minus;DPERL_OP_PARENT&quot;,
+returns <small>NULL.</small></p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that the
+global variable $B::OP::does_parent is undefined on older
+perls that don&rsquo;t support the &quot;parent&quot;
+method, is defined but false on perls that support the
+method but were built without
+&quot;&minus;DPERL_OP_PARENT&quot;, and is true
+otherwise.</p>
+
+<p style="margin-left:11%;">name</p>
+
+<p style="margin-left:17%;">This returns the op name as a
+string (e.g. &quot;add&quot;, &quot;rv2av&quot;).</p>
+
+<p style="margin-left:11%;">ppaddr</p>
+
+<p style="margin-left:17%;">This returns the function name
+as a string (e.g. &quot;PL_ppaddr[ <small>OP_ADD</small>
+]&quot;, &quot;PL_ppaddr[ <small>OP_RV2AV</small>
+]&quot;).</p>
+
+<p style="margin-left:11%;">desc</p>
+
+<p style="margin-left:17%;">This returns the op description
+from the global C PL_op_desc array (e.g.
+&quot;addition&quot; &quot;array deref&quot;).</p>
+
+<p style="margin-left:11%;">targ <br>
+type</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>opt</p></td>
+<td width="85%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;">flags <br>
+private <br>
+spare</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::UNOP
+Method</b> <br>
+first</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::UNOP_AUX
+Methods (since 5.22)</b> <br>
+aux_list(cv)</p>
+
+<p style="margin-left:17%;">This returns a list of the
+elements of the op&rsquo;s aux data structure, or a null
+list if there is no aux. What will be returned depends on
+the object&rsquo;s type, but will typically be a collection
+of &quot;B::IV&quot;, &quot;B::GV&quot;, etc. objects.
+&quot;cv&quot; is the &quot;B::CV&quot; object representing
+the sub that the op is contained within.</p>
+
+<p style="margin-left:11%;">string(cv)</p>
+
+<p style="margin-left:17%;">This returns a textual
+representation of the object (likely to b useful for
+deparsing and debugging), or an empty string if the op type
+doesn&rsquo;t support this. &quot;cv&quot; is the
+&quot;B::CV&quot; object representing the sub that the op is
+contained within.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::BINOP
+Method</b> <br>
+last</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::LOGOP
+Method</b> <br>
+other</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::LISTOP
+Method</b> <br>
+children</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::PMOP
+Methods</b> <br>
+pmreplroot <br>
+pmreplstart <br>
+pmflags <br>
+precomp <br>
+pmoffset</p>
+
+<p style="margin-left:17%;">Only when perl was compiled
+with ithreads.</p>
+
+<p style="margin-left:11%;">code_list</p>
+
+<p style="margin-left:17%;">Since perl 5.17.1</p>
+
+<p style="margin-left:11%;">pmregexp</p>
+
+<p style="margin-left:17%;">Added in perl 5.22, this method
+returns the B::REGEXP associated with the op. While PMOPs do
+not actually have &quot;pmregexp&quot; fields under threaded
+builds, this method returns the regexp under threads
+nonetheless, for convenience.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::SVOP
+Methods</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>sv</p></td>
+<td width="86%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>gv</p></td>
+<td width="86%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>B::PADOP Method</b> <br>
+padix</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::PVOP
+Method</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>pv</p></td>
+<td width="86%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>B::LOOP Methods</b> <br>
+redoop <br>
+nextop <br>
+lastop</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::COP
+Methods</b> <br>
+The &quot;B::COP&quot; class is used for
+&quot;nextstate&quot; and &quot;dbstate&quot; ops. As of
+Perl 5.22, it is also used for &quot;null&quot; ops that
+started out as COPs. <br>
+label <br>
+stash <br>
+stashpv <br>
+stashoff (threaded only) <br>
+file <br>
+cop_seq <br>
+line <br>
+warnings</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>io</p></td>
+<td width="86%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;">hints <br>
+hints_hash</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::METHOP
+Methods (Since Perl 5.22)</b> <br>
+first <br>
+meth_sv</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>PAD-RELATED
+<small>CLASSES</small></b> <br>
+Perl 5.18 introduced a new class, B::PADLIST, returned by
+B::CV&rsquo;s &quot;PADLIST&quot; method.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl 5.22
+introduced the B::PADNAMELIST and B::PADNAME classes.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::PADLIST
+Methods</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>MAX</small></p></td>
+<td width="85%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>ARRAY</small></p>
+
+<p style="margin-left:17%;">A list of pads. The first one
+is a B::PADNAMELIST containing the names. The rest are
+currently B::AV objects, but that could change in future
+versions.</p>
+
+<p style="margin-left:11%;">ARRAYelt</p>
+
+<p style="margin-left:17%;">Like &quot;ARRAY&quot;, but
+takes an index as an argument to get only one element,
+rather than a list of all of them.</p>
+
+<p style="margin-left:11%;"><small>NAMES</small></p>
+
+<p style="margin-left:17%;">This method, introduced in
+5.22, returns the B::PADNAMELIST. It is equivalent to
+&quot;ARRAYelt&quot; with a 0 argument.</p>
+
+<p style="margin-left:11%;"><small>REFCNT</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>id</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>This method, introduced in 5.22, returns an
+<small>ID</small> shared by clones of the same padlist.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">outid</p>
+
+<p style="margin-left:17%;">This method, also added in
+5.22, returns the <small>ID</small> of the outer
+padlist.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::PADNAMELIST
+Methods</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>MAX</small></p></td>
+<td width="85%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>ARRAY</small> <br>
+ARRAYelt</p>
+
+<p style="margin-left:17%;">These two methods return the
+pad names, using B::SPECIAL objects for null pointers and
+B::PADNAME objects otherwise.</p>
+
+<p style="margin-left:11%;"><small>REFCNT</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>B::PADNAME
+Methods</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>PV</small></p></td>
+<td width="85%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>PVX</small></p></td>
+<td width="85%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p><small>LEN</small></p></td>
+<td width="85%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>REFCNT <br>
+FLAGS</small></p>
+
+<p style="margin-left:17%;">For backward-compatibility, if
+the PADNAMEt_OUTER flag is set, the <small>FLAGS</small>
+method adds the SVf_FAKE flag, too.</p>
+
+<p style="margin-left:11%;"><small>TYPE</small></p>
+
+<p style="margin-left:17%;">A B::HV object representing the
+stash for a typed lexical.</p>
+
+<p style="margin-left:11%;">SvSTASH</p>
+
+<p style="margin-left:17%;">A backward-compatibility alias
+for <small>TYPE.</small></p>
+
+<p style="margin-left:11%;"><small>OURSTASH</small></p>
+
+<p style="margin-left:17%;">A B::HV object representing the
+stash for &rsquo;our&rsquo; variables.</p>
+
+<p style="margin-left:11%;"><small>PROTOCV</small></p>
+
+<p style="margin-left:17%;">The prototype <small>CV</small>
+for a &rsquo;my&rsquo; sub.</p>
+
+<p style="margin-left:11%;"><small>COP_SEQ_RANGE_LOW <br>
+COP_SEQ_RANGE_HIGH</small></p>
+
+<p style="margin-left:17%;">Sequence numbers representing
+the scope within which a lexical is visible. Meaningless if
+PADNAMEt_OUTER is set.</p>
+
+
+<p style="margin-left:11%;"><small>PARENT_PAD_INDEX</small></p>
+
+<p style="margin-left:17%;">Only meaningful if
+PADNAMEt_OUTER is set.</p>
+
+
+<p style="margin-left:11%;"><small>PARENT_FAKELEX_FLAGS</small></p>
+
+<p style="margin-left:17%;">Only meaningful if
+PADNAMEt_OUTER is set.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$B::overlay</b>
+<br>
+Although the optree is read-only, there is an overlay
+facility that allows you to override what values the various
+B::*OP methods return for a particular op. $B::overlay
+should be set to reference a two-deep hash: indexed by
+<small>OP</small> address, then method name. Whenever a an
+op method is called, the value in the hash is returned if it
+exists. This facility is used by B::Deparse to
+&quot;undo&quot; some optimisations. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">local
+$B::overlay = {}; <br>
+... <br>
+if ($op&minus;&gt;name eq &quot;foo&quot;) { <br>
+$B::overlay&minus;&gt;{$$op} = { <br>
+name =&gt; 'bar', <br>
+next =&gt; $op&minus;&gt;next&minus;&gt;next, <br>
+}; <br>
+} <br>
+... <br>
+$op&minus;&gt;name # returns &quot;bar&quot; <br>
+$op&minus;&gt;next # returns the next op but one</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Malcolm
+Beattie, &quot;mbeattie@sable.ox.ac.uk&quot;</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:58 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>EVP_PKEY_VERIFY_RECOVER</title>
+
+</head>
+<body>
+<h1>EVP_PKEY_verify_recover_init</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">EVP_PKEY_verify_recover_init,
+EVP_PKEY_verify_recover_init_ex, EVP_PKEY_verify_recover
+&minus; recover signature using a public key algorithm</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;openssl/evp.h&gt; <br>
+int EVP_PKEY_verify_recover_init(EVP_PKEY_CTX *ctx); <br>
+int EVP_PKEY_verify_recover_init_ex(EVP_PKEY_CTX *ctx, <br>
+const OSSL_PARAM params[]); <br>
+int EVP_PKEY_verify_recover(EVP_PKEY_CTX *ctx, <br>
+unsigned char *rout, size_t *routlen, <br>
+const unsigned char *sig, size_t siglen);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>EVP_PKEY_verify_recover_init()</b>
+initializes a public key algorithm context <i>ctx</i> for
+signing using the algorithm given when the context was
+created using <b>EVP_PKEY_CTX_new</b>(3) or variants
+thereof. The algorithm is used to fetch a
+<b><small>EVP_SIGNATURE</small></b> method implicitly, see
+&quot;Implicit fetch&quot; in <b>provider</b>(7) for more
+information about implicit fetches.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>EVP_PKEY_verify_recover_init_ex()</b>
+is the same as <b>EVP_PKEY_verify_recover_init()</b> but
+additionally sets the passed parameters <i>params</i> on the
+context before returning.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>EVP_PKEY_verify_recover()</b> function recovers signed
+data using <i>ctx</i>. The signature is specified using the
+<i>sig</i> and <i>siglen</i> parameters. If <i>rout</i> is
+<small>NULL</small> then the maximum size of the output
+buffer is written to the <i>routlen</i> parameter. If
+<i>rout</i> is not <small>NULL</small> then before the call
+the <i>routlen</i> parameter should contain the length of
+the <i>rout</i> buffer, if the call is successful recovered
+data is written to <i>rout</i> and the amount of data
+written to <i>routlen</i>.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Normally an
+application is only interested in whether a signature
+verification operation is successful in those cases the
+<b>EVP_verify()</b> function should be used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Sometimes
+however it is useful to obtain the data originally signed
+using a signing operation. Only certain public key
+algorithms can recover a signature in this way (for example
+<small>RSA</small> in <small>PKCS</small> padding mode).</p>
+
+<p style="margin-left:11%; margin-top: 1em">After the call
+to <b>EVP_PKEY_verify_recover_init()</b> algorithm specific
+control operations can be performed to set any appropriate
+parameters for the operation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The function
+<b>EVP_PKEY_verify_recover()</b> can be called more than
+once on the same context if several operations are performed
+using the same parameters.</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>EVP_PKEY_verify_recover_init()</b>
+and <b>EVP_PKEY_verify_recover()</b> return 1 for success
+and 0 or a negative value for failure. In particular a
+return value of &minus;2 indicates the operation is not
+supported by the public key algorithm.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Recover digest
+originally signed using PKCS#1 and <small>SHA256</small>
+digest:</p>
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;openssl/evp.h&gt; <br>
+#include &lt;openssl/rsa.h&gt; <br>
+EVP_PKEY_CTX *ctx; <br>
+unsigned char *rout, *sig; <br>
+size_t routlen, siglen; <br>
+EVP_PKEY *verify_key; <br>
+/* <br>
+* NB: assumes verify_key, sig and siglen are already set up
+<br>
+* and that verify_key is an RSA public key <br>
+*/ <br>
+ctx = EVP_PKEY_CTX_new(verify_key, NULL /* no engine */);
+<br>
+if (!ctx) <br>
+/* Error occurred */ <br>
+if (EVP_PKEY_verify_recover_init(ctx) &lt;= 0) <br>
+/* Error */ <br>
+if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING)
+&lt;= 0) <br>
+/* Error */ <br>
+if (EVP_PKEY_CTX_set_signature_md(ctx, EVP_sha256()) &lt;=
+0) <br>
+/* Error */ <br>
+/* Determine buffer length */ <br>
+if (EVP_PKEY_verify_recover(ctx, NULL, &amp;routlen, sig,
+siglen) &lt;= 0) <br>
+/* Error */ <br>
+rout = OPENSSL_malloc(routlen); <br>
+if (!rout) <br>
+/* malloc failure */ <br>
+if (EVP_PKEY_verify_recover(ctx, rout, &amp;routlen, sig,
+siglen) &lt;= 0) <br>
+/* Error */ <br>
+/* Recovered data is routlen bytes written to buffer rout
+*/</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>EVP_PKEY_CTX_new</b>(3),
+<b>EVP_PKEY_encrypt</b>(3), <b>EVP_PKEY_decrypt</b>(3),
+<b>EVP_PKEY_sign</b>(3), <b>EVP_PKEY_verify</b>(3),
+<b>EVP_PKEY_derive</b>(3)</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>EVP_PKEY_verify_recover_init()</b> and
+<b>EVP_PKEY_verify_recover()</b> functions were added in
+OpenSSL 1.0.0.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>EVP_PKEY_verify_recover_init_ex()</b> function was added
+in OpenSSL 3.0.</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2013&minus;2021 The OpenSSL Project Authors. All Rights
+Reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Licensed under
+the Apache License 2.0 (the &quot;License&quot;). You may
+not use this file except in compliance with the License. You
+can obtain a copy in the file <small>LICENSE</small> in the
+source distribution or at
+&lt;https://www.openssl.org/source/license.html&gt;.</p>
+<hr>
+</body>
+</html>

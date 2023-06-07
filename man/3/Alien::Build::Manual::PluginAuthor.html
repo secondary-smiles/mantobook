@@ -1,0 +1,896 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:15 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Alien::Build::Manual::PluginAuthor</title>
+
+</head>
+<body>
+<h1>Alien::Build::Manual::PluginAuthor</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Alien::Build::Manual::PluginAuthor
+&minus; Alien::Build plugin author documentation</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+2.80</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">your
+plugin:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+Alien::Build::Plugin::Build::MyPlugin; <br>
+use strict; <br>
+use warnings; <br>
+use Alien::Build::Plugin; <br>
+has arg1 =&gt; 'default_for arg1'; <br>
+has arg2 =&gt; sub { [ 'default', 'for', 'arg2' ] }; <br>
+sub init <br>
+{ <br>
+my($self, $meta) = @_; <br>
+... <br>
+} <br>
+1;</p>
+
+<p style="margin-left:11%; margin-top: 1em">and then from
+alienfile:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use alienfile;
+<br>
+plugin 'Build::MyPlugin' =&gt; ( <br>
+arg1 =&gt; 'override for arg1', <br>
+arg2 =&gt; [ 'something', 'else' ], <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perlish pseudo
+code for how plugins are called:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $probe; <br>
+my $override = override(); <br>
+if($override eq 'system') { <br>
+$probe = probe(); <br>
+if($probe ne 'system') { <br>
+die 'system tool or library not found'; <br>
+} <br>
+} <br>
+elsif($override eq 'default') { <br>
+$probe = probe(); <br>
+} else { # $override eq 'share' <br>
+# note that in this instance the <br>
+# probe hook is never called <br>
+$probe = 'share'; <br>
+} <br>
+if($probe eq 'system') { <br>
+gather_system(); <br>
+} else { # $probe eq 'share' <br>
+download(); <br>
+extract(); <br>
+patch(); <br>
+build(); <br>
+gather_share(); <br>
+# Check to see if there isa build_ffi hook <br>
+if(defined &amp;build_ffi) { <br>
+patch_ffi(); <br>
+build_ffi(); <br>
+gather_ffi(); <br>
+} <br>
+} <br>
+# By default this just returns the value of
+$ENV{ALIEN_INSTALL_TYPE} <br>
+sub override { <br>
+return $ENV{ALIEN_INSTALL_TYPE}; <br>
+} <br>
+# Default download implementation; can be <br>
+# replaced by specifying a different download <br>
+# hook. See Alien::Build::Plugin::Core::Download <br>
+# for detailed implementation. <br>
+sub download { <br>
+my $response = fetch(); <br>
+if($response&minus;&gt;{type} eq 'html' ||
+$response&minus;&gt;{type} eq 'dir_listing') { <br>
+# decode will transform an HTML listing (html) or a FTP
+directory <br>
+# listing (dir_listing) into a regular list <br>
+$response = decode($response); <br>
+} <br>
+if($response&minus;&gt;{type} eq 'list') { <br>
+# prefer will filter bad entries in the list <br>
+# and sort them so that the first one is <br>
+# the one that we want <br>
+$response = prefer($response); <br>
+my $first_preferred = $res&minus;&gt;{list}&minus;&gt;[0];
+<br>
+# prefer can sometimes infer the version from the <br>
+# filename. <br>
+if(defined $first_preferred&minus;&gt;{version}) { <br>
+# not a hook <br>
+runtime_prop&minus;&gt;{version} =
+$first_preferred&minus;&gt;{version}; <br>
+} <br>
+$response = fetch($first_preferred); <br>
+} <br>
+if($response&minus;&gt;{type} eq 'file') { <br>
+# not a hook <br>
+write_file_to_disk $response; <br>
+} <br>
+}</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+explains how to write Alien::Build plugins using the
+Alien::Build::Plugin base class.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Writing
+plugins</b> <br>
+Plugins use Alien::Build::Plugin, which sets the appropriate
+base class, and provides you with the &quot;has&quot;
+property builder. &quot;has&quot; takes two arguments, the
+name of the property and the default value. (As with Moose
+and Moo, you should use a code reference to specify default
+values for non-string defaults). No <b>not</b> set this as
+your plugin&rsquo;s base class directly:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use parent qw(
+Alien::Build::Plugin ); # wrong <br>
+use Alien::Build::Plugin; # right</p>
+
+<p style="margin-left:11%; margin-top: 1em">The only method
+that you need to implement is &quot;init&quot;. From this
+method you can add hooks to change the behavior of the
+alienfile recipe. This is a very simple example of a probe
+hook, with the actual probe logic removed:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub init <br>
+{ <br>
+my($self, $meta) = @_; <br>
+$meta&minus;&gt;register_hook( <br>
+probe =&gt; sub { <br>
+my($build) = @_; <br>
+if( ... ) <br>
+{ <br>
+return 'system'; <br>
+} <br>
+else <br>
+{ <br>
+return 'share'; <br>
+} <br>
+}, <br>
+); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Hooks get the
+Alien::Build instance as their first argument, and depending
+on the hook may get additional arguments.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Modifying
+hooks</b> <br>
+You can also modify hooks using &quot;before_hook&quot;,
+&quot;around_hook&quot; and &quot;after_hook&quot;, similar
+to Moose modifiers:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub init <br>
+{ <br>
+my($self, $meta) = @_; <br>
+$meta&minus;&gt;before_hook( <br>
+build =&gt; sub { <br>
+my($build) = @_; <br>
+$build&minus;&gt;log('this runs before the build'); <br>
+}, <br>
+); <br>
+$meta&minus;&gt;after_hook( <br>
+build =&gt; sub { <br>
+my($build) = @_; <br>
+$build&minus;&gt;log('this runs after the build'); <br>
+}, <br>
+); <br>
+$meta&minus;&gt;around_hook( <br>
+build =&gt; sub { <br>
+my $orig = shift; <br>
+# around hooks are useful for setting environment variables
+<br>
+local $ENV{CPPFLAGS} = '&minus;I/foo/include'; <br>
+$orig&minus;&gt;(@_); <br>
+}, <br>
+); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Testing
+plugins</b> <br>
+You can and should write tests for your plugin. The best way
+to do this is using Test::Alien::Build, which allows you to
+write an inline alienfile in your test. Here is an
+example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Test::V0;
+<br>
+use Test::Alien::Build; <br>
+my $build = alienfile_ok q{ <br>
+use alienfile; <br>
+plugin 'Build::MyPlugin' =&gt; ( <br>
+arg1 =&gt; 'override for arg1', <br>
+arg2 =&gt; [ 'something', 'else' ], <br>
+); <br>
+... <br>
+}; <br>
+# you can interrogate $build, it is an instance of
+L&lt;Alien::Build&gt;. <br>
+my $alien = alien_build_ok; <br>
+# you can interrogate $alien, it is an instance of
+L&lt;Alien::Base&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Negotiator
+plugins</b> <br>
+A Negotiator plugin doesn&rsquo;t itself typically implement
+anything on its own, but picks the best plugin to achieve a
+particular goal.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;best&quot; plugin can in some cases vary depending on
+the platform or tools that are available. For example The
+download negotiator might choose to use the fetch plugin
+that relies on the command line &quot;curl&quot;, or it
+might choose the fetch plugin that relies on the Perl module
+HTTP::Tiny depending on the platform and what is already
+installed. (For either to be useful they have to support
+<small>SSL</small> ).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Negotiator
+plugin is by convention named something like
+&quot;Alien::Build::Plugin::*::Negotiate&quot;, but is
+typically invoked without the &quot;::Negotiate&quot;
+suffix. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">plugin
+'Download'; # is short for
+Alien::Build::Plugin::Download::Negotiator</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here is a
+simple example of a negotiator which picks &quot;curl&quot;
+if already installed and HTTP::Tiny otherwise. (The actual
+download plugin is a lot smarter and complicated than this,
+but this is a good simplified example).</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+Alien::Build::Plugin::Download::Negotiate; <br>
+use strict; <br>
+use warnings; <br>
+use Alien::Build::Plugin; <br>
+use File::Which qw( which ); <br>
+sub init <br>
+{ <br>
+my($self, $meta) = @_; <br>
+if(which('curl')) { <br>
+$meta&minus;&gt;apply_plugin('Fetch::Curl'); <br>
+} else { <br>
+$meta&minus;&gt;apply_plugin('Fetch::HTTPTiny'); <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Hooks</b>
+<br>
+The remainder of this document is a reference for the hooks
+that you can register. Generally speaking you can register
+any hook that you like, but some care must be taken as some
+hooks have default behavior that will be overridden when you
+register a hook. The hooks are presented in alphabetical
+order. The execution order is shown in the flowchart above
+(if you are browsing the <small>HTML</small> version of this
+document), or the Perlish pseudo code in the synopsis
+section.</p>
+
+<h2>HOOKS
+<a name="HOOKS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>build
+hook</b> <br>
+$meta&minus;&gt;register_hook( build =&gt; sub { <br>
+my($build) = @_; <br>
+... <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This does the
+main build of the alienized project and installs it into the
+staging area. The current directory is the build root. You
+need to run whatever tools are necessary for the project,
+and install them into
+&quot;$build&minus;&quot;install_prop&minus;&gt;{prefix}&gt;
+(&quot;%{.install.prefix}&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>build_ffi
+hook</b> <br>
+$meta&minus;&gt;register_hook( build_ffi =&gt; sub { <br>
+my($build) = @_; <br>
+... <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is the
+same as build, except it fires only on a <small>FFI</small>
+build.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>decode
+hook</b> <br>
+$meta&minus;&gt;register_hook( decode =&gt; sub { <br>
+my($build, $res) = @_; <br>
+... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook takes
+a response hash reference from the &quot;fetch&quot; hook
+above with a type of &quot;html&quot; or
+&quot;dir_listing&quot; and converts it into a response hash
+reference of type &quot;list&quot;. In short it takes an
+<small>HTML</small> or <small>FTP</small> file listing
+response from a fetch hook and converts it into a list of
+filenames and links that can be used by the prefer hook to
+choose the correct file to download. See the fetch hook for
+the specification of the input and response hash
+references.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>check_digest
+hook</b> <br>
+# implement the well known FOO&minus;92 digest <br>
+$meta&minus;&gt;register_hook( check_digest =&gt; sub { <br>
+my($build, $file, $algorithm, $digest) = @_; <br>
+if($algorithm ne 'FOO92') { <br>
+return 0; <br>
+} <br>
+my $actual = foo92_hex_digest($file); <br>
+if($actual eq $digest) { <br>
+return 1; <br>
+} else { <br>
+die &quot;Digest FOO92 does not match: got $actual, expected
+$digest&quot;; <br>
+} <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook
+should check the given $file (the format is the same as used
+by the fetch hook) matches the given $digest using the given
+$algorithm. If the plugin does not support the given
+algorithm, then it should return a false value. If the
+digest does not match, it should throw an exception. If the
+digest matches, it should return a true value.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>clean_install</b>
+<br>
+$meta&minus;&gt;register_hook( clean_install =&gt; sub {
+<br>
+my($build) = @_; <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook
+allows you to remove files from the final install location
+before the files are installed by the installer layer
+(examples: Alien::Build::MM, Alien::Build::MB or App::af).
+This hook is not called by default, and must be enabled via
+the interface to the installer layer (example:
+&quot;clean_install&quot; in Alien::Build::MM).</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook
+<small>SHOULD NOT</small> remove the &quot;_alien&quot;
+directory or its content from the install location.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default
+implementation removes all the files <small>EXCEPT</small>
+the &quot;_alien&quot; directory and its content.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>download
+hook</b> <br>
+$meta&minus;&gt;register_hook( download =&gt; sub { <br>
+my($build) = @_; <br>
+... <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook is
+used to download from the internet the source. Either as an
+archive (like tar, zip, etc), or as a directory of files
+(&quot;git clone&quot;, etc). When the hook is called, the
+current working directory will be a new empty directory, so
+you can save the download to the current directory. If you
+store a single file in the directory, Alien::Build will
+assume that it is an archive, which will be processed by the
+extract hook. If you store multiple files, Alien::Build will
+assume the current directory is the source root. If no files
+are stored at all, an exception with an appropriate
+diagnostic will be thrown.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>: If
+you register this hook, then the fetch, decode and prefer
+hooks will <small>NOT</small> be called, unless you call
+them yourself from this hook.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>extract
+hook</b> <br>
+$meta&minus;&gt;register_hook( extract =&gt; sub { <br>
+my($build, $archive) = @_; <br>
+... <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook is
+used to extract an archive that has already been downloaded.
+Alien::Build already has plugins for the most common archive
+formats, so you will likely only need this to add support
+for new or novel archive formats. When this hook is called,
+the current working directory will be a new empty directory,
+so you can save the content of the archive to the current
+directory. If a single directory is written to the current
+directory, Alien::Build will assume that is the root
+directory of the package. If multiple files and/or
+directories are present, that will indicate that the current
+working directory is the root of the package. The logic
+typically handles correctly the default behavior for tar
+(where packages are typically extracted to a subdirectory)
+and for zip (where packages are typically extracted to the
+current directory).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>fetch
+hook</b> <br>
+package Alien::Build::Plugin::MyPlugin; <br>
+use strict; <br>
+use warnings; <br>
+use Alien::Build::Plugin; <br>
+use Carp (); <br>
+has '+url' =&gt; sub { Carp::croak &quot;url is required
+property&quot; }; <br>
+sub init <br>
+{ <br>
+my($self, $meta) = @_; <br>
+$meta&minus;&gt;register_hook( fetch =&gt; sub { <br>
+my($build, $url, %options) = @_; <br>
+... <br>
+} <br>
+} <br>
+1;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Used to fetch a
+resource. The first time it will be called without an
+argument (or with $url set to &quot;undef&quot;, so the
+configuration used to find the resource should be specified
+by the plugin&rsquo;s properties. On subsequent calls the
+first argument will be a <small>URL.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">The %options
+hash may contain these options: <br>
+http_headers</p>
+
+<p style="margin-left:17%;"><small>HTTP</small> request
+headers, if an appropriate protocol is being used. The
+headers are provided as an array reference of key/value
+pairs, which allows for duplicate header keys with multiple
+values.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If a non-HTTP
+protocol is used, or if the plugin cannot otherwise send
+<small>HTTP</small> request headers, the plugin
+<small>SHOULD</small> issue a warning using the
+&quot;$build&minus;&gt;log&quot; method, but because this
+option wasn&rsquo;t part of the original spec, the plugin
+<small>MAY</small> no issue that warning while ignoring
+it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+versions of Alien::Build prior to 2.39 did not pass the
+options hash into the fetch plugin.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Normally the
+first fetch will be to either a file or a directory listing.
+If it is a file then the content should be returned as a
+hash reference with the following keys:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># content of
+file stored in Perl <br>
+return { <br>
+type =&gt; 'file', <br>
+filename =&gt; $filename, <br>
+content =&gt; $content, <br>
+version =&gt; $version, # optional, if known <br>
+protocol =&gt; $protocol, # AB 2.60 optional, but
+recommended <br>
+}; <br>
+# content of file stored in the filesystem <br>
+return { <br>
+type =&gt; 'file', <br>
+filename =&gt; $filename, <br>
+path =&gt; $path, # full file system path to file <br>
+version =&gt; $version, # optional, if known <br>
+tmp =&gt; $tmp, # optional <br>
+protocol =&gt; $protocol, # AB 2.60 optional, but
+recommended <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">$tmp if set
+will indicate if the file is temporary or not, and can be
+used by Alien::Build to save a copy in some cases. The
+default is true, so Alien::Build assumes the file or
+directory is temporary if you don&rsquo;t tell it otherwise.
+Probably the most common situation when you would set
+&quot;tmp&quot; to false, is when the file is bundled inside
+the Alien distribution. See
+Alien::Build::Plugin::Fetch::Local for example.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+<small>URL</small> points to a directory listing you should
+return it as either a hash reference containing a list of
+files:</p>
+
+<p style="margin-left:11%; margin-top: 1em">return { <br>
+type =&gt; 'list', <br>
+list =&gt; [ <br>
+# filename: each filename should be just the <br>
+# filename portion, no path or url. <br>
+# url: each url should be the complete url <br>
+# needed to fetch the file. <br>
+# version: OPTIONAL, may be provided by some fetch or prefer
+<br>
+{ filename =&gt; $filename1, url =&gt; $url1, version =&gt;
+$version1 }, <br>
+{ filename =&gt; $filename2, url =&gt; $url2, version =&gt;
+$version2 }, <br>
+], <br>
+protocol =&gt; $protocol, # AB 2.60 optional, but
+recommended <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">or if the
+listing is in <small>HTML</small> format as a hash reference
+containing the <small>HTML</small> information:</p>
+
+<p style="margin-left:11%; margin-top: 1em">return { <br>
+type =&gt; 'html', <br>
+charset =&gt; $charset, # optional <br>
+base =&gt; $base, # the base URL: used for computing
+relative URLs <br>
+content =&gt; $content, # the HTML content <br>
+protocol =&gt; $protocol, # optional, but recommended <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">or a directory
+listing (usually produced by an <small>FTP</small> servers)
+as a hash reference:</p>
+
+<p style="margin-left:11%; margin-top: 1em">return { <br>
+type =&gt; 'dir_listing', <br>
+base =&gt; $base, <br>
+content =&gt; $content, <br>
+protocol =&gt; $protocol, # AB 2.60 optional, but
+recommended <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">[version
+2.60]</p>
+
+<p style="margin-left:11%; margin-top: 1em">For all of
+these responses $protocol is optional, since it was not part
+of the original spec, however it is strongly recommended
+that you include this field, because future versions of
+Alien::Build will use this to determine if a file was
+downloaded securely (that is via a secure protocol such as
+<small>SSL</small> ).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some plugins
+(like decode plugins ) trans late a file hash from one type
+to another, they should maintain the $protocol from the old
+to the new representation of the file.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>gather_ffi
+hook</b> <br>
+$meta&minus;&gt;register_hook( gather_ffi =&gt; sub { <br>
+my($build) = @_; <br>
+$build&minus;&gt;runtime_prop&minus;&gt;{cflags} = ...; <br>
+$build&minus;&gt;runtime_prop&minus;&gt;{libs} = ...; <br>
+$build&minus;&gt;runtime_prop&minus;&gt;{version} = ...;
+<br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook is
+called for a <small>FFI</small> build to determine the
+properties necessary for using the library or tool. These
+properties should be stored in the runtime_prop hash as
+shown above. Typical properties that are needed for
+libraries are cflags and libs. If at all possible you should
+also try to determine the version of the library or
+tool.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>gather_share
+hook</b> <br>
+$meta&minus;&gt;register_hook( gather_share =&gt; sub { <br>
+my($build) = @_; <br>
+$build&minus;&gt;runtime_prop&minus;&gt;{cflags} = ...; <br>
+$build&minus;&gt;runtime_prop&minus;&gt;{libs} = ...; <br>
+$build&minus;&gt;runtime_prop&minus;&gt;{version} = ...;
+<br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook is
+called for a share install to determine the properties
+necessary for using the library or tool. These properties
+should be stored in the runtime_prop hash as shown above.
+Typical properties that are needed for libraries are cflags
+and libs. If at all possible you should also try to
+determine the version of the library or tool.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>gather_system
+hook</b> <br>
+$meta&minus;&gt;register_hook( gather_system =&gt; sub {
+<br>
+my($build) = @_; <br>
+$build&minus;&gt;runtime_prop&minus;&gt;{cflags} = ...; <br>
+$build&minus;&gt;runtime_prop&minus;&gt;{libs} = ...; <br>
+$build&minus;&gt;runtime_prop&minus;&gt;{version} = ...;
+<br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook is
+called for a system install to determine the properties
+necessary for using the library or tool. These properties
+should be stored in the runtime_prop hash as shown above.
+Typical properties that are needed for libraries are cflags
+and libs. If at all possible you should also try to
+determine the version of the library or tool.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>override
+hook</b> <br>
+$meta&minus;&gt;register_hook( override =&gt; sub { <br>
+my($build) = @_; <br>
+return $ENV{ALIEN_INSTALL_TYPE} || ''; <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This allows you
+to alter the override logic. It should return one of
+&quot;share&quot;, &quot;system&quot;, &quot;default&quot;
+or ''. The default implementation is shown above.
+Alien::Build::Plugin::Probe::Override and
+Alien::Build::Plugin::Probe::OverrideCI are examples of how
+you can use this hook.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>patch
+hook</b> <br>
+$meta&minus;&gt;register_hook( patch =&gt; sub { <br>
+my($build) = @_; <br>
+... <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook is
+completely optional. If registered, it will be triggered
+after extraction and before build. It allows you to apply
+any patches or make any modifications to the source if they
+are necessary.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>patch_ffi
+hook</b> <br>
+$meta&minus;&gt;register_hook( patch_ffi =&gt; sub { <br>
+my($build) = @_; <br>
+... <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook is
+exactly like the patch hook, except it fires only on an
+<small>FFI</small> build.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>prefer
+hook</b> <br>
+$meta&minus;&gt;register_hook( prefer =&gt; sub { <br>
+my($build, $res) = @_; <br>
+return { <br>
+type =&gt; 'list', <br>
+list =&gt; [sort @{ $res&minus;&gt;{list} }], <br>
+}; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook sorts
+candidates from a listing generated from either the
+&quot;fetch&quot; or &quot;decode&quot; hooks. It should
+return a new list hash reference with the candidates sorted
+from best to worst. It may also remove candidates that are
+totally unacceptable.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>probe
+hook</b> <br>
+$meta&minus;&gt;register_hook( probe =&gt; sub { <br>
+my($build) = @_; <br>
+return 'system' if ...; # system install <br>
+return 'share'; # otherwise <br>
+}); <br>
+$meta&minus;&gt;register_hook( probe =&gt; [ $command ]
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This hook
+should return the string &quot;system&quot; if the operating
+system provides the library or tool. It should return
+&quot;share&quot; otherwise.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+use a command that returns true when the tool or library is
+available. For example for use with
+&quot;pkg&minus;config&quot;:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$meta&minus;&gt;register_hook(
+probe =&gt; <br>
+[ '%{pkgconf} &minus;&minus;exists libfoo' ] );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or if you
+needed a minimum version:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$meta&minus;&gt;register_hook(
+probe =&gt; <br>
+[ '%{pkgconf} &minus;&minus;atleast&minus;version=1.00
+libfoo' ] );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+hook <small>SHOULD NOT</small> gather system properties,
+such as cflags, libs, versions, etc, because the probe hook
+will be skipped in the event the environment variable
+&quot;ALIEN_INSTALL_TYPE&quot; is set. The detection of
+these properties should instead be done by the gather_system
+hook.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Multiple probe
+hooks can be given. These will be used in sequence, stopping
+at the first that detects a system installation.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Alien::Build::Manual</p>
+
+<p style="margin-left:17%;">Other Alien::Build manuals.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Author: Graham
+Ollis &lt;plicease@cpan.org&gt;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Contributors:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Diab Jerius (
+<small>DJERIUS</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Roy Storey (
+<small>KIWIROY</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ilya Pavlov</p>
+
+<p style="margin-left:11%; margin-top: 1em">David Mertens
+(run4flat)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Mark Nunberg
+(mordy, mnunberg)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Christian Walde
+(Mithaldu)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Brian Wightman
+(MidLifeXis)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Zaki Mughal
+(zmughal)</p>
+
+<p style="margin-left:11%; margin-top: 1em">mohawk
+(mohawk2, <small>ETJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Vikas N Kumar
+(vikasnkumar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Flavio Poletti
+(polettix)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Salvador
+Fandi&Atilde;&plusmn;o (salva)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Gianni
+Ceccarelli (dakkar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Pavel Shaydo
+(zwon, trinitum)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Kang-min Liu
+(&aring;&aring;&ordm;&middot;&aelig;&deg;, gugod)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Nicholas Shipp
+(nshp)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Juan
+Juli&Atilde;&iexcl;n Merelo Guerv&Atilde;&sup3;s (
+<small>JJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Joel Berger (
+<small>JBERGER</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Petr
+P&Atilde;sa&Aring; (ppisar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Lance Wicks (
+<small>LANCEW</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ahmad Fatoum
+(a3f, <small>ATHREEF</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jos&Atilde;&copy;
+Joaqu&Atilde;n Atria ( <small>JJATRIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Duke Leto (
+<small>LETO</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shoichi Kaji (
+<small>SKAJI</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shawn Laffan (
+<small>SLAFFAN</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Paul Evans
+(leonerd, <small>PEVANS</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">H&Atilde;&yen;kon
+H&Atilde;&brvbar;gland (hakonhagland, <small>HAKONH</small>
+)</p>
+
+<p style="margin-left:11%; margin-top: 1em">nick
+nauwelaerts ( <small>INPHOBIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Florian
+Weimer</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2011&minus;2022 by Graham Ollis.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+<hr>
+</body>
+</html>

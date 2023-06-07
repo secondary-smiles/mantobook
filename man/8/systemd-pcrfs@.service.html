@@ -1,0 +1,279 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:08 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SYSTEMD&minus;PCRPHASE.SERVICE</title>
+
+</head>
+<body>
+<h1>systemd-pcrfs@.service</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd-pcrphase.service,
+systemd-pcrphase-sysinit.service,
+systemd-pcrphase-initrd.service, systemd-pcrmachine.service,
+systemd-pcrfs-root.service, systemd-pcrfs@.service,
+systemd-pcrphase &minus; Measure boot phase into TPM2 PCR
+11, machine ID and file system identity into PCR 15</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;pcrphase.service</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;pcrphase&minus;sysinit.service</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;pcrphase&minus;initrd.service</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;pcrmachine.service</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;pcrfs&minus;root.service</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;pcrfs@.service</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">/usr/lib/systemd/systemd&minus;pcrphase
+[<i>STRING</i>]</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;pcrphase.service,
+systemd&minus;pcrphase&minus;sysinit.service, and
+systemd&minus;pcrphase&minus;initrd.service are system
+services that measure specific strings into TPM2 PCR 11
+during boot at various milestones of the boot process.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;pcrmachine.service
+is a system service that measures the machine ID (see
+<b>machine-id</b>(5)) into PCR 15.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;pcrfs&minus;root.service
+and systemd&minus;pcrfs@.service are services that measure
+file system identity information (i.e. mount point, file
+system type, label and UUID, partition label and UUID) into
+PCR 15. systemd&minus;pcrfs&minus;root.service does so for
+the root file system, systemd&minus;pcrfs@.service is a
+template unit that measures the file system indicated by its
+instance identifier instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These services
+require <b>systemd-stub</b>(7) to be used in a unified
+kernel image (UKI). They execute no operation when the stub
+has not been used to invoke the kernel. The stub will
+measure the invoked kernel and associated vendor resources
+into PCR 11 before handing control to it; once userspace is
+invoked these services then will extend TPM2 PCR 11 with
+certain literal strings indicating phases of the boot
+process. During a regular boot process PCR 11 is extended
+with the following strings:</p>
+
+<p style="margin-left:17%; margin-top: 1em">1.
+&quot;enter&minus;initrd&quot; &mdash; early when the initrd
+initializes, before activating system extension images for
+the initrd. It acts as a barrier between the time where the
+kernel initializes and where the initrd starts operating and
+enables system extension images, i.e. code shipped outside
+of the UKI. (This extension happens when
+systemd&minus;pcrphase&minus;initrd.service is started.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">2.
+&quot;leave&minus;initrd&quot; &mdash; when the initrd is
+about to transition into the host file system. It acts as
+barrier between initrd code and host OS code. (This
+extension happens when
+systemd&minus;pcrphase&minus;initrd.service is stopped.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">3.
+&quot;sysinit&quot; &mdash; when basic system initialization
+is complete (which includes local file systems having been
+mounted), and the system begins starting regular system
+services. (This extension happens when
+systemd&minus;pcrphase&minus;sysinit.service is
+started.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">4.
+&quot;ready&quot; &mdash; during later boot&minus;up, after
+remote file systems have been activated (i.e. after
+remote&minus;fs.target), but before users are permitted to
+log in (i.e. before
+systemd&minus;user&minus;sessions.service). It acts as
+barrier between the time where unprivileged regular users
+are still prohibited to log in and where they are allowed to
+log in. (This extension happens when
+systemd&minus;pcrphase.service is started.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">5.
+&quot;shutdown&quot; &mdash; when the system shutdown
+begins. It acts as barrier between the time the system is
+fully up and running and where it is about to shut down.
+(This extension happens when systemd&minus;pcrphase.service
+is stopped.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">6.
+&quot;final&quot; &mdash; at the end of system shutdown. It
+acts as barrier between the time the service manager still
+runs and when it transitions into the final shutdown phase
+where service management is not available anymore. (This
+extension happens when
+systemd&minus;pcrphase&minus;sysinit.service is
+stopped.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">During a
+regular system lifecycle, PCR 11 is extended with the
+strings &quot;enter&minus;initrd&quot;,
+&quot;leave&minus;initrd&quot;, &quot;sysinit&quot;,
+&quot;ready&quot;, &quot;shutdown&quot;, and
+&quot;final&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Specific phases
+of the boot process may be referenced via the series of
+strings measured, separated by colons (the &quot;phase
+path&quot;). For example, the phase path for the regular
+system runtime is
+&quot;enter&minus;initrd:leave&minus;initrd:sysinit:ready&quot;,
+while the one for the initrd is just
+&quot;enter&minus;initrd&quot;. The phase path for the boot
+phase before the initrd is an empty string; because that's
+hard to pass around a single colon (&quot;:&quot;) may be
+used instead. Note that the aforementioned six strings are
+just the default strings and individual systems might
+measure other strings at other times, and thus implement
+different and more fine&minus;grained boot phases to bind
+policy to.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By binding
+policy of TPM2 objects to a specific phase path it is
+possible to restrict access to them to specific phases of
+the boot process, for example making it impossible to access
+the root file system's encryption key after the system
+transitioned from the initrd into the host root file
+system.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Use
+<b>systemd-measure</b>(1) to pre&minus;calculate expected
+PCR 11 values for specific boot phases (via the
+<b>&minus;&minus;phase=</b> switch).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;pcrfs&minus;root.service
+and systemd&minus;pcrfs@.service are automatically pulled
+into the initial transaction by
+<b>systemd-gpt-auto-generator</b>(8) for the root and /var/
+file systems. <b>systemd-fstab-generator</b>(8) will do this
+for all mounts with the <b>x&minus;systemd.pcrfs</b> mount
+option in /etc/fstab.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+/usr/lib/systemd/system&minus;pcrphase executable may also
+be invoked from the command line, where it expects the word
+to extend into PCR 11, as well as the following
+switches:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;bank=</b></p>
+
+<p style="margin-left:17%;">Takes the PCR banks to extend
+the specified word into. If not specified the tool
+automatically determines all enabled PCR banks and measures
+the word into all of them.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;tpm2&minus;device=</b><i>PATH</i></p>
+
+<p style="margin-left:17%;">Controls which TPM2 device to
+use. Expects a device node path referring to the TPM2 chip
+(e.g. /dev/tpmrm0). Alternatively the special value
+&quot;auto&quot; may be specified, in order to automatically
+determine the device node of a suitable TPM2 device (of
+which there must be exactly one). The special value
+&quot;list&quot; may be used to enumerate all suitable TPM2
+devices currently discovered.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;graceful</b></p>
+
+<p style="margin-left:17%;">If no TPM2 firmware, kernel
+subsystem, kernel driver or device support is found, exit
+with exit status 0 (i.e. indicate success). If this is not
+specified any attempt to measure without a TPM2 device will
+cause the invocation to fail.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;machine&minus;id</b></p>
+
+<p style="margin-left:17%;">Instead of measuring a word
+specified on the command line into PCR 11, measure the
+host's machine ID into PCR 15.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;file&minus;system=</b></p>
+
+<p style="margin-left:17%;">Instead of measuring a word
+specified on the command line into PCR 11, measure identity
+information of the specified file system into PCR 15. The
+parameter must be the path to the established mount point of
+the file system to measure.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;h</b>,
+<b>&minus;&minus;help</b></p>
+
+<p style="margin-left:17%;">Print a short help text and
+exit.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;version</b></p>
+
+<p style="margin-left:17%;">Print a short version string
+and exit.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>systemd-stub</b>(7), <b>systemd-measure</b>(1),
+<b>systemd-gpt-auto-generator</b>(8),
+<b>systemd-fstab-generator</b>(8)</p>
+<hr>
+</body>
+</html>

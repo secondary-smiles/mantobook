@@ -1,0 +1,218 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:39 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>OCSP_SENDREQ_NEW</title>
+
+</head>
+<body>
+<h1>OCSP_REQ_CTX</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">OCSP_REQ_CTX,
+OCSP_sendreq_new, OCSP_sendreq_nbio, OCSP_sendreq_bio,
+OCSP_REQ_CTX_i2d, OCSP_REQ_CTX_add1_header,
+OCSP_REQ_CTX_free, OCSP_set_max_response_length,
+OCSP_REQ_CTX_set1_req &minus; OCSP responder query
+functions</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;openssl/ocsp.h&gt; <br>
+OSSL_HTTP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char
+*path, <br>
+const OCSP_REQUEST *req, int buf_size); <br>
+OCSP_RESPONSE *OCSP_sendreq_bio(BIO *io, const char *path,
+OCSP_REQUEST *req);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+functions have been deprecated since OpenSSL 3.0, and can be
+hidden entirely by defining
+<b><small>OPENSSL_API_COMPAT</small></b> with a suitable
+version value, see <b>openssl_user_macros</b>(7):</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef
+OSSL_HTTP_REQ_CTX OCSP_REQ_CTX; <br>
+int OCSP_sendreq_nbio(OCSP_RESPONSE **presp,
+OSSL_HTTP_REQ_CTX *rctx); <br>
+int OCSP_REQ_CTX_i2d(OCSP_REQ_CT *rctx, const ASN1_ITEM *it,
+ASN1_VALUE *req); <br>
+int OCSP_REQ_CTX_add1_header(OCSP_REQ_CT *rctx, <br>
+const char *name, const char *value); <br>
+void OCSP_REQ_CTX_free(OCSP_REQ_CTX *rctx); <br>
+void OCSP_set_max_response_length(OCSP_REQ_CT *rctx,
+unsigned long len); <br>
+int OCSP_REQ_CTX_set1_req(OCSP_REQ_CTX *rctx, const
+OCSP_REQUEST *req);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These functions
+perform an <small>OCSP POST</small> request / response
+transfer over <small>HTTP,</small> using the
+<small>HTTP</small> request functions described in
+<b><small>OSSL_HTTP_REQ_CTX</small></b> (3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The function
+<b>OCSP_sendreq_new()</b> builds a complete
+<b><small>OSSL_HTTP_REQ_CTX</small></b> structure with the
+<b><small>BIO</small></b> <i>io</i> to be used for requests
+and reponse, the <small>URL</small> path <i>path</i>,
+optionally the <small>OCSP</small> request <i>req</i>, and a
+response header maximum line length of <i>buf_size</i>. If
+<i>buf_size</i> is zero a default value of 4KiB is used. The
+<i>req</i> may be set to <small>NULL</small> and provided
+later using <b>OCSP_REQ_CTX_set1_req()</b> or
+<b>OSSL_HTTP_REQ_CTX_set1_req</b>(3). The <i>io</i> and
+<i>path</i> arguments to <b>OCSP_sendreq_new()</b>
+correspond to the components of the <small>URL.</small> For
+example if the responder <small>URL</small> is
+&quot;http://example.com/ocspreq&quot; the
+<small>BIO</small> <i>io</i> should haven been connected to
+host &quot;example.com&quot; on port 80 and <i>path</i>
+should be set to &quot;/ocspreq&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OCSP_sendreq_nbio()</b>
+attempts to send the request prepared in <i>rctx</i> and to
+gather the response via <small>HTTP,</small> using the
+<small>BIO</small> <i>io</i> and <i>path</i> that were given
+when calling <b>OCSP_sendreq_new()</b>. If the operation
+gets completed it assigns the response, a pointer to a
+<b><small>OCSP_RESPONSE</small></b> structure, in
+<i>*presp</i>. The function may need to be called again if
+its result is &minus;1, which indicates
+<b>BIO_should_retry</b>(3). In such a case it is advisable
+to sleep a little in between, using <b>BIO_wait</b>(3) on
+the read <small>BIO</small> to prevent a busy loop.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OCSP_sendreq_bio()</b>
+combines <b>OCSP_sendreq_new()</b> with as many calls of
+<b>OCSP_sendreq_nbio()</b> as needed and then
+<b>OCSP_REQ_CTX_free()</b>, with a response header maximum
+line length 4k. It waits indefinitely on a response. It does
+not support setting a timeout or adding headers and is
+retained for compatibility; use <b>OSSL_HTTP_transfer</b>(3)
+instead.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">OCSP_REQ_CTX_i2d(rctx,
+it, req) is equivalent to the following:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">OSSL_HTTP_REQ_CTX_set1_req(rctx,
+&quot;application/ocsp&minus;request&quot;, it, req)</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">OCSP_REQ_CTX_set1_req(rctx,
+req) is equivalent to the following:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">OSSL_HTTP_REQ_CTX_set1_req(rctx,
+&quot;application/ocsp&minus;request&quot;, <br>
+ASN1_ITEM_rptr(OCSP_REQUEST), <br>
+(const ASN1_VALUE *)req)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The deprecated
+type and the remaining deprecated functions have been
+superseded by the following equivalents:
+<b><small>OCSP_REQ_CTX</small></b> by
+<b><small>OSSL_HTTP_REQ_CTX</small></b> (3),
+<b>OCSP_REQ_CTX_add1_header()</b> by
+<b>OSSL_HTTP_REQ_CTX_add1_header</b>(3),
+<b>OCSP_REQ_CTX_free()</b> by
+<b>OSSL_HTTP_REQ_CTX_free</b>(3), and
+<b>OCSP_set_max_response_length()</b> by
+<b>OSSL_HTTP_REQ_CTX_set_max_response_length</b>(3).</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OCSP_sendreq_new()</b>
+returns a valid <b><small>OSSL_HTTP_REQ_CTX</small></b>
+structure or <small>NULL</small> if an error occurred.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OCSP_sendreq_nbio()</b>
+returns 1 for success, 0 on error, &minus;1 if retry is
+needed.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OCSP_sendreq_bio()</b>
+returns the <b><small>OCSP_RESPONSE</small></b> structure
+sent by the responder or <small>NULL</small> if an error
+occurred.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>OSSL_HTTP_REQ_CTX</small></b>
+(3), <b>OSSL_HTTP_transfer</b>(3),
+<b>OCSP_cert_to_id</b>(3),
+<b>OCSP_request_add1_nonce</b>(3),
+<b>OCSP_REQUEST_new</b>(3), <b>OCSP_resp_find_status</b>(3),
+<b>OCSP_response_status</b>(3)</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>OCSP_REQ_CTX</small></b>
+, <b>OCSP_REQ_CTX_i2d()</b>,
+<b>OCSP_REQ_CTX_add1_header()</b>,
+<b>OCSP_REQ_CTX_free()</b>,
+<b>OCSP_set_max_response_length()</b>, and
+<b>OCSP_REQ_CTX_set1_req()</b> were deprecated in OpenSSL
+3.0.</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2015&minus;2021 The OpenSSL Project Authors. All Rights
+Reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Licensed under
+the Apache License 2.0 (the &quot;License&quot;). You may
+not use this file except in compliance with the License. You
+can obtain a copy in the file <small>LICENSE</small> in the
+source distribution or at
+&lt;https://www.openssl.org/source/license.html&gt;.</p>
+<hr>
+</body>
+</html>

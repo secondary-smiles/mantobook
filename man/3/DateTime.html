@@ -1,0 +1,5476 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:34 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>DateTime</title>
+
+</head>
+<body>
+<h1>DateTime</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">DateTime
+&minus; A date and time object for Perl</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+1.59</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use DateTime;
+<br>
+$dt = DateTime&minus;&gt;new( <br>
+year =&gt; 1964, <br>
+month =&gt; 10, <br>
+day =&gt; 16, <br>
+hour =&gt; 16, <br>
+minute =&gt; 12, <br>
+second =&gt; 47, <br>
+nanosecond =&gt; 500000000, <br>
+time_zone =&gt; 'Asia/Taipei', <br>
+); <br>
+$dt = DateTime&minus;&gt;from_epoch( epoch =&gt; $epoch );
+<br>
+$dt = DateTime&minus;&gt;now; # same as ( epoch =&gt; time )
+<br>
+$year = $dt&minus;&gt;year; <br>
+$month = $dt&minus;&gt;month; # 1&minus;12 <br>
+$day = $dt&minus;&gt;day; # 1&minus;31 <br>
+$dow = $dt&minus;&gt;day_of_week; # 1&minus;7 (Monday is 1)
+<br>
+$hour = $dt&minus;&gt;hour; # 0&minus;23 <br>
+$minute = $dt&minus;&gt;minute; # 0&minus;59 <br>
+$second = $dt&minus;&gt;second; # 0&minus;61 (leap seconds!)
+<br>
+$doy = $dt&minus;&gt;day_of_year; # 1&minus;366 (leap years)
+<br>
+$doq = $dt&minus;&gt;day_of_quarter; # 1.. <br>
+$qtr = $dt&minus;&gt;quarter; # 1&minus;4 <br>
+# all of the start&minus;at&minus;1 methods above have
+corresponding start&minus;at&minus;0 <br>
+# methods, such as $dt&minus;&gt;day_of_month_0,
+$dt&minus;&gt;month_0 and so on <br>
+$ymd = $dt&minus;&gt;ymd; # 2002&minus;12&minus;06 <br>
+$ymd = $dt&minus;&gt;ymd('/'); # 2002/12/06 <br>
+$mdy = $dt&minus;&gt;mdy; # 12&minus;06&minus;2002 <br>
+$mdy = $dt&minus;&gt;mdy('/'); # 12/06/2002 <br>
+$dmy = $dt&minus;&gt;dmy; # 06&minus;12&minus;2002 <br>
+$dmy = $dt&minus;&gt;dmy('/'); # 06/12/2002 <br>
+$hms = $dt&minus;&gt;hms; # 14:02:29 <br>
+$hms = $dt&minus;&gt;hms('!'); # 14!02!29 <br>
+$is_leap = $dt&minus;&gt;is_leap_year; <br>
+# these are localizable, see Locales section <br>
+$month_name = $dt&minus;&gt;month_name; # January, February,
+... <br>
+$month_abbr = $dt&minus;&gt;month_abbr; # Jan, Feb, ... <br>
+$day_name = $dt&minus;&gt;day_name; # Monday, Tuesday, ...
+<br>
+$day_abbr = $dt&minus;&gt;day_abbr; # Mon, Tue, ... <br>
+# May not work for all possible datetime, see the docs on
+this <br>
+# method for more details. <br>
+$epoch_time = $dt&minus;&gt;epoch; <br>
+$dt2 = $dt + $duration_object; <br>
+$dt3 = $dt &minus; $duration_object; <br>
+$duration_object = $dt &minus; $dt2; <br>
+$dt&minus;&gt;set( year =&gt; 1882 ); <br>
+$dt&minus;&gt;set_time_zone('America/Chicago'); <br>
+$dt&minus;&gt;set_formatter($formatter);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">DateTime is a
+class for the representation of date/time combinations, and
+is part of the Perl DateTime project.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It represents
+the Gregorian calendar, extended backwards in time before
+its creation (in 1582). This is sometimes known as the
+&quot;proleptic Gregorian calendar&quot;. In this calendar,
+the first day of the calendar (the epoch), is the first day
+of year 1, which corresponds to the date which was
+(incorrectly) believed to be the birth of Jesus Christ.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The calendar
+represented does have a year 0, and in that way differs from
+how dates are often written using &quot;
+<small>BCE/CE&quot;</small> or &quot;
+<small>BC/AD&quot;.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">For infinite
+datetimes, please see the DateTime::Infinite module.</p>
+
+<h2>USAGE
+<a name="USAGE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>0&minus;based
+Versus 1&minus;based Numbers</b> <br>
+The &quot;DateTime&quot; module follows a simple logic for
+determining whether or not a given number is 0&minus;based
+or 1&minus;based.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Month, day of
+month, day of week, and day of year are 1&minus;based. Any
+method that is 1&minus;based also has an equivalent
+0&minus;based method ending in &quot;_0&quot;. So for
+example, this class provides both &quot;day_of_week&quot;
+and &quot;day_of_week_0&quot; methods.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;day_of_week_0&quot; method still treats Monday as the
+first day of the week.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All
+<i>time</i>&minus;related numbers such as hour, minute, and
+second are 0&minus;based.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Years are
+neither, as they can be both positive or negative, unlike
+any other datetime component. There <i>is</i> a year 0.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There is no
+&quot;quarter_0&quot; method.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Error
+Handling</b> <br>
+Some errors may cause this module to die with an error
+string. This can only happen when calling constructor
+methods, methods that change the object, such as
+&quot;set&quot;, or methods that take parameters. Methods
+that retrieve information about the object, such as
+&quot;year&quot; or &quot;epoch&quot;, will never die.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Locales</b>
+<br>
+All the object methods which return names or abbreviations
+return data based on a locale. This is done by setting the
+locale when constructing a DateTime object. If this is not
+set, then &quot;en&minus;US&quot; is used.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Floating
+DateTimes</b> <br>
+The default time zone for new DateTime objects, except where
+stated otherwise, is the &quot;floating&quot; time zone.
+This concept comes from the iCal standard. A floating
+datetime is one which is not anchored to any particular time
+zone. In addition, floating datetimes do not include leap
+seconds, since we cannot apply them without knowing the
+datetime&rsquo;s time zone.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The results of
+date math and comparison between a floating datetime and one
+with a real time zone are not really valid, because one
+includes leap seconds and the other does not. Similarly, the
+results of datetime math between two floating datetimes and
+two datetimes with time zones are not really comparable.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+planning to use any objects with a real time zone, it is
+strongly recommended that you <b>do not</b> mix these with
+floating datetimes.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Math</b>
+<br>
+If you are going to be doing date math, please read the
+section &quot;How DateTime Math Works&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Determining
+the Local Time Zone Can Be Slow</b> <br>
+If $ENV{TZ} is not set, it may involve reading a number of
+files in <i>/etc</i> or elsewhere. If you know that the
+local time zone won&rsquo;t change while your code is
+running, and you need to make many objects for the local
+time zone, it is strongly recommended that you retrieve the
+local time zone once and cache it:</p>
+
+<p style="margin-left:11%; margin-top: 1em">our
+$App::LocalTZ = DateTime::TimeZone&minus;&gt;new( name =&gt;
+'local' ); <br>
+# then everywhere else <br>
+my $dt = DateTime&minus;&gt;new( ..., time_zone =&gt;
+$App::LocalTZ );</p>
+
+<p style="margin-left:11%; margin-top: 1em">DateTime itself
+does not do this internally because local time zones can
+change, and there&rsquo;s no good way to determine if
+it&rsquo;s changed without doing all the work to look it
+up.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Far Future
+<small>DST</small></b> <br>
+Do not try to use named time zones (like
+&quot;America/Chicago&quot;) with dates very far in the
+future (thousands of years). The current implementation of
+&quot;DateTime::TimeZone&quot; will use a huge amount of
+memory calculating all the <small>DST</small> changes from
+now until the future date. Use <small>UTC</small> or the
+floating time zone and you will be safe.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Globally
+Setting a Default Time Zone <br>
+Warning: This is very dangerous. Do this at your own
+risk!</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">By default,
+&quot;DateTime&quot; uses either the floating time zone or
+<small>UTC</small> for newly created objects, depending on
+the constructor.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can force
+&quot;DateTime&quot; to use a different time zone by setting
+the &quot;PERL_DATETIME_DEFAULT_TZ&quot; environment
+variable.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As noted above,
+this is very dangerous, as it affects all code that creates
+a &quot;DateTime&quot; object, including modules from
+<small>CPAN.</small> If those modules expect the normal
+default, then setting this can cause confusing breakage or
+subtly broken data. Before setting this variable, you are
+strongly encouraged to audit your <small>CPAN</small>
+dependencies to see how they use &quot;DateTime&quot;. Try
+running the test suite for each dependency with this
+environment variable set before using this in
+production.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Upper and
+Lower Bounds</b> <br>
+Internally, dates are represented the number of days before
+or after 0001&minus;01&minus;01. This is stored as an
+integer, meaning that the upper and lower bounds are based
+on your Perl&rsquo;s integer size ($Config{ivsize}).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The limit on
+32&minus;bit systems is around 2^29 days, which gets you to
+year (+/&minus;)1,469,903. On a 64&minus;bit system you get
+2^62 days, to year (+/&minus;)12,626,367,463,883,278 (12.626
+quadrillion).</p>
+
+<h2>METHODS
+<a name="METHODS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">DateTime
+provides many methods. The documentation breaks them down
+into groups based on what they do (constructor, accessors,
+modifiers, etc.).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Constructors</b>
+<br>
+All constructors can die when invalid parameters are
+given.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>Warnings</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Currently,
+constructors will warn if you try to create a far future
+DateTime (year &gt;= 5000) with any time zone besides
+floating or <small>UTC.</small> This can be very slow if the
+time zone has future <small>DST</small> transitions that
+need to be calculated. If the date is sufficiently far in
+the future this can be <i>really</i> slow (minutes).</p>
+
+<p style="margin-left:11%; margin-top: 1em">All warnings
+from DateTime use the &quot;DateTime&quot; category and can
+be suppressed with:</p>
+
+<p style="margin-left:11%; margin-top: 1em">no warnings
+'DateTime';</p>
+
+<p style="margin-left:11%; margin-top: 1em">This warning
+may be removed in the future if DateTime::TimeZone is made
+much faster.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>DateTime&minus;&gt;new(
+... )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;new( <br>
+year =&gt; 1966, <br>
+month =&gt; 10, <br>
+day =&gt; 25, <br>
+hour =&gt; 7, <br>
+minute =&gt; 15, <br>
+second =&gt; 47, <br>
+nanosecond =&gt; 500000000, <br>
+time_zone =&gt; 'America/Chicago', <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This class
+method accepts the following parameters:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p>year</p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">An integer year
+for the DateTime. This can be any integer number within the
+valid range for your system (See &quot;Upper and Lower
+Bounds&quot;). This is required.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">month</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">An integer from
+1&minus;12. Defaults to 1.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="5%">
+
+
+<p style="margin-top: 1em">day</p></td>
+<td width="78%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">An integer from
+1&minus;31. The value will be validated based on the month,
+to prevent creating invalid dates like February 30. Defaults
+to 1.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em">hour</p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">An integer from
+0&minus;23. Hour 0 is midnight at the beginning of the given
+date. Defaults to 0.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">minute</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">An integer from
+0&minus;59. Defaults to 0.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">second</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">An integer from
+0&minus;61. Values of 60 or 61 are only allowed when the
+specified date and time have a leap second. Defaults to
+0.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="15%">
+
+
+<p style="margin-top: 1em">nanosecond</p></td>
+<td width="68%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">An integer that
+is greater than or equal to 0. If this number is greater
+than 1 billion, it will be normalized into the second value
+for the DateTime object. Defaults to 0</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">locale</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">A string
+containing a locale code, like &quot;en&minus;US&quot; or
+&quot;zh&minus;Hant&minus;TW&quot;, or an object returned by
+&quot;DateTime::Locale&minus;&gt;load&quot;. See the
+DateTime::Locale documentation for details. Defaults to the
+value of &quot;DateTime&minus;&gt;DefaultLocale&quot;, or
+&quot;en&minus;US&quot; if the class default has not been
+set.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="14%">
+
+
+<p style="margin-top: 1em">time_zone</p></td>
+<td width="69%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">A string
+containing a time zone name like &quot;America/Chicago&quot;
+or a DateTime::TimeZone object. Defaults to the value of
+$ENV{PERL_DATETIME_DEFAULT_TZ} or &quot;floating&quot; if
+that env var is not set. See &quot;Globally Setting a
+Default Time Zone&quot; for more details on that env var
+(and why you should not use it).</p>
+
+<p style="margin-left:17%; margin-top: 1em">A string will
+simply be passed to the
+&quot;DateTime::TimeZone&minus;&gt;new&quot; method as its
+&quot;name&quot; parameter. This string may be an Olson
+<small>DB</small> time zone name
+(&quot;America/Chicago&quot;), an offset string
+(&quot;+0630&quot;), or the words &quot;floating&quot; or
+&quot;local&quot;. See the &quot;DateTime::TimeZone&quot;
+documentation for more details.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="14%">
+
+
+<p style="margin-top: 1em">formatter</p></td>
+<td width="69%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">An object or
+class name with a &quot;format_datetime&quot; method. This
+will be used to stringify the DateTime object. This is
+optional. If it is not specified, then stringification calls
+&quot;$self&minus;&gt;iso8601&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Invalid
+parameter types (like an array reference) will cause the
+constructor to die.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Parsing
+Dates</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>This module
+does not parse dates!</b> That means there is no constructor
+to which you can pass things like &quot;March 3, 1970
+12:34&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instead, take a
+look at the various DateTime::Format::*
+&lt;https://metacpan.org/search?q=datetime%3A%3Aformat&gt;
+modules on <small>CPAN.</small> These parse all sorts of
+different date formats, and you&rsquo;re bound to find
+something that can handle your particular needs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ambiguous Local
+Times</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because of
+Daylight Saving Time, it is possible to specify a local time
+that is ambiguous. For example, in the <small>US</small> in
+2003, the transition from to saving to standard time
+occurred on October 26, at 02:00:00 local time. The local
+clock changed from 01:59:59 (saving time) to 01:00:00
+(standard time). This means that the hour from 01:00:00
+through 01:59:59 actually occurs twice, though the
+<small>UTC</small> time continues to move forward.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you specify
+an ambiguous time, then the latest <small>UTC</small> time
+is always used, in effect always choosing standard time. In
+this case, you can simply subtract an hour from the object
+in order to move to saving time, for example:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># This object
+represent 01:30:00 standard time <br>
+my $dt = DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 10, <br>
+day =&gt; 26, <br>
+hour =&gt; 1, <br>
+minute =&gt; 30, <br>
+second =&gt; 0, <br>
+time_zone =&gt; 'America/Chicago', <br>
+); <br>
+print $dt&minus;&gt;hms; # prints 01:30:00 <br>
+# Now the object represent 01:30:00 saving time <br>
+$dt&minus;&gt;subtract( hours =&gt; 1 ); <br>
+print $dt&minus;&gt;hms; # still prints 01:30:00</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternately,
+you could create the object with the <small>UTC</small> time
+zone and then call the &quot;set_time_zone&quot; method to
+change the time zone. This is a good way to ensure that the
+time is not ambiguous.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Invalid Local
+Times</p>
+
+<p style="margin-left:11%; margin-top: 1em">Another problem
+introduced by Daylight Saving Time is that certain local
+times just do not exist. For example, in the
+<small>US</small> in 2003, the transition from standard to
+saving time occurred on April 6, at the change to 2:00:00
+local time. The local clock changed from 01:59:59 (standard
+time) to 03:00:00 (saving time). This means that there is no
+02:00:00 through 02:59:59 on April 6!</p>
+
+<p style="margin-left:11%; margin-top: 1em">Attempting to
+create an invalid time currently causes a fatal error.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>DateTime&minus;&gt;from_epoch(
+epoch =&gt; $epoch, ... )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This class
+method can be used to construct a new DateTime object from
+an epoch time instead of components. Just as with the
+&quot;new&quot; method, it accepts &quot;time_zone&quot;,
+&quot;locale&quot;, and &quot;formatter&quot;
+parameters.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+call it with a single unnamed argument, which will be
+treated as the epoch value.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the epoch
+value is a non-integral value, it will be rounded to nearest
+microsecond.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default, the
+returned object will be in the <small>UTC</small> time
+zone.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you pass a
+&quot;time_zone&quot;, then this time zone will be applied
+<i>after</i> the object is constructed. In other words, the
+epoch value is always interpreted as being in the
+<small>UTC</small> time zone. Here&rsquo;s an example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;from_epoch( <br>
+epoch =&gt; 0, <br>
+time_zone =&gt; 'Asia/Tokyo' <br>
+); <br>
+say $dt; # Prints 1970&minus;01&minus;01T09:00:00 as
+Asia/Tokyo is +09:00 from UTC. <br>
+$dt&minus;&gt;set_time_zone('UTC'); <br>
+say $dt; # Prints 1970&minus;01&minus;01T00:00:00</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>DateTime&minus;&gt;now(
+... )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This class
+method is equivalent to calling &quot;from_epoch&quot; with
+the value returned from Perl&rsquo;s &quot;time&quot;
+function. Just as with the &quot;new&quot; method, it
+accepts &quot;time_zone&quot; and &quot;locale&quot;
+parameters.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default, the
+returned object will be in the <small>UTC</small> time
+zone.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want
+sub-second resolution, use the DateTime::HiRes
+module&rsquo;s &quot;DateTime::HiRes&minus;&gt;now&quot;
+method instead.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>DateTime&minus;&gt;today(
+... )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This class
+method is equivalent to:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">DateTime&minus;&gt;now(@_)&minus;&gt;truncate(
+to =&gt; 'day' );</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>DateTime&minus;&gt;last_day_of_month(
+... )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+constructor takes the same arguments as can be given to the
+&quot;new&quot; method, except for &quot;day&quot;.
+Additionally, both &quot;year&quot; and &quot;month&quot;
+are required.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>DateTime&minus;&gt;from_day_of_year(
+... )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+constructor takes the same arguments as can be given to the
+&quot;new&quot; method, except that it does not accept a
+&quot;month&quot; or &quot;day&quot; argument. Instead, it
+requires both &quot;year&quot; and &quot;day_of_year&quot;.
+The day of year must be between 1 and 366, and 366 is only
+allowed for leap years.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>DateTime&minus;&gt;from_object(
+object =&gt; $object, ... )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This class
+method can be used to construct a new DateTime object from
+any object that implements the &quot;utc_rd_values&quot;
+method. All &quot;DateTime::Calendar&quot; modules must
+implement this method in order to provide cross-calendar
+compatibility. This method accepts a &quot;locale&quot; and
+&quot;formatter&quot; parameter</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the object
+passed to this method has a &quot;time_zone&quot; method,
+that is used to set the time zone of the newly created
+&quot;DateTime&quot; object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Otherwise, the
+returned object will be in the floating time zone.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;clone</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This object
+method returns a new object that is replica of the object
+upon which the method is called.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&quot;Get&quot;
+Methods</b> <br>
+This class has many methods for retrieving information about
+an object.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;year</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+year.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;ce_year</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+year according to the <small>BCE/CE</small> numbering
+system. The year before year 1 in this system is year
+&minus;1, aka &quot;1 <small>BCE&quot;.</small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;era_name</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+long name of the current era, something like &quot;Before
+Christ&quot;. See the &quot;Locales&quot; section for more
+details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;era_abbr</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+abbreviated name of the current era, something like &quot;
+<small>BC&quot;.</small> See the &quot;Locales&quot; section
+for more details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;christian_era</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+string, either &quot; <small>BC&quot;</small> or &quot;
+<small>AD&quot;,</small> according to the year.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;secular_era</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+string, either &quot; <small>BCE&quot;</small> or &quot;
+<small>CE&quot;,</small> according to the year.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;year_with_era</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+string containing the year immediately followed by the
+appropriate era abbreviation, based on the object&rsquo;s
+locale. The year is the absolute value of
+&quot;ce_year&quot;, so that year 1 is &quot;1&quot; and
+year 0 is &quot;1BC&quot;. See the &quot;Locales&quot;
+section for more details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;year_with_christian_era</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Like
+&quot;year_with_era&quot;, but uses the
+&quot;christian_era&quot; method to get the era name.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;year_with_secular_era</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Like
+&quot;year_with_era&quot;, but uses the
+&quot;secular_era&quot; method to get the era name.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;month</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+month of the year, from 1..12.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also available
+as &quot;$dt&minus;&gt;mon&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;month_name</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+name of the current month. See the &quot;Locales&quot;
+section for more details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;month_abbr</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+abbreviated name of the current month. See the
+&quot;Locales&quot; section for more details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;day</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the day
+of the month, from 1..31.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also available
+as &quot;$dt&minus;&gt;mday&quot; and
+&quot;$dt&minus;&gt;day_of_month&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;day_of_week</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the day
+of the week as a number, from 1..7, with 1 being Monday and
+7 being Sunday.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also available
+as &quot;$dt&minus;&gt;wday&quot; and
+&quot;$dt&minus;&gt;dow&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;local_day_of_week</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the day
+of the week as a number, from 1..7. The day corresponding to
+1 will vary based on the locale. See the &quot;Locales&quot;
+section for more details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;day_name</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+name of the current day of the week. See the
+&quot;Locales&quot; section for more details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;day_abbr</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+abbreviated name of the current day of the week. See the
+&quot;Locales&quot; section for more details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;day_of_year</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the day
+of the year.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also available
+as &quot;$dt&minus;&gt;doy&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;quarter</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+quarter of the year, from 1..4.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;quarter_name</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+name of the current quarter. See the &quot;Locales&quot;
+section for more details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;quarter_abbr</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+abbreviated name of the current quarter. See the
+&quot;Locales&quot; section for more details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;day_of_quarter</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the day
+of the quarter.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also available
+as &quot;$dt&minus;&gt;doq&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;weekday_of_month</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+number from 1..5 indicating which week day of the month this
+is. For example, June 9, 2003 is the second Monday of the
+month, and so this method returns 2 for that date.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;ymd($optional_separator),
+$dt&minus;&gt;mdy(...), $dt&minus;&gt;dmy(...)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Each method
+returns the year, month, and day, in the order indicated by
+the method name. Years are zero-padded to four digits.
+Months and days are 0&minus;padded to two digits.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default, the
+values are separated by a dash (&minus;), but this can be
+overridden by passing a value to the method.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;$dt&minus;&gt;ymd&quot; method is also available as
+&quot;$dt&minus;&gt;date&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;hour</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+hour of the day, from 0..23.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;hour_1</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+hour of the day, from 1..24.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;hour_12</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+hour of the day, from 1..12.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;hour_12_0</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+hour of the day, from 0..11.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;am_or_pm</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+appropriate localized abbreviation, depending on the current
+hour.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;minute</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+minute of the hour, from 0..59.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also available
+as &quot;$dt&minus;&gt;min&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;second</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+second, from 0..61. The values 60 and 61 are used for leap
+seconds.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also available
+as &quot;$dt&minus;&gt;sec&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;fractional_second</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+second, as a real number from 0.0 until 61.999999999</p>
+
+<p style="margin-left:11%; margin-top: 1em">The values 60
+and 61 are used for leap seconds.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;millisecond</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+fractional part of the second as milliseconds (1E&minus;3
+seconds).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Half a second
+is 500 milliseconds.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This value will
+always be rounded down to the nearest integer.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;microsecond</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+fractional part of the second as microseconds (1E&minus;6
+seconds).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Half a second
+is 500,000 microseconds.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This value will
+always be rounded down to the nearest integer.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;nanosecond</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+fractional part of the second as nanoseconds (1E&minus;9
+seconds).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Half a second
+is 500,000,000 nanoseconds.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;hms($optional_separator)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+hour, minute, and second, all zero-padded to two digits. If
+no separator is specified, a colon (:) is used by
+default.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also available
+as &quot;$dt&minus;&gt;time&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;datetime($optional_separator)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method is
+equivalent to:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$dt&minus;&gt;ymd('&minus;')
+. 'T' . $dt&minus;&gt;hms(':')</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+$optional_separator parameter allows you to override the
+separator between the date and time, for e.g.
+&quot;$dt&minus;&gt;datetime(q{ })&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method is
+also available as &quot;$dt&minus;&gt;iso8601&quot;, but
+it&rsquo;s not really a very good <small>ISO8601</small>
+format, as it lacks a time zone. If called as
+&quot;$dt&minus;&gt;iso8601&quot; you cannot change the
+separator, as <small>ISO8601</small> specifies that
+&quot;T&quot; must be used to separate them.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;rfc3339</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This formats a
+datetime in <small>RFC3339</small> format. This is the same
+as &quot;$dt&minus;&gt;datetime&quot; with an added offset
+at the end of the string except if the time zone is the
+floating time zone.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the offset
+is &rsquo;+00:00&rsquo; then this is represented as
+&rsquo;Z&rsquo;. Otherwise the offset is formatted with a
+leading sign (+/&minus;) and a colon separated numeric
+offset with hours and minutes. If the offset has a non-zero
+seconds component, that is also included.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;stringify</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns a stringified version of the object. It is also how
+stringification overloading is implemented. If the object
+has a formatter, then its &quot;format_datetime&quot; method
+is used to produce a string. Otherwise, this method calls
+&quot;$dt&minus;&gt;iso8601&quot; to produce a string. See
+&quot;Formatters And Stringification&quot; for details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;is_leap_year</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns a boolean value indicating whether or not the
+datetime object is in a leap year.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;is_last_day_of_month</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns a boolean value indicating whether or not the
+datetime object is the last day of the month.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;is_last_day_of_quarter</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns a boolean value indicating whether or not the
+datetime object is the last day of the quarter.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;is_last_day_of_year</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns a boolean value indicating whether or not the
+datetime object is the last day of the year.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;month_length</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns the number of days in the current month.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;quarter_length</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns the number of days in the current quarter.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;year_length</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns the number of days in the current year.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;week</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my (
+$week_year, $week_number ) = $dt&minus;&gt;week;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns
+information about the calendar week for the date. The values
+returned by this method are also available separately
+through the &quot;$dt&minus;&gt;week_year&quot; and
+&quot;$dt&minus;&gt;week_number&quot; methods.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first week
+of the year is defined by <small>ISO</small> as the one
+which contains the fourth day of January, which is
+equivalent to saying that it&rsquo;s the first week to
+overlap the new year by at least four days.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Typically the
+week year will be the same as the year that the object is
+in, but dates at the very beginning of a calendar year often
+end up in the last week of the prior year, and similarly,
+the final few days of the year may be placed in the first
+week of the next year.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;week_year</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+year of the week. See &quot;$dt&minus;&gt;week&quot; for
+details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;week_number</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+week of the year, from 1..53. See
+&quot;$dt&minus;&gt;week&quot; for details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;week_of_month</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The week of the
+month, from 0..5. The first week of the month is the first
+week that contains a Thursday. This is based on the
+<small>ICU</small> definition of week of month, and
+correlates to the <small>ISO8601</small> week of year
+definition. A day in the week <i>before</i> the week with
+the first Thursday will be week 0.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;jd,
+$dt&minus;&gt;mjd</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">These return
+the Julian Day and Modified Julian Day, respectively. The
+value returned is a floating point number. The fractional
+portion of the number represents the time portion of the
+datetime.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Julian Day
+is a count of days since the beginning of the Julian Period,
+which starts with day 0 at noon on January 1,
+&minus;4712.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Modified
+Julian Day is a count of days since midnight on November 17,
+1858.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These methods
+always refer to the local time, so the Julian Day is the
+same for a given datetime regardless of its time zone. Or in
+other words, 2020&minus;12&minus;04T13:01:57 in
+&quot;America/Chicago&quot; has the same Julian Day as
+2020&minus;12&minus;04T13:01:57 in
+&quot;Asia/Taipei&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;time_zone</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns
+the DateTime::TimeZone object for the datetime object.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;offset</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns
+the offset from <small>UTC,</small> in seconds, of the
+datetime object&rsquo;s time zone.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;is_dst</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+boolean indicating whether or not the datetime&rsquo;s time
+zone is currently in Daylight Saving Time or not.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;time_zone_long_name</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This is a
+shortcut for
+&quot;$dt&minus;&gt;time_zone&minus;&gt;name&quot;.
+It&rsquo;s provided so that one can use
+&quot;%{time_zone_long_name}&quot; as a strftime format
+specifier.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;time_zone_short_name</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns the time zone abbreviation for the current time
+zone, such as &quot; <small>PST&quot;</small> or &quot;
+<small>GMT&quot;.</small> These names are <b>not</b>
+definitive, and should not be used in any application
+intended for general use by users around the world.
+That&rsquo;s because it&rsquo;s possible for multiple time
+zones to have the same abbreviation.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;strftime(
+$format, ... )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+implements functionality similar to the &quot;strftime&quot;
+method in C. However, if given multiple format strings, then
+it will return multiple scalars, one for each format
+string.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See the
+&quot;strftime Patterns&quot; section for a list of all
+possible strftime patterns.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you give a
+pattern that doesn&rsquo;t exist, then it is simply treated
+as text.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that any
+deviation from the <small>POSIX</small> standard is probably
+a bug. DateTime should match the output of
+&quot;POSIX::strftime&quot; for any given pattern.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;format_cldr(
+$format, ... )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+implements formatting based on the <small>CLDR</small> date
+patterns. If given multiple format strings, then it will
+return multiple scalars, one for each format string.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See the &quot;
+<small>CLDR</small> Patterns&quot; section for a list of all
+possible <small>CLDR</small> patterns.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you give a
+pattern that doesn&rsquo;t exist, then it is simply treated
+as text.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;epoch</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+<small>UTC</small> epoch value for the datetime object.
+Datetimes before the start of the epoch will be returned as
+a negative number.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The return
+value from this method is always an integer number of
+seconds.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since the epoch
+does not account for leap seconds, the epoch time for
+1972&minus;12&minus;31T23:59:60 ( <small>UTC</small> ) is
+exactly the same as that for
+1973&minus;01&minus;01T00:00:00.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;hires_epoch</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+epoch as a floating point number. The floating point portion
+of the value represents the nanosecond value of the object.
+This method is provided for compatibility with the
+&quot;Time::HiRes&quot; module.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+method suffers from the imprecision of floating point
+numbers, and the result may end up rounded to an arbitrary
+degree depending on your platform.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;new( year =&gt; 2012, nanosecond =&gt; 4
+); <br>
+say $dt&minus;&gt;hires_epoch;</p>
+
+<p style="margin-left:11%; margin-top: 1em">On my system,
+this simply prints 1325376000 because adding 0.000000004 to
+1325376000 returns 1325376000.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;is_finite,
+$dt&minus;&gt;is_infinite</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">These methods
+allow you to distinguish normal datetime objects from
+infinite ones. Infinite datetime objects are documented in
+DateTime::Infinite.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;utc_rd_values</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+current <small>UTC</small> Rata Die days, seconds, and
+nanoseconds as a three element list. This exists primarily
+to allow other calendar modules to create objects based on
+the values provided by this object.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;local_rd_values</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+current local Rata Die days, seconds, and nanoseconds as a
+three element list. This exists for the benefit of other
+modules which might want to use this information for date
+math, such as DateTime::Event::Recurrence.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;leap_seconds</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+number of leap seconds that have happened up to the datetime
+represented by the object. For floating datetimes, this
+always returns 0.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;utc_rd_as_seconds</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+current <small>UTC</small> Rata Die days and seconds purely
+as seconds. This number ignores any fractional seconds
+stored in the object, as well as leap seconds.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;locale</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+datetime&rsquo;s DateTime::Locale object.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;formatter</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+current formatter object or class. See &quot;Formatters And
+Stringification&quot; for details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&quot;Set&quot;
+Methods</b> <br>
+The remaining methods provided by &quot;DateTime&quot;,
+except where otherwise specified, return the object itself,
+thus making method chaining possible. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;now&minus;&gt;set_time_zone(
+'Australia/Sydney' ); <br>
+my $first = DateTime <br>
+&minus;&gt;last_day_of_month( year =&gt; 2003, month =&gt; 3
+) <br>
+&minus;&gt;add( days =&gt; 1 ) <br>
+&minus;&gt;subtract( seconds =&gt; 1 );</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;set(
+.. )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method can
+be used to change the local components of a date time. This
+method accepts any parameter allowed by the &quot;new&quot;
+method except for &quot;locale&quot; or
+&quot;time_zone&quot;. Use &quot;set_locale&quot; and
+&quot;set_time_zone&quot; for those instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+performs parameter validation just like the &quot;new&quot;
+method.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Do not use
+this method to do date math. Use the &quot;add&quot; and
+&quot;subtract&quot; methods instead.</b></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;set_year,
+$dt&minus;&gt;set_month, etc.</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">DateTime has a
+&quot;set_*&quot; method for every item that can be passed
+to the constructor:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="29%">
+
+
+<p style="margin-top: 1em">$dt&minus;&gt;set_year</p></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="29%">
+
+
+<p>$dt&minus;&gt;set_month</p></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="29%">
+
+
+<p>$dt&minus;&gt;set_day</p></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="29%">
+
+
+<p>$dt&minus;&gt;set_hour</p></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="29%">
+
+
+<p>$dt&minus;&gt;set_minute</p></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="29%">
+
+
+<p>$dt&minus;&gt;set_second</p></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="29%">
+
+
+<p>$dt&minus;&gt;set_nanosecond</p></td>
+<td width="54%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">These are
+shortcuts to calling &quot;set&quot; with a single key. They
+all take a single parameter.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;truncate(
+to =&gt; ... )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+allows you to reset some of the local time components in the
+object to their &quot;zero&quot; values. The &quot;to&quot;
+parameter is used to specify which values to truncate, and
+it may be one of &quot;year&quot;, &quot;quarter&quot;,
+&quot;month&quot;, &quot;week&quot;, &quot;local_week&quot;,
+&quot;day&quot;, &quot;hour&quot;, &quot;minute&quot;, or
+&quot;second&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example, if
+&quot;month&quot; is specified, then the local day becomes
+1, and the hour, minute, and second all become 0.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;week&quot; is given, then the datetime is set to the
+Monday of the week in which it occurs, and the time
+components are all set to 0. If you truncate to
+&quot;local_week&quot;, then the first day of the week is
+locale-dependent. For example, in the
+&quot;en&minus;US&quot; locale, the first day of the week is
+Sunday.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;set_locale($locale)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Sets the
+object&rsquo;s locale. You can provide either a locale code
+like &quot;en&minus;US&quot; or an object returned by
+&quot;DateTime::Locale&minus;&gt;load&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;set_time_zone($tz)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+accepts either a time zone object or a string that can be
+passed as the &quot;name&quot; parameter to
+&quot;DateTime::TimeZone&minus;&gt;new&quot;. If the new
+time zone&rsquo;s offset is different from the old time
+zone, then the <i>local</i> time is adjusted
+accordingly.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;new( <br>
+year =&gt; 2000, <br>
+month =&gt; 5, <br>
+day =&gt; 10, <br>
+hour =&gt; 15, <br>
+minute =&gt; 15, <br>
+time_zone =&gt; 'America/Los_Angeles', <br>
+); <br>
+print $dt&minus;&gt;hour; # prints 15 <br>
+$dt&minus;&gt;set_time_zone('America/Chicago'); <br>
+print $dt&minus;&gt;hour; # prints 17</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the old time
+zone was a floating time zone, then no adjustments to the
+local time are made, except to account for leap seconds. If
+the new time zone is floating, then the
+<i><small>UTC</small></i> time is adjusted in order to leave
+the local time untouched.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Fans of Tsai
+Ming-Liang&rsquo;s films will be happy to know that this
+does work:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;now( time_zone =&gt; 'Asia/Taipei' );
+<br>
+$dt&minus;&gt;set_time_zone('Europe/Paris');</p>
+
+<p style="margin-left:11%; margin-top: 1em">Yes, now we can
+know &quot;ni3 na4 bian1 ji2 dian3?&quot;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;set_formatter($formatter)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Sets the
+formatter for the object. See &quot;Formatters And
+Stringification&quot; for details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can set
+this to &quot;undef&quot; to revert to the default
+formatter.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Math
+Methods</b> <br>
+Like the set methods, math related methods always return the
+object itself, to allow for chaining:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$dt&minus;&gt;add(
+days =&gt; 1 )&minus;&gt;subtract( seconds =&gt; 1 );</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;duration_class</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns
+&quot;DateTime::Duration&quot;, but exists so that a
+subclass of &quot;DateTime&quot; can provide a different
+value.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;add_duration($duration_object)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+adds a DateTime::Duration to the current datetime. See the
+DateTime::Duration docs for more details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;add(
+parameters for DateTime::Duration )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method is
+syntactic sugar around the
+&quot;$dt&minus;&gt;add_duration&quot; method. It simply
+creates a new DateTime::Duration object using the parameters
+given, and then calls the
+&quot;$dt&minus;&gt;add_duration&quot; method.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;add($duration_object)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">A synonym of
+&quot;$dt&minus;&gt;add_duration($duration_object)&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;subtract_duration($duration_object)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">When given a
+DateTime::Duration object, this method simply calls
+&quot;$dur&minus;&gt;inverse&quot; on that object and passes
+that new duration to the
+&quot;$self&minus;&gt;add_duration&quot; method.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;subtract(
+DateTime::Duration&minus;&gt;new parameters )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Like
+&quot;$dt&minus;&gt;add&quot;, this is syntactic sugar for
+the &quot;$dt&minus;&gt;subtract_duration&quot; method.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;subtract($duration_object)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">A synonym of
+&quot;$dt&minus;&gt;subtract_duration($duration_object)&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;subtract_datetime($datetime)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns a new DateTime::Duration object representing the
+difference between the two dates. The duration is
+<b>relative</b> to the object from which $datetime is
+subtracted. For example:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">2003&minus;03&minus;15
+00:00:00.00000000 <br>
+&minus; 2003&minus;02&minus;15 00:00:00.00000000 <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+= 1 month</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+duration is not an absolute measure of the amount of time
+between the two datetimes, because the length of a month
+varies, as well as due to the presence of leap seconds.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The returned
+duration may have deltas for months, days, minutes, seconds,
+and nanoseconds.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;delta_md($datetime),
+$dt&minus;&gt;delta_days($datetime)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Each of these
+methods returns a new DateTime::Duration object representing
+some portion of the difference between two datetimes. The
+&quot;$dt&minus;&gt;delta_md&quot; method returns a duration
+which contains only the month and day portions of the
+duration is represented. The
+&quot;$dt&minus;&gt;delta_days&quot; method returns a
+duration which contains only days.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;$dt&minus;&gt;delta_md&quot; and
+&quot;$dt&minus;&gt;delta_days&quot; methods truncate the
+duration so that any fractional portion of a day is ignored.
+Both of these methods operate on the date portion of a
+datetime only, and so effectively ignore the time zone.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unlike the
+subtraction methods, <b>these methods always return a
+positive (or zero) duration</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;delta_ms($datetime)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+duration which contains only minutes and seconds. Any day
+and month differences are converted to minutes and seconds.
+This method <b>always returns a positive (or zero)
+duration</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;subtract_datetime_absolute($datetime)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns a new DateTime::Duration object representing the
+difference between the two dates in seconds and nanoseconds.
+This is the only way to accurately measure the absolute
+amount of time between two datetimes, since units larger
+than a second do not represent a fixed number of
+seconds.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+because of leap seconds, this may not return the same result
+as doing this math based on the value returned by
+&quot;$dt&minus;&gt;epoch&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$dt&minus;&gt;is_between(
+$lower, $upper )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Checks whether
+$dt is strictly between two other DateTime objects.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Strictly&quot;
+means that $dt must be greater than $lower and less than
+$upper. If it is <i>equal</i> to either object then this
+method returns false.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Class
+Methods</b> <i><br>
+DateTime&minus;&gt;DefaultLocale($locale)</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This can be
+used to specify the default locale to be used when creating
+DateTime objects. If unset, then &quot;en&minus;US&quot; is
+used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This exists for
+backwards compatibility, but is probably best avoided. This
+will change the default locale for every
+&quot;DateTime&quot; object created in your application,
+even those created by third party libraries which also use
+&quot;DateTime&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>DateTime&minus;&gt;compare(
+$dt1, $dt2 ), DateTime&minus;&gt;compare_ignore_floating(
+$dt1, $dt2 )</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">$cmp =
+DateTime&minus;&gt;compare( $dt1, $dt2 ); <br>
+$cmp = DateTime&minus;&gt;compare_ignore_floating( $dt1,
+$dt2 );</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+compare two DateTime objects. The semantics are compatible
+with Perl&rsquo;s &quot;sort&quot; function; it returns
+&quot;&minus;1&quot; if &quot;$dt1 &lt; $dt2&quot;, 0 if
+&quot;$dt1 == $dt2&quot;, 1 if &quot;$dt1 &gt;
+$dt2&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If one of the
+two DateTime objects has a floating time zone, it will first
+be converted to the time zone of the other object. This is
+what you want most of the time, but it can lead to
+inconsistent results when you compare a number of DateTime
+objects, some of which are floating, and some of which are
+in other time zones.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+have consistent results (because you want to sort an array
+of objects, for example), you can use the
+&quot;compare_ignore_floating&quot; method:</p>
+
+<p style="margin-left:11%; margin-top: 1em">@dates = sort {
+DateTime&minus;&gt;compare_ignore_floating( $a, $b ) }
+@dates;</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this case,
+objects with a floating time zone will be sorted as if they
+were <small>UTC</small> times.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since DateTime
+objects overload comparison operators, this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">@dates = sort
+@dates;</p>
+
+<p style="margin-left:11%; margin-top: 1em">is equivalent
+to this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">@dates = sort {
+DateTime&minus;&gt;compare( $a, $b ) } @dates;</p>
+
+<p style="margin-left:11%; margin-top: 1em">DateTime
+objects can be compared to any other calendar class that
+implements the &quot;utc_rd_values&quot; method.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Testing Code
+That Uses DateTime</b> <br>
+If you are trying to test code that calls uses DateTime, you
+may want to be to explicitly set the value returned by
+Perl&rsquo;s &quot;time&quot; builtin. This builtin is
+called by &quot;DateTime&minus;&gt;now&quot; and
+&quot;DateTime&minus;&gt;today&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can
+override &quot;CORE::GLOBAL::time&quot;, but this will only
+work if you do this <b>before</b> loading DateTime. If doing
+this is inconvenient, you can also override
+&quot;DateTime::_core_time&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">no warnings
+'redefine'; <br>
+local *DateTime::_core_time = sub { return 42 };</p>
+
+<p style="margin-left:11%; margin-top: 1em">DateTime is
+guaranteed to call this subroutine to get the current
+&quot;time&quot; value. You can also override the
+&quot;_core_time&quot; sub in a subclass of DateTime and use
+that.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How DateTime
+Math Works</b> <br>
+It&rsquo;s important to have some understanding of how
+datetime math is implemented in order to effectively use
+this module and DateTime::Duration.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Making
+Things Simple</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+simplify your life and not have to think too hard about the
+nitty-gritty of datetime math, I have several
+recommendations:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="40%">
+
+
+<p style="margin-top: 1em">use the floating time zone</p></td>
+<td width="43%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If you do not
+care about time zones or leap seconds, use the
+&quot;floating&quot; timezone:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;now( time_zone =&gt; 'floating' );</p>
+
+<p style="margin-left:17%; margin-top: 1em">Math done on
+two objects in the floating time zone produces very
+predictable results.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that in
+most cases you will want to start by creating an object in a
+specific zone and <i>then</i> convert it to the floating
+time zone. When an object goes from a real zone to the
+floating zone, the time for the object remains the same.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This means that
+passing the floating zone to a constructor may not do what
+you want.</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;now( time_zone =&gt; 'floating' );</p>
+
+<p style="margin-left:17%; margin-top: 1em">is equivalent
+to</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;now( time_zone =&gt; 'UTC'
+)&minus;&gt;set_time_zone('floating');</p>
+
+<p style="margin-left:17%; margin-top: 1em">This might not
+be what you wanted. Instead, you may prefer to do this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;now( time_zone =&gt; 'local'
+)&minus;&gt;set_time_zone('floating');</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="43%">
+
+
+<p style="margin-top: 1em">use <small>UTC</small> for all
+calculations</p> </td>
+<td width="40%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If you do care
+about time zones (particularly <small>DST</small> ) or leap
+seconds, try to use non-UTC time zones for presentation and
+user input only. Convert to <small>UTC</small> immediately
+and convert back to the local time zone for
+presentation:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;new( %user_input, time_zone =&gt;
+$user_tz ); <br>
+$dt&minus;&gt;set_time_zone('UTC'); <br>
+# do various operations &minus; store it, retrieve it, add,
+subtract, etc. <br>
+$dt&minus;&gt;set_time_zone($user_tz); <br>
+print $dt&minus;&gt;datetime;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="40%">
+
+
+<p style="margin-top: 1em">math on non-UTC time zones</p></td>
+<td width="43%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If you need to
+do date math on objects with non-UTC time zones, please read
+the caveats below carefully. The results
+&quot;DateTime&quot; produces are predictable, correct, and
+mostly intuitive, but datetime math gets very ugly when time
+zones are involved, and there are a few strange corner cases
+involving subtraction of two datetimes across a
+<small>DST</small> change.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you can
+always use the floating or <small>UTC</small> time zones,
+you can skip ahead to &quot;Leap Seconds and Date
+Math&quot;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p style="margin-top: 1em">date vs datetime math</p></td>
+<td width="51%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If you only
+care about the date (calendar) portion of a datetime, you
+should use either &quot;$dt&minus;&gt;delta_md&quot; or
+&quot;$dt&minus;&gt;delta_days&quot;, not
+&quot;$dt&minus;&gt;subtract_datetime&quot;. This will give
+predictable, unsurprising results, free from DST-related
+complications.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="68%">
+
+
+<p style="margin-top: 1em">$dt&minus;&gt;subtract_datetime
+and $dt&minus;&gt;add_duration</p></td>
+<td width="15%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">You must
+convert your datetime objects to the <small>UTC</small> time
+zone before doing date math if you want to make sure that
+the following formulas are always true:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$dt2 &minus;
+$dt1 = $dur <br>
+$dt1 + $dur = $dt2 <br>
+$dt2 &minus; $dur = $dt1</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that using
+&quot;$dt&minus;&gt;delta_days&quot; ensures that this
+formula always works, regardless of the time zones of the
+objects involved, as does using
+&quot;$dt&minus;&gt;subtract_datetime_absolute&quot;. Other
+methods of subtraction are not always reversible.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">never do math on two objects
+where only one is in the floating time zone</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The date math
+code accounts for leap seconds whenever the
+&quot;DateTime&quot; object is not in the floating time
+zone. If you try to do math where one object is in the
+floating zone and the other isn&rsquo;t, the results will be
+confusing and wrong.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Adding a
+Duration to a DateTime</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The parts of a
+duration can be broken down into five parts. These are
+months, days, minutes, seconds, and nanoseconds. Adding one
+month to a date is different than adding 4 weeks or 28, 29,
+30, or 31 days. Similarly, due to <small>DST</small> and
+leap seconds, adding a day can be different than adding
+86,400 seconds, and adding a minute is not exactly the same
+as 60 seconds.</p>
+
+<p style="margin-left:11%; margin-top: 1em">We cannot
+convert between these units, except for seconds and
+nanoseconds, because there is no fixed conversion between
+most pairs of units. That is because of things like leap
+seconds, <small>DST</small> changes, etc.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;DateTime&quot;
+always adds (or subtracts) days, then months, minutes, and
+then seconds and nanoseconds. If there are any boundary
+overflows, these are normalized at each step. For the days
+and months the local (not <small>UTC</small> ) values are
+used. For minutes and seconds, the local values are used.
+This generally just works.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This means that
+adding one month and one day to February 28, 2003 will
+produce the date April 1, 2003, not March 29, 2003.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;new( year =&gt; 2003, month =&gt; 2, day
+=&gt; 28 ); <br>
+$dt&minus;&gt;add( months =&gt; 1, days =&gt; 1 ); <br>
+# 2003&minus;04&minus;01 &minus; the result</p>
+
+<p style="margin-left:11%; margin-top: 1em">On the other
+hand, if we add months first, and then separately add days,
+we end up with March 29, 2003:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$dt&minus;&gt;add(
+months =&gt; 1 )&minus;&gt;add( days =&gt; 1 ); <br>
+# 2003&minus;03&minus;29</p>
+
+<p style="margin-left:11%; margin-top: 1em">We see similar
+strangeness when math crosses a <small>DST</small>
+boundary:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 4, <br>
+day =&gt; 5, <br>
+hour =&gt; 1, <br>
+minute =&gt; 58, <br>
+time_zone =&gt; &quot;America/Chicago&quot;, <br>
+); <br>
+$dt&minus;&gt;add( days =&gt; 1, minutes =&gt; 3 ); <br>
+# 2003&minus;04&minus;06 02:01:00 <br>
+$dt&minus;&gt;add( minutes =&gt; 3 )&minus;&gt;add( days
+=&gt; 1 ); <br>
+# 2003&minus;04&minus;06 03:01:00</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that if
+you converted the datetime object to <small>UTC</small>
+first you would get predictable results.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+know how many seconds a DateTime::Duration object
+represents, you have to add it to a datetime to find out, so
+you could do:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $now =
+DateTime&minus;&gt;now( time_zone =&gt; 'UTC' ); <br>
+my $later =
+$now&minus;&gt;clone&minus;&gt;add_duration($duration); <br>
+my $seconds_dur =
+$later&minus;&gt;subtract_datetime_absolute($now);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns a
+DateTime::Duration which only contains seconds and
+nanoseconds.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If we were add
+the duration to a different &quot;DateTime&quot; object we
+might get a different number of seconds.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">DateTime::Duration
+supports three different end-of-month algorithms for adding
+months. This comes into play when an addition results in a
+day past the end of the following month (for example, adding
+one month to January 30).</p>
+
+<p style="margin-left:11%; margin-top: 1em">#
+2010&minus;08&minus;31 + 1 month = 2010&minus;10&minus;01
+<br>
+$dt&minus;&gt;add( months =&gt; 1, end_of_month =&gt; 'wrap'
+); <br>
+# 2010&minus;01&minus;30 + 1 month = 2010&minus;02&minus;28
+<br>
+$dt&minus;&gt;add( months =&gt; 1, end_of_month =&gt;
+'limit' ); <br>
+# 2010&minus;04&minus;30 + 1 month = 2010&minus;05&minus;31
+<br>
+$dt&minus;&gt;add( months =&gt; 1, end_of_month =&gt;
+'preserve' );</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default, it
+uses &quot;wrap&quot; for positive durations and
+&quot;preserve&quot; for negative durations. See
+DateTime::Duration for a detailed explanation of these
+algorithms.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you need to
+do lots of work with durations, take a look at the
+DateTime::Format::Duration module, which lets you present
+information from durations in many useful ways.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are other
+subtract/delta methods in &quot;DateTime&quot; to generate
+different types of durations. These methods are
+&quot;$dt&minus;&gt;subtract_datetime&quot;,
+&quot;$dt&minus;&gt;subtract_datetime_absolute&quot;,
+&quot;$dt&minus;&gt;delta_md&quot;,
+&quot;$dt&minus;&gt;delta_days&quot;, and
+&quot;$dt&minus;&gt;delta_ms&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>DateTime
+Subtraction</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Date
+subtraction is done based solely on the two object&rsquo;s
+local datetimes, with one exception to handle
+<small>DST</small> changes. Also, if the two datetime
+objects are in different time zones, one of them is
+converted to the other&rsquo;s time zone first before
+subtraction. This is best explained through examples:</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first of
+these probably makes the most sense:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># not DST <br>
+my $dt1 = DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 5, <br>
+day =&gt; 6, <br>
+time_zone =&gt; 'America/Chicago', <br>
+); <br>
+# is DST <br>
+my $dt2 = DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 11, <br>
+day =&gt; 6, <br>
+time_zone =&gt; 'America/Chicago', <br>
+); <br>
+# 6 months <br>
+my $dur = $dt2&minus;&gt;subtract_datetime($dt1);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Nice and
+simple.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This one is a
+little trickier, but still fairly logical:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># is DST <br>
+my $dt1 = DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 4, <br>
+day =&gt; 5, <br>
+hour =&gt; 1, <br>
+minute =&gt; 58, <br>
+time_zone =&gt; &quot;America/Chicago&quot;, <br>
+); <br>
+# not DST <br>
+my $dt2 = DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 4, <br>
+day =&gt; 7, <br>
+hour =&gt; 2, <br>
+minute =&gt; 1, <br>
+time_zone =&gt; &quot;America/Chicago&quot;, <br>
+); <br>
+# 2 days and 3 minutes <br>
+my $dur = $dt2&minus;&gt;subtract_datetime($dt1);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Which
+contradicts the result this one gives, even though they both
+make sense:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># is DST <br>
+my $dt1 = DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 4, <br>
+day =&gt; 5, <br>
+hour =&gt; 1, <br>
+minute =&gt; 58, <br>
+time_zone =&gt; &quot;America/Chicago&quot;, <br>
+); <br>
+# not DST <br>
+my $dt2 = DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 4, <br>
+day =&gt; 6, <br>
+hour =&gt; 3, <br>
+minute =&gt; 1, <br>
+time_zone =&gt; &quot;America/Chicago&quot;, <br>
+); <br>
+# 1 day and 3 minutes <br>
+my $dur = $dt2&minus;&gt;subtract_datetime($dt1);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This last
+example illustrates the &quot; <small>DST&quot;</small>
+exception mentioned earlier. The exception accounts for the
+fact 2003&minus;04&minus;06 only lasts 23 hours.</p>
+
+<p style="margin-left:11%; margin-top: 1em">And
+finally:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt2 =
+DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 10, <br>
+day =&gt; 26, <br>
+hour =&gt; 1, <br>
+time_zone =&gt; 'America/Chicago', <br>
+); <br>
+my $dt1 = $dt2&minus;&gt;clone&minus;&gt;subtract( hours
+=&gt; 1 ); <br>
+# 60 minutes <br>
+my $dur = $dt2&minus;&gt;subtract_datetime($dt1);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This seems
+obvious until you realize that subtracting 60 minutes from
+$dt2 in the above example still leaves the clock time at
+&quot;01:00:00&quot;. This time we are accounting for a 25
+hour day.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>Reversibility</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Date math
+operations are not always reversible. This is because of the
+way that addition operations are ordered. As was discussed
+earlier, adding 1 day and 3 minutes in one call to
+&quot;$dt&minus;&gt;add&quot; is not the same as first
+adding 3 minutes and 1 day in two separate calls.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If we take a
+duration returned from
+&quot;$dt&minus;&gt;subtract_datetime&quot; and then try to
+add or subtract that duration from one of the datetimes we
+just used, we sometimes get interesting results:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt1 =
+DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 4, <br>
+day =&gt; 5, <br>
+hour =&gt; 1, <br>
+minute =&gt; 58, <br>
+time_zone =&gt; &quot;America/Chicago&quot;, <br>
+); <br>
+my $dt2 = DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 4, <br>
+day =&gt; 6, <br>
+hour =&gt; 3, <br>
+minute =&gt; 1, <br>
+time_zone =&gt; &quot;America/Chicago&quot;, <br>
+); <br>
+# 1 day and 3 minutes <br>
+my $dur = $dt2&minus;&gt;subtract_datetime($dt1); <br>
+# gives us $dt2 <br>
+$dt1&minus;&gt;add_duration($dur); <br>
+# gives us 2003&minus;04&minus;05 02:58:00 &minus; 1 hour
+later than $dt1 <br>
+$dt2&minus;&gt;subtract_duration($dur);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;$dt&minus;&gt;subtract_duration&quot; operation gives
+us a (perhaps) unexpected answer because it first subtracts
+one day to get 2003&minus;04&minus;05T03:01:00 and then
+subtracts 3 minutes to get the final result.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If we
+explicitly reverse the order we can get the original value
+of $dt1. This can be facilitated by the DateTime::Duration
+class&rsquo;s &quot;$dur&minus;&gt;calendar_duration&quot;
+and &quot;$dur&minus;&gt;clock_duration&quot; methods:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$dt2&minus;&gt;subtract_duration(
+$dur&minus;&gt;clock_duration ) <br>
+&minus;&gt;subtract_duration(
+$dur&minus;&gt;calendar_duration );</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Leap Seconds
+and Date Math</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The presence of
+leap seconds can cause even more anomalies in date math. For
+example, the following is a legal datetime:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;new( <br>
+year =&gt; 1972, <br>
+month =&gt; 12, <br>
+day =&gt; 31, <br>
+hour =&gt; 23, <br>
+minute =&gt; 59, <br>
+second =&gt; 60, <br>
+time_zone =&gt; 'UTC' <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">If we add one
+month ...</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$dt&minus;&gt;add(
+months =&gt; 1 );</p>
+
+<p style="margin-left:11%; margin-top: 1em">... the
+datetime is now &quot;1973&minus;02&minus;01 00:00:00&quot;,
+because there is no 23:59:60 on 1973&minus;01&minus;31.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Leap seconds
+also force us to distinguish between minutes and seconds
+during date math. Given the following datetime ...</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;new( <br>
+year =&gt; 1972, <br>
+month =&gt; 12, <br>
+day =&gt; 31, <br>
+hour =&gt; 23, <br>
+minute =&gt; 59, <br>
+second =&gt; 30, <br>
+time_zone =&gt; 'UTC' <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">... we will get
+different results when adding 1 minute than we get if we add
+60 seconds. This is because in this case, the last minute of
+the day, beginning at 23:59:00, actually contains 61
+seconds.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here are the
+results we get:</p>
+
+<p style="margin-left:11%; margin-top: 1em">#
+1972&minus;12&minus;31 23:59:30 &minus; our starting
+datetime <br>
+my $dt = DateTime&minus;&gt;new( <br>
+year =&gt; 1972, <br>
+month =&gt; 12, <br>
+day =&gt; 31, <br>
+hour =&gt; 23, <br>
+minute =&gt; 59, <br>
+second =&gt; 30, <br>
+time_zone =&gt; 'UTC' <br>
+); <br>
+# 1973&minus;01&minus;01 00:00:30 &minus; one minute later
+<br>
+$dt&minus;&gt;clone&minus;&gt;add( minutes =&gt; 1 ); <br>
+# 1973&minus;01&minus;01 00:00:29 &minus; 60 seconds later
+<br>
+$dt&minus;&gt;clone&minus;&gt;add( seconds =&gt; 60 ); <br>
+# 1973&minus;01&minus;01 00:00:30 &minus; 61 seconds later
+<br>
+$dt&minus;&gt;clone&minus;&gt;add( seconds =&gt; 61 );</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Local vs.
+<small>UTC</small> and 24 hours vs. 1 day</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">When math
+crosses a daylight saving boundary, a single day may have
+more or less than 24 hours.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example, if
+you do this ...</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 4, <br>
+day =&gt; 5, <br>
+hour =&gt; 2, <br>
+time_zone =&gt; 'America/Chicago', <br>
+); <br>
+$dt&minus;&gt;add( days =&gt; 1 );</p>
+
+<p style="margin-left:11%; margin-top: 1em">... then you
+will produce an <i>invalid</i> local time, and therefore an
+exception will be thrown.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, this
+works ...</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $dt =
+DateTime&minus;&gt;new( <br>
+year =&gt; 2003, <br>
+month =&gt; 4, <br>
+day =&gt; 5, <br>
+hour =&gt; 2, <br>
+time_zone =&gt; 'America/Chicago', <br>
+); <br>
+$dt&minus;&gt;add( hours =&gt; 24 );</p>
+
+<p style="margin-left:11%; margin-top: 1em">... and
+produces a datetime with the local time of
+&quot;03:00&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If all this
+makes your head hurt, there is a simple alternative. Just
+convert your datetime object to the &quot;
+<small>UTC&quot;</small> time zone before doing date math on
+it, and switch it back to the local time zone afterwards.
+This avoids the possibility of having date math throw an
+exception, and makes sure that 1 day equals 24 hours. Of
+course, this may not always be desirable, so caveat
+user!</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Overloading</b>
+<br>
+This module explicitly overloads the addition (+),
+subtraction (&minus;), string and numeric comparison
+operators. This means that the following all do sensible
+things:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $new_dt =
+$dt + $duration_obj; <br>
+my $new_dt = $dt &minus; $duration_obj; <br>
+my $duration_obj = $dt &minus; $new_dt; <br>
+for my $dt ( sort @dts ) {...}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Additionally,
+the fallback parameter is set to true, so other derivable
+operators (+=, &minus;=, etc.) will work properly. Do not
+expect increment (++) or decrement (&minus;&minus;) to do
+anything useful.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The string
+comparison operators, &quot;eq&quot; or &quot;ne&quot;, will
+use the string value to compare with non-DateTime
+objects.</p>
+
+<p style="margin-left:11%; margin-top: 1em">DateTime
+objects do not have a numeric value, using &quot;==&quot; or
+&quot;&lt;=&gt;&quot; to compare a DateTime object with a
+non-DateTime object will result in an exception. To safely
+sort mixed DateTime and non-DateTime objects, use &quot;sort
+{ $a cmp $b } @dates&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The module also
+overloads stringification using the object&rsquo;s
+formatter, defaulting to &quot;iso8601&quot; method. See
+&quot;Formatters And Stringification&quot; for details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Formatters
+And Stringification</b> <br>
+You can optionally specify a &quot;formatter&quot;, which is
+usually a &quot;DateTime::Format::*&quot; object or class,
+to control the stringification of the DateTime object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Any of the
+constructor methods can accept a formatter argument:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $formatter =
+DateTime::Format::Strptime&minus;&gt;new(...); <br>
+my $dt = DateTime&minus;&gt;new( year =&gt; 2004, formatter
+=&gt; $formatter );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or, you can set
+it afterwards:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$dt&minus;&gt;set_formatter($formatter);
+<br>
+$formatter = $dt&minus;&gt;formatter;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once you set
+the formatter, the overloaded stringification method will
+use the formatter. If unspecified, the &quot;iso8601&quot;
+method is used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A formatter can
+be handy when you know that in your application you want to
+stringify your DateTime objects into a special format all
+the time, for example in Postgres format.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you provide
+a formatter class name or object, it must implement a
+&quot;format_datetime&quot; method. This method will be
+called with just the &quot;DateTime&quot; object as its
+argument.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>CLDR</small>
+Patterns</b> <br>
+The <small>CLDR</small> pattern language is both more
+powerful and more complex than strftime. Unlike strftime
+patterns, you often have to explicitly escape text that you
+do not want formatted, as the patterns are simply letters
+without any prefix.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example,
+&quot;yyyy&minus;MM&minus;dd&quot; is a valid
+<small>CLDR</small> pattern. If you want to include any
+lower or upper case <small>ASCII</small> characters as-is,
+you can surround them with single quotes (&rsquo;). If you
+want to include a single quote, you must escape it as two
+single quotes (&rsquo;&rsquo;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $pattern1 =
+q{'Today is ' EEEE}; <br>
+my $pattern2 = q{'It is now' h 'o''clock' a};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Spaces and any
+non-letter text will always be passed through as-is.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Many
+<small>CLDR</small> patterns which produce numbers will pad
+the number with leading zeroes depending on the length of
+the format specifier. For example, &quot;h&quot; represents
+the current hour from 1&minus;12. If you specify
+&quot;hh&quot; then hours 1&minus;9 will have a leading zero
+prepended.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However,
+<small>CLDR</small> often uses five of a letter to represent
+the narrow form of a pattern. This inconsistency is
+necessary for backwards compatibility.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are many
+cases where <small>CLDR</small> patterns distinguish between
+the &quot;format&quot; and &quot;stand-alone&quot; forms of
+a pattern. The format pattern is used when the thing in
+question is being placed into a larger string. The
+stand-alone form is used when displaying that item by
+itself, for example in a calendar.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are also
+many cases where <small>CLDR</small> provides three sizes
+for each item, wide (the full name), abbreviated, and
+narrow. The narrow form is often just a single character,
+for example &quot;T&quot; for &quot;Tuesday&quot;, and may
+not be unique.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>CLDR</small>
+provides a fairly complex system for localizing time zones
+that we ignore entirely. The time zone patterns just use the
+information provided by &quot;DateTime::TimeZone&quot;, and
+<i>do not follow the <small>CLDR</small> spec</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The output of a
+<small>CLDR</small> pattern is always localized, when
+applicable.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>CLDR</small>
+provides the following patterns:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">G{1,3}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The abbreviated
+era ( <small>BC, AD</small> ).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em"><small>GGGG</small></p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The wide era
+(Before Christ, Anno Domini).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em"><small>GGGGG</small></p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The narrow era,
+if it exists (but it mostly doesn&rsquo;t).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="17%">
+
+
+<p style="margin-top: 1em">y and y{3,}</p></td>
+<td width="66%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The year,
+zero-prefixed as needed. Negative years will start with a
+&quot;&minus;&quot;, and this will be included in the length
+calculation.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In other, words
+the &quot;yyyyy&quot; pattern will format year &minus;1234
+as &quot;&minus;1234&quot;, not
+&quot;&minus;01234&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">yy</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This is a
+special case. It always produces a two-digit year, so
+&quot;1976&quot; becomes &quot;76&quot;. Negative years will
+start with a &quot;&minus;&quot;, making them one character
+longer.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">Y{1,}</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The year in
+&quot;week of the year&quot; calendars, from
+&quot;$dt&minus;&gt;week_year&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">u{1,}</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Same as
+&quot;y&quot; except that &quot;uu&quot; is not a special
+case.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">Q{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The quarter as
+a number (1..4).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="5%">
+
+
+<p style="margin-top: 1em"><small>QQQ</small></p></td>
+<td width="78%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The abbreviated
+format form for the quarter.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em"><small>QQQQ</small></p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The wide format
+form for the quarter.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">q{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The quarter as
+a number (1..4).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="5%">
+
+
+<p style="margin-top: 1em">qqq</p></td>
+<td width="78%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The abbreviated
+stand-alone form for the quarter.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em">qqqq</p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The wide
+stand-alone form for the quarter.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">M{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The numerical
+month.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="5%">
+
+
+<p style="margin-top: 1em"><small>MMM</small></p></td>
+<td width="78%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The abbreviated
+format form for the month.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em"><small>MMMM</small></p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The wide format
+form for the month.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em"><small>MMMMM</small></p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The narrow
+format form for the month.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">L{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The numerical
+month.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="5%">
+
+
+<p style="margin-top: 1em"><small>LLL</small></p></td>
+<td width="78%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The abbreviated
+stand-alone form for the month.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em"><small>LLLL</small></p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The wide
+stand-alone form for the month.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em"><small>LLLLL</small></p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The narrow
+stand-alone form for the month.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">w{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The week of the
+year, from &quot;$dt&minus;&gt;week_number&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">W</p></td>
+<td width="82%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The week of the
+month, from &quot;$dt&minus;&gt;week_of_month&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">d{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The numeric day
+of the month.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">D{1,3}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The numeric day
+of the year.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">F</p></td>
+<td width="82%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The day of the
+week in the month, from
+&quot;$dt&minus;&gt;weekday_of_month&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">g{1,}</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The modified
+Julian day, from &quot;$dt&minus;&gt;mjd&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="21%">
+
+
+<p style="margin-top: 1em">E{1,3} and eee</p></td>
+<td width="62%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The abbreviated
+format form for the day of the week.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="20%">
+
+
+<p style="margin-top: 1em"><small>EEEE</small> and eeee</p></td>
+<td width="63%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The wide format
+form for the day of the week.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="23%">
+
+
+<p style="margin-top: 1em"><small>EEEEE</small> and
+eeeee</p> </td>
+<td width="60%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The narrow
+format form for the day of the week.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">e{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The
+<i>local</i> numeric day of the week, from 1 to 7. This
+number depends on what day is considered the first day of
+the week, which varies by locale. For example, in the
+<small>US,</small> Sunday is the first day of the week, so
+this returns 2 for Monday.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">c</p></td>
+<td width="82%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The numeric day
+of the week from 1 to 7, treating Monday as the first of the
+week, regardless of locale.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="5%">
+
+
+<p style="margin-top: 1em">ccc</p></td>
+<td width="78%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The abbreviated
+stand-alone form for the day of the week.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em">cccc</p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The wide
+stand-alone form for the day of the week.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">ccccc</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The narrow
+format form for the day of the week.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">a</p></td>
+<td width="82%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The localized
+form of <small>AM</small> or <small>PM</small> for the
+time.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">h{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The hour from
+1&minus;12.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">H{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The hour from
+0&minus;23.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">K{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The hour from
+0&minus;11.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">k{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The hour from
+1&minus;24.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">j{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The hour, in 12
+or 24 hour form, based on the preferred form for the locale.
+In other words, this is equivalent to either
+&quot;h{1,2}&quot; or &quot;H{1,2}&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">m{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The minute.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">s{1,2}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The second.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">S{1,}</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The fractional
+portion of the seconds, rounded based on the length of the
+specifier. This returned <i>without</i> a leading decimal
+point, but may have leading or trailing zeroes.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">A{1,}</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The millisecond
+of the day, based on the current time. In other words, if it
+is 12:00:00.00, this returns 43200000.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">z{1,3}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time zone
+short name.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em">zzzz</p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time zone
+long name.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">Z{1,3}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time zone
+offset.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em"><small>ZZZZ</small></p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time zone
+short name and the offset as one string, so something like
+&quot; <small>CDT&minus;0500&quot;.</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em"><small>ZZZZZ</small></p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time zone
+offset as a sexagesimal number, so something like
+&quot;&minus;05:00&quot;. (This is useful for W3C
+format.)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">v{1,3}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time zone
+short name.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em">vvvv</p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time zone
+long name.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">V{1,3}</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time zone
+short name.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em"><small>VVVV</small></p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time zone
+long name.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i><small>CLDR</small>
+&quot;Available Formats&quot;</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<small>CLDR</small> data includes pre-defined formats for
+various patterns such as &quot;month and day&quot; or
+&quot;time of day&quot;. Using these formats lets you render
+information about a datetime in the most natural way for
+users from a given locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These formats
+are indexed by a key that is itself a <small>CLDR</small>
+pattern. When you look these up, you get back a different
+<small>CLDR</small> pattern suitable for the locale.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Let&rsquo;s
+look at some example We&rsquo;ll use
+&quot;2008&minus;02&minus;05T18:30:30&quot; as our example
+datetime value, and see how this is rendered for the
+&quot;en&minus;US&quot; and &quot;fr&minus;FR&quot;
+locales.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">&quot;MMMd&quot;</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The abbreviated
+month and day as number. For &quot;en&minus;US&quot;, we get
+the pattern &quot;MMM d&quot;, which renders as &quot;Feb
+5&quot;. For &quot;fr&minus;FR&quot;, we get the pattern
+&quot;d MMM&quot;, which renders as &quot;5
+f&Atilde;&copy;vr.&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">&quot;yQQQ&quot;</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The year and
+abbreviated quarter of year. For &quot;en&minus;US&quot;, we
+get the pattern &quot;QQQ y&quot;, which renders as &quot;Q1
+2008&quot;. For &quot;fr&minus;FR&quot;, we get the same
+pattern, &quot;QQQ y&quot;, which renders as &quot;T1
+2008&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="6%">
+
+
+<p style="margin-top: 1em">&quot;hm&quot;</p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The
+12&minus;hour time of day without seconds. For
+&quot;en&minus;US&quot;, we get the pattern &quot;h:mm
+a&quot;, which renders as &quot;6:30 PM&quot;. For
+&quot;fr&minus;FR&quot;, we get the exact same pattern and
+rendering.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The available
+formats for each locale are documented in the
+<small>POD</small> for that locale. To get back the format,
+you use the &quot;$locale&minus;&gt;format_for&quot; method.
+For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">say
+$dt&minus;&gt;format_cldr(
+$dt&minus;&gt;locale&minus;&gt;format_for('MMMd') );</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>strftime
+Patterns</b> <br>
+The following patterns are allowed in the format string
+given to the &quot;$dt&minus;&gt;strftime&quot; method:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%a</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The abbreviated
+weekday name.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%A</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The full
+weekday name.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%b</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The abbreviated
+month name.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%B</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The full month
+name.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%c</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+datetime format for the object&rsquo;s locale.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%C</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The century
+number (year/100) as a 2&minus;digit integer.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%d</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The day of the
+month as a decimal number (range 01 to 31).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%D</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Equivalent to
+%m/%d/%y. This is not a good standard format if you want
+folks from both the United States and the rest of the world
+to understand the date!</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%e</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Like %d, the
+day of the month as a decimal number, but a leading zero is
+replaced by a space.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%F</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Equivalent to
+%Y&minus;%m&minus;%d (the <small>ISO 8601</small> date
+format)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%G</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The <small>ISO
+8601</small> year with century as a decimal number. The
+4&minus;digit year corresponding to the <small>ISO</small>
+week number (see %V). This has the same format and value as
+%Y, except that if the <small>ISO</small> week number
+belongs to the previous or next year, that year is used
+instead. ( <small>TZ</small> )</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%g</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Like %G, but
+without century, i.e., with a 2&minus;digit year
+(00&minus;99).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%h</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Equivalent to
+%b.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%H</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The hour as a
+decimal number using a 24&minus;hour clock (range 00 to
+23).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%I</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The hour as a
+decimal number using a 12&minus;hour clock (range 01 to
+12).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%j</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The day of the
+year as a decimal number (range 001 to 366).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%k</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The hour
+(24&minus;hour clock) as a decimal number (range 0 to 23);
+single digits are preceded by a blank. (See also %H.)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%l</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The hour
+(12&minus;hour clock) as a decimal number (range 1 to 12);
+single digits are preceded by a blank. (See also %I.)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%m</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The month as a
+decimal number (range 01 to 12).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%M</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The minute as a
+decimal number (range 00 to 59).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%n</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">A newline
+character.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%N</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The fractional
+seconds digits. Default is 9 digits (nanoseconds).</p>
+
+<p style="margin-left:17%; margin-top: 1em">%3N
+milliseconds (3 digits) <br>
+%6N microseconds (6 digits) <br>
+%9N nanoseconds (9 digits)</p>
+
+<p style="margin-left:17%; margin-top: 1em">This value will
+always be rounded down to the nearest integer.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%p</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Either &lsquo;
+<small>AM</small> &rsquo; or &lsquo; <small>PM</small>
+&rsquo; according to the given time value, or the
+corresponding strings for the current locale. Noon is
+treated as &lsquo;pm&rsquo; and midnight as
+&lsquo;am&rsquo;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%P</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Like %p but in
+lowercase: &lsquo;am&rsquo; or &lsquo;pm&rsquo; or a
+corresponding string for the current locale.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%r</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time in
+a.m. or p.m. notation. In the <small>POSIX</small> locale
+this is equivalent to &lsquo;%I:%M:%S %p&rsquo;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%R</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time in
+24&minus;hour notation (%H:%M). ( <small>SU</small> ) For a
+version including the seconds, see %T below.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%s</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The number of
+seconds since the epoch.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%S</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The second as a
+decimal number (range 00 to 61).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%t</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">A tab
+character.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%T</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time in
+24&minus;hour notation (%H:%M:%S).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%u</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The day of the
+week as a decimal, range 1 to 7, Monday being 1. See also
+%w.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%U</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The week number
+of the current year as a decimal number, range 00 to 53,
+starting with the first Sunday as the first day of week 01.
+See also %V and %W.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%V</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The <small>ISO
+8601:1988</small> week number of the current year as a
+decimal number, range 01 to 53, where week 1 is the first
+week that has at least 4 days in the current year, and with
+Monday as the first day of the week. See also %U and %W.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%w</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The day of the
+week as a decimal, range 0 to 6, Sunday being 0. See also
+%u.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%W</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The week number
+of the current year as a decimal number, range 00 to 53,
+starting with the first Monday as the first day of week
+01.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%x</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+date format for the object&rsquo;s locale.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%X</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+time format for the object&rsquo;s locale.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%y</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The year as a
+decimal number without a century (range 00 to 99).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%Y</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The year as a
+decimal number including the century.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%z</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The time-zone
+as hour offset from <small>UTC.</small> Required to emit
+RFC822&minus;conformant dates (using &quot;%a, %d %b %Y
+%H:%M:%S %z&quot;).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%Z</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The short name
+for the time zone, typically an abbreviation like &quot;
+<small>EST&quot;</small> or &quot;
+<small>AEST&quot;.</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">%%</p></td>
+<td width="80%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">A literal
+&lsquo;%&rsquo; character.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="14%">
+
+
+<p style="margin-top: 1em">%{method}</p></td>
+<td width="69%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Any method name
+may be specified using the format &quot;%{method}&quot; name
+where &quot;method&quot; is a valid &quot;DateTime&quot;
+object method.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>DateTime and
+Storable</b> <br>
+&quot;DateTime&quot; implements Storable hooks in order to
+reduce the size of a serialized &quot;DateTime&quot;
+object.</p>
+
+<h2>DEVELOPMENT TOOLS
+<a name="DEVELOPMENT TOOLS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;re
+working on the &quot;DateTIme&quot; code base, there are a
+few extra non-Perl tools that you may find useful, notably
+precious &lt;https://github.com/houseabsolute/precious&gt;,
+a meta&minus;linter/tidier. You can install all the
+necessary tools in &quot;$HOME/bin&quot; by running
+<i>./dev&minus;bin/install&minus;dev&minus;tools.sh</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Try running
+&quot;precious tidy &minus;a&quot; to tidy all the tidyable
+files in the repo, and &quot;precious lint &minus;a&quot; to
+run all the lint checks.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can enable
+a git pre-commit hook for linting by running
+<i>./git/setup.pl</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+linting will be checked in <small>CI,</small> and it&rsquo;s
+okay to submit a <small>PR</small> which fails the linting
+check, but it&rsquo;s extra nice to fix these yourself.</p>
+
+<h2>THE DATETIME PROJECT ECOSYSTEM
+<a name="THE DATETIME PROJECT ECOSYSTEM"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module is
+part of a larger ecosystem of modules in the DateTime
+family.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>DateTime::Set</b>
+<br>
+The DateTime::Set module represents sets (including
+recurrences) of datetimes. Many modules return sets or
+recurrences.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Format
+Modules</b> <br>
+The various format modules exist to parse and format
+datetimes. For example, DateTime::Format::HTTP parses dates
+according to the <small>RFC 1123</small> format:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $datetime
+<br>
+= DateTime::Format::HTTP&minus;&gt;parse_datetime( <br>
+'Thu Feb 3 17:03:55 GMT 1994'); <br>
+print
+DateTime::Format::HTTP&minus;&gt;format_datetime($datetime);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Most format
+modules are suitable for use as a &quot;formatter&quot; with
+a DateTime object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All format
+modules start with DateTime::Format::
+&lt;https://metacpan.org/search?q=datetime%3A%3Aformat&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Calendar
+Modules</b> <br>
+There are a number of modules on <small>CPAN</small> that
+implement non-Gregorian calendars, such as the Chinese,
+Mayan, and Julian calendars.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All calendar
+modules start with DateTime::Calendar::
+&lt;https://metacpan.org/search?q=datetime%3A%3Acalendar&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Event
+Modules</b> <br>
+There are a number of modules that calculate the dates for
+events, such as Easter, Sunrise, etc.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All event
+modules start with DateTime::Event::
+&lt;https://metacpan.org/search?q=datetime%3A%3Aevent&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Others</b>
+<br>
+There are many other modules that work with DateTime,
+including modules in the DateTimeX namespace
+&lt;https://metacpan.org/search?q=datetimex&gt; namespace,
+as well as others.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See MetaCPAN
+&lt;https://metacpan.org/search?q=datetime&gt; for more
+modules.</p>
+
+<h2>KNOWN BUGS
+<a name="KNOWN BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The tests in
+<i>20infinite.t</i> seem to fail on some machines,
+particularly on Win32. This appears to be related to
+Perl&rsquo;s internal handling of <small>IEEE</small>
+infinity and NaN, and seems to be highly
+platform/compiler/phase of moon dependent.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you
+don&rsquo;t plan to use infinite datetimes you can probably
+ignore this. This will be fixed (perhaps) in future
+versions.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A Date with
+Perl
+&lt;http://presentations.houseabsolute.com/a-date-with-perl/&gt;
+&minus; a talk I&rsquo;ve given at a few YAPCs.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">datetime@perl.org
+mailing list
+&lt;http://lists.perl.org/list/datetime.html&gt;</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Bugs may be
+submitted at
+&lt;https://github.com/houseabsolute/DateTime.pm/issues&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There is a
+mailing list available for users of this distribution,
+&lt;mailto:datetime@perl.org&gt;.</p>
+
+<h2>SOURCE
+<a name="SOURCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The source code
+repository for DateTime can be found at
+&lt;https://github.com/houseabsolute/DateTime.pm&gt;.</p>
+
+<h2>DONATIONS
+<a name="DONATIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;d
+like to thank me for the work I&rsquo;ve done on this
+module, please consider making a &quot;donation&quot; to me
+via PayPal. I spend a lot of free time creating free
+software, and would appreciate any support you&rsquo;d care
+to offer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Please note
+that <b>I am not suggesting that you must do this</b> in
+order for me to continue working on this particular
+software. I will continue to do so, inasmuch as I have in
+the past, for as long as it interests me.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Similarly, a
+donation made in this way will probably not make me work on
+this software much more, unless I get so many donations that
+I can consider working on free software full time
+(let&rsquo;s all have a chuckle at that together).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To donate, log
+into PayPal and send money to autarch@urth.org, or use the
+button at
+&lt;https://houseabsolute.com/foss&minus;donations/&gt;.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Dave Rolsky
+&lt;autarch@urth.org&gt;</p>
+
+<h2>CONTRIBUTORS
+<a name="CONTRIBUTORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">Ben Bennett
+&lt;fiji@limey.net&gt;</p> </td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Christian Hansen &lt;chansen@cpan.org&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Daisuke Maki &lt;dmaki@cpan.org&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Dan Book &lt;grinnz@gmail.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Dan Stewart &lt;danielandrewstewart@gmail.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>David Dyck &lt;david.dyck@checksum.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>David E. Wheeler &lt;david@justatheory.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>David Precious &lt;davidp@preshweb.co.uk&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Doug Bell &lt;madcityzen@gmail.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Fl&Atilde;&iexcl;vio Soibelmann Glock
+&lt;fglock@gmail.com&gt;</p> </td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Gianni Ceccarelli
+&lt;gianni.ceccarelli@broadbean.com&gt;</p> </td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Gregory Oschwald &lt;oschwald@gmail.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Hauke D &lt;haukex@zero&minus;g.net&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Iain Truskett &lt;deceased&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>James Raspass &lt;jraspass@gmail.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Jason McIntosh &lt;jmac@jmac.org&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Joshua Hoblitt &lt;jhoblitt@cpan.org&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Karen Etheridge &lt;ether@cpan.org&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Mark Overmeer &lt;mark@overmeer.net&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Michael Conrad &lt;mike@nrdvana.net&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Michael R. Davis
+&lt;mrdvt92@users.noreply.github.com&gt;</p> </td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Mohammad S Anwar &lt;mohammad.anwar@yahoo.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>M Somerville &lt;dracos@users.noreply.github.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Nick Tonkin &lt;1nickt@users.noreply.github.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Olaf Alders &lt;olaf@wundersolutions.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Ovid &lt;curtis_ovid_poe@yahoo.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Paul Howarth &lt;paul@city&minus;fan.org&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Philippe Bruhat (BooK) &lt;book@cpan.org&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>philip r brenan &lt;philiprbrenan@gmail.com&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Ricardo Signes &lt;rjbs@cpan.org&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Richard Bowen &lt;bowen@cpan.org&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Ron Hill &lt;rkhill@cpan.org&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>Sam Kington &lt;github@illuminated.co.uk&gt;</p></td>
+<td width="5%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>viviparous &lt;viviparous@prc&gt;</p></td>
+<td width="5%">
+</td></tr>
+</table>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is Copyright (c) 2003 &minus; 2022 by Dave Rolsky.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software, licensed under:</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Artistic
+License 2.0 (GPL Compatible)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The full text
+of the license can be found in the
+<i><small>LICENSE</small></i> file included with this
+distribution.</p>
+<hr>
+</body>
+</html>

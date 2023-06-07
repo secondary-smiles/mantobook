@@ -1,0 +1,654 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:18 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Test2::Transition</title>
+
+</head>
+<body>
+<h1>Test2::Transition</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Test2::Transition
+&minus; Transition notes when upgrading to Test2</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This is where
+gotchas and breakages related to the Test2 upgrade are
+documented. The upgrade causes Test::Builder to defer to
+Test2 under the hood. This transition is mostly transparent,
+but there are a few cases that can trip you up.</p>
+
+<h2>THINGS THAT BREAK
+<a name="THINGS THAT BREAK"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This is the
+list of scenarios that break with the new internals.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Test::Builder1.5/2
+conditionals</b> <i><br>
+The Problem</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">a few years
+back there were two attempts to upgrade/replace
+Test::Builder. Confusingly these were called Test::Builder2
+and Test::Builder1.5, in that order. Many people put
+conditionals in their code to check the Test::Builder
+version number and adapt their code accordingly.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+Test::Builder2/1.5 projects both died out. Now the
+conditional code people added has become a mine field. A
+vast majority of modules broken by Test2 fall into this
+category.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>The
+Fix</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The fix is to
+remove all Test::Builder1.5/2 related code. Either use the
+legacy Test::Builder <small>API,</small> or use Test2
+directly.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Replacing
+the Test::Builder singleton</b> <i><br>
+The Problem</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Some test
+modules would replace the Test::Builder singleton instance
+with their own instance or subclass. This was usually done
+to intercept or modify results as they happened.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+Test::Builder singleton is now a simple compatibility
+wrapper around Test2. The Test::Builder singleton is no
+longer the central place for results. Many results bypass
+the Test::Builder singleton completely, which breaks and
+behavior intended when replacing the singleton.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>The
+Fix</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If you simply
+want to intercept all results instead of letting them go to
+<small>TAP,</small> you should look at the Test2::API docs
+and read about pushing a new hub onto the hub stack.
+Replacing the hub temporarily is now the correct way to
+intercept results.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If your goal is
+purely monitoring of events use the
+&quot;Test2::Hub&minus;&gt;listen()&quot; method exported by
+Test::More to watch events as they are fired. If you wish to
+modify results before they go to <small>TAP</small> look at
+the &quot;Test2::Hub&minus;&gt;filter()&quot; method.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Directly
+Accessing Hash Elements</b> <i><br>
+The Problem</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Some modules
+look directly at hash keys on the Test::Builder singleton.
+The problem here is that the Test::Builder singleton no
+longer holds anything important.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>The
+Fix</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The fix is to
+use the <small>API</small> specified in Test2::API to look
+at or modify state as needed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Subtest
+indentation</b> <i><br>
+The Problem</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">An early
+change, in fact the change that made Test2 an idea, was a
+change to the indentation of the subtest note. It was
+decided it would be more readable to outdent the subtest
+note instead of having it inline with the subtest:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># subtest foo
+<br>
+ok 1 &minus; blah <br>
+1..1 <br>
+ok 1 &minus; subtest foo</p>
+
+<p style="margin-left:11%; margin-top: 1em">The old style
+indented the note:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># subtest foo
+<br>
+ok 1 &minus; blah <br>
+1..1 <br>
+ok 1 &minus; subtest foo</p>
+
+<p style="margin-left:11%; margin-top: 1em">This breaks
+tests that do string comparison of <small>TAP</small>
+output.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>The
+Fix</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $indent =
+$INC{'Test2/API.pm'} ? '' : ' '; <br>
+is( <br>
+$subtest_output, <br>
+&quot;${indent}# subtest foo&quot;, <br>
+&quot;Got subtest note&quot; <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Check if
+$INC{'Test2/API.pm'} is set, if it is then no indentation
+should be expected. If it is not set, then the old
+Test::Builder is in use, indentation should be expected.</p>
+
+<h2>DISTRIBUTIONS THAT BREAK OR NEED TO BE UPGRADED
+<a name="DISTRIBUTIONS THAT BREAK OR NEED TO BE UPGRADED"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This is a list
+of cpan modules that have been known to have been broken by
+the upgrade at one point.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>WORKS
+BUT TESTS WILL FAIL</small></b> <br>
+These modules still function correctly, but their test
+suites will not pass. If you already have these modules
+installed then you can continue to use them. If you are
+trying to install them after upgrading Test::Builder you
+will need to force installation, or bypass the broken tests.
+<br>
+Test::DBIx::Class::Schema</p>
+
+<p style="margin-left:17%;">This module has a test that
+appears to work around a Test::Builder bug. The bug appears
+to have been fixed by Test2, which means the workaround
+causes a failure. This can be easily updated, but nobody has
+done so yet.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Known broken in
+versions: 1.0.9 and older</p>
+
+<p style="margin-left:11%;">Device::Chip</p>
+
+<p style="margin-left:17%;">Tests break due to subtest
+indentation.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Known broken in
+version 0.07. Apparently works fine in 0.06 though. Patch
+has been submitted to fix the issue.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>UPGRADE
+SUGGESTED</small></b> <br>
+These are modules that did not break, but had broken test
+suites that have since been fixed. <br>
+Test::Exception</p>
+
+<p style="margin-left:17%;">Old versions work fine, but
+have a minor test name behavior that breaks with Test2. Old
+versions will no longer install because of this. The latest
+version on <small>CPAN</small> will install just fine.
+Upgrading is not required, but is recommended.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 0.43</p>
+
+<p style="margin-left:11%;">Data::Peek</p>
+
+<p style="margin-left:17%;">Some tests depended on $! and
+$? being modified in subtle ways. A patch was applied to
+correct things that changed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The module
+itself works fine, there is no need to upgrade.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 0.45</p>
+
+<p style="margin-left:11%;">circular::require</p>
+
+<p style="margin-left:17%;">Some tests were fragile and
+required base.pm to be loaded at a late stage. Test2 was
+loading base.pm too early. The tests were updated to fix
+this.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The module
+itself never broke, you do not need to upgrade.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 0.12</p>
+
+<p style="margin-left:11%;">Test::Module::Used</p>
+
+<p style="margin-left:17%;">A test worked around a
+now-fixed planning bug. There is no need to upgrade if you
+have an old version installed. New versions install fine if
+you want them.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 0.2.5</p>
+
+<p style="margin-left:11%;">Test::Moose::More</p>
+
+<p style="margin-left:17%;">Some tests were fragile, but
+have been fixed. The actual breakage was from the subtest
+comment indentation change.</p>
+
+<p style="margin-left:17%; margin-top: 1em">No need to
+upgrade, old versions work fine. Only new versions will
+install.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 0.025</p>
+
+<p style="margin-left:11%;">Test::FITesque</p>
+
+<p style="margin-left:17%;">This was broken by a bugfix to
+how planning is done. The test was updated after the
+bugfix.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 0.04</p>
+
+<p style="margin-left:11%;">Test::Kit</p>
+
+<p style="margin-left:17%;">Old versions work fine, but
+would not install because Test::Aggregate was in the
+dependency chain. An upgrade should not be needed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 2.15</p>
+
+<p style="margin-left:11%;">autouse</p>
+
+<p style="margin-left:17%;">A test broke because it
+depended on Scalar::Util not being loaded. Test2 loads
+Scalar::Util. The test was updated to load Test2 after
+checking Scalar::Util&rsquo;s load status.</p>
+
+<p style="margin-left:17%; margin-top: 1em">There is no
+need to upgrade if you already have it installed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 1.11</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>NEED
+TO UPGRADE</small></b> <br>
+Test::SharedFork</p>
+
+<p style="margin-left:17%;">Old versions need to directly
+access Test::Builder singleton hash elements. The latest
+version on <small>CPAN</small> will still do this on old
+Test::Builder, but will defer to Test2::IPC on Test2.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 0.35</p>
+
+<p style="margin-left:11%;">Test::Builder::Clutch</p>
+
+<p style="margin-left:17%;">This works by doing overriding
+methods on the singleton, and directly accessing hash values
+on the singleton. A new version has been released that uses
+the Test2 <small>API</small> to accomplish the same result
+in a saner way.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 0.07</p>
+
+<p style="margin-left:11%;">Test::Dist::VersionSync</p>
+
+<p style="margin-left:17%;">This had Test::Builder2
+conditionals. This was fixed by removing the
+conditionals.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 1.1.4</p>
+
+<p style="margin-left:11%;">Test::Modern</p>
+
+<p style="margin-left:17%;">This relied on
+&quot;Test::Builder&minus;&gt;_try()&quot; which was a
+private method, documented as something nobody should use.
+This was fixed by using a different tool.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 0.012</p>
+
+<p style="margin-left:11%;">Test::UseAllModules</p>
+
+<p style="margin-left:17%;">Version 0.14 relied on
+&quot;Test::Builder&minus;&gt;history&quot; which was
+available in Test::Builder 1.5. Versions 0.12 and 0.13
+relied on other Test::Builder internals.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 0.15</p>
+
+<p style="margin-left:11%;">Test::More::Prefix</p>
+
+<p style="margin-left:17%;">Worked by applying a role that
+wrapped &quot;Test::Builder&minus;&gt;_print_comment&quot;.
+Fixed by adding an event filter that modifies the message
+instead when running under Test2.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fixed in
+version: 0.007</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>STILL
+BROKEN</small></b> <br>
+Test::Aggregate</p>
+
+<p style="margin-left:17%;">This distribution directly
+accesses the hash keys in the Test::Builder singleton. It
+also approaches the problem from the wrong angle, please
+consider using Test2::Aggregate for similar functionality
+and Test2::Harness which allows module preloading at the
+harness level.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Still broken as
+of version: 0.373</p>
+
+<p style="margin-left:11%;">Test::Wrapper</p>
+
+<p style="margin-left:17%;">This module directly uses hash
+keys in the Test::Builder singleton. This module is also
+obsolete thanks to the benefits of Test2. Use
+&quot;intercept()&quot; from Test2::API to achieve a similar
+result.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Still broken as
+of version: 0.3.0</p>
+
+<p style="margin-left:11%;">Test::ParallelSubtest</p>
+
+<p style="margin-left:17%;">This module overrides
+&quot;Test::Builder::subtest()&quot; and
+&quot;Test::Builder::done_testing()&quot;. It also directly
+accesses hash elements of the singleton. It has not yet been
+fixed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Alternatives:
+Test2::AsyncSubtest and Test2::Workflow (not stable).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Still broken as
+of version: 0.05</p>
+
+<p style="margin-left:11%;">Test::Pretty</p>
+
+<p style="margin-left:17%;">See
+https://github.com/tokuhirom/Test&minus;Pretty/issues/25</p>
+
+<p style="margin-left:17%; margin-top: 1em">The author
+admits the module is crazy, and he is awaiting a stable
+release of something new (Test2) to completely rewrite it in
+a sane way.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Still broken as
+of version: 0.32</p>
+
+<p style="margin-left:11%;">Net::BitTorrent</p>
+
+<p style="margin-left:17%;">The tests for this module
+directly access Test::Builder hash keys. Most, if not all of
+these hash keys have public <small>API</small> methods that
+could be used instead to avoid the problem.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Still broken in
+version: 0.052</p>
+
+<p style="margin-left:11%;">Test::Group</p>
+
+<p style="margin-left:17%;">It monkeypatches Test::Builder,
+and calls it &quot;black magic&quot; in the code.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Still broken as
+of version: 0.20</p>
+
+<p style="margin-left:11%;">Test::Flatten</p>
+
+<p style="margin-left:17%;">This modifies the Test::Builder
+internals in many ways. A better was to accomplish the goal
+of this module is to write your own subtest function.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Still broken as
+of version: 0.11</p>
+
+
+<p style="margin-left:11%;">Log::Dispatch::Config::TestLog</p>
+
+<p style="margin-left:17%;">Modifies Test::Builder
+internals.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Still broken as
+of version: 0.02</p>
+
+<p style="margin-left:11%;">Test::Able</p>
+
+<p style="margin-left:17%;">Modifies Test::Builder
+internals.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Still broken as
+of version: 0.11</p>
+
+<h2>MAKE ASSERTIONS &minus;&gt; SEND EVENTS
+<a name="MAKE ASSERTIONS &minus;&gt; SEND EVENTS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>LEGACY</small></b>
+<br>
+use Test::Builder; <br>
+# A majority of tools out there do this: <br>
+# my $TB = Test::Builder&minus;&gt;new; <br>
+# This works, but has always been wrong, forcing
+Test::Builder to implement <br>
+# subtests as a horrific hack. It also causes problems for
+tools that try <br>
+# to replace the singleton (also discouraged). <br>
+sub my_ok($;$) { <br>
+my ($bool, $name) = @_; <br>
+my $TB = Test::Builder&minus;&gt;new; <br>
+$TB&minus;&gt;ok($bool, $name); <br>
+} <br>
+sub my_diag($) { <br>
+my ($msg) = @_; <br>
+my $TB = Test::Builder&minus;&gt;new; <br>
+$TB&minus;&gt;diag($msg); <br>
+}</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>TEST2</small></b>
+<br>
+use Test2::API qw/context/; <br>
+sub my_ok($;$) { <br>
+my ($bool, $name) = @_; <br>
+my $ctx = context(); <br>
+$ctx&minus;&gt;ok($bool, $name); <br>
+$ctx&minus;&gt;release; <br>
+} <br>
+sub my_diag($) { <br>
+my ($msg) = @_; <br>
+my $ctx = context(); <br>
+$ctx&minus;&gt;diag($msg); <br>
+$ctx&minus;&gt;release; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The context
+object has <small>API</small> compatible implementations of
+the following methods: <br>
+ok($bool, $name) <br>
+diag(@messages) <br>
+note(@messages) <br>
+subtest($name, $code)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+looking for helpers with &quot;is&quot;, &quot;like&quot;,
+and others, see Test2::Suite.</p>
+
+<h2>WRAP EXISTING TOOLS
+<a name="WRAP EXISTING TOOLS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>LEGACY</small></b>
+<br>
+use Test::More; <br>
+sub exclusive_ok { <br>
+my ($bool1, $bool2, $name) = @_; <br>
+# Ensure errors are reported 1 level higher <br>
+local $Test::Builder::Level = $Test::Builder::Level + 1;
+<br>
+$ok = $bool1 || $bool2; <br>
+$ok &amp;&amp;= !($bool1 &amp;&amp; $bool2); <br>
+ok($ok, $name); <br>
+return $bool; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Every single
+tool in the chain from this, to &quot;ok&quot;, to anything
+&quot;ok&quot; calls needs to increment the $Level variable.
+When an error occurs Test::Builder will do a trace to the
+stack frame determined by $Level, and report that file+line
+as the one where the error occurred. If you or any other
+tool you use forgets to set $Level then errors will be
+reported to the wrong place.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>TEST2</small></b>
+<br>
+use Test::More; <br>
+sub exclusive_ok { <br>
+my ($bool1, $bool2, $name) = @_; <br>
+# Grab and store the context, even if you do not need to use
+it <br>
+# directly. <br>
+my $ctx = context(); <br>
+$ok = $bool1 || $bool2; <br>
+$ok &amp;&amp;= !($bool1 &amp;&amp; $bool2); <br>
+ok($ok, $name); <br>
+$ctx&minus;&gt;release; <br>
+return $bool; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instead of
+using $Level to perform a backtrace, Test2 uses a context
+object. In this sample you create a context object and store
+it. This locks the context (errors report 1 level up from
+here) for all wrapped tools to find. You do not need to use
+the context object, but you do need to store it in a
+variable. Once the sub ends the $ctx variable is destroyed
+which lets future tools find their own.</p>
+
+<h2>USING UTF8
+<a name="USING UTF8"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>LEGACY</small></b>
+<br>
+# Set the mode BEFORE anything loads Test::Builder <br>
+use open ':std', ':encoding(utf8)'; <br>
+use Test::More;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Modify the
+filehandles <br>
+my $builder = Test::More&minus;&gt;builder; <br>
+binmode $builder&minus;&gt;output,
+&quot;:encoding(utf8)&quot;; <br>
+binmode $builder&minus;&gt;failure_output,
+&quot;:encoding(utf8)&quot;; <br>
+binmode $builder&minus;&gt;todo_output,
+&quot;:encoding(utf8)&quot;;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>TEST2</small></b>
+<br>
+use Test2::API qw/test2_stack/; <br>
+
+test2_stack&minus;&gt;top&minus;&gt;format&minus;&gt;encoding('utf8');</p>
+
+<p style="margin-left:11%; margin-top: 1em">Though a much
+better way is to use the Test2::Plugin::UTF8 plugin, which
+is part of Test2::Suite.</p>
+
+<h2>AUTHORS, CONTRIBUTORS AND REVIEWERS
+<a name="AUTHORS, CONTRIBUTORS AND REVIEWERS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+people have all contributed to this document in some way,
+even if only for review. <br>
+Chad Granum ( <small>EXODIST</small> )
+&lt;exodist@cpan.org&gt;</p>
+
+<h2>SOURCE
+<a name="SOURCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The source code
+repository for Test2 can be found at
+<i>http://github.com/Test&minus;More/test&minus;more/</i>.</p>
+
+<h2>MAINTAINER
+<a name="MAINTAINER"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Chad Granum
+&lt;exodist@cpan.org&gt;</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright 2020
+Chad Granum &lt;exodist@cpan.org&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This program is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+<i>http://www.perl.com/perl/misc/Artistic.html</i></p>
+<hr>
+</body>
+</html>

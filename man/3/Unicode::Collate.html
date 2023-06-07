@@ -1,0 +1,1520 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:23 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Unicode::Collate</title>
+
+</head>
+<body>
+<h1>Unicode::Collate</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Unicode::Collate
+&minus; Unicode Collation Algorithm</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Unicode::Collate; <br>
+#construct <br>
+$Collator = Unicode::Collate&minus;&gt;new(%tailoring); <br>
+#sort <br>
+@sorted = $Collator&minus;&gt;sort(@not_sorted); <br>
+#compare <br>
+$result = $Collator&minus;&gt;cmp($a, $b); # returns 1, 0,
+or &minus;1.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note:</b>
+Strings in @not_sorted, $a and $b are interpreted according
+to Perl&rsquo;s Unicode support. See perlunicode,
+perluniintro, perlunitut, perlunifaq, utf8. Otherwise you
+can use &quot;preprocess&quot; or should decode them
+before.</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module is
+an implementation of Unicode Technical Standard #10 (a.k.a.
+<small>UTS</small> #10) &minus; Unicode Collation Algorithm
+(a.k.a. <small>UCA</small> ).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Constructor
+and Tailoring</b> <br>
+The &quot;new&quot; method returns a collator object. If
+<b>new()</b> is called with no parameters, the collator
+should do the default collation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$Collator =
+Unicode::Collate&minus;&gt;new( <br>
+UCA_Version =&gt; $UCA_Version, <br>
+alternate =&gt; $alternate, # alias for 'variable' <br>
+backwards =&gt; $levelNumber, # or \@levelNumbers <br>
+entry =&gt; $element, <br>
+hangul_terminator =&gt; $term_primary_weight, <br>
+highestFFFF =&gt; $bool, <br>
+identical =&gt; $bool, <br>
+ignoreName =&gt; qr/$ignoreName/, <br>
+ignoreChar =&gt; qr/$ignoreChar/, <br>
+ignore_level2 =&gt; $bool, <br>
+katakana_before_hiragana =&gt; $bool, <br>
+level =&gt; $collationLevel, <br>
+long_contraction =&gt; $bool, <br>
+minimalFFFE =&gt; $bool, <br>
+normalization =&gt; $normalization_form, <br>
+overrideCJK =&gt; \&amp;overrideCJK, <br>
+overrideHangul =&gt; \&amp;overrideHangul, <br>
+preprocess =&gt; \&amp;preprocess, <br>
+rearrange =&gt; \@charList, <br>
+rewrite =&gt; \&amp;rewrite, <br>
+suppress =&gt; \@charList, <br>
+table =&gt; $filename, <br>
+undefName =&gt; qr/$undefName/, <br>
+undefChar =&gt; qr/$undefChar/, <br>
+upper_before_lower =&gt; $bool, <br>
+variable =&gt; $variable, <br>
+); <br>
+UCA_Version</p>
+
+<p style="margin-left:17%;">If the revision (previously
+&quot;tracking version&quot;) number of <small>UCA</small>
+is given, behavior of that revision is emulated on
+collating. If omitted, the return value of
+&quot;UCA_Version()&quot; is used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The following
+revisions are supported. The default is 43.</p>
+
+<p style="margin-left:17%; margin-top: 1em">UCA Unicode
+Standard DUCET (@version) <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+8 3.1 3.0.1 (3.0.1d9) <br>
+9 3.1 with Corrigendum 3 3.1.1 <br>
+11 4.0.0 <br>
+14 4.1.0 <br>
+16 5.0.0 <br>
+18 5.1.0 <br>
+20 5.2.0 <br>
+22 6.0.0 <br>
+24 6.1.0 <br>
+26 6.2.0 <br>
+28 6.3.0 <br>
+30 7.0.0 <br>
+32 8.0.0 <br>
+34 9.0.0 <br>
+36 10.0.0 <br>
+38 11.0.0 <br>
+40 12.0.0 <br>
+41 12.1.0 <br>
+43 13.0.0</p>
+
+<p style="margin-left:17%; margin-top: 1em">* See below for
+&quot;long_contraction&quot; with &quot;UCA_Version&quot; 22
+and 24.</p>
+
+<p style="margin-left:17%; margin-top: 1em">* Noncharacters
+(e.g. U+FFFF) are not ignored, and can be overridden since
+&quot;UCA_Version&quot; 22.</p>
+
+<p style="margin-left:17%; margin-top: 1em">* Out-of-range
+codepoints (greater than U+10FFFF) are not ignored, and can
+be overridden since &quot;UCA_Version&quot; 22.</p>
+
+<p style="margin-left:17%; margin-top: 1em">* Fully
+ignorable characters were ignored, and would not interrupt
+contractions with &quot;UCA_Version&quot; 9 and 11.</p>
+
+<p style="margin-left:17%; margin-top: 1em">* Treatment of
+ignorables after variables and some behaviors were changed
+at &quot;UCA_Version&quot; 9.</p>
+
+<p style="margin-left:17%; margin-top: 1em">* Characters
+regarded as <small>CJK</small> unified ideographs (cf.
+&quot;overrideCJK&quot;) depend on
+&quot;UCA_Version&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">* Many hangul
+jamo are assigned at &quot;UCA_Version&quot; 20, that will
+affect &quot;hangul_terminator&quot;.</p>
+
+<p style="margin-left:11%;">alternate</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 3.2.2
+Alternate Weighting, version 8 of <small>UTS</small> #10</p>
+
+<p style="margin-left:17%; margin-top: 1em">For backward
+compatibility, &quot;alternate&quot; (old name) can be used
+as an alias for &quot;variable&quot;.</p>
+
+<p style="margin-left:11%;">backwards</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 3.4 Backward
+Accents, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">backwards =&gt;
+$levelNumber or \@levelNumbers</p>
+
+<p style="margin-left:17%; margin-top: 1em">Weights in
+reverse order; ex. level 2 (diacritic ordering) in French.
+If omitted (or $levelNumber is &quot;undef&quot; or
+&quot;\@levelNumbers&quot; is &quot;[]&quot;), forwards at
+all the levels.</p>
+
+<p style="margin-left:11%;">entry</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 5 Tailoring;
+9.1 Allkeys File Format, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the same
+character (or a sequence of characters) exists in the
+collation element table through &quot;table&quot;, mapping
+to collation elements is overridden. If it does not exist,
+the mapping is defined additionally.</p>
+
+<p style="margin-left:17%; margin-top: 1em">entry =&gt;
+&lt;&lt;'ENTRY', # for DUCET v4.0.0
+(allkeys&minus;4.0.0.txt) <br>
+0063 0068 ; [.0E6A.0020.0002.0063] # ch <br>
+0043 0068 ; [.0E6A.0020.0007.0043] # Ch <br>
+0043 0048 ; [.0E6A.0020.0008.0043] # CH <br>
+006C 006C ; [.0F4C.0020.0002.006C] # ll <br>
+004C 006C ; [.0F4C.0020.0007.004C] # Ll <br>
+004C 004C ; [.0F4C.0020.0008.004C] # LL <br>
+00F1 ; [.0F7B.0020.0002.00F1] # n&minus;tilde <br>
+006E 0303 ; [.0F7B.0020.0002.00F1] # n&minus;tilde <br>
+00D1 ; [.0F7B.0020.0008.00D1] # N&minus;tilde <br>
+004E 0303 ; [.0F7B.0020.0008.00D1] # N&minus;tilde <br>
+ENTRY <br>
+entry =&gt; &lt;&lt;'ENTRY', # for DUCET v4.0.0
+(allkeys&minus;4.0.0.txt) <br>
+00E6 ; [.0E33.0020.0002.00E6][.0E8B.0020.0002.00E6] # ae
+ligature as &lt;a&gt;&lt;e&gt; <br>
+00C6 ; [.0E33.0020.0008.00C6][.0E8B.0020.0008.00C6] # AE
+ligature as &lt;A&gt;&lt;E&gt; <br>
+ENTRY</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>NOTE:</small></b>
+The code point in the <small>UCA</small> file format (before
+';') <b>must</b> be a Unicode code point (defined as
+hexadecimal), but not a native code point. So 0063 must
+always denote &quot;U+0063&quot;, but not a character of
+&quot;\x63&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Weighting may
+vary depending on collation element table. So ensure the
+weights defined in &quot;entry&quot; will be consistent with
+those in the collation element table loaded via
+&quot;table&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In
+<small>DUCET</small> v4.0.0, primary weight of &quot;C&quot;
+is 0E60 and that of &quot;D&quot; is &quot;0E6D&quot;. So
+setting primary weight of &quot;CH&quot; to &quot;0E6A&quot;
+(as a value between 0E60 and &quot;0E6D&quot;) makes
+ordering as &quot;C &lt; CH &lt; D&quot;. Exactly speaking
+<small>DUCET</small> already has some characters between
+&quot;C&quot; and &quot;D&quot;: &quot;small capital C&quot;
+(&quot;U+1D04&quot;) with primary weight 0E64,
+&quot;c&minus;hook/C&minus;hook&quot;
+(&quot;U+0188/U+0187&quot;) with 0E65, and
+&quot;c&minus;curl&quot; (&quot;U+0255&quot;) with 0E69.
+Then primary weight &quot;0E6A&quot; for &quot;CH&quot;
+makes &quot;CH&quot; ordered between
+&quot;c&minus;curl&quot; and &quot;D&quot;.</p>
+
+<p style="margin-left:11%;">hangul_terminator</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 7.1.4
+Trailing Weights, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If a true value
+is given (non-zero but should be positive), it will be added
+as a terminator primary weight to the end of every standard
+Hangul syllable. Secondary and any higher weights for
+terminator are set to zero. If the value is false or
+&quot;hangul_terminator&quot; key does not exist, insertion
+of terminator weights will not be performed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Boundaries of
+Hangul syllables are determined according to conjoining Jamo
+behavior in <i>the Unicode Standard</i> and
+<i>HangulSyllableType.txt</i>.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>Implementation
+Note:</b> (1) For expansion mapping (Unicode character
+mapped to a sequence of collation elements), a terminator
+will not be added between collation elements, even if Hangul
+syllable boundary exists there. Addition of terminator is
+restricted to the next position to the last collation
+element.</p>
+
+<p style="margin-left:17%; margin-top: 1em">(2)
+Non-conjoining Hangul letters (Compatibility Jamo, halfwidth
+Jamo, and enclosed letters) are not automatically terminated
+with a terminator primary weight. These characters may need
+terminator included in a collation element table
+beforehand.</p>
+
+<p style="margin-left:11%;">highestFFFF</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 2.4 Tailored
+noncharacter weights, <small>UTS</small> #35 (
+<small>LDML</small> ) Part 5: Collation.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+parameter is made true, &quot;U+FFFF&quot; has a highest
+primary weight. When a boolean of
+&quot;$coll&minus;&gt;ge($str, &quot;abc&quot;)&quot; and
+&quot;$coll&minus;&gt;le($str,
+&quot;abc\x{FFFF}&quot;)&quot; is true, it is expected that
+$str begins with &quot;abc&quot;, or another primary
+equivalent. $str may be &quot;abcd&quot;,
+&quot;abc012&quot;, but should not include
+&quot;U+FFFF&quot; such as &quot;abc\x{FFFF}xyz&quot;.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;$coll&minus;&gt;le($str,
+&quot;abc\x{FFFF}&quot;)&quot; works like
+&quot;$coll&minus;&gt;lt($str, &quot;abd&quot;)&quot;
+almost, but the latter has a problem that you should know
+which letter is next to &quot;c&quot;. For a certain
+language where &quot;ch&quot; as the next letter,
+&quot;abch&quot; is greater than &quot;abc\x{FFFF}&quot;,
+but less than &quot;abd&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note: This is
+equivalent to &quot;(entry =&gt; 'FFFF ;
+[.FFFE.0020.0005.FFFF]')&quot;. Any other character than
+&quot;U+FFFF&quot; can be tailored by &quot;entry&quot;.</p>
+
+<p style="margin-left:11%;">identical</p>
+
+<p style="margin-left:17%;">&minus;&minus; see A.3
+Deterministic Comparison, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+strings whose weights are equal should be equal, even though
+their code points are not equal. Completely ignorable
+characters are ignored.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+parameter is made true, a final, tie-breaking level is used.
+If no difference of weights is found after the comparison
+through all the level specified by &quot;level&quot;, the
+comparison with code points will be performed. For the
+tie-breaking comparison, the sort key has code points of the
+original string appended. Completely ignorable characters
+are not ignored.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;preprocess&quot; and/or &quot;normalization&quot; is
+applied, the code points of the string after them (in
+<small>NFD</small> by default) are used.</p>
+
+<p style="margin-left:11%;">ignoreChar <br>
+ignoreName</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 3.6 Variable
+Weighting, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Makes the entry
+in the table completely ignorable; i.e. as if the weights
+were zero at all level.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Through
+&quot;ignoreChar&quot;, any character matching
+&quot;qr/$ignoreChar/&quot; will be ignored. Through
+&quot;ignoreName&quot;, any character whose name (given in
+the &quot;table&quot; file as a comment) matches
+&quot;qr/$ignoreName/&quot; will be ignored.</p>
+
+<p style="margin-left:17%; margin-top: 1em">E.g. when
+&rsquo;a&rsquo; and &rsquo;e&rsquo; are ignorable,
+&rsquo;element&rsquo; is equal to &rsquo;lament&rsquo; (or
+&rsquo;lmnt&rsquo;).</p>
+
+<p style="margin-left:11%;">ignore_level2</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 5.1
+Parametric Tailoring, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+case-sensitive comparison (that is level 3 difference)
+won&rsquo;t ignore accents (that is level 2 difference).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+parameter is made true, accents (and other primary ignorable
+characters) are ignored, even though cases are taken into
+account.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>NOTE</small></b>
+: &quot;level&quot; should be 3 or greater.</p>
+
+<p style="margin-left:11%;">katakana_before_hiragana</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 7.2 Tertiary
+Weight Table, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+hiragana is before katakana. If the parameter is made true,
+this is reversed.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>NOTE</small></b>
+: This parameter simplemindedly assumes that any
+hiragana/katakana distinctions must occur in level 3, and
+their weights at level 3 must be same as those mentioned in
+7.3.1, <small>UTS</small> #10. If you define your collation
+elements which violate this requirement, this parameter does
+not work validly.</p>
+
+<p style="margin-left:11%;">level</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 4.3 Form
+Sort Key, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Set the maximum
+level. Any higher levels than the specified one are
+ignored.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Level 1:
+alphabetic ordering <br>
+Level 2: diacritic ordering <br>
+Level 3: case ordering <br>
+Level 4: tie&minus;breaking (e.g. in the case when variable
+is 'shifted') <br>
+ex.level =&gt; 2,</p>
+
+<p style="margin-left:17%; margin-top: 1em">If omitted, the
+maximum is the 4th.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>NOTE:</small></b>
+The <small>DUCET</small> includes weights over 0xFFFF at the
+4th level. But this module only uses weights within 0xFFFF.
+When &quot;variable&quot; is &rsquo;blanked&rsquo; or
+&rsquo;non&minus;ignorable&rsquo; (other than
+&rsquo;shifted&rsquo; and
+&rsquo;shift&minus;trimmed&rsquo;), the level 4 may be
+unreliable.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See also
+&quot;identical&quot;.</p>
+
+<p style="margin-left:11%;">long_contraction</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 3.8.2
+Well-Formedness of the <small>DUCET, 4.2</small> Produce
+Array, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+parameter is made true, for a contraction with three or more
+characters (here nicknamed &quot;long contraction&quot;),
+initial substrings will be handled. For example, a
+contraction <small>ABC,</small> where A is a starter, and B
+and C are non-starters (character with non-zero combining
+character class), will be detected even if there is not
+<small>AB</small> as a contraction.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>Default:</b>
+Usually false. If &quot;UCA_Version&quot; is 22 or 24, and
+the value of &quot;long_contraction&quot; is not specified
+in &quot;new()&quot;, a true value is set implicitly. This
+is a workaround to pass Conformance Tests for Unicode 6.0.0
+and 6.1.0.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;change()&quot;
+handles &quot;long_contraction&quot; explicitly only. If
+&quot;long_contraction&quot; is not specified in
+&quot;change()&quot;, even though &quot;UCA_Version&quot; is
+changed, &quot;long_contraction&quot; will not be
+changed.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>Limitation:</b>
+Scanning non-starters is one-way (no back tracking). If
+<small>AB</small> is found but not <small>ABC</small> is not
+found, other long contraction where the first character is A
+and the second is not B may not be found.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Under
+&quot;(normalization =&gt; undef)&quot;, detection step of
+discontiguous contractions will be skipped.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Note:</b>
+The following contractions in <small>DUCET</small> are not
+considered in steps S2.1.1 to S2.1.3, where they are
+discontiguous.</p>
+
+<p style="margin-left:17%; margin-top: 1em">0FB2 0F71 0F80
+(TIBETAN VOWEL SIGN VOCALIC RR) <br>
+0FB3 0F71 0F80 (TIBETAN VOWEL SIGN VOCALIC LL)</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example
+&quot;TIBETAN VOWEL SIGN VOCALIC RR&quot; with
+&quot;COMBINING TILDE OVERLAY&quot; (&quot;U+0344&quot;) is
+&quot;0FB2 0344 0F71 0F80&quot; in <small>NFD.</small> In
+this case &quot;0FB2 0F80&quot; (&quot;TIBETAN VOWEL SIGN
+VOCALIC R&quot;) is detected, instead of &quot;0FB2 0F71
+0F80&quot;. Inserted 0344 makes &quot;0FB2 0F71 0F80&quot;
+discontiguous and lack of contraction &quot;0FB2 0F71&quot;
+prohibits &quot;0FB2 0F71 0F80&quot; from being
+detected.</p>
+
+<p style="margin-left:11%;">minimalFFFE</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 1.1.1
+U+FFFE, <small>UTS</small> #35 ( <small>LDML</small> ) Part
+5: Collation.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+parameter is made true, &quot;U+FFFE&quot; has a minimal
+primary weight. The comparison between
+&quot;$a1\x{FFFE}$a2&quot; and &quot;$b1\x{FFFE}$b2&quot;
+first compares $a1 and $b1 at level 1, and then $a2 and $b2
+at level 1, as followed.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;ab\x{FFFE}a&quot;
+<br>
+&quot;Ab\x{FFFE}a&quot; <br>
+&quot;ab\x{FFFE}c&quot; <br>
+&quot;Ab\x{FFFE}c&quot; <br>
+&quot;ab\x{FFFE}xyz&quot; <br>
+&quot;abc\x{FFFE}def&quot; <br>
+&quot;abc\x{FFFE}xYz&quot; <br>
+&quot;aBc\x{FFFE}xyz&quot; <br>
+&quot;abcX\x{FFFE}def&quot; <br>
+&quot;abcx\x{FFFE}xyz&quot; <br>
+&quot;b\x{FFFE}aaa&quot; <br>
+&quot;bbb\x{FFFE}a&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note: This is
+equivalent to &quot;(entry =&gt; 'FFFE ;
+[.0001.0020.0005.FFFE]')&quot;. Any other character than
+&quot;U+FFFE&quot; can be tailored by &quot;entry&quot;.</p>
+
+<p style="margin-left:11%;">normalization</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 4.1
+Normalize, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If specified,
+strings are normalized before preparation of sort keys (the
+normalization is executed after preprocess).</p>
+
+<p style="margin-left:17%; margin-top: 1em">A form name
+&quot;Unicode::Normalize::normalize()&quot; accepts will be
+applied as $normalization_form. Acceptable names include
+'NFD', 'NFC', 'NFKD', and 'NFKC'. See
+&quot;Unicode::Normalize::normalize()&quot; for detail. If
+omitted, 'NFD' is used.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;normalization&quot;
+is performed after &quot;preprocess&quot; (if defined).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Furthermore,
+special values, &quot;undef&quot; and
+&quot;prenormalized&quot;, can be used, though they are not
+concerned with
+&quot;Unicode::Normalize::normalize()&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;undef&quot; (not a string &quot;undef&quot;) is passed
+explicitly as the value for this key, any normalization is
+not carried out (this may make tailoring easier if any
+normalization is not desired). Under &quot;(normalization
+=&gt; undef)&quot;, only contiguous contractions are
+resolved; e.g. even if &quot;A&minus;ring&quot; (and
+&quot;A&minus;ring&minus;cedilla&quot;) is ordered after
+&quot;Z&quot;, &quot;A&minus;cedilla&minus;ring&quot; would
+be primary equal to &quot;A&quot;. In this point,
+&quot;(normalization =&gt; undef, preprocess =&gt; sub {
+NFD(shift) })&quot; <b>is not</b> equivalent to
+&quot;(normalization =&gt; 'NFD')&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In the case of
+&quot;(normalization =&gt; &quot;prenormalized&quot;)&quot;,
+any normalization is not performed, but discontiguous
+contractions with combining characters are performed.
+Therefore &quot;(normalization =&gt; 'prenormalized',
+preprocess =&gt; sub { NFD(shift) })&quot; <b>is</b>
+equivalent to &quot;(normalization =&gt; 'NFD')&quot;. If
+source strings are finely prenormalized,
+&quot;(normalization =&gt; 'prenormalized')&quot; may save
+time for normalization.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Except
+&quot;(normalization =&gt; undef)&quot;,
+<b>Unicode::Normalize</b> is required (see also
+<b><small>CAVEAT</small></b> ).</p>
+
+<p style="margin-left:11%;">overrideCJK</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 7.1 Derived
+Collation Elements, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+<small>CJK</small> unified ideographs are ordered in Unicode
+codepoint order, but those in the <small>CJK</small> Unified
+Ideographs block are less than those in the
+<small>CJK</small> Unified Ideographs Extension A etc.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In the CJK
+Unified Ideographs block: <br>
+U+4E00..U+9FA5 if UCA_Version is 8, 9 or 11. <br>
+U+4E00..U+9FBB if UCA_Version is 14 or 16. <br>
+U+4E00..U+9FC3 if UCA_Version is 18. <br>
+U+4E00..U+9FCB if UCA_Version is 20 or 22. <br>
+U+4E00..U+9FCC if UCA_Version is 24 to 30. <br>
+U+4E00..U+9FD5 if UCA_Version is 32 or 34. <br>
+U+4E00..U+9FEA if UCA_Version is 36. <br>
+U+4E00..U+9FEF if UCA_Version is 38, 40 or 41. <br>
+U+4E00..U+9FFC if UCA_Version is 43. <br>
+In the CJK Unified Ideographs Extension blocks: <br>
+Ext.A (U+3400..U+4DB5) if UCA_Version is 8 to 41. <br>
+Ext.A (U+3400..U+4DBF) if UCA_Version is 43. <br>
+Ext.B (U+20000..U+2A6D6) if UCA_Version is 8 to 41. <br>
+Ext.B (U+20000..U+2A6DD) if UCA_Version is 43. <br>
+Ext.C (U+2A700..U+2B734) if UCA_Version is 20 or later. <br>
+Ext.D (U+2B740..U+2B81D) if UCA_Version is 22 or later. <br>
+Ext.E (U+2B820..U+2CEA1) if UCA_Version is 32 or later. <br>
+Ext.F (U+2CEB0..U+2EBE0) if UCA_Version is 36 or later. <br>
+Ext.G (U+30000..U+3134A) if UCA_Version is 43.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Through
+&quot;overrideCJK&quot;, ordering of <small>CJK</small>
+unified ideographs (including extensions) can be
+overridden.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ex.
+<small>CJK</small> unified ideographs in the
+<small>JIS</small> code point order.</p>
+
+<p style="margin-left:17%; margin-top: 1em">overrideCJK
+=&gt; sub { <br>
+my $u = shift; # get a Unicode codepoint <br>
+my $b = pack('n', $u); # to UTF&minus;16BE <br>
+my $s = your_unicode_to_sjis_converter($b); # convert <br>
+my $n = unpack('n', $s); # convert sjis to short <br>
+[ $n, 0x20, 0x2, $u ]; # return the collation element <br>
+},</p>
+
+<p style="margin-left:17%; margin-top: 1em">The return
+value may be an arrayref of 1st to 4th weights as shown
+above. The return value may be an integer as the primary
+weight as shown below. If &quot;undef&quot; is returned, the
+default derived collation element will be used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">overrideCJK
+=&gt; sub { <br>
+my $u = shift; # get a Unicode codepoint <br>
+my $b = pack('n', $u); # to UTF&minus;16BE <br>
+my $s = your_unicode_to_sjis_converter($b); # convert <br>
+my $n = unpack('n', $s); # convert sjis to short <br>
+return $n; # return the primary weight <br>
+},</p>
+
+<p style="margin-left:17%; margin-top: 1em">The return
+value may be a list containing zero or more of an arrayref,
+an integer, or &quot;undef&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ex. ignores all
+<small>CJK</small> unified ideographs.</p>
+
+<p style="margin-left:17%; margin-top: 1em">overrideCJK
+=&gt; sub {()}, # CODEREF returning empty list <br>
+# where &minus;&gt;eq(&quot;Pe\x{4E00}rl&quot;,
+&quot;Perl&quot;) is true <br>
+# as U+4E00 is a CJK unified ideograph and to be
+ignorable.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If a false
+value (including &quot;undef&quot;) is passed,
+&quot;overrideCJK&quot; has no effect.
+&quot;$Collator&minus;&gt;change(overrideCJK =&gt; 0)&quot;
+resets the old one.</p>
+
+<p style="margin-left:17%; margin-top: 1em">But assignment
+of weight for <small>CJK</small> unified ideographs in
+&quot;table&quot; or &quot;entry&quot; is still valid. If
+&quot;undef&quot; is passed explicitly as the value for this
+key, weights for <small>CJK</small> unified ideographs are
+treated as undefined. However when &quot;UCA_Version&quot;
+&gt; 8, &quot;(overrideCJK =&gt; undef)&quot; has no special
+meaning.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Note:</b> In
+addition to them, 12 <small>CJK</small> compatibility
+ideographs (&quot;U+FA0E&quot;, &quot;U+FA0F&quot;,
+&quot;U+FA11&quot;, &quot;U+FA13&quot;, &quot;U+FA14&quot;,
+&quot;U+FA1F&quot;, &quot;U+FA21&quot;, &quot;U+FA23&quot;,
+&quot;U+FA24&quot;, &quot;U+FA27&quot;, &quot;U+FA28&quot;,
+&quot;U+FA29&quot;) are also treated as <small>CJK</small>
+unified ideographs. But they can&rsquo;t be overridden via
+&quot;overrideCJK&quot; when you use <small>DUCET,</small>
+as the table includes weights for them. &quot;table&quot; or
+&quot;entry&quot; has priority over
+&quot;overrideCJK&quot;.</p>
+
+<p style="margin-left:11%;">overrideHangul</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 7.1 Derived
+Collation Elements, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+Hangul syllables are decomposed into Hangul Jamo, even if
+&quot;(normalization =&gt; undef)&quot;. But the mapping of
+Hangul syllables may be overridden.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This parameter
+works like &quot;overrideCJK&quot;, so see there for
+examples.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you want to
+override the mapping of Hangul syllables, <small>NFD</small>
+and <small>NFKD</small> are not appropriate, since
+<small>NFD</small> and <small>NFKD</small> will decompose
+Hangul syllables before overriding. <small>FCD</small> may
+decompose Hangul syllables as the case may be.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If a false
+value (but not &quot;undef&quot;) is passed,
+&quot;overrideHangul&quot; has no effect.
+&quot;$Collator&minus;&gt;change(overrideHangul =&gt;
+0)&quot; resets the old one.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;undef&quot; is passed explicitly as the value for this
+key, weight for Hangul syllables is treated as undefined
+without decomposition into Hangul Jamo. But definition of
+weight for Hangul syllables in &quot;table&quot; or
+&quot;entry&quot; is still valid.</p>
+
+<p style="margin-left:11%;">overrideOut</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 7.1.1
+Handling Ill-Formed Code Unit Sequences, <small>UTS</small>
+#10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Perl seems to
+allow out-of-range values (greater than 0x10FFFF). By
+default, out-of-range values are replaced with
+&quot;U+FFFD&quot; ( <small>REPLACEMENT CHARACTER</small> )
+when &quot;UCA_Version&quot; &gt;= 22, or ignored when
+&quot;UCA_Version&quot; &lt;= 20.</p>
+
+<p style="margin-left:17%; margin-top: 1em">When
+&quot;UCA_Version&quot; &gt;= 22, the weights of
+out-of-range values can be overridden. Though
+&quot;table&quot; or &quot;entry&quot; are available for
+them, out-of-range values are too many.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;overrideOut&quot;
+can perform it algorithmically. This parameter works like
+&quot;overrideCJK&quot;, so see there for examples.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ex. ignores all
+out-of-range values.</p>
+
+<p style="margin-left:17%; margin-top: 1em">overrideOut
+=&gt; sub {()}, # CODEREF returning empty list</p>
+
+<p style="margin-left:17%; margin-top: 1em">If a false
+value (including &quot;undef&quot;) is passed,
+&quot;overrideOut&quot; has no effect.
+&quot;$Collator&minus;&gt;change(overrideOut =&gt; 0)&quot;
+resets the old one.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>NOTE
+ABOUT U+FFFD:</small></b></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>UCA</small>
+recommends that out-of-range values should not be ignored
+for security reasons. Say, &quot;pe\x{110000}rl&quot; should
+not be equal to &quot;perl&quot;. However,
+&quot;U+FFFD&quot; is wrongly mapped to a variable collation
+element in <small>DUCET</small> for Unicode 6.0.0 to 6.2.0,
+that means out-of-range values will be ignored when
+&quot;variable&quot; isn&rsquo;t
+&quot;Non&minus;ignorable&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The mapping of
+&quot;U+FFFD&quot; is corrected in Unicode 6.3.0. see
+&lt;http://www.unicode.org/reports/tr10/tr10&minus;28.html#Trailing_Weights&gt;
+(7.1.4 Trailing Weights). Such a correction is reproduced by
+this.</p>
+
+<p style="margin-left:17%; margin-top: 1em">overrideOut
+=&gt; sub { 0xFFFD }, # CODEREF returning a very large
+integer</p>
+
+<p style="margin-left:17%; margin-top: 1em">This workaround
+is unnecessary since Unicode 6.3.0.</p>
+
+<p style="margin-left:11%;">preprocess</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 5.4
+Preprocessing, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If specified,
+the coderef is used to preprocess each string before the
+formation of sort keys.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ex. dropping
+English articles, such as &quot;a&quot; or &quot;the&quot;.
+Then, &quot;the pen&quot; is before &quot;a
+pencil&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">preprocess
+=&gt; sub { <br>
+my $str = shift; <br>
+$str =~ s/\b(?:an?|the)\s+//gi; <br>
+return $str; <br>
+},</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;preprocess&quot;
+is performed before &quot;normalization&quot; (if
+defined).</p>
+
+<p style="margin-left:17%; margin-top: 1em">ex. decoding
+strings in a legacy encoding such as shift-jis:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$sjis_collator
+= Unicode::Collate&minus;&gt;new( <br>
+preprocess =&gt; \&amp;your_shiftjis_to_unicode_decoder,
+<br>
+); <br>
+@result =
+$sjis_collator&minus;&gt;sort(@shiftjis_strings);</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Note:</b>
+Strings returned from the coderef will be interpreted
+according to Perl&rsquo;s Unicode support. See perlunicode,
+perluniintro, perlunitut, perlunifaq, utf8.</p>
+
+<p style="margin-left:11%;">rearrange</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 3.5
+Rearrangement, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Characters that
+are not coded in logical order and to be rearranged. If
+&quot;UCA_Version&quot; is equal to or less than 11, default
+is:</p>
+
+<p style="margin-left:17%; margin-top: 1em">rearrange =&gt;
+[ 0x0E40..0x0E44, 0x0EC0..0x0EC4 ],</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you want to
+disallow any rearrangement, pass &quot;undef&quot; or
+&quot;[]&quot; (a reference to empty list) as the value for
+this key.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;UCA_Version&quot; is equal to or greater than 14,
+default is &quot;[]&quot; (i.e. no rearrangement).</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>According to
+the version 9 of <small>UCA,</small> this parameter shall
+not be used; but it is not warned at present.</b></p>
+
+<p style="margin-left:11%;">rewrite</p>
+
+<p style="margin-left:17%;">If specified, the coderef is
+used to rewrite lines in &quot;table&quot; or
+&quot;entry&quot;. The coderef will get each line, and then
+should return a rewritten line according to the
+<small>UCA</small> file format. If the coderef returns an
+empty line, the line will be skipped.</p>
+
+<p style="margin-left:17%; margin-top: 1em">e.g. any
+primary ignorable characters into tertiary ignorable:</p>
+
+<p style="margin-left:17%; margin-top: 1em">rewrite =&gt;
+sub { <br>
+my $line = shift; <br>
+$line =~ s/\[\.0000\..{4}\..{4}\./[.0000.0000.0000./g; <br>
+return $line; <br>
+},</p>
+
+<p style="margin-left:17%; margin-top: 1em">This example
+shows rewriting weights. &quot;rewrite&quot; is allowed to
+affect code points, weights, and the name.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>NOTE</small></b>
+: &quot;table&quot; is available to use another table file;
+preparing a modified table once would be more efficient than
+rewriting lines on reading an unmodified table every
+time.</p>
+
+<p style="margin-left:11%;">suppress</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 3.12
+Special-Purpose Commands, <small>UTS</small> #35 (
+<small>LDML</small> ) Part 5: Collation.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Contractions
+beginning with the specified characters are suppressed, even
+if those contractions are defined in &quot;table&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">An example for
+Russian and some languages using the Cyrillic script:</p>
+
+<p style="margin-left:17%; margin-top: 1em">suppress =&gt;
+[0x0400..0x0417, 0x041A..0x0437, 0x043A..0x045F],</p>
+
+<p style="margin-left:17%; margin-top: 1em">where 0x0400
+stands for &quot;U+0400&quot;, <small>CYRILLIC CAPITAL
+LETTER IE WITH GRAVE.</small></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small><b>NOTE</b></small>
+: Contractions via &quot;entry&quot; will not be
+suppressed.</p>
+
+<p style="margin-left:11%;">table</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 3.8 Default
+Unicode Collation Element Table, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">You can use
+another collation element table if desired.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The table file
+should locate in the <i>Unicode/Collate</i> directory on
+@INC. Say, if the filename is <i>Foo.txt</i>, the table file
+is searched as <i>Unicode/Collate/Foo.txt</i> in @INC.</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+<i>allkeys.txt</i> (as the filename of <small>DUCET</small>
+) is used. If you will prepare your own table file, any name
+other than <i>allkeys.txt</i> may be better to avoid
+namespace conflict.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>NOTE</small></b>
+: When <small>XSUB</small> is used, the <small>DUCET</small>
+is compiled on building this module, and it may save time at
+the run time. Explicit saying &quot;(table =&gt;
+'allkeys.txt')&quot;, or using another table, or using
+&quot;ignoreChar&quot;, &quot;ignoreName&quot;,
+&quot;undefChar&quot;, &quot;undefName&quot; or
+&quot;rewrite&quot; will prevent this module from using the
+compiled <small>DUCET.</small></p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;undef&quot; is passed explicitly as the value for this
+key, no file is read (but you can define collation elements
+via &quot;entry&quot;).</p>
+
+<p style="margin-left:17%; margin-top: 1em">A typical way
+to define a collation element table without any file of
+table:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$onlyABC =
+Unicode::Collate&minus;&gt;new( <br>
+table =&gt; undef, <br>
+entry =&gt; &lt;&lt; 'ENTRIES', <br>
+0061 ; [.0101.0020.0002.0061] # LATIN SMALL LETTER A <br>
+0041 ; [.0101.0020.0008.0041] # LATIN CAPITAL LETTER A <br>
+0062 ; [.0102.0020.0002.0062] # LATIN SMALL LETTER B <br>
+0042 ; [.0102.0020.0008.0042] # LATIN CAPITAL LETTER B <br>
+0063 ; [.0103.0020.0002.0063] # LATIN SMALL LETTER C <br>
+0043 ; [.0103.0020.0008.0043] # LATIN CAPITAL LETTER C <br>
+ENTRIES <br>
+);</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;ignoreName&quot; or &quot;undefName&quot; is used,
+character names should be specified as a comment (following
+&quot;#&quot;) on each line.</p>
+
+<p style="margin-left:11%;">undefChar <br>
+undefName</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 6.3.3
+Reducing the Repertoire, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Undefines the
+collation element as if it were unassigned in the
+&quot;table&quot;. This reduces the size of the table. If an
+unassigned character appears in the string to be collated,
+the sort key is made from its codepoint as a
+single-character collation element, as it is greater than
+any other assigned collation elements (in the codepoint
+order among the unassigned characters). But, it&rsquo;d be
+better to ignore characters unfamiliar to you and maybe
+never used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Through
+&quot;undefChar&quot;, any character matching
+&quot;qr/$undefChar/&quot; will be undefined. Through
+&quot;undefName&quot;, any character whose name (given in
+the &quot;table&quot; file as a comment) matches
+&quot;qr/$undefName/&quot; will be undefined.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ex. Collation
+weights for beyond-BMP characters are not stored in
+object:</p>
+
+<p style="margin-left:17%; margin-top: 1em">undefChar =&gt;
+qr/[^\0&minus;\x{fffd}]/,</p>
+
+<p style="margin-left:11%;">upper_before_lower</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 6.6 Case
+Comparisons, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+lowercase is before uppercase. If the parameter is made
+true, this is reversed.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>NOTE</small></b>
+: This parameter simplemindedly assumes that any
+lowercase/uppercase distinctions must occur in level 3, and
+their weights at level 3 must be same as those mentioned in
+7.3.1, <small>UTS</small> #10. If you define your collation
+elements which differs from this requirement, this parameter
+doesn&rsquo;t work validly.</p>
+
+<p style="margin-left:11%;">variable</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 3.6 Variable
+Weighting, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This key allows
+for variable weighting of variable collation elements, which
+are marked with an <small>ASTERISK</small> in the table (
+<small>NOTE:</small> Many punctuation marks and symbols are
+variable in <i>allkeys.txt</i>).</p>
+
+<p style="margin-left:17%; margin-top: 1em">variable =&gt;
+'blanked', 'non&minus;ignorable', 'shifted', or
+'shift&minus;trimmed'.</p>
+
+<p style="margin-left:17%; margin-top: 1em">These names are
+case-insensitive. By default (if specification is omitted),
+&rsquo;shifted&rsquo; is adopted.</p>
+
+<p style="margin-left:17%; margin-top: 1em">'Blanked'
+Variable elements are made ignorable at levels 1 through 3;
+<br>
+considered at the 4th level. <br>
+'Non&minus;Ignorable' Variable elements are not reset to
+ignorable. <br>
+'Shifted' Variable elements are made ignorable at levels 1
+through 3 <br>
+their level 4 weight is replaced by the old level 1 weight.
+<br>
+Level 4 weight for Non&minus;Variable elements is 0xFFFF.
+<br>
+'Shift&minus;Trimmed' Same as 'shifted', but all FFFF's at
+the 4th level <br>
+are trimmed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Methods for
+Collation</b> <br>
+&quot;@sorted =
+$Collator&minus;&gt;sort(@not_sorted)&quot;</p>
+
+<p style="margin-left:17%;">Sorts a list of strings.</p>
+
+<p style="margin-left:11%;">&quot;$result =
+$Collator&minus;&gt;cmp($a, $b)&quot;</p>
+
+<p style="margin-left:17%;">Returns 1 (when $a is greater
+than $b) or 0 (when $a is equal to $b) or &minus;1 (when $a
+is less than $b).</p>
+
+<p style="margin-left:11%;">&quot;$result =
+$Collator&minus;&gt;eq($a, $b)&quot; <br>
+&quot;$result = $Collator&minus;&gt;ne($a, $b)&quot; <br>
+&quot;$result = $Collator&minus;&gt;lt($a, $b)&quot; <br>
+&quot;$result = $Collator&minus;&gt;le($a, $b)&quot; <br>
+&quot;$result = $Collator&minus;&gt;gt($a, $b)&quot; <br>
+&quot;$result = $Collator&minus;&gt;ge($a, $b)&quot;</p>
+
+<p style="margin-left:17%;">They works like the same name
+operators as theirs.</p>
+
+<p style="margin-left:17%; margin-top: 1em">eq : whether $a
+is equal to $b. <br>
+ne : whether $a is not equal to $b. <br>
+lt : whether $a is less than $b. <br>
+le : whether $a is less than $b or equal to $b. <br>
+gt : whether $a is greater than $b. <br>
+ge : whether $a is greater than $b or equal to $b.</p>
+
+<p style="margin-left:11%;">&quot;$sortKey =
+$Collator&minus;&gt;getSortKey($string)&quot;</p>
+
+<p style="margin-left:17%;">&minus;&minus; see 4.3 Form
+Sort Key, <small>UTS</small> #10.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns a sort
+key.</p>
+
+<p style="margin-left:17%; margin-top: 1em">You compare the
+sort keys using a binary comparison and get the result of
+the comparison of the strings using <small>UCA.</small></p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$Collator&minus;&gt;getSortKey($a)
+cmp $Collator&minus;&gt;getSortKey($b) <br>
+is equivalent to <br>
+$Collator&minus;&gt;cmp($a, $b)</p>
+
+<p style="margin-left:11%;">&quot;$sortKeyForm =
+$Collator&minus;&gt;viewSortKey($string)&quot;</p>
+
+<p style="margin-left:17%;">Converts a sorting key into its
+representation form. If &quot;UCA_Version&quot; is 8, the
+output is slightly different.</p>
+
+<p style="margin-left:17%; margin-top: 1em">use
+Unicode::Collate; <br>
+my $c = Unicode::Collate&minus;&gt;new(); <br>
+print
+$c&minus;&gt;viewSortKey(&quot;Perl&quot;),&quot;\n&quot;;
+<br>
+# output: <br>
+# [0B67 0A65 0B7F 0B03 | 0020 0020 0020 0020 | 0008 0002
+0002 0002 | FFFF FFFF FFFF FFFF] <br>
+# Level 1 Level 2 Level 3 Level 4</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Methods for
+Searching</b> <br>
+The &quot;match&quot;, &quot;gmatch&quot;,
+&quot;subst&quot;, &quot;gsubst&quot; methods work like
+&quot;m//&quot;, &quot;m//g&quot;, &quot;s///&quot;,
+&quot;s///g&quot;, respectively, but they are not aware of
+any pattern, but only a literal substring.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>DISCLAIMER:</small></b>
+If &quot;preprocess&quot; or &quot;normalization&quot;
+parameter is true for $Collator, calling these methods
+(&quot;index&quot;, &quot;match&quot;, &quot;gmatch&quot;,
+&quot;subst&quot;, &quot;gsubst&quot;) is croaked, as the
+position and the length might differ from those on the
+specified string.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;rearrange&quot;
+and &quot;hangul_terminator&quot; parameters are neglected.
+&quot;katakana_before_hiragana&quot; and
+&quot;upper_before_lower&quot; don&rsquo;t affect matching
+and searching, as it doesn&rsquo;t matter whether greater or
+less. <br>
+&quot;$position = $Collator&minus;&gt;index($string,
+$substring[, $position])&quot; <br>
+&quot;($position, $length) =
+$Collator&minus;&gt;index($string, $substring[, <br>
+$position])&quot;</p>
+
+<p style="margin-left:17%;">If $substring matches a part of
+$string, returns the position of the first occurrence of the
+matching part in scalar context; in list context, returns a
+two-element list of the position and the length of the
+matching part.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If $substring
+does not match any part of $string, returns
+&quot;&minus;1&quot; in scalar context and an empty list in
+list context.</p>
+
+<p style="margin-left:17%; margin-top: 1em">e.g. when the
+content of $str is &quot;&quot;Ich mu&quot;ss&quot;
+studieren Perl.&quot;&quot;, you say the following where
+$sub is &quot;&quot;M&quot;ue&quot;SS&quot;&quot;,</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $Collator =
+Unicode::Collate&minus;&gt;new( normalization =&gt; undef,
+level =&gt; 1 ); <br>
+# (normalization =&gt; undef) is REQUIRED. <br>
+my $match; <br>
+if (my($pos,$len) = $Collator&minus;&gt;index($str, $sub)) {
+<br>
+$match = substr($str, $pos, $len); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">and get
+&quot;&quot;mu&quot;ss&quot;&quot;&quot; in $match, since
+&quot;&quot;mu&quot;ss&quot;&quot;&quot; is primary equal to
+&quot;&quot;M&quot;ue&quot;SS&quot;&quot;.</p>
+
+<p style="margin-left:11%;">&quot;$match_ref =
+$Collator&minus;&gt;match($string, $substring)&quot; <br>
+&quot;($match) = $Collator&minus;&gt;match($string,
+$substring)&quot;</p>
+
+<p style="margin-left:17%;">If $substring matches a part of
+$string, in scalar context, returns <b>a reference to</b>
+the first occurrence of the matching part ($match_ref is
+always true if matches, since every reference is
+<b>true</b>); in list context, returns the first occurrence
+of the matching part.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If $substring
+does not match any part of $string, returns
+&quot;undef&quot; in scalar context and an empty list in
+list context.</p>
+
+<p style="margin-left:17%; margin-top: 1em">e.g.</p>
+
+<p style="margin-left:17%; margin-top: 1em">if ($match_ref
+= $Collator&minus;&gt;match($str, $sub)) { # scalar context
+<br>
+print &quot;matches [$$match_ref].\n&quot;; <br>
+} else { <br>
+print &quot;doesn't match.\n&quot;; <br>
+} <br>
+or <br>
+if (($match) = $Collator&minus;&gt;match($str, $sub)) { #
+list context <br>
+print &quot;matches [$match].\n&quot;; <br>
+} else { <br>
+print &quot;doesn't match.\n&quot;; <br>
+}</p>
+
+<p style="margin-left:11%;">&quot;@match =
+$Collator&minus;&gt;gmatch($string, $substring)&quot;</p>
+
+<p style="margin-left:17%;">If $substring matches a part of
+$string, returns all the matching parts (or matching count
+in scalar context).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If $substring
+does not match any part of $string, returns an empty
+list.</p>
+
+<p style="margin-left:11%;">&quot;$count =
+$Collator&minus;&gt;subst($string, $substring,
+$replacement)&quot;</p>
+
+<p style="margin-left:17%;">If $substring matches a part of
+$string, the first occurrence of the matching part is
+replaced by $replacement ($string is modified) and $count
+(always equals to 1) is returned.</p>
+
+<p style="margin-left:17%; margin-top: 1em">$replacement
+can be a &quot;CODEREF&quot;, taking the matching part as an
+argument, and returning a string to replace the matching
+part (a bit similar to
+&quot;s/(..)/$coderef&minus;&gt;($1)/e&quot;).</p>
+
+<p style="margin-left:11%;">&quot;$count =
+$Collator&minus;&gt;gsubst($string, $substring,
+$replacement)&quot;</p>
+
+<p style="margin-left:17%;">If $substring matches a part of
+$string, all the occurrences of the matching part are
+replaced by $replacement ($string is modified) and $count is
+returned.</p>
+
+<p style="margin-left:17%; margin-top: 1em">$replacement
+can be a &quot;CODEREF&quot;, taking the matching part as an
+argument, and returning a string to replace the matching
+part (a bit similar to
+&quot;s/(..)/$coderef&minus;&gt;($1)/eg&quot;).</p>
+
+<p style="margin-left:17%; margin-top: 1em">e.g.</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $Collator =
+Unicode::Collate&minus;&gt;new( normalization =&gt; undef,
+level =&gt; 1 ); <br>
+# (normalization =&gt; undef) is REQUIRED. <br>
+my $str = &quot;Camel donkey zebra came\x{301}l CAMEL horse
+cam\0e\0l...&quot;; <br>
+$Collator&minus;&gt;gsubst($str, &quot;camel&quot;, sub {
+&quot;&lt;b&gt;$_[0]&lt;/b&gt;&quot; }); <br>
+# now $str is &quot;&lt;b&gt;Camel&lt;/b&gt; donkey zebra
+&lt;b&gt;came\x{301}l&lt;/b&gt; &lt;b&gt;CAMEL&lt;/b&gt;
+horse &lt;b&gt;cam\0e\0l&lt;/b&gt;...&quot;; <br>
+# i.e., all the camels are made bold&minus;faced. <br>
+Examples: levels and ignore_level2 &minus; what does camel
+match? <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+level ignore_level2 | camel Camel came\x{301}l
+c&minus;a&minus;m&minus;e&minus;l cam\0e\0l <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;|&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+1 false | yes yes yes yes yes <br>
+2 false | yes yes no yes yes <br>
+3 false | yes no no yes yes <br>
+4 false | yes no no no yes <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;|&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+1 true | yes yes yes yes yes <br>
+2 true | yes yes yes yes yes <br>
+3 true | yes no yes yes yes <br>
+4 true | yes no yes no yes <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+note: if variable =&gt; non&minus;ignorable, camel doesn't
+match c&minus;a&minus;m&minus;e&minus;l <br>
+at any level.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Other
+Methods</b> <br>
+&quot;%old_tailoring =
+$Collator&minus;&gt;change(%new_tailoring)&quot; <br>
+&quot;$modified_collator =
+$Collator&minus;&gt;change(%new_tailoring)&quot;</p>
+
+<p style="margin-left:17%;">Changes the value of specified
+keys and returns the changed part.</p>
+
+<p style="margin-left:17%; margin-top: 1em">$Collator =
+Unicode::Collate&minus;&gt;new(level =&gt; 4); <br>
+$Collator&minus;&gt;eq(&quot;perl&quot;, &quot;PERL&quot;);
+# false <br>
+%old = $Collator&minus;&gt;change(level =&gt; 2); # returns
+(level =&gt; 4). <br>
+$Collator&minus;&gt;eq(&quot;perl&quot;, &quot;PERL&quot;);
+# true <br>
+$Collator&minus;&gt;change(%old); # returns (level =&gt; 2).
+<br>
+$Collator&minus;&gt;eq(&quot;perl&quot;, &quot;PERL&quot;);
+# false</p>
+
+<p style="margin-left:17%; margin-top: 1em">Not all
+&quot;(key,value)&quot;s are allowed to be changed. See also
+@Unicode::Collate::ChangeOK and
+@Unicode::Collate::ChangeNG.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In the scalar
+context, returns the modified collator (but it is <b>not</b>
+a clone from the original).</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$Collator&minus;&gt;change(level
+=&gt; 2)&minus;&gt;eq(&quot;perl&quot;, &quot;PERL&quot;); #
+true <br>
+$Collator&minus;&gt;eq(&quot;perl&quot;, &quot;PERL&quot;);
+# true; now max level is 2nd. <br>
+$Collator&minus;&gt;change(level =&gt;
+4)&minus;&gt;eq(&quot;perl&quot;, &quot;PERL&quot;); #
+false</p>
+
+<p style="margin-left:11%;">&quot;$version =
+$Collator&minus;&gt;version()&quot;</p>
+
+<p style="margin-left:17%;">Returns the version number (a
+string) of the Unicode Standard which the &quot;table&quot;
+file used by the collator object is based on. If the table
+does not include a version line (starting with @version),
+returns &quot;unknown&quot;.</p>
+
+<p style="margin-left:11%;">&quot;UCA_Version()&quot;</p>
+
+<p style="margin-left:17%;">Returns the revision number of
+<small>UTS</small> #10 this module consults, that should
+correspond with the <small>DUCET</small> incorporated.</p>
+
+
+<p style="margin-left:11%;">&quot;Base_Unicode_Version()&quot;</p>
+
+<p style="margin-left:17%;">Returns the version number of
+<small>UTS</small> #10 this module consults, that should
+correspond with the <small>DUCET</small> incorporated.</p>
+
+<h2>EXPORT
+<a name="EXPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">No method will
+be exported.</p>
+
+<h2>INSTALL
+<a name="INSTALL"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Though this
+module can be used without any &quot;table&quot; file, to
+use this module easily, it is recommended to install a table
+file in the <small>UCA</small> format, by copying it under
+the directory &lt;a place in @INC&gt;/Unicode/Collate.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The most
+preferable one is &quot;The Default Unicode Collation
+Element Table&quot; (aka <small>DUCET</small> ), available
+from the Unicode Consortium&rsquo;s website:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">http://www.unicode.org/Public/UCA/
+<br>
+http://www.unicode.org/Public/UCA/latest/allkeys.txt <br>
+(latest version)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<small>DUCET</small> is not installed, it is recommended to
+copy the file from
+http://www.unicode.org/Public/UCA/latest/allkeys.txt to
+&lt;a place in @INC&gt;/Unicode/Collate/allkeys.txt
+manually.</p>
+
+<h2>CAVEATS
+<a name="CAVEATS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Normalization</p>
+
+<p style="margin-left:17%;">Use of the
+&quot;normalization&quot; parameter requires the
+<b>Unicode::Normalize</b> module (see
+Unicode::Normalize).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you need not
+it (say, in the case when you need not handle any combining
+characters), assign &quot;(normalization =&gt; undef)&quot;
+explicitly.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&minus;&minus;
+see 6.5 Avoiding Normalization, <small>UTS</small> #10.</p>
+
+<p style="margin-left:11%;">Conformance Test</p>
+
+<p style="margin-left:17%;">The Conformance Test for the
+<small>UCA</small> is available under
+&lt;http://www.unicode.org/Public/UCA/&gt;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For
+<i>CollationTest_SHIFTED.txt</i>, a collator via
+&quot;Unicode::Collate&minus;&gt;new( )&quot; should be
+used; for <i>CollationTest_NON_IGNORABLE.txt</i>, a collator
+via &quot;Unicode::Collate&minus;&gt;new(variable =&gt;
+&quot;non&minus;ignorable&quot;, level =&gt; 3)&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;UCA_Version&quot; is 26 or later, the
+&quot;identical&quot; level is preferred;
+&quot;Unicode::Collate&minus;&gt;new(identical =&gt;
+1)&quot; and &quot;Unicode::Collate&minus;&gt;new(identical
+=&gt; 1,&quot; &quot;variable =&gt;
+&quot;non&minus;ignorable&quot;, level =&gt; 3)&quot; should
+be used.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>Unicode::Normalize
+is required to try The Conformance Test.</b></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>EBCDIC-SUPPORT
+<small>IS EXPERIMENTAL.</small></b></p>
+
+<h2>AUTHOR, COPYRIGHT AND LICENSE
+<a name="AUTHOR, COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+Unicode::Collate module for perl was written by
+<small>SADAHIRO</small> Tomoyuki, &lt;SADAHIRO@cpan.org&gt;.
+This module is Copyright(C) 2001&minus;2021,
+<small>SADAHIRO</small> Tomoyuki. Japan. All rights
+reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This module is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The file
+Unicode/Collate/allkeys.txt was copied verbatim from
+&lt;http://www.unicode.org/Public/UCA/13.0.0/allkeys.txt&gt;.
+For this file, Copyright (c) 2020 Unicode, Inc.; distributed
+under the Terms of Use in
+&lt;http://www.unicode.org/terms_of_use.html&gt;</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Unicode
+Collation Algorithm &minus; <small>UTS</small> #10</p>
+
+
+<p style="margin-left:17%;">&lt;http://www.unicode.org/reports/tr10/&gt;</p>
+
+<p style="margin-left:11%;">The Default Unicode Collation
+Element Table ( <small>DUCET</small> )</p>
+
+
+<p style="margin-left:17%;">&lt;http://www.unicode.org/Public/UCA/latest/allkeys.txt&gt;</p>
+
+<p style="margin-left:11%;">The conformance test for the
+<small>UCA</small></p>
+
+
+<p style="margin-left:17%;">&lt;http://www.unicode.org/Public/UCA/latest/CollationTest.html&gt;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&lt;http://www.unicode.org/Public/UCA/latest/CollationTest.zip&gt;</p>
+
+<p style="margin-left:11%;">Hangul Syllable Type</p>
+
+
+<p style="margin-left:17%;">&lt;http://www.unicode.org/Public/UNIDATA/HangulSyllableType.txt&gt;</p>
+
+<p style="margin-left:11%;">Unicode Normalization Forms
+&minus; <small>UAX</small> #15</p>
+
+
+<p style="margin-left:17%;">&lt;http://www.unicode.org/reports/tr15/&gt;</p>
+
+<p style="margin-left:11%;">Unicode Locale Data Markup
+Language ( <small>LDML</small> ) &minus; <small>UTS</small>
+#35</p>
+
+
+<p style="margin-left:17%;">&lt;http://www.unicode.org/reports/tr35/&gt;</p>
+<hr>
+</body>
+</html>

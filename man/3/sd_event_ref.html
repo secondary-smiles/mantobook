@@ -1,0 +1,300 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:00 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SD_EVENT_NEW</title>
+
+</head>
+<body>
+<h1>sd_event_ref</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">sd_event_new,
+sd_event_default, sd_event_ref, sd_event_unref,
+sd_event_unrefp, sd_event_get_tid, sd_event &minus; Acquire
+and release an event loop object</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;systemd/sd&minus;event.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>typedef
+struct sd_event sd_event;</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_event_new(sd_event&nbsp;**</b><i>event</i><b>);</b></p> </td>
+<td width="12%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_event_default(sd_event&nbsp;**</b><i>event</i><b>);</b></p> </td>
+<td width="12%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em"><b>sd_event
+*sd_event_ref(sd_event&nbsp;*</b><i>event</i><b>);</b></p> </td>
+<td width="12%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em"><b>sd_event
+*sd_event_unref(sd_event&nbsp;*</b><i>event</i><b>);</b></p> </td>
+<td width="12%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em"><b>void
+sd_event_unrefp(sd_event&nbsp;**</b><i>event</i><b>);</b></p> </td>
+<td width="12%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_event_get_tid(sd_event&nbsp;*</b><i>event</i><b>,
+pid_t&nbsp;*</b><i>tid</i><b>);</b></p> </td>
+<td width="12%">
+</td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_event_new()</b>
+allocates a new event loop object. The event loop object is
+returned in the <i>event</i> parameter. After use, drop the
+returned reference with <b>sd_event_unref()</b>. When the
+last reference is dropped, the object is freed.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_event_default()</b>
+acquires a reference to the default event loop object of the
+calling thread, possibly allocating a new object if no
+default event loop object has been allocated yet for the
+thread. After use, drop the returned reference with
+<b>sd_event_unref()</b>. When the last reference is dropped,
+the event loop is freed. If this function is called while
+the object returned from a previous call from the same
+thread is still referenced, the same object is returned
+again, but the reference is increased by one. It is
+recommended to use this call instead of
+<b>sd_event_new()</b> in order to share event loop objects
+between various components that are dispatched in the same
+thread. All threads have exactly either zero or one default
+event loop objects associated, but never more.</p>
+
+<p style="margin-left:11%; margin-top: 1em">After
+allocating an event loop object, add event sources to it
+with <b>sd_event_add_io</b>(3), <b>sd_event_add_time</b>(3),
+<b>sd_event_add_signal</b>(3), <b>sd_event_add_child</b>(3),
+<b>sd_event_add_inotify</b>(3),
+<b>sd_event_add_defer</b>(3), <b>sd_event_add_post</b>(3) or
+<b>sd_event_add_exit</b>(3), and then execute the event loop
+using <b>sd_event_loop</b>(3).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_event_ref()</b>
+increases the reference count of the specified event loop
+object by one.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_event_unref()</b>
+decreases the reference count of the specified event loop
+object by one. If the count hits zero, the object is freed.
+Note that it is freed regardless of whether it is the
+default event loop object for a thread or not. This means
+that allocating an event loop with
+<b>sd_event_default()</b>, then releasing it, and then
+acquiring a new one with <b>sd_event_default()</b> will
+result in two distinct objects. Note that, in order to free
+an event loop object, all remaining event sources of the
+event loop also need to be freed as each keeps a reference
+to it.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_event_unrefp()</b>
+is similar to <b>sd_event_unref()</b> but takes a pointer to
+a pointer to an <b>sd_event</b> object. This call is useful
+in conjunction with GCC's and LLVM's
+<b><font color="#0000FF">Clean&minus;up Variable
+Attribute</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">. Note that this function is defined
+as inline function. Use a declaration like the following, in
+order to allocate an event loop object that is freed
+automatically as the code block is left:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">{
+<br>
+__attribute__((cleanup(sd_event_unrefp))) sd_event *event =
+NULL; <br>
+int r; <br>
+... <br>
+r = sd_event_default(&amp;event); <br>
+if (r &lt; 0) { <br>
+errno = &minus;r; <br>
+fprintf(stderr, &quot;Failed to allocate event loop:
+%m\n&quot;); <br>
+} <br>
+... <br>
+}</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>sd_event_ref()</b>,
+<b>sd_event_unref()</b> and <b>sd_event_unrefp()</b> execute
+no operation if the passed in event loop object is
+<b>NULL</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>sd_event_get_tid()</b>
+retrieves the thread identifier (&quot;TID&quot;) of the
+thread the specified event loop object is associated with.
+This call is only supported for event loops allocated with
+<b>sd_event_default()</b>, and returns the identifier for
+the thread the event loop is the default event loop of. See
+<b>gettid</b>(2) for more information on thread
+identifiers.</font></p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">On
+success, <b>sd_event_new()</b>, <b>sd_event_default()</b>
+and <b>sd_event_get_tid()</b> return 0 or a positive
+integer. On failure, they return a negative
+errno&minus;style error code. <b>sd_event_ref()</b> always
+returns a pointer to the event loop object passed in.
+<b>sd_event_unref()</b> always returns
+<b>NULL</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Errors</b>
+<br>
+Returned errors may indicate the following
+problems:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;ENOMEM</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Not
+enough memory to allocate the object.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;EMFILE</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">The
+maximum number of event loops has been allocated.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;ENXIO</b></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><b>sd_event_get_tid()</b>
+was invoked on an event loop object that was not allocated
+with <b>sd_event_default()</b>.</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">These
+APIs are implemented as a shared library, which can be
+compiled and linked to with the
+<b>libsystemd&nbsp;pkg-config</b>(1) file.</font></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>systemd</b>(1),
+<b>sd-event</b>(3), <b>sd_event_add_io</b>(3),
+<b>sd_event_add_time</b>(3), <b>sd_event_add_signal</b>(3),
+<b>sd_event_add_child</b>(3),
+<b>sd_event_add_inotify</b>(3),
+<b>sd_event_add_defer</b>(3), <b>sd_event_run</b>(3),
+<b>gettid</b>(2)</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="41%">
+
+
+<p style="margin-top: 1em"><font color="#000000">Clean-up
+Variable Attribute</font></p></td>
+<td width="42%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html</font></p>
+<hr>
+</body>
+</html>

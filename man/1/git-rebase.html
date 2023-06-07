@@ -1,0 +1,2575 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:49 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GIT&minus;REBASE</title>
+
+</head>
+<body>
+<h1>git-rebase</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">git-rebase
+&minus; Reapply commits on top of another base tip</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>git
+rebase</i> [&minus;i | &minus;&minus;interactive]
+[&lt;options&gt;] [&minus;&minus;exec &lt;cmd&gt;] <br>
+[&minus;&minus;onto &lt;newbase&gt; |
+&minus;&minus;keep&minus;base] [&lt;upstream&gt;
+[&lt;branch&gt;]] <i><br>
+git rebase</i> [&minus;i | &minus;&minus;interactive]
+[&lt;options&gt;] [&minus;&minus;exec &lt;cmd&gt;]
+[&minus;&minus;onto &lt;newbase&gt;] <br>
+&minus;&minus;root [&lt;branch&gt;] <i><br>
+git rebase</i> (&minus;&minus;continue | &minus;&minus;skip
+| &minus;&minus;abort | &minus;&minus;quit |
+&minus;&minus;edit&minus;todo |
+&minus;&minus;show&minus;current&minus;patch)</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If
+<b>&lt;branch&gt;</b> is specified, <b>git rebase</b> will
+perform an automatic <b>git switch &lt;branch&gt;</b> before
+doing anything else. Otherwise it remains on the current
+branch.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<b>&lt;upstream&gt;</b> is not specified, the upstream
+configured in <b>branch.&lt;name&gt;.remote</b> and
+<b>branch.&lt;name&gt;.merge</b> options will be used (see
+<b>git-config</b>(1) for details) and the
+<b>&minus;&minus;fork&minus;point</b> option is assumed. If
+you are currently not on any branch or if the current branch
+does not have a configured upstream, the rebase will
+abort.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All changes
+made by commits in the current branch but that are not in
+<b>&lt;upstream&gt;</b> are saved to a temporary area. This
+is the same set of commits that would be shown by <b>git log
+&lt;upstream&gt;..HEAD</b>; or by <b>git log
+'fork_point'..HEAD</b>, if
+<b>&minus;&minus;fork&minus;point</b> is active (see the
+description on <b>&minus;&minus;fork&minus;point</b> below);
+or by <b>git log HEAD</b>, if the <b>&minus;&minus;root</b>
+option is specified.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The current
+branch is reset to <b>&lt;upstream&gt;</b> or
+<b>&lt;newbase&gt;</b> if the <b>&minus;&minus;onto</b>
+option was supplied. This has the exact same effect as
+<b>git reset &minus;&minus;hard &lt;upstream&gt;</b> (or
+<b>&lt;newbase&gt;</b>). <b>ORIG_HEAD</b> is set to point at
+the tip of the branch before the reset.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><big>Note</big>
+<br>
+ORIG_HEAD</b> is not guaranteed to still point to the
+previous branch tip at the end of the rebase if other
+commands that write that pseudo&minus;ref (e.g. <b>git
+reset</b>) are used during the rebase. The previous branch
+tip, however, is accessible using the reflog of the current
+branch (i.e. <b>@{1}</b>, see <b>gitrevisions</b>(7)).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The commits
+that were previously saved into the temporary area are then
+reapplied to the current branch, one by one, in order. Note
+that any commits in <b>HEAD</b> which introduce the same
+textual changes as a commit in <b>HEAD..&lt;upstream&gt;</b>
+are omitted (i.e., a patch already accepted upstream with a
+different commit message or timestamp will be skipped).</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is possible
+that a merge failure will prevent this process from being
+completely automatic. You will have to resolve any such
+merge failure and run <b>git rebase
+&minus;&minus;continue</b>. Another option is to bypass the
+commit that caused the merge failure with <b>git rebase
+&minus;&minus;skip</b>. To check out the original
+<b>&lt;branch&gt;</b> and remove the
+<b>.git/rebase&minus;apply</b> working files, use the
+command <b>git rebase &minus;&minus;abort</b> instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Assume the
+following history exists and the current branch is
+&quot;topic&quot;:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">A&minus;&minus;&minus;B&minus;&minus;&minus;C
+topic <br>
+/ <br>
+
+D&minus;&minus;&minus;E&minus;&minus;&minus;F&minus;&minus;&minus;G
+master</p>
+
+<p style="margin-left:11%; margin-top: 1em">From this
+point, the result of either of the following commands:</p>
+
+<p style="margin-left:17%; margin-top: 1em">git rebase
+master <br>
+git rebase master topic</p>
+
+<p style="margin-left:11%; margin-top: 1em">would be:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">A'&minus;&minus;B'&minus;&minus;C'
+topic <br>
+/ <br>
+
+D&minus;&minus;&minus;E&minus;&minus;&minus;F&minus;&minus;&minus;G
+master</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>NOTE:</b>
+The latter form is just a short&minus;hand of <b>git
+checkout topic</b> followed by <b>git rebase master</b>.
+When rebase exits <b>topic</b> will remain the
+checked&minus;out branch.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the upstream
+branch already contains a change you have made (e.g.,
+because you mailed a patch which was applied upstream), then
+that commit will be skipped and warnings will be issued (if
+the <i>merge</i> backend is used). For example, running
+<b>git rebase master</b> on the following history (in which
+<b>A'</b> and <b>A</b> introduce the same set of changes,
+but have different committer information):</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">A&minus;&minus;&minus;B&minus;&minus;&minus;C
+topic <br>
+/ <br>
+
+D&minus;&minus;&minus;E&minus;&minus;&minus;A'&minus;&minus;&minus;F
+master</p>
+
+<p style="margin-left:11%; margin-top: 1em">will result
+in:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">B'&minus;&minus;&minus;C'
+topic <br>
+/ <br>
+
+D&minus;&minus;&minus;E&minus;&minus;&minus;A'&minus;&minus;&minus;F
+master</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here is how you
+would transplant a topic branch based on one branch to
+another, to pretend that you forked the topic branch from
+the latter branch, using <b>rebase
+&minus;&minus;onto</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">First
+let&rsquo;s assume your <i>topic</i> is based on branch
+<i>next</i>. For example, a feature developed in
+<i>topic</i> depends on some functionality which is found in
+<i>next</i>.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o
+master <br>
+\ <br>
+
+o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o
+next <br>
+\ <br>
+o&minus;&minus;&minus;o&minus;&minus;&minus;o topic</p>
+
+<p style="margin-left:11%; margin-top: 1em">We want to make
+<i>topic</i> forked from branch <i>master</i>; for example,
+because the functionality on which <i>topic</i> depends was
+merged into the more stable <i>master</i> branch. We want
+our tree to look like this:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o
+master <br>
+| \ <br>
+| o'&minus;&minus;o'&minus;&minus;o' topic <br>
+\ <br>
+
+o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o
+next</p>
+
+<p style="margin-left:11%; margin-top: 1em">We can get this
+using the following command:</p>
+
+<p style="margin-left:17%; margin-top: 1em">git rebase
+&minus;&minus;onto master next topic</p>
+
+<p style="margin-left:11%; margin-top: 1em">Another example
+of &minus;&minus;onto option is to rebase part of a branch.
+If we have the following situation:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">H&minus;&minus;&minus;I&minus;&minus;&minus;J
+topicB <br>
+/ <br>
+E&minus;&minus;&minus;F&minus;&minus;&minus;G topicA <br>
+/ <br>
+
+A&minus;&minus;&minus;B&minus;&minus;&minus;C&minus;&minus;&minus;D
+master</p>
+
+<p style="margin-left:11%; margin-top: 1em">then the
+command</p>
+
+<p style="margin-left:17%; margin-top: 1em">git rebase
+&minus;&minus;onto master topicA topicB</p>
+
+<p style="margin-left:11%; margin-top: 1em">would result
+in:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">H'&minus;&minus;I'&minus;&minus;J'
+topicB <br>
+/ <br>
+| E&minus;&minus;&minus;F&minus;&minus;&minus;G topicA <br>
+|/ <br>
+
+A&minus;&minus;&minus;B&minus;&minus;&minus;C&minus;&minus;&minus;D
+master</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is useful
+when topicB does not depend on topicA.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A range of
+commits could also be removed with rebase. If we have the
+following situation:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">E&minus;&minus;&minus;F&minus;&minus;&minus;G&minus;&minus;&minus;H&minus;&minus;&minus;I&minus;&minus;&minus;J
+topicA</p>
+
+<p style="margin-left:11%; margin-top: 1em">then the
+command</p>
+
+<p style="margin-left:17%; margin-top: 1em">git rebase
+&minus;&minus;onto topicA~5 topicA~3 topicA</p>
+
+<p style="margin-left:11%; margin-top: 1em">would result in
+the removal of commits F and G:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">E&minus;&minus;&minus;H'&minus;&minus;&minus;I'&minus;&minus;&minus;J'
+topicA</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is useful
+if F and G were flawed in some way, or should not be part of
+topicA. Note that the argument to <b>&minus;&minus;onto</b>
+and the <b>&lt;upstream&gt;</b> parameter can be any valid
+commit&minus;ish.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In case of
+conflict, <b>git rebase</b> will stop at the first
+problematic commit and leave conflict markers in the tree.
+You can use <b>git diff</b> to locate the markers
+(&lt;&lt;&lt;&lt;&lt;&lt;) and make edits to resolve the
+conflict. For each file you edit, you need to tell Git that
+the conflict has been resolved, typically this would be done
+with</p>
+
+<p style="margin-left:17%; margin-top: 1em">git add
+&lt;filename&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">After resolving
+the conflict manually and updating the index with the
+desired resolution, you can continue the rebasing process
+with</p>
+
+<p style="margin-left:17%; margin-top: 1em">git rebase
+&minus;&minus;continue</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+you can undo the <i>git rebase</i> with</p>
+
+<p style="margin-left:17%; margin-top: 1em">git rebase
+&minus;&minus;abort</p>
+
+<h2>MODE OPTIONS
+<a name="MODE OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>The
+options in this section cannot be used with any other
+option, including not with each other:</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;continue</big></p>
+
+<p style="margin-left:17%;"><big>Restart the rebasing
+process after having resolved a merge conflict.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;skip</big></p>
+
+<p style="margin-left:17%;"><big>Restart the rebasing
+process by skipping the current patch.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;abort</big></p>
+
+<p style="margin-left:17%;"><big>Abort the rebase operation
+and reset HEAD to the original branch. If
+<b>&lt;branch&gt;</b> was provided when the rebase operation
+was started, then <b>HEAD</b> will be reset to
+<b>&lt;branch&gt;</b>. Otherwise <b>HEAD</b> will be reset
+to where it was when the rebase operation was
+started.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;quit</big></p>
+
+<p style="margin-left:17%;"><big>Abort the rebase operation
+but <b>HEAD</b> is not reset back to the original branch.
+The index and working tree are also left unchanged as a
+result. If a temporary stash entry was created using
+<b>&minus;&minus;autostash</b>, it will be saved to the
+stash list.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;edit&minus;todo</big></p>
+
+<p style="margin-left:17%;"><big>Edit the todo list during
+an interactive rebase.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;show&minus;current&minus;patch</big></p>
+
+<p style="margin-left:17%;"><big>Show the current patch in
+an interactive rebase or when rebase is stopped because of
+conflicts. This is the equivalent of <b>git show
+REBASE_HEAD</b>.</big></p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;onto
+&lt;newbase&gt;</big></p>
+
+<p style="margin-left:17%;"><big>Starting point at which to
+create the new commits. If the <b>&minus;&minus;onto</b>
+option is not specified, the starting point is
+<b>&lt;upstream&gt;</b>. May be any valid commit, and not
+just an existing branch name.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>As a
+special case, you may use &quot;A...B&quot; as a shortcut
+for the merge base of A and B if there is exactly one merge
+base. You can leave out at most one of A and B, in which
+case it defaults to HEAD.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;keep&minus;base</big></p>
+
+<p style="margin-left:17%;"><big>Set the starting point at
+which to create the new commits to the merge base of
+<b>&lt;upstream&gt;</b> and <b>&lt;branch&gt;</b>. Running
+<b>git rebase &minus;&minus;keep&minus;base &lt;upstream&gt;
+&lt;branch&gt;</b> is equivalent to running <b>git rebase
+&minus;&minus;reapply&minus;cherry&minus;picks
+&minus;&minus;no&minus;fork&minus;point &minus;&minus;onto
+&lt;upstream&gt;...&lt;branch&gt; &lt;upstream&gt;
+&lt;branch&gt;</b>.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>This
+option is useful in the case where one is developing a
+feature on top of an upstream branch. While the feature is
+being worked on, the upstream branch may advance and it may
+not be the best idea to keep rebasing on top of the upstream
+but to keep the base commit as&minus;is. As the base commit
+is unchanged this option implies
+<b>&minus;&minus;reapply&minus;cherry&minus;picks</b> to
+avoid losing commits.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>Although
+both this option and <b>&minus;&minus;fork&minus;point</b>
+find the merge base between <b>&lt;upstream&gt;</b> and
+<b>&lt;branch&gt;</b>, this option uses the merge base as
+the <i>starting point</i> on which new commits will be
+created, whereas <b>&minus;&minus;fork&minus;point</b> uses
+the merge base to determine the <i>set of commits</i> which
+will be rebased.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>See also
+INCOMPATIBLE OPTIONS below.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&lt;upstream&gt;</big></p>
+
+<p style="margin-left:17%;"><big>Upstream branch to compare
+against. May be any valid commit, not just an existing
+branch name. Defaults to the configured upstream for the
+current branch.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&lt;branch&gt;</big></p>
+
+<p style="margin-left:17%;"><big>Working branch; defaults
+to <b>HEAD</b>.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;apply</big></p>
+
+<p style="margin-left:17%;"><big>Use applying strategies to
+rebase (calling <b>git&minus;am</b> internally). This option
+may become a no&minus;op in the future once the merge
+backend handles everything the apply one does.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>See also
+INCOMPATIBLE OPTIONS below.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;empty={drop,keep,ask}</big></p>
+
+<p style="margin-left:17%;"><big>How to handle commits that
+are not empty to start and are not clean cherry&minus;picks
+of any upstream commit, but which become empty after
+rebasing (because they contain a subset of already upstream
+changes). With drop (the default), commits that become empty
+are dropped. With keep, such commits are kept. With ask
+(implied by <b>&minus;&minus;interactive</b>), the rebase
+will halt when an empty commit is applied allowing you to
+choose whether to drop it, edit files more, or just commit
+the empty changes. Other options, like
+<b>&minus;&minus;exec</b>, will use the default of drop
+unless <b>&minus;i</b>/<b>&minus;&minus;interactive</b> is
+explicitly specified.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>Note that
+commits which start empty are kept (unless
+<b>&minus;&minus;no&minus;keep&minus;empty</b> is
+specified), and commits which are clean cherry&minus;picks
+(as determined by <b>git log &minus;&minus;cherry&minus;mark
+...</b>) are detected and dropped as a preliminary step
+(unless
+<b>&minus;&minus;reapply&minus;cherry&minus;picks</b> or
+<b>&minus;&minus;keep&minus;base</b> is passed).</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>See also
+INCOMPATIBLE OPTIONS below.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;no&minus;keep&minus;empty,
+&minus;&minus;keep&minus;empty</big></p>
+
+<p style="margin-left:17%;"><big>Do not keep commits that
+start empty before the rebase (i.e. that do not change
+anything from its parent) in the result. The default is to
+keep commits which start empty, since creating such commits
+requires passing the <b>&minus;&minus;allow&minus;empty</b>
+override flag to <b>git commit</b>, signifying that a user
+is very intentionally creating such a commit and thus wants
+to keep it.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>Usage of
+this flag will probably be rare, since you can get rid of
+commits that start empty by just firing up an interactive
+rebase and removing the lines corresponding to the commits
+you don&rsquo;t want. This flag exists as a convenient
+shortcut, such as for cases where external tools generate
+many empty commits and you want them all removed.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>For
+commits which do not start empty but become empty after
+rebasing, see the <b>&minus;&minus;empty</b> flag.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>See also
+INCOMPATIBLE OPTIONS below.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;reapply&minus;cherry&minus;picks,
+&minus;&minus;no&minus;reapply&minus;cherry&minus;picks</big></p>
+
+<p style="margin-left:17%;"><big>Reapply all clean
+cherry&minus;picks of any upstream commit instead of
+preemptively dropping them. (If these commits then become
+empty after rebasing, because they contain a subset of
+already upstream changes, the behavior towards them is
+controlled by the <b>&minus;&minus;empty</b>
+flag.)</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>In the
+absence of <b>&minus;&minus;keep&minus;base</b> (or if
+<b>&minus;&minus;no&minus;reapply&minus;cherry&minus;picks</b>
+is given), these commits will be automatically dropped.
+Because this necessitates reading all upstream commits, this
+can be expensive in repositories with a large number of
+upstream commits that need to be read. When using the
+<i>merge</i> backend, warnings will be issued for each
+dropped commit (unless <b>&minus;&minus;quiet</b> is given).
+Advice will also be issued unless
+<b>advice.skippedCherryPicks</b> is set to false (see
+<b>git-config</b>(1)).</big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><b>&minus;&minus;reapply&minus;cherry&minus;picks</b>
+allows rebase to forgo reading all upstream commits,
+potentially improving performance.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>See also
+INCOMPATIBLE OPTIONS below.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;allow&minus;empty&minus;message</big></p>
+
+<p style="margin-left:17%;"><big>No&minus;op. Rebasing
+commits with an empty message used to fail and this option
+would override that behavior, allowing commits with empty
+messages to be rebased. Now commits with an empty message do
+not cause rebasing to halt.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>See also
+INCOMPATIBLE OPTIONS below.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;m,
+&minus;&minus;merge</big></p>
+
+<p style="margin-left:17%;"><big>Using merging strategies
+to rebase (default).</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>Note that
+a rebase merge works by replaying each commit from the
+working branch on top of the <b>&lt;upstream&gt;</b> branch.
+Because of this, when a merge conflict happens, the side
+reported as <i>ours</i> is the so&minus;far rebased series,
+starting with <b>&lt;upstream&gt;</b>, and <i>theirs</i> is
+the working branch. In other words, the sides are
+swapped.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>See also
+INCOMPATIBLE OPTIONS below.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;s
+&lt;strategy&gt;,
+&minus;&minus;strategy=&lt;strategy&gt;</big></p>
+
+<p style="margin-left:17%;"><big>Use the given merge
+strategy, instead of the default <b>ort</b>. This implies
+<b>&minus;&minus;merge</b>.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>Because
+<b>git rebase</b> replays each commit from the working
+branch on top of the <b>&lt;upstream&gt;</b> branch using
+the given strategy, using the <b>ours</b> strategy simply
+empties all patches from the <b>&lt;branch&gt;</b>, which
+makes little sense.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>See also
+INCOMPATIBLE OPTIONS below.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;X
+&lt;strategy&minus;option&gt;,
+&minus;&minus;strategy&minus;option=&lt;strategy&minus;option&gt;</big></p>
+
+<p style="margin-left:17%;"><big>Pass the
+&lt;strategy&minus;option&gt; through to the merge strategy.
+This implies <b>&minus;&minus;merge</b> and, if no strategy
+has been specified, <b>&minus;s ort</b>. Note the reversal
+of <i>ours</i> and <i>theirs</i> as noted above for the
+<b>&minus;m</b> option.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>See also
+INCOMPATIBLE OPTIONS below.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;rerere&minus;autoupdate,
+&minus;&minus;no&minus;rerere&minus;autoupdate</big></p>
+
+<p style="margin-left:17%;"><big>After the rerere mechanism
+reuses a recorded resolution on the current conflict to
+update the files in the working tree, allow it to also
+update the index with the result of resolution.
+<b>&minus;&minus;no&minus;rerere&minus;autoupdate</b> is a
+good way to double&minus;check what <b>rerere</b> did and
+catch potential mismerges, before committing the result to
+the index with a separate <b>git add</b>.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;S[&lt;keyid&gt;],
+&minus;&minus;gpg&minus;sign[=&lt;keyid&gt;],
+&minus;&minus;no&minus;gpg&minus;sign</big></p>
+
+<p style="margin-left:17%;"><big>GPG&minus;sign commits.
+The <b>keyid</b> argument is optional and defaults to the
+committer identity; if specified, it must be stuck to the
+option without a space.
+<b>&minus;&minus;no&minus;gpg&minus;sign</b> is useful to
+countermand both <b>commit.gpgSign</b> configuration
+variable, and earlier
+<b>&minus;&minus;gpg&minus;sign</b>.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;q,
+&minus;&minus;quiet</big></p>
+
+<p style="margin-left:17%;"><big>Be quiet. Implies
+<b>&minus;&minus;no&minus;stat</b>.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;v,
+&minus;&minus;verbose</big></p>
+
+<p style="margin-left:17%;"><big>Be verbose. Implies
+<b>&minus;&minus;stat</b>.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;stat</big></p>
+
+<p style="margin-left:17%;"><big>Show a diffstat of what
+changed upstream since the last rebase. The diffstat is also
+controlled by the configuration option
+rebase.stat.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;n,
+&minus;&minus;no&minus;stat</big></p>
+
+<p style="margin-left:17%;"><big>Do not show a diffstat as
+part of the rebase process.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;no&minus;verify</big></p>
+
+<p style="margin-left:17%;"><big>This option bypasses the
+pre&minus;rebase hook. See also
+<b>githooks</b>(5).</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;verify</big></p>
+
+<p style="margin-left:17%;"><big>Allows the
+pre&minus;rebase hook to run, which is the default. This
+option can be used to override
+<b>&minus;&minus;no&minus;verify</b>. See also
+<b>githooks</b>(5).</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;C&lt;n&gt;</big></p>
+
+<p style="margin-left:17%;"><big>Ensure at least
+<b>&lt;n&gt;</b> lines of surrounding context match before
+and after each change. When fewer lines of surrounding
+context exist they all must match. By default no context is
+ever ignored. Implies <b>&minus;&minus;apply</b>.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>See also
+INCOMPATIBLE OPTIONS below.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;&minus;no&minus;ff,
+&minus;&minus;force&minus;rebase, &minus;f</big></p>
+
+<p style="margin-left:17%;"><big>Individually replay all
+rebased commits instead of fast&minus;forwarding over the
+unchanged ones. This ensures that the entire history of the
+rebased branch is composed of new commits.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>You may
+find this helpful after reverting a topic branch merge, as
+this option recreates the topic branch with fresh commits so
+it can be remerged successfully without needing to
+&quot;revert the reversion&quot; (see the
+<b><font color="#0000FF">revert&minus;a&minus;faulty&minus;merge
+How&minus;To</font></b></big> <font color="#000000">[1]
+<big>for details).</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;&minus;fork&minus;point,
+&minus;&minus;no&minus;fork&minus;point</big></font></p>
+
+<p style="margin-left:17%;"><font color="#000000"><big>Use
+reflog to find a better common ancestor between
+<b>&lt;upstream&gt;</b> and <b>&lt;branch&gt;</b> when
+calculating which commits have been introduced by
+<b>&lt;branch&gt;</b>.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>When
+<b>&minus;&minus;fork&minus;point</b> is active,
+<i>fork_point</i> will be used instead of
+<b>&lt;upstream&gt;</b> to calculate the set of commits to
+rebase, where <i>fork_point</i> is the result of <b>git
+merge&minus;base &minus;&minus;fork&minus;point
+&lt;upstream&gt; &lt;branch&gt;</b> command (see
+<b>git-merge-base</b>(1)). If <i>fork_point</i> ends up
+being empty, the <b>&lt;upstream&gt;</b> will be used as a
+fallback.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>If
+<b>&lt;upstream&gt;</b> or
+<b>&minus;&minus;keep&minus;base</b> is given on the command
+line, then the default is
+<b>&minus;&minus;no&minus;fork&minus;point</b>, otherwise
+the default is <b>&minus;&minus;fork&minus;point</b>. See
+also <b>rebase.forkpoint</b> in
+<b>git-config</b>(1).</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>If
+your branch was based on <b>&lt;upstream&gt;</b> but
+<b>&lt;upstream&gt;</b> was rewound and your branch contains
+commits which were dropped, this option can be used with
+<b>&minus;&minus;keep&minus;base</b> in order to drop those
+commits from your branch.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>See
+also INCOMPATIBLE OPTIONS below.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;&minus;ignore&minus;whitespace</big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>Ignore
+whitespace differences when trying to reconcile differences.
+Currently, each backend implements an approximation of this
+behavior:</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>apply
+backend</big></font></p>
+
+
+<p style="margin-left:23%;"><font color="#000000"><big>When
+applying a patch, ignore changes in whitespace in context
+lines. Unfortunately, this means that if the &quot;old&quot;
+lines being replaced by the patch differ only in whitespace
+from the existing file, you will get a merge conflict
+instead of a successful patch application.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>merge
+backend</big></font></p>
+
+
+<p style="margin-left:23%;"><font color="#000000"><big>Treat
+lines with only whitespace changes as unchanged when
+merging. Unfortunately, this means that any patch hunks that
+were intended to modify whitespace and nothing else will be
+dropped, even if the other side had no changes that
+conflicted.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;&minus;whitespace=&lt;option&gt;</big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>This
+flag is passed to the <b>git apply</b> program (see
+<b>git-apply</b>(1)) that applies the patch. Implies
+<b>&minus;&minus;apply</b>.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>See
+also INCOMPATIBLE OPTIONS below.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;&minus;committer&minus;date&minus;is&minus;author&minus;date</big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>Instead
+of using the current time as the committer date, use the
+author date of the commit being rebased as the committer
+date. This option implies
+<b>&minus;&minus;force&minus;rebase</b>.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;&minus;ignore&minus;date,
+&minus;&minus;reset&minus;author&minus;date</big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>Instead
+of using the author date of the original commit, use the
+current time as the author date of the rebased commit. This
+option implies
+<b>&minus;&minus;force&minus;rebase</b>.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>See
+also INCOMPATIBLE OPTIONS below.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;&minus;signoff</big></font></p>
+
+<p style="margin-left:17%;"><font color="#000000"><big>Add
+a <b>Signed&minus;off&minus;by</b> trailer to all the
+rebased commits. Note that if
+<b>&minus;&minus;interactive</b> is given then only commits
+marked to be picked, edited or reworded will have the
+trailer added.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>See
+also INCOMPATIBLE OPTIONS below.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;i,
+&minus;&minus;interactive</big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>Make
+a list of the commits which are about to be rebased. Let the
+user edit that list before rebasing. This mode can also be
+used to split commits (see SPLITTING COMMITS
+below).</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>The
+commit list format can be changed by setting the
+configuration option rebase.instructionFormat. A customized
+instruction format will automatically have the long commit
+hash prepended to the format.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>See
+also INCOMPATIBLE OPTIONS below.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;r,
+&minus;&minus;rebase&minus;merges[=(rebase&minus;cousins|no&minus;rebase&minus;cousins)]</big></font></p>
+
+<p style="margin-left:17%;"><font color="#000000"><big>By
+default, a rebase will simply drop merge commits from the
+todo list, and put the rebased commits into a single, linear
+branch. With <b>&minus;&minus;rebase&minus;merges</b>, the
+rebase will instead try to preserve the branching structure
+within the commits that are to be rebased, by recreating the
+merge commits. Any resolved merge conflicts or manual
+amendments in these merge commits will have to be
+resolved/re&minus;applied manually.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>By
+default, or when <b>no&minus;rebase&minus;cousins</b> was
+specified, commits which do not have <b>&lt;upstream&gt;</b>
+as direct ancestor will keep their original branch point,
+i.e. commits that would be excluded by <b>git-log</b>(1)'s
+<b>&minus;&minus;ancestry&minus;path</b> option will keep
+their original ancestry by default. If the
+<b>rebase&minus;cousins</b> mode is turned on, such commits
+are instead rebased onto <b>&lt;upstream&gt;</b> (or
+<b>&lt;onto&gt;</b>, if specified).</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>It
+is currently only possible to recreate the merge commits
+using the <b>ort</b> merge strategy; different merge
+strategies can be used only via explicit <b>exec git merge
+&minus;s &lt;strategy&gt; [...]</b>
+commands.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>See
+also REBASING MERGES and INCOMPATIBLE OPTIONS
+below.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;x
+&lt;cmd&gt;, &minus;&minus;exec &lt;cmd&gt;</big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>Append
+&quot;exec &lt;cmd&gt;&quot; after each line creating a
+commit in the final history. <b>&lt;cmd&gt;</b> will be
+interpreted as one or more shell commands. Any command that
+fails will interrupt the rebase, with exit code
+1.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>You
+may execute several commands by either using one instance of
+<b>&minus;&minus;exec</b> with several
+commands:</big></font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000"><big>git
+rebase &minus;i &minus;&minus;exec &quot;cmd1 &amp;&amp;
+cmd2 &amp;&amp; ...&quot;</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>or
+by giving more than one
+<b>&minus;&minus;exec</b>:</big></font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000"><big>git
+rebase &minus;i &minus;&minus;exec &quot;cmd1&quot;
+&minus;&minus;exec &quot;cmd2&quot; &minus;&minus;exec
+...</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>If
+<b>&minus;&minus;autosquash</b> is used, <b>exec</b> lines
+will not be appended for the intermediate commits, and will
+only appear at the end of each squash/fixup
+series.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>This
+uses the <b>&minus;&minus;interactive</b> machinery
+internally, but it can be run without an explicit
+<b>&minus;&minus;interactive</b>.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>See
+also INCOMPATIBLE OPTIONS below.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;&minus;root</big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>Rebase
+all commits reachable from <b>&lt;branch&gt;</b>, instead of
+limiting them with an <b>&lt;upstream&gt;</b>. This allows
+you to rebase the root commit(s) on a
+branch.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>See
+also INCOMPATIBLE OPTIONS below.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;&minus;autosquash,
+&minus;&minus;no&minus;autosquash</big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>When
+the commit log message begins with &quot;squash! ...&quot;
+or &quot;fixup! ...&quot; or &quot;amend! ...&quot;, and
+there is already a commit in the todo list that matches the
+same <b>...</b>, automatically modify the todo list of
+<b>rebase &minus;i</b>, so that the commit marked for
+squashing comes right after the commit to be modified, and
+change the action of the moved commit from <b>pick</b> to
+<b>squash</b> or <b>fixup</b> or <b>fixup &minus;C</b>
+respectively. A commit matches the <b>...</b> if the commit
+subject matches, or if the <b>...</b> refers to the
+commit&rsquo;s hash. As a fall&minus;back, partial matches
+of the commit subject work, too. The recommended way to
+create fixup/amend/squash commits is by using the
+<b>&minus;&minus;fixup</b>,
+<b>&minus;&minus;fixup=amend:</b> or
+<b>&minus;&minus;fixup=reword:</b> and
+<b>&minus;&minus;squash</b> options respectively of
+<b>git-commit</b>(1).</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>If
+the <b>&minus;&minus;autosquash</b> option is enabled by
+default using the configuration variable
+<b>rebase.autoSquash</b>, this option can be used to
+override and disable this setting.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>See
+also INCOMPATIBLE OPTIONS below.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;&minus;autostash,
+&minus;&minus;no&minus;autostash</big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>Automatically
+create a temporary stash entry before the operation begins,
+and apply it after the operation ends. This means that you
+can run rebase on a dirty worktree. However, use with care:
+the final stash application after a successful rebase might
+result in non&minus;trivial conflicts.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;&minus;reschedule&minus;failed&minus;exec,
+&minus;&minus;no&minus;reschedule&minus;failed&minus;exec</big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>Automatically
+reschedule <b>exec</b> commands that failed. This only makes
+sense in interactive mode (or when an
+<b>&minus;&minus;exec</b> option was
+provided).</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>Even
+though this option applies once a rebase is started,
+it&rsquo;s set for the whole rebase at the start based on
+either the <b>rebase.rescheduleFailedExec</b> configuration
+(see <b>git-config</b>(1) or &quot;CONFIGURATION&quot;
+below) or whether this option is provided. Otherwise an
+explicit
+<b>&minus;&minus;no&minus;reschedule&minus;failed&minus;exec</b>
+at the start would be overridden by the presence of
+<b>rebase.rescheduleFailedExec=true</b>
+configuration.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>&minus;&minus;update&minus;refs,
+&minus;&minus;no&minus;update&minus;refs</big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>Automatically
+force&minus;update any branches that point to commits that
+are being rebased. Any branches that are checked out in a
+worktree are not updated in this way.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>If
+the configuration variable <b>rebase.updateRefs</b> is set,
+then this option can be used to override and disable this
+setting.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>See
+also INCOMPATIBLE OPTIONS below.</big></font></p>
+
+<h2>INCOMPATIBLE OPTIONS
+<a name="INCOMPATIBLE OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>The
+following options:</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;apply</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;whitespace</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;C</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>are
+incompatible with the following options:</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;merge</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;strategy</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;strategy&minus;option</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;autosquash</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;rebase&minus;merges</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;interactive</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;exec</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;no&minus;keep&minus;empty</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;empty=</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;[no&minus;]reapply&minus;cherry&minus;picks
+when used without
+&minus;&minus;keep&minus;base</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;update&minus;refs</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;root when used without
+&minus;&minus;onto</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>In
+addition, the following pairs of options are
+incompatible:</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;keep&minus;base and
+&minus;&minus;onto</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;keep&minus;base and
+&minus;&minus;root</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+&minus;&minus;fork&minus;point and
+&minus;&minus;root</big></font></p>
+
+<h2>BEHAVIORAL DIFFERENCES
+<a name="BEHAVIORAL DIFFERENCES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><b>git
+rebase</b> has two primary backends: <i>apply</i> and
+<i>merge</i>. (The <i>apply</i> backend used to be known as
+the <i>am</i> backend, but the name led to confusion as it
+looks like a verb instead of a noun. Also, the <i>merge</i>
+backend used to be known as the interactive backend, but it
+is now used for non&minus;interactive cases as well. Both
+were renamed based on lower&minus;level functionality that
+underpinned each.) There are some subtle differences in how
+these two backends behave:</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><b>Empty
+commits</b> <br>
+The <i>apply</i> backend unfortunately drops intentionally
+empty commits, i.e. commits that started empty, though these
+are rare in practice. It also drops commits that become
+empty and has no option for controlling this
+behavior.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>The
+<i>merge</i> backend keeps intentionally empty commits by
+default (though with <b>&minus;i</b> they are marked as
+empty in the todo list editor, or they can be dropped
+automatically with
+<b>&minus;&minus;no&minus;keep&minus;empty</b>).</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>Similar
+to the apply backend, by default the merge backend drops
+commits that become empty unless
+<b>&minus;i</b>/<b>&minus;&minus;interactive</b> is
+specified (in which case it stops and asks the user what to
+do). The merge backend also has an
+<b>&minus;&minus;empty={drop,keep,ask}</b> option for
+changing the behavior of handling commits that become
+empty.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><b>Directory
+rename detection</b> <br>
+Due to the lack of accurate tree information (arising from
+constructing fake ancestors with the limited information
+available in patches), directory rename detection is
+disabled in the <i>apply</i> backend. Disabled directory
+rename detection means that if one side of history renames a
+directory and the other adds new files to the old directory,
+then the new files will be left behind in the old directory
+without any warning at the time of rebasing that you may
+want to move these files into the new
+directory.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>Directory
+rename detection works with the <i>merge</i> backend to
+provide you warnings in such cases.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><b>Context</b>
+<br>
+The <i>apply</i> backend works by creating a sequence of
+patches (by calling <b>format&minus;patch</b> internally),
+and then applying the patches in sequence (calling <b>am</b>
+internally). Patches are composed of multiple hunks, each
+with line numbers, a context region, and the actual changes.
+The line numbers have to be taken with some fuzz, since the
+other side will likely have inserted or deleted lines
+earlier in the file. The context region is meant to help
+find how to adjust the line numbers in order to apply the
+changes to the right lines. However, if multiple areas of
+the code have the same surrounding lines of context, the
+wrong one can be picked. There are real&minus;world cases
+where this has caused commits to be reapplied incorrectly
+with no conflicts reported. Setting <b>diff.context</b> to a
+larger value may prevent such types of problems, but
+increases the chance of spurious conflicts (since it will
+require more lines of matching context to
+apply).</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>The
+<i>merge</i> backend works with a full copy of each relevant
+file, insulating it from these types of
+problems.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><b>Labelling
+of conflicts markers</b> <br>
+When there are content conflicts, the merge machinery tries
+to annotate each side&rsquo;s conflict markers with the
+commits where the content came from. Since the <i>apply</i>
+backend drops the original information about the rebased
+commits and their parents (and instead generates new fake
+commits based off limited information in the generated
+patches), those commits cannot be identified; instead it has
+to fall back to a commit summary. Also, when
+<b>merge.conflictStyle</b> is set to <b>diff3</b> or
+<b>zdiff3</b>, the <i>apply</i> backend will use
+&quot;constructed merge base&quot; to label the content from
+the merge base, and thus provide no information about the
+merge base commit whatsoever.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>The
+<i>merge</i> backend works with the full commits on both
+sides of history and thus has no such
+limitations.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><b>Hooks</b>
+<br>
+The <i>apply</i> backend has not traditionally called the
+post&minus;commit hook, while the <i>merge</i> backend has.
+Both have called the post&minus;checkout hook, though the
+<i>merge</i> backend has squelched its output. Further, both
+backends only call the post&minus;checkout hook with the
+starting point commit of the rebase, not the intermediate
+commits nor the final commit. In each case, the calling of
+these hooks was by accident of implementation rather than by
+design (both backends were originally implemented as shell
+scripts and happened to invoke other commands like <b>git
+checkout</b> or <b>git commit</b> that would call the
+hooks). Both backends should have the same behavior, though
+it is not entirely clear which, if any, is correct. We will
+likely make rebase stop calling either of these hooks in the
+future.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><b>Interruptability</b>
+<br>
+The <i>apply</i> backend has safety problems with an
+ill&minus;timed interrupt; if the user presses Ctrl&minus;C
+at the wrong time to try to abort the rebase, the rebase can
+enter a state where it cannot be aborted with a subsequent
+<b>git rebase &minus;&minus;abort</b>. The <i>merge</i>
+backend does not appear to suffer from the same shortcoming.
+(See</big></font>
+<big><b><font color="#0000FF">https://lore.kernel.org/git/20200207132152.GC2868@szeder.dev/</font></b>
+<font color="#000000">for details.)</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000"><b>Commit
+Rewording</b> <br>
+When a conflict occurs while rebasing, rebase stops and asks
+the user to resolve. Since the user may need to make notable
+changes while resolving conflicts, after conflicts are
+resolved and the user has run <b>git rebase
+&minus;&minus;continue</b>, the rebase should open an editor
+and ask the user to update the commit message. The
+<i>merge</i> backend does this, while the <i>apply</i>
+backend blindly applies the original commit
+message.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000"><b>Miscellaneous
+differences</b> <br>
+There are a few more behavioral differences that most folks
+would probably consider inconsequential but which are
+mentioned for completeness:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">&bull;
+Reflog: The two backends will use different wording when
+describing the changes made in the reflog, though both will
+make use of the word &quot;rebase&quot;.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">&bull;
+Progress, informational, and error messages: The two
+backends provide slightly different progress and
+informational messages. Also, the apply backend writes error
+messages (such as &quot;Your files would be
+overwritten...&quot;) to stdout, while the merge backend
+writes them to stderr.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">&bull;
+State directories: The two backends keep their state in
+different directories under <b>.git/</b></font></big></p>
+
+<h2>MERGE STRATEGIES
+<a name="MERGE STRATEGIES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">The
+merge mechanism (<b>git merge</b> and <b>git pull</b>
+commands) allows the backend <i>merge strategies</i> to be
+chosen with <b>&minus;s</b> option. Some strategies can also
+take their own options, which can be passed by giving
+<b>&minus;X&lt;option&gt;</b> arguments to <b>git merge</b>
+and/or <b>git pull</b>.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">ort</font></big></p>
+
+
+<p style="margin-left:17%;"><big><font color="#000000">This
+is the default merge strategy when pulling or merging one
+branch. This strategy can only resolve two heads using a
+3&minus;way merge algorithm. When there is more than one
+common ancestor that can be used for 3&minus;way merge, it
+creates a merged tree of the common ancestors and uses that
+as the reference tree for the 3&minus;way merge. This has
+been reported to result in fewer merge conflicts without
+causing mismerges by tests done on actual merge commits
+taken from Linux 2.6 kernel development history.
+Additionally this strategy can detect and handle merges
+involving renames. It does not make use of detected copies.
+The name for this algorithm is an acronym (&quot;Ostensibly
+Recursive&rsquo;s Twin&quot;) and came from the fact that it
+was written as a replacement for the previous default
+algorithm, <b>recursive</b>.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">The
+<i>ort</i> strategy can take the following
+options:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">ours</font></big></p>
+
+
+<p style="margin-left:23%;"><big><font color="#000000">This
+option forces conflicting hunks to be auto&minus;resolved
+cleanly by favoring <i>our</i> version. Changes from the
+other tree that do not conflict with our side are reflected
+in the merge result. For a binary file, the entire contents
+are taken from our side.</font></big></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><big><font color="#000000">This
+should not be confused with the <i>ours</i> merge strategy,
+which does not even look at what the other tree contains at
+all. It discards everything the other tree did, declaring
+<i>our</i> history contains all that happened in
+it.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">theirs</font></big></p>
+
+
+<p style="margin-left:23%;"><big><font color="#000000">This
+is the opposite of <i>ours</i>; note that, unlike
+<i>ours</i>, there is no <i>theirs</i> merge strategy to
+confuse this merge option with.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">ignore&minus;space&minus;change,
+ignore&minus;all&minus;space,
+ignore&minus;space&minus;at&minus;eol,
+ignore&minus;cr&minus;at&minus;eol</font></big></p>
+
+
+<p style="margin-left:23%;"><big><font color="#000000">Treats
+lines with the indicated type of whitespace change as
+unchanged for the sake of a three&minus;way merge.
+Whitespace changes mixed with other changes to a line are
+not ignored. See also <b>git-diff</b>(1) <b>&minus;b</b>,
+<b>&minus;w</b>,
+<b>&minus;&minus;ignore&minus;space&minus;at&minus;eol</b>,
+and
+<b>&minus;&minus;ignore&minus;cr&minus;at&minus;eol</b>.</font></big></p>
+
+
+<p style="margin-left:29%; margin-top: 1em"><big><font color="#000000">&bull;
+If <i>their</i> version only introduces whitespace changes
+to a line, <i>our</i> version is used;</font></big></p>
+
+
+<p style="margin-left:29%; margin-top: 1em"><big><font color="#000000">&bull;
+If <i>our</i> version introduces whitespace changes but
+<i>their</i> version includes a substantial change,
+<i>their</i> version is used;</font></big></p>
+
+
+<p style="margin-left:29%; margin-top: 1em"><big><font color="#000000">&bull;
+Otherwise, the merge proceeds in the usual
+way.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">renormalize</font></big></p>
+
+
+<p style="margin-left:23%;"><big><font color="#000000">This
+runs a virtual check&minus;out and check&minus;in of all
+three stages of a file when resolving a three&minus;way
+merge. This option is meant to be used when merging branches
+with different clean filters or end&minus;of&minus;line
+normalization rules. See &quot;Merging branches with
+differing checkin/checkout attributes&quot; in
+<b>gitattributes</b>(5) for details.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">no&minus;renormalize</font></big></p>
+
+
+<p style="margin-left:23%;"><big><font color="#000000">Disables
+the <b>renormalize</b> option. This overrides the
+<b>merge.renormalize</b> configuration
+variable.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">find&minus;renames[=&lt;n&gt;]</font></big></p>
+
+
+<p style="margin-left:23%;"><big><font color="#000000">Turn
+on rename detection, optionally setting the similarity
+threshold. This is the default. This overrides the
+<i>merge.renames</i> configuration variable. See also
+<b>git-diff</b>(1)
+<b>&minus;&minus;find&minus;renames</b>.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">rename&minus;threshold=&lt;n&gt;</font></big></p>
+
+
+<p style="margin-left:23%;"><big><font color="#000000">Deprecated
+synonym for
+<b>find&minus;renames=&lt;n&gt;</b>.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">subtree[=&lt;path&gt;]</font></big></p>
+
+
+<p style="margin-left:23%;"><big><font color="#000000">This
+option is a more advanced form of <i>subtree</i> strategy,
+where the strategy makes a guess on how two trees must be
+shifted to match with each other when merging. Instead, the
+specified path is prefixed (or stripped from the beginning)
+to make the shape of two trees to match.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">recursive</font></big></p>
+
+
+<p style="margin-left:17%;"><big><font color="#000000">This
+can only resolve two heads using a 3&minus;way merge
+algorithm. When there is more than one common ancestor that
+can be used for 3&minus;way merge, it creates a merged tree
+of the common ancestors and uses that as the reference tree
+for the 3&minus;way merge. This has been reported to result
+in fewer merge conflicts without causing mismerges by tests
+done on actual merge commits taken from Linux 2.6 kernel
+development history. Additionally this can detect and handle
+merges involving renames. It does not make use of detected
+copies. This was the default strategy for resolving two
+heads from Git v0.99.9k until v2.33.0.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">The
+<i>recursive</i> strategy takes the same options as
+<i>ort</i>. However, there are three additional options that
+<i>ort</i> ignores (not documented above) that are
+potentially useful with the <i>recursive</i>
+strategy:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">patience</font></big></p>
+
+
+<p style="margin-left:23%;"><big><font color="#000000">Deprecated
+synonym for
+<b>diff&minus;algorithm=patience</b>.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">diff&minus;algorithm=[patience|minimal|histogram|myers]</font></big></p>
+
+<p style="margin-left:23%;"><big><font color="#000000">Use
+a different diff algorithm while merging, which can help
+avoid mismerges that occur due to unimportant matching lines
+(such as braces from distinct functions). See also
+<b>git-diff</b>(1)
+<b>&minus;&minus;diff&minus;algorithm</b>. Note that
+<b>ort</b> specifically uses
+<b>diff&minus;algorithm=histogram</b>, while
+<b>recursive</b> defaults to the <b>diff.algorithm</b>
+config setting.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">no&minus;renames</font></big></p>
+
+
+<p style="margin-left:23%;"><big><font color="#000000">Turn
+off rename detection. This overrides the
+<b>merge.renames</b> configuration variable. See also
+<b>git-diff</b>(1)
+<b>&minus;&minus;no&minus;renames</b>.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">resolve</font></big></p>
+
+
+<p style="margin-left:17%;"><big><font color="#000000">This
+can only resolve two heads (i.e. the current branch and
+another branch you pulled from) using a 3&minus;way merge
+algorithm. It tries to carefully detect criss&minus;cross
+merge ambiguities. It does not handle
+renames.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">octopus</font></big></p>
+
+
+<p style="margin-left:17%;"><big><font color="#000000">This
+resolves cases with more than two heads, but refuses to do a
+complex merge that needs manual resolution. It is primarily
+meant to be used for bundling topic branch heads together.
+This is the default merge strategy when pulling or merging
+more than one branch.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">ours</font></big></p>
+
+
+<p style="margin-left:17%;"><big><font color="#000000">This
+resolves any number of heads, but the resulting tree of the
+merge is always that of the current branch head, effectively
+ignoring all changes from all other branches. It is meant to
+be used to supersede old development history of side
+branches. Note that this is different from the &minus;Xours
+option to the <i>recursive</i> merge
+strategy.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">subtree</font></big></p>
+
+
+<p style="margin-left:17%;"><big><font color="#000000">This
+is a modified <b>ort</b> strategy. When merging trees A and
+B, if B corresponds to a subtree of A, B is first adjusted
+to match the tree structure of A, instead of reading the
+trees at the same level. This adjustment is also done to the
+common ancestor tree.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">With
+the strategies that use 3&minus;way merge (including the
+default, <i>ort</i>), if a change is made on both branches,
+but later reverted on one of the branches, that change will
+be present in the merged result; some people find this
+behavior confusing. It occurs because only the heads and the
+merge base are considered when performing a merge, not the
+individual commits. The merge algorithm therefore considers
+the reverted change as no change at all, and substitutes the
+changed version instead.</font></big></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">You
+should understand the implications of using <b>git
+rebase</b> on a repository that you share. See also
+RECOVERING FROM UPSTREAM REBASE below.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">When
+the rebase is run, it will first execute a
+<b>pre&minus;rebase</b> hook if one exists. You can use this
+hook to do sanity checks and reject the rebase if it
+isn&rsquo;t appropriate. Please see the template
+<b>pre&minus;rebase</b> hook script for an
+example.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">Upon
+completion, <b>&lt;branch&gt;</b> will be the current
+branch.</font></big></p>
+
+<h2>INTERACTIVE MODE
+<a name="INTERACTIVE MODE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">Rebasing
+interactively means that you have a chance to edit the
+commits which are rebased. You can reorder the commits, and
+you can remove them (weeding out bad or otherwise unwanted
+patches).</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">The
+interactive mode is meant for this type of
+workflow:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">1.
+have a wonderful idea</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">2.
+hack on the code</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">3.
+prepare a series for submission</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">4.
+submit</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">where
+point 2. consists of several instances of</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">a)
+regular use</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">1.
+finish something worthy of a commit</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">2.
+commit</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">b)
+independent fixup</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">1.
+realize that something does not work</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">2.
+fix that</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">3.
+commit it</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">Sometimes
+the thing fixed in b.2. cannot be amended to the
+not&minus;quite perfect commit it fixes, because that commit
+is buried deeply in a patch series. That is exactly what
+interactive rebase is for: use it after plenty of
+&quot;a&quot;s and &quot;b&quot;s, by rearranging and
+editing commits, and squashing multiple commits into
+one.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">Start
+it with the last commit you want to retain
+as&minus;is:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">git
+rebase &minus;i
+&lt;after&minus;this&minus;commit&gt;</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">An
+editor will be fired up with all the commits in your current
+branch (ignoring merge commits), which come after the given
+commit. You can reorder the commits in this list to your
+heart&rsquo;s content, and you can remove them. The list
+looks more or less like this:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">pick
+deadbee The oneline of this commit <br>
+pick fa1afe1 The oneline of the next commit <br>
+...</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">The
+oneline descriptions are purely for your pleasure; <i>git
+rebase</i> will not look at them but at the commit names
+(&quot;deadbee&quot; and &quot;fa1afe1&quot; in this
+example), so do not delete or edit the
+names.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">By
+replacing the command &quot;pick&quot; with the command
+&quot;edit&quot;, you can tell <b>git rebase</b> to stop
+after applying that commit, so that you can edit the files
+and/or the commit message, amend the commit, and continue
+rebasing.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">To
+interrupt the rebase (just like an &quot;edit&quot; command
+would do, but without cherry&minus;picking any commit
+first), use the &quot;break&quot; command.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">If
+you just want to edit the commit message for a commit,
+replace the command &quot;pick&quot; with the command
+&quot;reword&quot;.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">To
+drop a commit, replace the command &quot;pick&quot; with
+&quot;drop&quot;, or just delete the matching
+line.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">If
+you want to fold two or more commits into one, replace the
+command &quot;pick&quot; for the second and subsequent
+commits with &quot;squash&quot; or &quot;fixup&quot;. If the
+commits had different authors, the folded commit will be
+attributed to the author of the first commit. The suggested
+commit message for the folded commit is the concatenation of
+the first commit&rsquo;s message with those identified by
+&quot;squash&quot; commands, omitting the messages of
+commits identified by &quot;fixup&quot; commands, unless
+&quot;fixup &minus;c&quot; is used. In that case the
+suggested commit message is only the message of the
+&quot;fixup &minus;c&quot; commit, and an editor is opened
+allowing you to edit the message. The contents (patch) of
+the &quot;fixup &minus;c&quot; commit are still incorporated
+into the folded commit. If there is more than one
+&quot;fixup &minus;c&quot; commit, the message from the
+final one is used. You can also use &quot;fixup
+&minus;C&quot; to get the same behavior as &quot;fixup
+&minus;c&quot; except without opening an
+editor.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000"><b>git
+rebase</b> will stop when &quot;pick&quot; has been replaced
+with &quot;edit&quot; or when a command fails due to merge
+errors. When you are done editing and/or resolving conflicts
+you can continue with <b>git rebase
+&minus;&minus;continue</b>.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">For
+example, if you want to reorder the last 5 commits, such
+that what was <b>HEAD~4</b> becomes the new <b>HEAD</b>. To
+achieve that, you would call <b>git rebase</b> like
+this:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">$
+git rebase &minus;i HEAD~5</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">And
+move the first patch to the end of the
+list.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">You
+might want to recreate merge commits, e.g. if you have a
+history like this:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">X
+<br>
+\ <br>
+A&minus;&minus;&minus;M&minus;&minus;&minus;B <br>
+/ <br>
+
+&minus;&minus;&minus;o&minus;&minus;&minus;O&minus;&minus;&minus;P&minus;&minus;&minus;Q</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">Suppose
+you want to rebase the side branch starting at &quot;A&quot;
+to &quot;Q&quot;. Make sure that the current <b>HEAD</b> is
+&quot;B&quot;, and call</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">$
+git rebase &minus;i &minus;r &minus;&minus;onto Q
+O</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">Reordering
+and editing commits usually creates untested intermediate
+steps. You may want to check that your history editing did
+not break anything by running a test, or at least
+recompiling at intermediate points in history by using the
+&quot;exec&quot; command (shortcut &quot;x&quot;). You may
+do so by creating a todo list like this
+one:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">pick
+deadbee Implement feature XXX <br>
+fixup f1a5c00 Fix to feature XXX <br>
+exec make <br>
+pick c0ffeee The oneline of the next commit <br>
+edit deadbab The oneline of the commit after <br>
+exec cd subdir; make test <br>
+...</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">The
+interactive rebase will stop when a command fails (i.e.
+exits with non&minus;0 status) to give you an opportunity to
+fix the problem. You can continue with <b>git rebase
+&minus;&minus;continue</b>.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">The
+&quot;exec&quot; command launches the command in a shell
+(the one specified in <b>$SHELL</b>, or the default shell if
+<b>$SHELL</b> is not set), so you can use shell features
+(like &quot;cd&quot;, &quot;&gt;&quot;, &quot;;&quot; ...).
+The command is run from the root of the working
+tree.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">$
+git rebase &minus;i &minus;&minus;exec &quot;make
+test&quot;</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">This
+command lets you check that intermediate commits are
+compilable. The todo list becomes like
+that:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">pick
+5928aea one <br>
+exec make test <br>
+pick 04d0fda two <br>
+exec make test <br>
+pick ba46169 three <br>
+exec make test <br>
+pick f4593f9 four <br>
+exec make test</font></big></p>
+
+<h2>SPLITTING COMMITS
+<a name="SPLITTING COMMITS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">In
+interactive mode, you can mark commits with the action
+&quot;edit&quot;. However, this does not necessarily mean
+that <b>git rebase</b> expects the result of this edit to be
+exactly one commit. Indeed, you can undo the commit, or you
+can add other commits. This can be used to split a commit
+into two:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">&bull;
+Start an interactive rebase with <b>git rebase &minus;i
+&lt;commit&gt;^</b>, where <b>&lt;commit&gt;</b> is the
+commit you want to split. In fact, any commit range will do,
+as long as it contains that commit.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">&bull;
+Mark the commit you want to split with the action
+&quot;edit&quot;.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">&bull;
+When it comes to editing that commit, execute <b>git reset
+HEAD^</b>. The effect is that the <b>HEAD</b> is rewound by
+one, and the index follows suit. However, the working tree
+stays the same.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">&bull;
+Now add the changes to the index that you want to have in
+the first commit. You can use <b>git add</b> (possibly
+interactively) or <b>git gui</b> (or both) to do
+that.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">&bull;
+Commit the now&minus;current index with whatever commit
+message is appropriate now.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">&bull;
+Repeat the last two steps until your working tree is
+clean.</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">&bull;
+Continue the rebase with <b>git rebase
+&minus;&minus;continue</b>.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">If
+you are not absolutely sure that the intermediate revisions
+are consistent (they compile, pass the testsuite, etc.) you
+should use <b>git stash</b> to stash away the
+not&minus;yet&minus;committed changes after each commit,
+test, and amend the commit if fixes are
+necessary.</font></big></p>
+
+<h2>RECOVERING FROM UPSTREAM REBASE
+<a name="RECOVERING FROM UPSTREAM REBASE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">Rebasing
+(or any other form of rewriting) a branch that others have
+based work on is a bad idea: anyone downstream of it is
+forced to manually fix their history. This section explains
+how to do the fix from the downstream&rsquo;s point of view.
+The real fix, however, would be to avoid rebasing the
+upstream in the first place.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">To
+illustrate, suppose you are in a situation where someone
+develops a <i>subsystem</i> branch, and you are working on a
+<i>topic</i> that is dependent on this <i>subsystem</i>. You
+might end up with a history like the
+following:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o
+master <br>
+\ <br>
+
+o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o
+subsystem <br>
+\ <br>
+*&minus;&minus;&minus;*&minus;&minus;&minus;*
+topic</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">If
+<i>subsystem</i> is rebased against <i>master</i>, the
+following happens:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o
+master <br>
+\ \ <br>
+
+o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o
+o'&minus;&minus;o'&minus;&minus;o'&minus;&minus;o'&minus;&minus;o'
+subsystem <br>
+\ <br>
+*&minus;&minus;&minus;*&minus;&minus;&minus;*
+topic</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">If
+you now continue development as usual, and eventually merge
+<i>topic</i> to <i>subsystem</i>, the commits from
+<i>subsystem</i> will remain duplicated
+forever:</font></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><font color="#000000">o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o
+master <br>
+\ \ <br>
+
+o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o
+o'&minus;&minus;o'&minus;&minus;o'&minus;&minus;o'&minus;&minus;o'&minus;&minus;M
+subsystem <br>
+\ / <br>
+
+*&minus;&minus;&minus;*&minus;&minus;&minus;*&minus;..........&minus;*&minus;&minus;*
+topic</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">Such
+duplicates are generally frowned upon because they clutter
+up history, making it harder to follow. To clean things up,
+you need to transplant the commits on <i>topic</i> to the
+new <i>subsystem</i> tip, i.e., rebase <i>topic</i>. This
+becomes a ripple effect: anyone downstream from <i>topic</i>
+is forced to rebase too, and so on!</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">There
+are two kinds of fixes, discussed in the following
+subsections:</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">Easy
+case: The changes are literally the same.</font></big></p>
+
+
+<p style="margin-left:17%;"><big><font color="#000000">This
+happens if the <i>subsystem</i> rebase was a simple rebase
+and had no conflicts.</font></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><font color="#000000">Hard
+case: The changes are not the same.</font></big></p>
+
+
+<p style="margin-left:17%;"><big><font color="#000000">This
+happens if the <i>subsystem</i> rebase had conflicts, or
+used <b>&minus;&minus;interactive</b> to omit, edit, squash,
+or fixup commits; or if the upstream used one of <b>commit
+&minus;&minus;amend</b>, <b>reset</b>, or a full history
+rewriting command like</font>
+<b><font color="#0000FF">filter&minus;repo</font></b></big>
+<font color="#000000">[2] <big>.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><b>The
+easy case</b> <br>
+Only works if the changes (patch IDs based on the diff
+contents) on <i>subsystem</i> are literally the same before
+and after the rebase <i>subsystem</i> did.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>In
+that case, the fix is easy because <i>git rebase</i> knows
+to skip changes that are already present in the new upstream
+(unless
+<b>&minus;&minus;reapply&minus;cherry&minus;picks</b> is
+given). So if you say (assuming you&rsquo;re on
+<i>topic</i>)</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>$
+git rebase subsystem</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>you
+will end up with the fixed history</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o&minus;&minus;&minus;o
+master <br>
+\ <br>
+
+o'&minus;&minus;o'&minus;&minus;o'&minus;&minus;o'&minus;&minus;o'
+subsystem <br>
+\ <br>
+*&minus;&minus;&minus;*&minus;&minus;&minus;*
+topic</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><b>The
+hard case</b> <br>
+Things get more complicated if the <i>subsystem</i> changes
+do not exactly correspond to the ones before the
+rebase.</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><b><big>Note</big></b>
+<br>
+While an &quot;easy case recovery&quot; sometimes appears to
+be successful even in the hard case, it may have unintended
+consequences. For example, a commit that was removed via
+<b>git rebase &minus;&minus;interactive</b> will be
+<b>resurrected</b>!</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>The
+idea is to manually tell <b>git rebase</b> &quot;where the
+old <i>subsystem</i> ended and your <i>topic</i>
+began&quot;, that is, what the old merge base between them
+was. You will have to find a way to name the last commit of
+the old <i>subsystem</i>, for example:</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+With the <i>subsystem</i> reflog: after <b>git fetch</b>,
+the old tip of <i>subsystem</i> is at <b>subsystem@{1}</b>.
+Subsequent fetches will increase the number. (See
+<b>git-reflog</b>(1).)</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>&bull;
+Relative to the tip of <i>topic</i>: knowing that your
+<i>topic</i> has three commits, the old tip of
+<i>subsystem</i> must be <b>topic~3</b>.</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>You
+can then transplant the old <b>subsystem..topic</b> to the
+new tip by saying (for the reflog case, and assuming you are
+on <i>topic</i> already):</big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big>$
+git rebase &minus;&minus;onto subsystem
+subsystem@{1}</big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>The
+ripple effect of a &quot;hard case&quot; recovery is
+especially bad: <i>everyone</i> downstream from <i>topic</i>
+will now have to perform a &quot;hard case&quot; recovery
+too!</big></font></p>
+
+<h2>REBASING MERGES
+<a name="REBASING MERGES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>The
+interactive rebase command was originally designed to handle
+individual patch series. As such, it makes sense to exclude
+merge commits from the todo list, as the developer may have
+merged the then&minus;current <b>master</b> while working on
+the branch, only to rebase all the commits onto
+<b>master</b> eventually (skipping the merge
+commits).</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>However,
+there are legitimate reasons why a developer may want to
+recreate merge commits: to keep the branch structure (or
+&quot;commit topology&quot;) when working on multiple,
+inter&minus;related branches.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>In
+the following example, the developer works on a topic branch
+that refactors the way buttons are defined, and on another
+topic branch that uses that refactoring to implement a
+&quot;Report a bug&quot; button. The output of <b>git log
+&minus;&minus;graph &minus;&minus;format=%s &minus;5</b> may
+look like this:</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>*
+Merge branch 'report&minus;a&minus;bug' <br>
+|\ <br>
+| * Add the feedback button <br>
+* | Merge branch 'refactor&minus;button' <br>
+|\ \ <br>
+| |/ <br>
+| * Use the Button class for all buttons <br>
+| * Extract a generic Button class from the DownloadButton
+one</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>The
+developer might want to rebase those commits to a newer
+<b>master</b> while keeping the branch topology, for example
+when the first topic branch is expected to be integrated
+into <b>master</b> much earlier than the second one, say, to
+resolve merge conflicts with changes to the DownloadButton
+class that made it into
+<b>master</b>.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>This
+rebase can be performed using the
+<b>&minus;&minus;rebase&minus;merges</b> option. It will
+generate a todo list looking like
+this:</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>label
+onto</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>#
+Branch: refactor&minus;button <br>
+reset onto <br>
+pick 123456 Extract a generic Button class from the
+DownloadButton one <br>
+pick 654321 Use the Button class for all buttons <br>
+label refactor&minus;button</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>#
+Branch: report&minus;a&minus;bug <br>
+reset refactor&minus;button # Use the Button class for all
+buttons <br>
+pick abcdef Add the feedback button <br>
+label report&minus;a&minus;bug</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>reset
+onto <br>
+merge &minus;C a1b2c3 refactor&minus;button # Merge
+'refactor&minus;button' <br>
+merge &minus;C 6f5e4d report&minus;a&minus;bug # Merge
+'report&minus;a&minus;bug'</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>In
+contrast to a regular interactive rebase, there are
+<b>label</b>, <b>reset</b> and <b>merge</b> commands in
+addition to <b>pick</b> ones.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>The
+<b>label</b> command associates a label with the current
+HEAD when that command is executed. These labels are created
+as worktree&minus;local refs
+(<b>refs/rewritten/&lt;label&gt;</b>) that will be deleted
+when the rebase finishes. That way, rebase operations in
+multiple worktrees linked to the same repository do not
+interfere with one another. If the <b>label</b> command
+fails, it is rescheduled immediately, with a helpful message
+how to proceed.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>The
+<b>reset</b> command resets the HEAD, index and worktree to
+the specified revision. It is similar to an <b>exec git
+reset &minus;&minus;hard &lt;label&gt;</b>, but refuses to
+overwrite untracked files. If the <b>reset</b> command
+fails, it is rescheduled immediately, with a helpful message
+how to edit the todo list (this typically happens when a
+<b>reset</b> command was inserted into the todo list
+manually and contains a typo).</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>The
+<b>merge</b> command will merge the specified revision(s)
+into whatever is HEAD at that time. With <b>&minus;C
+&lt;original&minus;commit&gt;</b>, the commit message of the
+specified merge commit will be used. When the
+<b>&minus;C</b> is changed to a lower&minus;case
+<b>&minus;c</b>, the message will be opened in an editor
+after a successful merge so that the user can edit the
+message.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>If
+a <b>merge</b> command fails for any reason other than merge
+conflicts (i.e. when the merge operation did not even
+start), it is rescheduled
+immediately.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>By
+default, the <b>merge</b> command will use the <b>ort</b>
+merge strategy for regular merges, and <b>octopus</b> for
+octopus merges. One can specify a default strategy for all
+merges using the <b>&minus;&minus;strategy</b> argument when
+invoking rebase, or can override specific merges in the
+interactive list of commands by using an <b>exec</b> command
+to call <b>git merge</b> explicitly with a
+<b>&minus;&minus;strategy</b> argument. Note that when
+calling <b>git merge</b> explicitly like this, you can make
+use of the fact that the labels are worktree&minus;local
+refs (the ref <b>refs/rewritten/onto</b> would correspond to
+the label <b>onto</b>, for example) in order to refer to the
+branches you want to merge.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>Note:
+the first command (<b>label onto</b>) labels the revision
+onto which the commits are rebased; The name <b>onto</b> is
+just a convention, as a nod to the <b>&minus;&minus;onto</b>
+option.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>It
+is also possible to introduce completely new merge commits
+from scratch by adding a command of the form <b>merge
+&lt;merge&minus;head&gt;</b>. This form will generate a
+tentative commit message and always open an editor to let
+the user edit it. This can be useful e.g. when a topic
+branch turns out to address more than a single concern and
+wants to be split into two or even more topic branches.
+Consider this todo list:</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>pick
+192837 Switch from GNU Makefiles to CMake <br>
+pick 5a6c7e Document the switch to CMake <br>
+pick 918273 Fix detection of OpenSSL in CMake <br>
+pick afbecd http: add support for TLS v1.3 <br>
+pick fdbaec Fix detection of cURL in CMake on
+Windows</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>The
+one commit in this list that is not related to CMake may
+very well have been motivated by working on fixing all those
+bugs introduced by switching to CMake, but it addresses a
+different concern. To split this branch into two topic
+branches, the todo list could be edited like
+this:</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>label
+onto</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>pick
+afbecd http: add support for TLS v1.3 <br>
+label tlsv1.3</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>reset
+onto <br>
+pick 192837 Switch from GNU Makefiles to CMake <br>
+pick 918273 Fix detection of OpenSSL in CMake <br>
+pick fdbaec Fix detection of cURL in CMake on Windows <br>
+pick 5a6c7e Document the switch to CMake <br>
+label cmake</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>reset
+onto <br>
+merge tlsv1.3 <br>
+merge cmake</big></big></font></p>
+
+<h2>CONFIGURATION
+<a name="CONFIGURATION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>Everything
+below this line in this section is selectively included from
+the <b>git-config</b>(1) documentation. The content is the
+same as what&rsquo;s found there:</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>rebase.backend</big></big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>Default
+backend to use for rebasing. Possible choices are
+<i>apply</i> or <i>merge</i>. In the future, if the merge
+backend gains all remaining capabilities of the apply
+backend, this setting may become
+unused.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>rebase.stat</big></big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>Whether
+to show a diffstat of what changed upstream since the last
+rebase. False by default.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>rebase.autoSquash</big></big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>If
+set to true enable <b>&minus;&minus;autosquash</b> option by
+default.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>rebase.autoStash</big></big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>When
+set to true, automatically create a temporary stash entry
+before the operation begins, and apply it after the
+operation ends. This means that you can run rebase on a
+dirty worktree. However, use with care: the final stash
+application after a successful rebase might result in
+non&minus;trivial conflicts. This option can be overridden
+by the <b>&minus;&minus;no&minus;autostash</b> and
+<b>&minus;&minus;autostash</b> options of
+<b>git-rebase</b>(1). Defaults to
+false.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>rebase.updateRefs</big></big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>If
+set to true enable <b>&minus;&minus;update&minus;refs</b>
+option by default.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>rebase.missingCommitsCheck</big></big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>If
+set to &quot;warn&quot;, git rebase &minus;i will print a
+warning if some commits are removed (e.g. a line was
+deleted), however the rebase will still proceed. If set to
+&quot;error&quot;, it will print the previous warning and
+stop the rebase, <i>git rebase
+&minus;&minus;edit&minus;todo</i> can then be used to
+correct the error. If set to &quot;ignore&quot;, no checking
+is done. To drop a commit without warning or error, use the
+<b>drop</b> command in the todo list. Defaults to
+&quot;ignore&quot;.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>rebase.instructionFormat</big></big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>A
+format string, as specified in <b>git-log</b>(1), to be used
+for the todo list during an interactive rebase. The format
+will automatically have the long commit hash prepended to
+the format.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>rebase.abbreviateCommands</big></big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>If
+set to true, <b>git rebase</b> will use abbreviated command
+names in the todo list resulting in something like
+this:</big></big></font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000"><big><big>p
+deadbee The oneline of the commit <br>
+p fa1afe1 The oneline of the next commit <br>
+...</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>instead
+of:</big></big></font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000"><big><big>pick
+deadbee The oneline of the commit <br>
+pick fa1afe1 The oneline of the next commit <br>
+...</big></big></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><big><big>Defaults
+to false.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>rebase.rescheduleFailedExec</big></big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>Automatically
+reschedule <b>exec</b> commands that failed. This only makes
+sense in interactive mode (or when an
+<b>&minus;&minus;exec</b> option was provided). This is the
+same as specifying the
+<b>&minus;&minus;reschedule&minus;failed&minus;exec</b>
+option.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>rebase.forkPoint</big></big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>If
+set to false set
+<b>&minus;&minus;no&minus;fork&minus;point</b> option by
+default.</big></big></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>sequence.editor</big></big></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>Text
+editor used by <b>git rebase &minus;i</b> for editing the
+rebase instruction file. The value is meant to be
+interpreted by the shell when it is used. It can be
+overridden by the <b>GIT_SEQUENCE_EDITOR</b> environment
+variable. When not configured the default commit message
+editor is used instead.</big></big></font></p>
+
+<h2>GIT
+<a name="GIT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big><big>Part
+of the <b>git</b>(1) suite</big></big></font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000"><big><big>1.</big></big></font></p> </td>
+<td width="2%"></td>
+<td width="43%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000"><big><big>revert-a-faulty-merge
+How-To</big></big></font></p> </td>
+<td width="40%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>file:///usr/share/doc/git-doc/howto/revert-a-faulty-merge.html</big></big></font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000"><big><big>2.</big></big></font></p> </td>
+<td width="2%"></td>
+<td width="17%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000"><big><big><b>filter-repo</b></big></big></font></p> </td>
+<td width="66%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big><big>https://github.com/newren/git-filter-repo</big></big></font></p>
+<hr>
+</body>
+</html>

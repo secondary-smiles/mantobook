@@ -1,0 +1,269 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:16 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>ARES_PARSE_CAA_REPLY</title>
+
+</head>
+<body>
+<h1>ares_parse_caa_reply</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">ares_parse_caa_reply
+&minus; Parse a reply to a DNS query of type CAA</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;ares.h&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">int
+ares_parse_caa_reply(const unsigned char* <i>abuf</i>, int
+<i>alen</i>, <br>
+struct ares_caa_reply **<i>caa_out</i>);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>ares_parse_caa_reply</b> function parses the response to
+a query of type CAA into a linked list (one element per
+sub-string) of <i>struct ares_caa_reply</i> The parameters
+<i>abuf</i> and <i>alen</i> give the contents of the
+response. The result is stored in allocated memory and a
+pointer to it stored into the variable pointed to by
+<i>caa_out</i>. It is the caller&rsquo;s responsibility to
+free the resulting <i>caa_out</i> structure when it is no
+longer needed using the function
+<b>ares_free_data(3)</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">The structure
+<i>ares_caa_reply(3)</i> contains the following fields:</p>
+
+<p style="margin-left:17%; margin-top: 1em">struct
+ares_caa_reply { <br>
+struct ares_caa_reply *next; <br>
+int critical; <br>
+unsigned char *property; <br>
+size_t plength; /* plength excludes null */ <br>
+unsigned char *value; <br>
+size_t length; /* length excludes null */ <br>
+};</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ares_parse_caa_reply</b>
+can return any of the following values:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="20%">
+
+
+<p><b>ARES_SUCCESS</b></p></td>
+<td width="3%"></td>
+<td width="66%">
+
+
+<p>The response was successfully parsed.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="20%">
+
+
+<p><b>ARES_EBADRESP</b></p></td>
+<td width="3%"></td>
+<td width="66%">
+
+
+<p>The response was malformatted.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="20%">
+
+
+<p><b>ARES_ENODATA</b></p></td>
+<td width="3%"></td>
+<td width="66%">
+
+
+<p>The response did not contain an answer to the query.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="20%">
+
+
+<p><b>ARES_ENOMEM</b></p></td>
+<td width="3%"></td>
+<td width="66%">
+
+
+<p>Memory was exhausted.</p></td></tr>
+</table>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;arpa/inet.h&gt; <br>
+#include &lt;time.h&gt; <br>
+#include &lt;sys/time.h&gt; <br>
+#include &lt;netdb.h&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;unistd.h&gt; <br>
+#include &lt;stdio.h&gt; <br>
+#include &lt;stdlib.h&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&quot;ares.h&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">static void
+dns_callback(void *arg, <br>
+int status, <br>
+int timeouts, <br>
+unsigned char *abuf, <br>
+int alen) <br>
+{ <br>
+struct ares_caa_reply *caa_out; <br>
+int err;</p>
+
+<p style="margin-left:11%; margin-top: 1em">err =
+ares_parse_caa_reply (abuf, alen, &amp;caa_out); <br>
+if (err == ARES_SUCCESS) <br>
+{ <br>
+struct ares_caa_reply *caa_curr; <br>
+for (caa_curr=caa_out; caa_curr; caa_curr=caa_curr-&gt;next)
+<br>
+printf (&quot;%s. CAA %i %s \&quot;%s\&quot;\n&quot;, arg,
+<br>
+caa_curr-&gt;critical, <br>
+caa_curr-&gt;property, <br>
+caa_curr-&gt;value); <br>
+} <br>
+else <br>
+{ <br>
+printf (&quot;err=%i\n&quot;, err); <br>
+} <br>
+ares_free_data (caa_out); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">static void
+main_loop(ares_channel *channel) <br>
+{ <br>
+int nfds, count; <br>
+fd_set readers, writers; <br>
+struct timeval tv, *tvp; <br>
+while (1) <br>
+{ <br>
+FD_ZERO (&amp;readers); <br>
+FD_ZERO (&amp;writers); <br>
+nfds = ares_fds (*channel, &amp;readers, &amp;writers); <br>
+if (nfds == 0) <br>
+break; <br>
+tvp = ares_timeout (*channel, NULL, &amp;tv); <br>
+count = select (nfds, &amp;readers, &amp;writers, NULL,
+tvp); <br>
+ares_process (*channel, &amp;readers, &amp;writers); <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">int main(int
+argc, char **argv) <br>
+{ <br>
+const char *sversion; <br>
+int iversion; <br>
+int err;</p>
+
+<p style="margin-left:11%; margin-top: 1em">sversion =
+ares_version (&amp;iversion); <br>
+printf (&quot;c-ares version %s\n&quot;, sversion);</p>
+
+<p style="margin-left:11%; margin-top: 1em">char *domain =
+&quot;wikipedia.org&quot;; <br>
+if (argc &gt; 1) <br>
+domain = argv[1];</p>
+
+<p style="margin-left:11%; margin-top: 1em">ares_channel
+channel; <br>
+if ((err = ares_init (&amp;channel)) != ARES_SUCCESS) <br>
+{ <br>
+printf (&quot;ares_init() failed (%i)\n&quot;, err); <br>
+exit (EXIT_FAILURE); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">ares_query
+(channel, domain, <br>
+1, /* ns_c_in */ <br>
+257, /* T_CAA */ <br>
+dns_callback, domain);</p>
+
+<p style="margin-left:11%; margin-top: 1em">main_loop
+(&amp;channel);</p>
+
+<p style="margin-left:11%; margin-top: 1em">ares_destroy
+(channel);</p>
+
+<p style="margin-left:11%; margin-top: 1em">exit
+(EXIT_SUCCESS); <br>
+}</p>
+
+<h2>AVAILABILITY
+<a name="AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This function
+was first introduced in c-ares version 1.17.0.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ares_query</b>(3)
+<b>ares_free_data</b>(3)</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Written by
+Danny Sonnenschein &lt;my.card.god@web.de&gt;, on behalf of
+platynum, https://platynum.ch</p>
+<hr>
+</body>
+</html>

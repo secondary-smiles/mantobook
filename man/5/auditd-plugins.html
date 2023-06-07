@@ -1,0 +1,246 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:52 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>AUDITD-PLUGINS</title>
+
+</head>
+<body>
+<h1>auditd-plugins</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">auditd-plugins
+&minus; realtime event receivers</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>auditd</b>
+can multiplex audit events in realtime. It takes audit
+events and distributes them to child programs that want to
+analyze events in realtime. When the audit daemon receives a
+SIGTERM or SIGHUP, it passes that signal to its child
+processes so that can reload the configuration or
+terminate.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The child
+programs install a configuration file in a plugins directory
+which defaults to <i>/etc/audit/plugins.d</i>. This can be
+controlled by a auditd.conf config option <b>plugin_dir</b>
+if the admin wished to locate plugins somewhere else. But
+auditd will install its plugins in the default location.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The plugin
+directory will be scanned and every plugin that is active
+will be started. If the plugin has a problem and exits, it
+will be started a maximum of <b>max_restarts</b> times as
+found in auditd.conf.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Config file
+names are not allowed to have more than one &rsquo;.&rsquo;
+in the name or it will be treated as a backup copy and
+skipped. Config file options are given one per line with an
+equal sign between the keyword and its value. The available
+options are as follows:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><i>active</i></p></td>
+<td width="2%"></td>
+<td width="53%">
+
+
+<p>The options for this are <i>yes</i> or <i>no.</i></p></td>
+<td width="25%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><i>direction</i></p>
+
+<p style="margin-left:22%;">The option is dictated by the
+plugin. <i>In</i> or <i>out</i> are the only choices. You
+cannot make a plugin operate in a way it wasn&rsquo;t
+designed just by changing this option. This option is to
+give a clue to the event dispatcher about which direction
+events flow. NOTE: inbound events are not supported yet.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><i>path</i></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>This is the absolute path to the plugin executable. In
+the case of internal plugins, it would be the name of the
+plugin.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><i>type</i></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>This tells the dispatcher how the plugin wants to be
+run. There is currently only one option, <i>builtin</i> ,
+which is the default setting.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><i>args</i></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>This allows you to pass arguments to the child program.
+Generally plugins do not take arguments and have their own
+config file that instructs them how they should be
+configured. At the moment, there is a limit of 2 args.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><i>format</i></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>The valid options for this are <i>binary</i> and
+<i>string. Binary</i> passes the data exactly as the audit
+event dispatcher gets it from the audit daemon. The
+<i>string</i> option tells the dispatcher to completely
+change the event into a string suitable for parsing with the
+audit parsing library. The default value is
+<i>string.</i></p> </td></tr>
+</table>
+
+<h2>NOTE
+<a name="NOTE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">auditd has an
+internal queue to hold events for plugins. (See the
+<i>q_depth</i> setting in <i>auditd.conf</i>.) Plugins have
+to watch for and dequeue events as fast as possible and
+queue them internally if they can&rsquo;t be immediately
+processed. If the plugin is not able to dequeue records, the
+auditd internal queue will get filled. At any time, as root,
+you can run the following to check auditd&rsquo;s
+metrics:</p>
+
+<p style="margin-left:11%; margin-top: 1em">auditctl
+--signal cont ; sleep 1 ; cat /var/run/auditd.state</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+auditd&rsquo;s internal queue fills, it cannot dequeue any
+events from the kernel backlog. If the kernel&rsquo;s
+backlog fills, it looks at the value of backlog_wait_time to
+delay all processes that generate an event to see if there
+is eventually room to add the event. This will likely be
+noticed as slowing down various processes on the machine.
+The kernel&rsquo;s audit subsystem can be checked by
+running:</p>
+
+<p style="margin-left:11%; margin-top: 1em">auditctl -s</p>
+
+<p style="margin-left:11%; margin-top: 1em">When tuning the
+audit system&rsquo;s performance, you&rsquo;d want to check
+both kernel and auditd metrics and adjust accordingly.</p>
+
+<h2>NOTES FOR DEVELOPERS
+<a name="NOTES FOR DEVELOPERS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When the audit
+daemon starts your plugin, you will be running as root. If
+you do not need root privileges, you should change uid/gid
+to lower chances of being a target for exploit. If you need
+to retain capabilities, using <b>libcap-ng</b> is the
+simplest way.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Your
+environment is not going to be clean. You are inheriting
+many attributes from auditd itself. You will need to adjust
+your <b>signal mask</b>, <b>sigaction</b>, <b>umask</b>, and
+<b>environmental variables</b>. Look at the auditd man page
+to see which signals auditd used. Plugins are expected to
+handle <b>SIGTERM</b> and <b>SIGHUP</b>. You will also
+inherit the resource limits of auditd. Note that some of
+these resource limits, such as maximum number of open
+descriptors, are controlled by systemd. You also inherit
+auditd&rsquo;s nice value. You might want to adjust that to
+be sure to keep up with incoming audit events.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Auditd will
+send events to the plugin on it&rsquo;s <b>stdin</b>. The
+plugin has to keep this descriptor empty so that events
+don&rsquo;t back up. If you do significant processing of
+each event, you should add an internal queue to your design
+in order to keep events flowing. The <b>auparse_feed</b>
+function is the preferred way to examine whole events if you
+need to analyze the contents of the events.</p>
+
+<h2>FILES
+<a name="FILES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">/etc/auditd/auditd.conf
+/etc/audit/plugins.d</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>auditd.conf</b>(5),
+<b>auditd</b>(8), <b>execve(2), auparse_feed(3).</b></p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Steve Grubb</p>
+<hr>
+</body>
+</html>

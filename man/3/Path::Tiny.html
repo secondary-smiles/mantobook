@@ -1,0 +1,2466 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:46 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Path::Tiny</title>
+
+</head>
+<body>
+<h1>Path::Tiny</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Path::Tiny
+&minus; File path utility</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+0.144</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use Path::Tiny;
+<br>
+# Creating Path::Tiny objects <br>
+my $dir = path(&quot;/tmp&quot;); <br>
+my $foo = path(&quot;foo.txt&quot;); <br>
+my $subdir = $dir&minus;&gt;child(&quot;foo&quot;); <br>
+my $bar = $subdir&minus;&gt;child(&quot;bar.txt&quot;); <br>
+# Stringifies as cleaned up path <br>
+my $file = path(&quot;./foo.txt&quot;); <br>
+print $file; # &quot;foo.txt&quot; <br>
+# Reading files <br>
+my $guts = $file&minus;&gt;slurp; <br>
+$guts = $file&minus;&gt;slurp_utf8; <br>
+my @lines = $file&minus;&gt;lines; <br>
+@lines = $file&minus;&gt;lines_utf8; <br>
+my ($head) = $file&minus;&gt;lines( {count =&gt; 1} ); <br>
+my ($tail) = $file&minus;&gt;lines( {count =&gt; &minus;1}
+); <br>
+# Writing files <br>
+$bar&minus;&gt;spew( @data ); <br>
+$bar&minus;&gt;spew_utf8( @data ); <br>
+# Reading directories <br>
+for ( $dir&minus;&gt;children ) { ... } <br>
+my $iter = $dir&minus;&gt;iterator; <br>
+while ( my $next = $iter&minus;&gt;() ) { ... }</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+provides a small, fast utility for working with file paths.
+It is friendlier to use than File::Spec and provides easy
+access to functions from several other core file handling
+modules. It aims to be smaller and faster than many
+alternatives on <small>CPAN,</small> while helping people do
+many common things in consistent and less error-prone
+ways.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Path::Tiny does
+not try to work for anything except Unix-like and Win32
+platforms. Even then, it might break if you try something
+particularly obscure or tortuous. (Quick! What does this
+mean: &quot;///../../..//./././a//b/.././c/././&quot;? And
+how does it differ on Win32?)</p>
+
+<p style="margin-left:11%; margin-top: 1em">All paths are
+forced to have Unix-style forward slashes. Stringifying the
+object gives you back the path (after some clean up).</p>
+
+<p style="margin-left:11%; margin-top: 1em">File
+input/output methods &quot;flock&quot; handles before
+reading or writing, as appropriate (if supported by the
+platform and/or filesystem).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The *_utf8
+methods (&quot;slurp_utf8&quot;, &quot;lines_utf8&quot;,
+etc.) operate in raw mode. On Windows, that means they will
+not have <small>CRLF</small> translation from the
+&quot;:crlf&quot; <small>IO</small> layer. Installing
+Unicode::UTF8 0.58 or later will speed up *_utf8 situations
+in many cases and is highly recommended. Alternatively,
+installing PerlIO::utf8_strict 0.003 or later will be used
+in place of the default
+&quot;:encoding(UTF&minus;8)&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This module
+depends heavily on PerlIO layers for correct operation and
+thus requires Perl 5.008001 or later.</p>
+
+<h2>CONSTRUCTORS
+<a name="CONSTRUCTORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>path</b>
+<br>
+$path = path(&quot;foo/bar&quot;); <br>
+$path = path(&quot;/tmp&quot;, &quot;file.txt&quot;); # list
+<br>
+$path = path(&quot;.&quot;); # cwd</p>
+
+<p style="margin-left:11%; margin-top: 1em">Constructs a
+&quot;Path::Tiny&quot; object. It doesn&rsquo;t matter if
+you give a file or directory path. It&rsquo;s still up to
+you to call directory-like methods only on directories and
+file-like methods only on files. This function is exported
+automatically by default.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first
+argument must be defined and have non-zero length or an
+exception will be thrown. This prevents subtle, dangerous
+errors with code like &quot;path( maybe_undef()
+)&minus;&gt;remove_tree&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>DEPRECATED</small></b>
+: If and only if the <b>first</b> character of the
+<b>first</b> argument to &quot;path&quot; is a tilde
+(&rsquo;~&rsquo;), then tilde replacement will be applied to
+the first path segment. A single tilde will be replaced with
+&quot;glob('~')&quot; and a tilde followed by a username
+will be replaced with output of
+&quot;glob('~username')&quot;. <b>No other method does tilde
+expansion on its arguments</b>. See &quot;Tilde expansion
+(deprecated)&quot; for more.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On Windows, if
+the path consists of a drive identifier without a path
+component (&quot;C:&quot; or &quot;D:&quot;), it will be
+expanded to the absolute path of the current directory on
+that volume using &quot;Cwd::getdcwd()&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If called with
+a single &quot;Path::Tiny&quot; argument, the original is
+returned unless the original is holding a temporary file or
+directory reference in which case a stringified copy is
+made.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$path =
+path(&quot;foo/bar&quot;); <br>
+$temp = Path::Tiny&minus;&gt;tempfile; <br>
+$p2 = path($path); # like $p2 = $path <br>
+$t2 = path($temp); # like $t2 = path( &quot;$temp&quot;
+)</p>
+
+<p style="margin-left:11%; margin-top: 1em">This optimizes
+copies without proliferating references unexpectedly if a
+copy is made by code outside your control.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.017.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>new</b> <br>
+$path = Path::Tiny&minus;&gt;new(&quot;foo/bar&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is just
+like &quot;path&quot;, but with method call overhead. (Why
+would you do that?)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.001.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>cwd</b> <br>
+$path = Path::Tiny&minus;&gt;cwd; # path( Cwd::getcwd ) <br>
+$path = cwd; # optional export</p>
+
+<p style="margin-left:11%; margin-top: 1em">Gives you the
+absolute path to the current directory as a
+&quot;Path::Tiny&quot; object. This is slightly faster than
+&quot;path(&quot;.&quot;)&minus;&gt;absolute&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;cwd&quot;
+may be exported on request and used as a function instead of
+as a method.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.018.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>rootdir</b>
+<br>
+$path = Path::Tiny&minus;&gt;rootdir; # / <br>
+$path = rootdir; # optional export</p>
+
+<p style="margin-left:11%; margin-top: 1em">Gives you
+&quot;File::Spec&minus;&gt;rootdir&quot; as a
+&quot;Path::Tiny&quot; object if you&rsquo;re too picky for
+&quot;path(&quot;/&quot;)&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;rootdir&quot;
+may be exported on request and used as a function instead of
+as a method.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.018.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>tempfile,
+tempdir</b> <br>
+$temp = Path::Tiny&minus;&gt;tempfile( @options ); <br>
+$temp = Path::Tiny&minus;&gt;tempdir( @options ); <br>
+$temp = $dirpath&minus;&gt;tempfile( @options ); <br>
+$temp = $dirpath&minus;&gt;tempdir( @options ); <br>
+$temp = tempfile( @options ); # optional export <br>
+$temp = tempdir( @options ); # optional export</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;tempfile&quot;
+passes the options to &quot;File::Temp&minus;&gt;new&quot;
+and returns a &quot;Path::Tiny&quot; object with the file
+name. The &quot;TMPDIR&quot; option will be enabled by
+default, but you can override that by passing &quot;TMPDIR
+=&gt; 0&quot; along with the options. (If you use an
+absolute &quot;TEMPLATE&quot; option, you will want to
+disable &quot;TMPDIR&quot;.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The resulting
+&quot;File::Temp&quot; object is cached. When the
+&quot;Path::Tiny&quot; object is destroyed, the
+&quot;File::Temp&quot; object will be as well.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;File::Temp&quot;
+annoyingly requires you to specify a custom template in
+slightly different ways depending on which function or
+method you call, but &quot;Path::Tiny&quot; lets you ignore
+that and can take either a leading template or a
+&quot;TEMPLATE&quot; option and does the right thing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$temp =
+Path::Tiny&minus;&gt;tempfile( &quot;customXXXXXXXX&quot; );
+# ok <br>
+$temp = Path::Tiny&minus;&gt;tempfile( TEMPLATE =&gt;
+&quot;customXXXXXXXX&quot; ); # ok</p>
+
+<p style="margin-left:11%; margin-top: 1em">The tempfile
+path object will be normalized to have an absolute path,
+even if created in a relative directory using
+&quot;DIR&quot;. If you want it to have the
+&quot;realpath&quot; instead, pass a leading options hash
+like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$real_temp =
+tempfile({realpath =&gt; 1}, @options);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;tempdir&quot;
+is just like &quot;tempfile&quot;, except it calls
+&quot;File::Temp&minus;&gt;newdir&quot; instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Both
+&quot;tempfile&quot; and &quot;tempdir&quot; may be exported
+on request and used as functions instead of as methods.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The methods can
+be called on an instances representing a directory. In this
+case, the directory is used as the base to create the
+temporary file/directory, setting the &quot;DIR&quot; option
+in File::Temp.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $target_dir
+= path('/to/destination'); <br>
+my $tempfile =
+$target_dir&minus;&gt;tempfile('foobarXXXXXX'); <br>
+$tempfile&minus;&gt;spew('A lot of data...'); # not atomic
+<br>
+
+$tempfile&minus;&gt;move($target_dir&minus;&gt;child('foobar'));
+# hopefully atomic</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this case,
+any value set for option &quot;DIR&quot; is ignored.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>:
+for tempfiles, the filehandles from File::Temp are closed
+and not reused. This is not as secure as using File::Temp
+handles directly, but is less prone to deadlocks or access
+problems on some platforms. Think of what
+&quot;Path::Tiny&quot; gives you to be just a temporary file
+<b>name</b> that gets cleaned up.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note 2</b>:
+if you don&rsquo;t want these cleaned up automatically when
+the object is destroyed, File::Temp requires different
+options for directories and files. Use &quot;CLEANUP =&gt;
+0&quot; for directories and &quot;UNLINK =&gt; 0&quot; for
+files.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note 3</b>:
+Don&rsquo;t lose the temporary object by chaining a method
+call instead of storing it:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $lost =
+tempdir()&minus;&gt;child(&quot;foo&quot;); # tempdir
+cleaned up right away</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note 4</b>:
+The cached object may be accessed with the
+&quot;cached_temp&quot; method. Keeping a reference to, or
+modifying the cached object may break the behavior
+documented above and is not supported. Use at your own
+risk.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.119.</p>
+
+<h2>METHODS
+<a name="METHODS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>absolute</b>
+<br>
+$abs = path(&quot;foo/bar&quot;)&minus;&gt;absolute; <br>
+$abs =
+path(&quot;foo/bar&quot;)&minus;&gt;absolute(&quot;/tmp&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a new
+&quot;Path::Tiny&quot; object with an absolute path (or
+itself if already absolute). If no argument is given, the
+current directory is used as the absolute base path. If an
+argument is given, it will be converted to an absolute path
+(if it is not already) and used as the absolute base
+path.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will not
+resolve upward directories (&quot;foo/../bar&quot;) unless
+&quot;canonpath&quot; in File::Spec would normally do so on
+your platform. If you need them resolved, you must call the
+more expensive &quot;realpath&quot; method instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On Windows, an
+absolute path without a volume component will have it added
+based on the current drive.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.101.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>append,
+append_raw, append_utf8</b> <br>
+path(&quot;foo.txt&quot;)&minus;&gt;append(@data); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;append(\@data); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;append({binmode =&gt;
+&quot;:raw&quot;}, @data); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;append_raw(@data); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;append_utf8(@data);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Appends data to
+a file. The file is locked with &quot;flock&quot; prior to
+writing and closed afterwards. An optional hash reference
+may be used to pass options. Valid options are:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;binmode&quot;: passed to &quot;binmode()&quot; on
+the handle used for writing.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;truncate&quot;: truncates the file after locking
+and before appending</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;truncate&quot; option is a way to replace the contents
+of a file <b>in place</b>, unlike &quot;spew&quot; which
+writes to a temporary file and then replaces the original
+(if it exists).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;append_raw&quot;
+is like &quot;append&quot; with a &quot;binmode&quot; of
+&quot;:unix&quot; for a fast, unbuffered, raw write.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;append_utf8&quot;
+is like &quot;append&quot; with an unbuffered
+&quot;binmode&quot; &quot;:unix:encoding(UTF&minus;8)&quot;
+(or &quot;:unix:utf8_strict&quot; with PerlIO::utf8_strict).
+If Unicode::UTF8 0.58+ is installed, an unbuffered, raw
+append will be done instead on the data encoded with
+&quot;Unicode::UTF8&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.060.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>assert</b>
+<br>
+$path = path(&quot;foo.txt&quot;)&minus;&gt;assert( sub {
+$_&minus;&gt;exists } );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+invocant after asserting that a code reference argument
+returns true. When the assertion code reference runs, it
+will have the invocant object in the $_ variable. If it
+returns false, an exception will be thrown. The assertion
+code reference may also throw its own exception.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no assertion
+is provided, the invocant is returned without error.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.062.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>basename</b>
+<br>
+$name = path(&quot;foo/bar.txt&quot;)&minus;&gt;basename; #
+bar.txt <br>
+$name =
+path(&quot;foo.txt&quot;)&minus;&gt;basename('.txt'); # foo
+<br>
+$name =
+path(&quot;foo.txt&quot;)&minus;&gt;basename(qr/.txt/); #
+foo <br>
+$name =
+path(&quot;foo.txt&quot;)&minus;&gt;basename(@suffixes);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+file portion or last directory portion of a path.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Given a list of
+suffixes as strings or regular expressions, any that match
+at the end of the file portion or last directory portion
+will be removed before the result is returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.054.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>canonpath</b>
+<br>
+$canonical = path(&quot;foo/bar&quot;)&minus;&gt;canonpath;
+# foo\bar on Windows</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+string with the canonical format of the path name for the
+platform. In particular, this means directory separators
+will be &quot;\&quot; on Windows.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.001.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>cached_temp</b>
+<br>
+Returns the cached &quot;File::Temp&quot; or
+&quot;File::Temp::Dir&quot; object if the
+&quot;Path::Tiny&quot; object was created with
+&quot;/tempfile&quot; or &quot;/tempdir&quot;. If there is
+no such object, this method throws.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>WARNING</small></b>
+: Keeping a reference to, or modifying the cached object may
+break the behavior documented for temporary files and
+directories created with &quot;Path::Tiny&quot; and is not
+supported. Use at your own risk.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.101.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>child</b>
+<br>
+$file =
+path(&quot;/tmp&quot;)&minus;&gt;child(&quot;foo.txt&quot;);
+# &quot;/tmp/foo.txt&quot; <br>
+$file = path(&quot;/tmp&quot;)&minus;&gt;child(@parts);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a new
+&quot;Path::Tiny&quot; object relative to the original.
+Works like &quot;catfile&quot; or &quot;catdir&quot; from
+File::Spec, but without caring about file or
+directories.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>WARNING</small></b>
+: because the argument could contain &quot;..&quot; or refer
+to symlinks, there is no guarantee that the new path refers
+to an actual descendent of the original. If this is
+important to you, transform parent and child with
+&quot;realpath&quot; and check them with
+&quot;subsumes&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.001.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>children</b>
+<br>
+@paths = path(&quot;/tmp&quot;)&minus;&gt;children; <br>
+@paths = path(&quot;/tmp&quot;)&minus;&gt;children(
+qr/\.txt\z/ );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a list
+of &quot;Path::Tiny&quot; objects for all files and
+directories within a directory. Excludes &quot;.&quot; and
+&quot;..&quot; automatically.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If an optional
+&quot;qr//&quot; argument is provided, it only returns
+objects for child names that match the given regular
+expression. Only the base name is used for matching:</p>
+
+<p style="margin-left:11%; margin-top: 1em">@paths =
+path(&quot;/tmp&quot;)&minus;&gt;children( qr/^foo/ ); <br>
+# matches children like the glob foo*</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.028.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>chmod</b>
+<br>
+path(&quot;foo.txt&quot;)&minus;&gt;chmod(0777); <br>
+
+path(&quot;foo.txt&quot;)&minus;&gt;chmod(&quot;0755&quot;);
+<br>
+
+path(&quot;foo.txt&quot;)&minus;&gt;chmod(&quot;go&minus;w&quot;);
+<br>
+
+path(&quot;foo.txt&quot;)&minus;&gt;chmod(&quot;a=r,u+wx&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Sets file or
+directory permissions. The argument can be a numeric mode, a
+octal string beginning with a &quot;0&quot; or a limited
+subset of the symbolic mode use by <i>/bin/chmod</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The symbolic
+mode must be a comma-delimited list of mode clauses. Clauses
+must match
+&quot;qr/\A([augo]+)([=+&minus;])([rwx]+)\z/&quot;, which
+defines &quot;who&quot;, &quot;op&quot; and
+&quot;perms&quot; parameters for each clause. Unlike
+<i>/bin/chmod</i>, all three parameters are required for
+each clause, multiple ops are not allowed and permissions
+&quot;stugoX&quot; are not supported. (See File::chmod for
+more complex needs.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.053.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>copy</b>
+<br>
+
+path(&quot;/tmp/foo.txt&quot;)&minus;&gt;copy(&quot;/tmp/bar.txt&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Copies the
+current path to the given destination using
+File::Copy&rsquo;s &quot;copy&quot; function. Upon success,
+returns the &quot;Path::Tiny&quot; object for the newly
+copied file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.070.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>digest</b>
+<br>
+$obj = path(&quot;/tmp/foo.txt&quot;)&minus;&gt;digest; #
+SHA&minus;256 <br>
+$obj =
+path(&quot;/tmp/foo.txt&quot;)&minus;&gt;digest(&quot;MD5&quot;);
+# user&minus;selected <br>
+$obj = path(&quot;/tmp/foo.txt&quot;)&minus;&gt;digest( {
+chunk_size =&gt; 1e6 }, &quot;MD5&quot; );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+hexadecimal digest for a file. An optional hash reference of
+options may be given. The only option is
+&quot;chunk_size&quot;. If &quot;chunk_size&quot; is given,
+that many bytes will be read at a time. If not provided, the
+entire file will be slurped into memory to compute the
+digest.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Any subsequent
+arguments are passed to the constructor for Digest to select
+an algorithm. If no arguments are given, the default is
+<small>SHA&minus;256.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.056.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dirname
+(deprecated)</b> <br>
+$name = path(&quot;/tmp/foo.txt&quot;)&minus;&gt;dirname; #
+&quot;/tmp/&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+directory portion you would get from calling
+&quot;File::Spec&minus;&gt;splitpath(
+$path&minus;&gt;stringify )&quot; or &quot;.&quot; for a
+path without a parent directory portion. Because File::Spec
+is inconsistent, the result might or might not have a
+trailing slash. Because of this, this method is
+<b>deprecated</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A better, more
+consistently approach is likely
+&quot;$path&minus;&gt;parent&minus;&gt;stringify&quot;,
+which will not have a trailing slash except for a root
+directory.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Deprecated in
+0.056.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>edit,
+edit_raw, edit_utf8</b> <br>
+path(&quot;foo.txt&quot;)&minus;&gt;edit( \&amp;callback,
+$options ); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;edit_utf8(
+\&amp;callback ); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;edit_raw( \&amp;callback
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">These are
+convenience methods that allow &quot;editing&quot; a file
+using a single callback argument. They slurp the file using
+&quot;slurp&quot;, place the contents inside a localized $_
+variable, call the callback function (without arguments),
+and then write $_ (presumably mutated) back to the file with
+&quot;spew&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An optional
+hash reference may be used to pass options. The only option
+is &quot;binmode&quot;, which is passed to &quot;slurp&quot;
+and &quot;spew&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;edit_utf8&quot;
+and &quot;edit_raw&quot; act like their respective
+&quot;slurp_*&quot; and &quot;spew_*&quot; methods.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.077.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>edit_lines,
+edit_lines_utf8, edit_lines_raw</b> <br>
+path(&quot;foo.txt&quot;)&minus;&gt;edit_lines(
+\&amp;callback, $options ); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;edit_lines_utf8(
+\&amp;callback ); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;edit_lines_raw(
+\&amp;callback );</p>
+
+<p style="margin-left:11%; margin-top: 1em">These are
+convenience methods that allow &quot;editing&quot; a
+file&rsquo;s lines using a single callback argument. They
+iterate over the file: for each line, the line is put into a
+localized $_ variable, the callback function is executed
+(without arguments) and then $_ is written to a temporary
+file. When iteration is finished, the temporary file is
+atomically renamed over the original.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An optional
+hash reference may be used to pass options. The only option
+is &quot;binmode&quot;, which is passed to the method that
+open handles for reading and writing.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;edit_lines_raw&quot;
+is like &quot;edit_lines&quot; with a buffered
+&quot;binmode&quot; of &quot;:raw&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;edit_lines_utf8&quot;
+is like &quot;edit_lines&quot; with a buffered
+&quot;binmode&quot; &quot;:raw:encoding(UTF&minus;8)&quot;
+(or &quot;:raw:utf8_strict&quot; with
+PerlIO::utf8_strict).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.077.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>exists,
+is_file, is_dir</b> <br>
+if ( path(&quot;/tmp&quot;)&minus;&gt;exists ) { ... } #
+&minus;e <br>
+if ( path(&quot;/tmp&quot;)&minus;&gt;is_dir ) { ... } #
+&minus;d <br>
+if ( path(&quot;/tmp&quot;)&minus;&gt;is_file ) { ... } #
+&minus;e &amp;&amp; ! &minus;d</p>
+
+<p style="margin-left:11%; margin-top: 1em">Implements file
+test operations, this means the file or directory actually
+has to exist on the filesystem. Until then, it&rsquo;s just
+a path.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>:
+&quot;is_file&quot; is not &quot;&minus;f&quot; because
+&quot;&minus;f&quot; is not the opposite of
+&quot;&minus;d&quot;. &quot;&minus;f&quot; means &quot;plain
+file&quot;, excluding symlinks, devices, etc. that often can
+be read just like files.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Use
+&quot;&minus;f&quot; instead if you really mean to check for
+a plain file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.053.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>filehandle</b>
+<br>
+$fh =
+path(&quot;/tmp/foo.txt&quot;)&minus;&gt;filehandle($mode,
+$binmode); <br>
+$fh = path(&quot;/tmp/foo.txt&quot;)&minus;&gt;filehandle({
+locked =&gt; 1 }, $mode, $binmode); <br>
+$fh = path(&quot;/tmp/foo.txt&quot;)&minus;&gt;filehandle({
+exclusive =&gt; 1 }, $mode, $binmode);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns an open
+file handle. The $mode argument must be a Perl-style
+read/write mode string (&quot;&lt;&quot; ,&quot;&gt;&quot;,
+&quot;&gt;&gt;&quot;, etc.). If a $binmode is given, it is
+set during the &quot;open&quot; call.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An optional
+hash reference may be used to pass options.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;locked&quot; option governs file locking; if true,
+handles opened for writing, appending or read-write are
+locked with &quot;LOCK_EX&quot;; otherwise, they are locked
+with &quot;LOCK_SH&quot;. When using &quot;locked&quot;,
+&quot;&gt;&quot; or &quot;+&gt;&quot; modes will delay
+truncation until after the lock is acquired.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;exclusive&quot; option causes the <b>open()</b> call
+to fail if the file already exists. This corresponds to the
+O_EXCL flag to sysopen / <b>open</b>(2).
+&quot;exclusive&quot; implies &quot;locked&quot; and will
+set it for you if you forget it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+&quot;openr&quot;, &quot;openw&quot;, &quot;openrw&quot;,
+and &quot;opena&quot; for sugar.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.066.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>has_same_bytes</b>
+<br>
+if (
+path(&quot;foo.txt&quot;)&minus;&gt;has_same_bytes(&quot;bar.txt&quot;)
+) { <br>
+# ... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns true if both the invocant and the argument can be
+opened as file handles and the handles contain the same
+bytes. It returns false if their contents differ. If either
+can&rsquo;t be opened as a file (e.g. a directory or
+non-existent file), the method throws an exception. If both
+can be opened and both have the same &quot;realpath&quot;,
+the method returns true without scanning any data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.125.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>is_absolute,
+is_relative</b> <br>
+if ( path(&quot;/tmp&quot;)&minus;&gt;is_absolute ) { ... }
+<br>
+if ( path(&quot;/tmp&quot;)&minus;&gt;is_relative ) { ...
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Booleans for
+whether the path appears absolute or relative.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.001.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>is_rootdir</b>
+<br>
+while ( ! $path&minus;&gt;is_rootdir ) { <br>
+$path = $path&minus;&gt;parent; <br>
+... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Boolean for
+whether the path is the root directory of the volume. I.e.
+the &quot;dirname&quot; is &quot;q[/]&quot; and the
+&quot;basename&quot; is &quot;q[]&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This works even
+on &quot;MSWin32&quot; with drives and <small>UNC</small>
+volumes:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">path(&quot;C:/&quot;)&minus;&gt;is_rootdir;
+# true <br>
+path(&quot;//server/share/&quot;)&minus;&gt;is_rootdir;
+#true</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.038.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>iterator</b>
+<br>
+$iter = path(&quot;/tmp&quot;)&minus;&gt;iterator( \%options
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a code
+reference that walks a directory lazily. Each invocation
+returns a &quot;Path::Tiny&quot; object or undef when the
+iterator is exhausted.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$iter =
+path(&quot;/tmp&quot;)&minus;&gt;iterator; <br>
+while ( $path = $iter&minus;&gt;() ) { <br>
+... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The current and
+parent directory entries (&quot;.&quot; and &quot;..&quot;)
+will not be included.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+&quot;recurse&quot; option is true, the iterator will walk
+the directory recursively, breadth-first. If the
+&quot;follow_symlinks&quot; option is also true, directory
+links will be followed recursively. There is no protection
+against loops when following links. If a directory is not
+readable, it will not be followed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default is
+the same as:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$iter =
+path(&quot;/tmp&quot;)&minus;&gt;iterator( { <br>
+recurse =&gt; 0, <br>
+follow_symlinks =&gt; 0, <br>
+} );</p>
+
+<p style="margin-left:11%; margin-top: 1em">For a more
+powerful, recursive iterator with built-in loop avoidance,
+see Path::Iterator::Rule.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also
+&quot;visit&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.016.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lines,
+lines_raw, lines_utf8</b> <br>
+@contents = path(&quot;/tmp/foo.txt&quot;)&minus;&gt;lines;
+<br>
+@contents =
+path(&quot;/tmp/foo.txt&quot;)&minus;&gt;lines(\%options);
+<br>
+@contents =
+path(&quot;/tmp/foo.txt&quot;)&minus;&gt;lines_raw; <br>
+@contents =
+path(&quot;/tmp/foo.txt&quot;)&minus;&gt;lines_utf8; <br>
+@contents = path(&quot;/tmp/foo.txt&quot;)&minus;&gt;lines(
+{ chomp =&gt; 1, count =&gt; 4 } );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a list
+of lines from a file. Optionally takes a hash-reference of
+options. Valid options are &quot;binmode&quot;,
+&quot;count&quot; and &quot;chomp&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;binmode&quot; is provided, it will be set on the
+handle prior to reading.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a positive
+&quot;count&quot; is provided, that many lines will be
+returned from the start of the file. If a negative
+&quot;count&quot; is provided, the entire file will be read,
+but only &quot;abs(count)&quot; will be kept and returned.
+If &quot;abs(count)&quot; exceeds the number of lines in the
+file, all lines will be returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;chomp&quot; is set, any end-of-line character
+sequences (&quot;CR&quot;, &quot;CRLF&quot;, or
+&quot;LF&quot;) will be removed from the lines returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because the
+return is a list, &quot;lines&quot; in scalar context will
+return the number of lines (and throw away the data).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$number_of_lines
+= path(&quot;/tmp/foo.txt&quot;)&minus;&gt;lines;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;lines_raw&quot;
+is like &quot;lines&quot; with a &quot;binmode&quot; of
+&quot;:raw&quot;. We use &quot;:raw&quot; instead of
+&quot;:unix&quot; so PerlIO buffering can manage reading by
+line.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;lines_utf8&quot;
+is like &quot;lines&quot; with a &quot;binmode&quot; of
+&quot;:raw:encoding(UTF&minus;8)&quot; (or
+&quot;:raw:utf8_strict&quot; with PerlIO::utf8_strict). If
+Unicode::UTF8 0.58+ is installed, a raw, unbuffered
+<small>UTF&minus;8</small> slurp will be done and then the
+lines will be split. This is actually faster than relying on
+<small>IO</small> layers, though a bit memory intensive. If
+memory use is a concern, consider &quot;openr_utf8&quot; and
+iterating directly on the handle.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.065.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>mkdir</b>
+<br>
+path(&quot;foo/bar/baz&quot;)&minus;&gt;mkdir; <br>
+path(&quot;foo/bar/baz&quot;)&minus;&gt;mkdir( \%options
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Like calling
+&quot;make_path&quot; from File::Path. An optional hash
+reference is passed through to &quot;make_path&quot;. Errors
+will be trapped and an exception thrown. Returns the the
+path object to facilitate chaining.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>NOTE</small></b>
+: unlike Perl&rsquo;s builtin &quot;mkdir&quot;, this will
+create intermediate paths similar to the Unix &quot;mkdir
+&minus;p&quot; command. It will not error if applied to an
+existing directory.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.125.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>mkpath
+(deprecated)</b> <br>
+Like calling &quot;mkdir&quot;, but returns the list of
+directories created or an empty list if the directories
+already exist, just like &quot;make_path&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Deprecated in
+0.125.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>move</b>
+<br>
+
+path(&quot;foo.txt&quot;)&minus;&gt;move(&quot;bar.txt&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Moves the
+current path to the given destination using
+File::Copy&rsquo;s &quot;move&quot; function. Upon success,
+returns the &quot;Path::Tiny&quot; object for the newly
+moved file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+destination already exists and is a directory, and the
+source is not a directory, then the source file will be
+renamed into the directory specified by the destination.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If possible,
+<b>move()</b> will simply rename the file. Otherwise, it
+copies the file to the new location and deletes the
+original. If an error occurs during this copy-and-delete
+process, you may be left with a (possibly partial) copy of
+the file under the destination name.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.124. Prior versions
+used Perl&rsquo;s &minus;built&minus;in (and less robust)
+rename function and did not return an object.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>openr,
+openw, openrw, opena</b> <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;openr($binmode); #
+read <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;openr_raw; <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;openr_utf8; <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;openw($binmode); #
+write <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;openw_raw; <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;openw_utf8; <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;opena($binmode); #
+append <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;opena_raw; <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;opena_utf8; <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;openrw($binmode);
+# read/write <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;openrw_raw; <br>
+$fh = path(&quot;foo.txt&quot;)&minus;&gt;openrw_utf8;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a file
+handle opened in the specified mode. The &quot;openr&quot;
+style methods take a single &quot;binmode&quot; argument.
+All of the &quot;open*&quot; methods have
+&quot;open*_raw&quot; and &quot;open*_utf8&quot; equivalents
+that use buffered I/O layers &quot;:raw&quot; and
+&quot;:raw:encoding(UTF&minus;8)&quot; (or
+&quot;:raw:utf8_strict&quot; with PerlIO::utf8_strict).</p>
+
+<p style="margin-left:11%; margin-top: 1em">An optional
+hash reference may be used to pass options. The only option
+is &quot;locked&quot;. If true, handles opened for writing,
+appending or read-write are locked with &quot;LOCK_EX&quot;;
+otherwise, they are locked for &quot;LOCK_SH&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$fh =
+path(&quot;foo.txt&quot;)&minus;&gt;openrw_utf8( { locked
+=&gt; 1 } );</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+&quot;filehandle&quot; for more on locking.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.011.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>parent</b>
+<br>
+$parent = path(&quot;foo/bar/baz&quot;)&minus;&gt;parent; #
+foo/bar <br>
+$parent = path(&quot;foo/wibble.txt&quot;)&minus;&gt;parent;
+# foo <br>
+$parent = path(&quot;foo/bar/baz&quot;)&minus;&gt;parent(2);
+# foo</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+&quot;Path::Tiny&quot; object corresponding to the parent
+directory of the original directory or file. An optional
+positive integer argument is the number of parent
+directories upwards to return. &quot;parent&quot; by itself
+is equivalent to parent(1).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.014.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>realpath</b>
+<br>
+$real =
+path(&quot;/baz/foo/../bar&quot;)&minus;&gt;realpath; <br>
+$real = path(&quot;foo/../bar&quot;)&minus;&gt;realpath;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a new
+&quot;Path::Tiny&quot; object with all symbolic links and
+upward directory parts resolved using Cwd&rsquo;s
+&quot;realpath&quot;. Compared to &quot;absolute&quot;, this
+is more expensive as it must actually consult the
+filesystem.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the parent
+path can&rsquo;t be resolved (e.g. if it includes
+directories that don&rsquo;t exist), an exception will be
+thrown:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$real =
+path(&quot;doesnt_exist/foo&quot;)&minus;&gt;realpath; #
+dies</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, if the
+parent path exists and only the last component (e.g.
+filename) doesn&rsquo;t exist, the realpath will be the
+realpath of the parent plus the non-existent last
+component:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$real =
+path(&quot;./aasdlfasdlf&quot;)&minus;&gt;realpath; #
+works</p>
+
+<p style="margin-left:11%; margin-top: 1em">The underlying
+Cwd module usually worked this way on Unix, but died on
+Windows (and some Unixes) if the full path didn&rsquo;t
+exist. As of version 0.064, it&rsquo;s safe to use
+anywhere.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.001.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>relative</b>
+<br>
+$rel =
+path(&quot;/tmp/foo/bar&quot;)&minus;&gt;relative(&quot;/tmp&quot;);
+# foo/bar</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+&quot;Path::Tiny&quot; object with a path relative to a new
+base path given as an argument. If no argument is given, the
+current directory will be used as the new base path.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If either path
+is already relative, it will be made absolute based on the
+current directly before determining the new relative
+path.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The algorithm
+is roughly as follows:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">If the original and new base
+path are on different volumes, an exception will be
+thrown.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>If the original and new base are identical, the relative
+path is &quot;.&quot;.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>If the new base subsumes the original, the relative path
+is the original path with the new base chopped off the
+front</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>If the new base does not subsume the original, a common
+prefix path is determined (possibly the root directory) and
+the relative path will consist of updirs (&quot;..&quot;) to
+reach the common prefix, followed by the original path less
+the common prefix.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">Unlike
+&quot;File::Spec::abs2rel&quot;, in the last case above, the
+calculation based on a common prefix takes into account
+symlinks that could affect the updir process. Given an
+original path &quot;/A/B&quot; and a new base
+&quot;/A/C&quot;, (where &quot;A&quot;, &quot;B&quot; and
+&quot;C&quot; could each have multiple path components):</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Symlinks in &quot;A&quot;
+don&rsquo;t change the result unless the last component of A
+is a symlink and the first component of &quot;C&quot; is an
+updir.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Symlinks in &quot;B&quot; don&rsquo;t change the result
+and will exist in the result as given.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Symlinks and updirs in &quot;C&quot; must be resolved to
+actual paths, taking into account the possibility that not
+all path components might exist on the filesystem.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.001. New algorithm
+(that accounts for symlinks) available since 0.079.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>remove</b>
+<br>
+path(&quot;foo.txt&quot;)&minus;&gt;remove;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is just
+like &quot;unlink&quot;, except for its error handling: if
+the path does not exist, it returns false; if deleting the
+file fails, it throws an exception.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.012.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>remove_tree</b>
+<br>
+# directory <br>
+path(&quot;foo/bar/baz&quot;)&minus;&gt;remove_tree; <br>
+path(&quot;foo/bar/baz&quot;)&minus;&gt;remove_tree(
+\%options ); <br>
+path(&quot;foo/bar/baz&quot;)&minus;&gt;remove_tree( { safe
+=&gt; 0 } ); # force remove</p>
+
+<p style="margin-left:11%; margin-top: 1em">Like calling
+&quot;remove_tree&quot; from File::Path, but defaults to
+&quot;safe&quot; mode. An optional hash reference is passed
+through to &quot;remove_tree&quot;. Errors will be trapped
+and an exception thrown. Returns the number of directories
+deleted, just like &quot;remove_tree&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+remove a directory only if it is empty, use the built-in
+&quot;rmdir&quot; function instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">rmdir
+path(&quot;foo/bar/baz/&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.013.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>sibling</b>
+<br>
+$foo = path(&quot;/tmp/foo.txt&quot;); <br>
+$sib = $foo&minus;&gt;sibling(&quot;bar.txt&quot;); #
+/tmp/bar.txt <br>
+$sib = $foo&minus;&gt;sibling(&quot;baz&quot;,
+&quot;bam.txt&quot;); # /tmp/baz/bam.txt</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a new
+&quot;Path::Tiny&quot; object relative to the parent of the
+original. This is slightly more efficient than
+&quot;$path&minus;&gt;parent&minus;&gt;child(...)&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.058.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>size,
+size_human</b> <br>
+my $p = path(&quot;foo&quot;); # with size 1025 bytes <br>
+$p&minus;&gt;size; # &quot;1025&quot; <br>
+$p&minus;&gt;size_human; # &quot;1.1 K&quot; <br>
+$p&minus;&gt;size_human( {format =&gt; &quot;iec&quot;} ); #
+&quot;1.1 KiB&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+size of a file. The &quot;size&quot; method is just a
+wrapper around &quot;&minus;s&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;size_human&quot; method provides a human-readable
+string similar to &quot;ls &minus;lh&quot;. Like
+&quot;ls&quot;, it rounds upwards and provides one decimal
+place for single-digit sizes and no decimal places for
+larger sizes. The only available option is
+&quot;format&quot;, which has three valid values:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">&rsquo;ls&rsquo; (the default):
+base&minus;2 sizes, with &quot;ls&quot; style single-letter
+suffixes (K, M, etc.)</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&rsquo;iec&rsquo;: base&minus;2 sizes, with
+<small>IEC</small> binary suffixes (KiB, MiB, etc.)</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&rsquo;si&rsquo;: base&minus;10 sizes, with
+<small>SI</small> decimal suffixes (kB, <small>MB,</small>
+etc.)</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;&minus;s&quot; would return &quot;undef&quot;,
+&quot;size_human&quot; returns the empty string.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.122.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>slurp,
+slurp_raw, slurp_utf8</b> <br>
+$data = path(&quot;foo.txt&quot;)&minus;&gt;slurp; <br>
+$data = path(&quot;foo.txt&quot;)&minus;&gt;slurp( {binmode
+=&gt; &quot;:raw&quot;} ); <br>
+$data = path(&quot;foo.txt&quot;)&minus;&gt;slurp_raw; <br>
+$data = path(&quot;foo.txt&quot;)&minus;&gt;slurp_utf8;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Reads file
+contents into a scalar. Takes an optional hash reference
+which may be used to pass options. The only available option
+is &quot;binmode&quot;, which is passed to
+&quot;binmode()&quot; on the handle used for reading.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;slurp_raw&quot;
+is like &quot;slurp&quot; with a &quot;binmode&quot; of
+&quot;:unix&quot; for a fast, unbuffered, raw read.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;slurp_utf8&quot;
+is like &quot;slurp&quot; with a &quot;binmode&quot; of
+&quot;:unix:encoding(UTF&minus;8)&quot; (or
+&quot;:unix:utf8_strict&quot; with PerlIO::utf8_strict). If
+Unicode::UTF8 0.58+ is installed, a unbuffered, raw slurp
+will be done instead and the result decoded with
+&quot;Unicode::UTF8&quot;. This is just as strict and is
+roughly an order of magnitude faster than using
+&quot;:encoding(UTF&minus;8)&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>:
+&quot;slurp&quot; and friends lock the filehandle before
+slurping. If you plan to slurp from a file created with
+File::Temp, be sure to close other handles or open without
+locking to avoid a deadlock:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $tempfile =
+File::Temp&minus;&gt;new(EXLOCK =&gt; 0); <br>
+my $guts = path($tempfile)&minus;&gt;slurp;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.004.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>spew,
+spew_raw, spew_utf8</b> <br>
+path(&quot;foo.txt&quot;)&minus;&gt;spew(@data); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;spew(\@data); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;spew({binmode =&gt;
+&quot;:raw&quot;}, @data); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;spew_raw(@data); <br>
+path(&quot;foo.txt&quot;)&minus;&gt;spew_utf8(@data);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Writes data to
+a file atomically. The file is written to a temporary file
+in the same directory, then renamed over the original. An
+optional hash reference may be used to pass options. The
+only option is &quot;binmode&quot;, which is passed to
+&quot;binmode()&quot; on the handle used for writing.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;spew_raw&quot;
+is like &quot;spew&quot; with a &quot;binmode&quot; of
+&quot;:unix&quot; for a fast, unbuffered, raw write.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;spew_utf8&quot;
+is like &quot;spew&quot; with a &quot;binmode&quot; of
+&quot;:unix:encoding(UTF&minus;8)&quot; (or
+&quot;:unix:utf8_strict&quot; with PerlIO::utf8_strict). If
+Unicode::UTF8 0.58+ is installed, a raw, unbuffered spew
+will be done instead on the data encoded with
+&quot;Unicode::UTF8&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>NOTE</small></b>
+: because the file is written to a temporary file and then
+renamed, the new file will wind up with permissions based on
+your current umask. This is a feature to protect you from a
+race condition that would otherwise give different
+permissions than you might expect. If you really want to
+keep the original mode flags, use &quot;append&quot; with
+the &quot;truncate&quot; option.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.011.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>stat,
+lstat</b> <br>
+$stat = path(&quot;foo.txt&quot;)&minus;&gt;stat; <br>
+$stat = path(&quot;/some/symlink&quot;)&minus;&gt;lstat;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Like calling
+&quot;stat&quot; or &quot;lstat&quot; from File::stat.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.001.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>stringify</b>
+<br>
+$path = path(&quot;foo.txt&quot;); <br>
+say $path&minus;&gt;stringify; # same as
+&quot;$path&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+string representation of the path. Unlike
+&quot;canonpath&quot;, this method returns the path
+standardized with Unix-style &quot;/&quot; directory
+separators.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.001.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>subsumes</b>
+<br>
+
+path(&quot;foo/bar&quot;)&minus;&gt;subsumes(&quot;foo/bar/baz&quot;);
+# true <br>
+
+path(&quot;/foo/bar&quot;)&minus;&gt;subsumes(&quot;/foo/baz&quot;);
+# false</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns true if
+the first path is a prefix of the second path at a directory
+boundary.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This <b>does
+not</b> resolve parent directory entries (&quot;..&quot;) or
+symlinks:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">path(&quot;foo/bar&quot;)&minus;&gt;subsumes(&quot;foo/bar/../baz&quot;);
+# true</p>
+
+<p style="margin-left:11%; margin-top: 1em">If such things
+are important to you, ensure that both paths are resolved to
+the filesystem with &quot;realpath&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $p1 =
+path(&quot;foo/bar&quot;)&minus;&gt;realpath; <br>
+my $p2 =
+path(&quot;foo/bar/../baz&quot;)&minus;&gt;realpath; <br>
+if ( $p1&minus;&gt;subsumes($p2) ) { ... }</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.048.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>touch</b>
+<br>
+path(&quot;foo.txt&quot;)&minus;&gt;touch; <br>
+path(&quot;foo.txt&quot;)&minus;&gt;touch($epoch_secs);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Like the Unix
+&quot;touch&quot; utility. Creates the file if it
+doesn&rsquo;t exist, or else changes the modification and
+access times to the current time. If the first argument is
+the epoch seconds then it will be used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+path object so it can be easily chained with other
+methods:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># won't die if
+foo.txt doesn't exist <br>
+$content =
+path(&quot;foo.txt&quot;)&minus;&gt;touch&minus;&gt;slurp;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.015.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>touchpath</b>
+<br>
+path(&quot;bar/baz/foo.txt&quot;)&minus;&gt;touchpath;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Combines
+&quot;mkdir&quot; and &quot;touch&quot;. Creates the parent
+directory if it doesn&rsquo;t exist, before touching the
+file. Returns the path object like &quot;touch&quot;
+does.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you need to
+pass options, use &quot;mkdir&quot; and &quot;touch&quot;
+separately:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">path(&quot;bar/baz&quot;)&minus;&gt;mkdir(
+\%options
+)&minus;&gt;child(&quot;foo.txt&quot;)&minus;&gt;touch($epoch_secs);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.022.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>visit</b>
+<br>
+path(&quot;/tmp&quot;)&minus;&gt;visit( \&amp;callback,
+\%options );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Executes a
+callback for each child of a directory. It returns a hash
+reference with any state accumulated during iteration.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The options are
+the same as for &quot;iterator&quot; (which it uses
+internally): &quot;recurse&quot; and
+&quot;follow_symlinks&quot;. Both default to false.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The callback
+function will receive a &quot;Path::Tiny&quot; object as the
+first argument and a hash reference to accumulate state as
+the second argument. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># collect files
+sizes <br>
+my $sizes = path(&quot;/tmp&quot;)&minus;&gt;visit( <br>
+sub { <br>
+my ($path, $state) = @_; <br>
+return if $path&minus;&gt;is_dir; <br>
+$state&minus;&gt;{$path} = &minus;s $path; <br>
+}, <br>
+{ recurse =&gt; 1 } <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+convenience, the &quot;Path::Tiny&quot; object will also be
+locally aliased as the $_ global variable:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># print paths
+matching /foo/ <br>
+path(&quot;/tmp&quot;)&minus;&gt;visit( sub { say if /foo/
+}, { recurse =&gt; 1} );</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the callback
+returns a <b>reference</b> to a false scalar value,
+iteration will terminate. This is not the same as
+&quot;pruning&quot; a directory search; this just stops all
+iteration and returns the state hash reference.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># find up to 10
+files larger than 100K <br>
+my $files = path(&quot;/tmp&quot;)&minus;&gt;visit( <br>
+sub { <br>
+my ($path, $state) = @_; <br>
+$state&minus;&gt;{$path}++ if &minus;s $path &gt; 102400
+<br>
+return \0 if keys %$state == 10; <br>
+}, <br>
+{ recurse =&gt; 1 } <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want
+more flexible iteration, use a module like
+Path::Iterator::Rule.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.062.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>volume</b>
+<br>
+$vol = path(&quot;/tmp/foo.txt&quot;)&minus;&gt;volume; #
+&quot;&quot; <br>
+$vol = path(&quot;C:/tmp/foo.txt&quot;)&minus;&gt;volume; #
+&quot;C:&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+volume portion of the path. This is equivalent to what
+File::Spec would give from &quot;splitpath&quot; and thus
+usually is the empty string on Unix-like operating systems
+or the drive letter for an absolute path on
+&quot;MSWin32&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Current
+<small>API</small> available since 0.001.</p>
+
+<h2>EXCEPTION HANDLING
+<a name="EXCEPTION HANDLING"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Simple usage
+errors will generally croak. Failures of underlying Perl
+functions will be thrown as exceptions in the class
+&quot;Path::Tiny::Error&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A
+&quot;Path::Tiny::Error&quot; object will be a hash
+reference with the following fields:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">&quot;op&quot; &acirc; a
+description of the operation, usually function call and any
+extra info</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;file&quot; &acirc; the file or directory relating
+to the error</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;err&quot; &acirc; hold $! at the time the error
+was thrown</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;msg&quot; &acirc; a string combining the above
+data and a Carp-like short stack trace</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">Exception
+objects will stringify as the &quot;msg&quot; field.</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>PERL_PATH_TINY_NO_FLOCK</small></b>
+<br>
+If the environment variable
+&quot;PERL_PATH_TINY_NO_FLOCK&quot; is set to a true value
+then flock will <small>NOT</small> be used when accessing
+files (this is not recommended).</p>
+
+<h2>CAVEATS
+<a name="CAVEATS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Subclassing
+not supported</b> <br>
+For speed, this class is implemented as an array based
+object and uses many direct function calls internally. You
+must not subclass it and expect things to work properly.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Tilde
+expansion (deprecated)</b> <br>
+Tilde expansion was a nice idea, but it can&rsquo;t easily
+be applied consistently across the entire
+<small>API.</small> This was a source of bugs and confusion
+for users. Therefore, it is <b>deprecated</b> and its use is
+discouraged. Limitations to the existing, legacy behavior
+follow.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Tilde expansion
+will only occur if the <b>first</b> argument to
+&quot;path&quot; begins with a tilde. <b>No other method
+does tilde expansion on its arguments</b>. If you want tilde
+expansion on arguments, you must explicitly wrap them in a
+call to &quot;path&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">path(
+&quot;~/foo.txt&quot; )&minus;&gt;copy( path(
+&quot;~/bar.txt&quot; ) );</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you need a
+literal leading tilde, use
+&quot;path(&quot;./~whatever&quot;)&quot; so that the
+argument to &quot;path&quot; doesn&rsquo;t start with a
+tilde, but the path still resolves to the current
+directory.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Behaviour of
+tilde expansion with a username for non-existent users
+depends on the output of &quot;glob&quot; on the system.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>File
+locking</b> <br>
+If flock is not supported on a platform, it will not be
+used, even if locking is requested.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In situations
+where a platform normally would support locking, but the
+flock fails due to a filesystem limitation, Path::Tiny has
+some heuristics to detect this and will warn once and
+continue in an unsafe mode. If you want this failure to be
+fatal, you can fatalize the &rsquo;flock&rsquo; warnings
+category:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use warnings
+FATAL =&gt; 'flock';</p>
+
+<p style="margin-left:11%; margin-top: 1em">See additional
+caveats below.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i><small>NFS</small>
+and <small>BSD</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">On
+<small>BSD,</small> Perl&rsquo;s flock implementation may
+not work to lock files on an <small>NFS</small> filesystem.
+If detected, this situation will warn once, as described
+above.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>Lustre</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The Lustre
+filesystem does not support flock. If detected, this
+situation will warn once, as described above.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i><small>AIX</small>
+and locking</i></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>AIX</small>
+requires a write handle for locking. Therefore, calls that
+normally open a read handle and take a shared lock instead
+will open a read-write handle and take an exclusive lock. If
+the user does not have write permission, no lock will be
+used.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>utf8 vs
+<small>UTF&minus;8</small></b> <br>
+All the *_utf8 methods by default use
+&quot;:encoding(UTF&minus;8)&quot; -- either as
+&quot;:unix:encoding(UTF&minus;8)&quot; (unbuffered, for
+whole file operations) or
+&quot;:raw:encoding(UTF&minus;8)&quot; (buffered, for
+line-by-line operations). These are strict against the
+Unicode spec and disallows illegal Unicode codepoints or
+<small>UTF&minus;8</small> sequences.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unfortunately,
+&quot;:encoding(UTF&minus;8)&quot; is very, very slow. If
+you install Unicode::UTF8 0.58 or later, that module will be
+used by some *_utf8 methods to encode or decode data after a
+raw, binary input/output operation, which is much faster.
+Alternatively, if you install PerlIO::utf8_strict, that will
+be used instead of &quot;:encoding(UTF&minus;8)&quot; and is
+also very fast.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you need the
+performance and can accept the security risk,
+&quot;slurp({binmode =&gt; &quot;:unix:utf8&quot;})&quot;
+will be faster than &quot;:unix:encoding(UTF&minus;8)&quot;
+(but not as fast as &quot;Unicode::UTF8&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+*_utf8 methods read in <b>raw</b> mode. There is no
+<small>CRLF</small> translation on Windows. If you must have
+<small>CRLF</small> translation, use the regular
+input/output methods with an appropriate binmode:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$path&minus;&gt;spew_utf8($data);
+# raw <br>
+$path&minus;&gt;spew({binmode =&gt;
+&quot;:encoding(UTF&minus;8)&quot;}, $data; # LF &minus;&gt;
+CRLF</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Default
+<small>IO</small> layers and the open pragma</b> <br>
+If you have Perl 5.10 or later, file input/output methods
+(&quot;slurp&quot;, &quot;spew&quot;, etc.) and high-level
+handle opening methods ( &quot;filehandle&quot;,
+&quot;openr&quot;, &quot;openw&quot;, etc. ) respect default
+encodings set by the &quot;&minus;C&quot; switch or lexical
+open settings of the caller. For <small>UTF&minus;8,</small>
+this is almost certainly slower than using the dedicated
+&quot;_utf8&quot; methods if you have Unicode::UTF8 or
+PerlIP::utf8_strict.</p>
+
+<h2>TYPE CONSTRAINTS AND COERCION
+<a name="TYPE CONSTRAINTS AND COERCION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A standard
+MooseX::Types library is available at
+MooseX::Types::Path::Tiny. A Type::Tiny equivalent is
+available as Types::Path::Tiny.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These are other
+file/path utilities, which may offer a different feature set
+than &quot;Path::Tiny&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="17%">
+
+
+<p style="margin-top: 1em">File::chmod</p></td>
+<td width="66%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="17%">
+
+
+<p>File::Fu</p></td>
+<td width="66%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="17%">
+
+
+<p>IO::All</p></td>
+<td width="66%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="17%">
+
+
+<p>Path::Class</p></td>
+<td width="66%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">These iterators
+may be slightly faster than the recursive iterator in
+&quot;Path::Tiny&quot;:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="31%">
+
+
+<p style="margin-top: 1em">Path::Iterator::Rule</p></td>
+<td width="52%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="31%">
+
+
+<p>File::Next</p></td>
+<td width="52%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">There are
+probably comparable, non-Tiny tools. Let me know if you want
+me to add a module to the list.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This module was
+featured in the 2013 Perl Advent Calendar
+&lt;http://www.perladvent.org/2013/2013-12-18.html&gt;.</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Bugs /
+Feature Requests</b> <br>
+Please report any bugs or feature requests through the issue
+tracker at
+&lt;https://github.com/dagolden/Path&minus;Tiny/issues&gt;.
+You will be notified automatically of any progress on your
+issue.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Source
+Code</b> <br>
+This is open source software. The code repository is
+available for public review and contribution under the terms
+of the license.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;https://github.com/dagolden/Path&minus;Tiny&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">git clone
+https://github.com/dagolden/Path&minus;Tiny.git</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">David Golden
+&lt;dagolden@cpan.org&gt;</p>
+
+<h2>CONTRIBUTORS
+<a name="CONTRIBUTORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Alex Efros
+&lt;powerman@powerman.name&gt;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Aristotle Pagaltzis &lt;pagaltzis@gmx.de&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Chris Williams &lt;bingos@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Dan Book &lt;grinnz@grinnz.com&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Dave Rolsky &lt;autarch@urth.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>David Steinbrunner &lt;dsteinbrunner@pobox.com&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Doug Bell &lt;madcityzen@gmail.com&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Elvin Aslanov &lt;rwp.primary@gmail.com&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Flavio Poletti &lt;flavio@polettix.it&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Gabor Szabo &lt;szabgab@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Gabriel Andrade &lt;gabiruh@gmail.com&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>George Hartzell &lt;hartzell@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Geraud Continsouzas &lt;geraud@scsi.nc&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Goro Fuji &lt;gfuji@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Graham Knop &lt;haarg@haarg.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Graham Ollis &lt;plicease@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Ian Sillitoe &lt;ian@sillit.com&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>James Hunt &lt;james@niftylogic.com&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>John Karr &lt;brainbuz@brainbuz.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Karen Etheridge &lt;ether@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Mark Ellis &lt;mark.ellis@cartridgesave.co.uk&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Martin H. Sluka &lt;fany@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Martin Kjeldsen &lt;mk@bluepipe.dk&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Mary Ehlers &lt;regina.verb.ae@gmail.com&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Michael G. Schwern &lt;mschwern@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Nicolas R &lt;nicolas@atoomic.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Nicolas Rochelemagne &lt;rochelemagne@cpanel.net&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Nigel Gregoire &lt;nigelgregoire@gmail.com&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Philippe Bruhat (BooK) &lt;book@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>regina-verbae
+&lt;regina&minus;verbae@users.noreply.github.com&gt;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Roy Ivy <small>III</small> &lt;rivy@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Shlomi Fish &lt;shlomif@shlomifish.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Smylers &lt;Smylers@stripey.com&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Tatsuhiko Miyagawa &lt;miyagawa@bulknews.net&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Toby Inkster &lt;tobyink@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Yanick Champoux &lt;yanick@babyl.dyndns.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&ecirc;&sup1;&euml;&iacute; &minus; Keedi Kim
+&lt;keedi@cpan.org&gt;</p> </td></tr>
+</table>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is Copyright (c) 2014 by David Golden.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software, licensed under:</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Apache
+License, Version 2.0, January 2004</p>
+<hr>
+</body>
+</html>

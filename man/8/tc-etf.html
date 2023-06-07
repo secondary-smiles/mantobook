@@ -1,0 +1,232 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:05 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>ETF</title>
+
+</head>
+<body>
+<h1>tc-etf</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">ETF &minus;
+Earliest TxTime First (ETF) Qdisc</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tc qdisc ...
+dev</b> dev <b>parent</b> classid <b>[ handle</b> major:
+<b>] etf clockid</b> clockid <b>[ delta</b> delta_nsecs <b>]
+[ deadline_mode ] [ offload ]</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The ETF
+(Earliest TxTime First) qdisc allows applications to control
+the instant when a packet should be dequeued from the
+traffic control layer into the netdevice. If <b>offload</b>
+is configured and supported by the network interface card,
+the it will also control when packets leave the network
+controller.</p>
+
+<p style="margin-left:11%; margin-top: 1em">ETF achieves
+that by buffering packets until a configurable time before
+their transmission time (i.e. txtime, or deadline), which
+can be configured through the <b>delta</b> option.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The qdisc uses
+a rb-tree internally so packets are always
+&rsquo;ordered&rsquo; by their txtime and will be dequeued
+following the (next) earliest txtime first.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It relies on
+the SO_TXTIME socket option and the SCM_TXTIME CMSG in each
+packet field to configure the behavior of time dependent
+sockets: the clockid to be used as a reference, if the
+expected mode of txtime for that socket is deadline or
+strict mode, and if packet drops should be reported on the
+socket&rsquo;s error queue. See <b>socket(7)</b> for more
+information.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The etf qdisc
+will drop any packets with a txtime in the past, or if a
+packet expires while waiting for being dequeued.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This queueing
+discipline is intended to be used by TSN (Time Sensitive
+Networking) applications, and it exposes a traffic shaping
+functionality that is commonly documented as &quot;Launch
+Time&quot; or &quot;Time-Based Scheduling&quot; by vendors
+and the documentation of network interface controllers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">ETF is meant to
+be installed under another qdisc that maps packet flows to
+traffic classes, one example is <b>mqprio(8).</b></p>
+
+<h2>PARAMETERS
+<a name="PARAMETERS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">clockid</p>
+
+<p style="margin-left:22%;">Specifies the clock to be used
+by qdisc&rsquo;s internal timer for measuring time and
+scheduling events. The qdisc expects that packets passing
+through it to be using this same <b>clockid</b> as the
+reference of their txtime timestamps. It will drop packets
+coming from sockets that do not comply with that.</p>
+
+<p style="margin-left:22%; margin-top: 1em">For more
+information about time and clocks on Linux, please refer to
+<b>time(7)</b> and <b>clock_gettime(3).</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="7%">
+
+
+<p>delta</p></td>
+<td width="4%"></td>
+<td width="78%">
+
+
+<p>After enqueueing or dequeueing a packet, the qdisc will
+schedule its next wake-up time for the next txtime minus
+this delta value. This means <b>delta</b> can be used as a
+fudge factor for the scheduler latency of a system. This
+value must be specified in nanoseconds. The default value is
+0 nanoseconds.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">deadline_mode</p>
+
+<p style="margin-left:22%;">When <b>deadline_mode</b> is
+set, the qdisc will handle txtime with a different
+semantics, changed from a &rsquo;strict&rsquo; transmission
+time to a deadline. In practice, this means during the
+dequeue flow <b>etf(8)</b> will set the txtime of the packet
+being dequeued to &rsquo;now&rsquo;. The default is for this
+option to be disabled.</p>
+
+<p style="margin-left:11%;">offload</p>
+
+<p style="margin-left:22%;">When <b>offload</b> is set,
+<b>etf(8)</b> will try to configure the network interface so
+time-based transmission arbitration is enabled in the
+controller. This feature is commonly referred to as
+&quot;Launch Time&quot; or &quot;Time-Based Scheduling&quot;
+by the documentation of network interface controllers. The
+default is for this option to be disabled.</p>
+
+<p style="margin-left:11%;">skip_sock_check</p>
+
+<p style="margin-left:22%;"><b>etf(8)</b> currently drops
+any packet which does not have a socket associated with it
+or if the socket does not have SO_TXTIME socket option set.
+But, this will not work if the launchtime is set by another
+entity inside the kernel (e.g. some other Qdisc). Setting
+the skip_sock_check will skip checking for a socket
+associated with the packet.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">ETF is used to
+enforce a Quality of Service. It controls when each packets
+should be dequeued and transmitted, and can be used for
+limiting the data rate of a traffic class. To separate
+packets into traffic classes the user may choose
+<b>mqprio(8),</b> and configure it like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 handle 100: parent root mqprio num_tc 3 \</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>map 2 2 1 0 2 2 2 2 2 2 2 2 2 2 2 2 \</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>queues 1@0 1@1 2@2 \</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>hw 0</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">To replace the
+current queueing discipline by ETF in traffic class number
+0, issue:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc
+replace dev eth0 parent 100:1 etf \</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>clockid CLOCK_TAI delta 300000 offload</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">With the
+options above, etf will be configured to use CLOCK_TAI as
+its clockid_t, will schedule packets for 300 us before their
+txtime, and will enable the functionality on that in the
+network interface card. Deadline mode will not be configured
+for this mode.</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jesus
+Sanchez-Palencia &lt;jesus.sanchez-palencia@intel.com&gt;
+<br>
+Vinicius Costa Gomes &lt;vinicius.gomes@intel.com&gt;</p>
+<hr>
+</body>
+</html>

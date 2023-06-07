@@ -1,0 +1,648 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:53 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GITPROTOCOL&minus;CAPABIL</title>
+
+</head>
+<body>
+<h1>gitprotocol-capabilities</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">gitprotocol-capabilities
+&minus; Protocol v0 and v1 capabilities</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;over&minus;the&minus;wire&minus;protocol&gt;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><big>Note</big></b>
+<br>
+this document describes capabilities for versions 0 and 1 of
+the pack protocol. For version 2, please refer to the
+<b>gitprotocol-v2</b>(5) doc.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Servers SHOULD
+support all capabilities defined in this document.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On the very
+first line of the initial server response of either
+receive&minus;pack and upload&minus;pack the first reference
+is followed by a NUL byte and then a list of space delimited
+server capabilities. These allow the server to declare what
+it can and cannot support to the client.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Client will
+then send a space separated list of capabilities it wants to
+be in effect. The client MUST NOT ask for capabilities the
+server did not say it supports.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Server MUST
+diagnose and abort if capabilities it does not understand
+was sent. Server MUST NOT ignore capabilities that client
+requested and server advertised. As a consequence of these
+rules, server MUST NOT advertise capabilities it does not
+understand.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>atomic</i>, <i>report&minus;status</i>,
+<i>report&minus;status&minus;v2</i>,
+<i>delete&minus;refs</i>, <i>quiet</i>, and
+<i>push&minus;cert</i> capabilities are sent and recognized
+by the receive&minus;pack (push to server) process.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>ofs&minus;delta</i> and <i>side&minus;band&minus;64k</i>
+capabilities are sent and recognized by both
+upload&minus;pack and receive&minus;pack protocols. The
+<i>agent</i> and <i>session&minus;id</i> capabilities may
+optionally be sent in both protocols.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All other
+capabilities are only recognized by the upload&minus;pack
+(fetch from server) process.</p>
+
+<h2>MULTI_ACK
+<a name="MULTI_ACK"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>The
+<i>multi_ack</i> capability allows the server to return
+&quot;ACK obj&minus;id continue&quot; as soon as it finds a
+commit that it can use as a common base, between the
+client&rsquo;s wants and the client&rsquo;s have
+set.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>By sending
+this early, the server can potentially head off the client
+from walking any further down that particular branch of the
+client&rsquo;s repository history. The client may still need
+to walk down other branches, sending have lines for those,
+until the server has a complete cut across the DAG, or the
+client has said &quot;done&quot;.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Without
+multi_ack, a client sends have lines in
+&minus;&minus;date&minus;order until the server has found a
+common base. That means the client will send have lines that
+are already known by the server to be common, because they
+overlap in time with another branch that the server
+hasn&rsquo;t found a common base on yet.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>For
+example suppose the client has commits in caps that the
+server doesn&rsquo;t and the server has commits in lower
+case that the client doesn&rsquo;t, as in the following
+diagram:</big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big>+&minus;&minus;&minus;&minus;
+u
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+x <br>
+/ +&minus;&minus;&minus;&minus;&minus; y <br>
+/ / <br>
+a &minus;&minus; b &minus;&minus; c &minus;&minus; d
+&minus;&minus; E &minus;&minus; F <br>
+\ <br>
++&minus;&minus;&minus; Q &minus;&minus; R &minus;&minus;
+S</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>If the
+client wants x,y and starts out by saying have F,S, the
+server doesn&rsquo;t know what F,S is. Eventually the client
+says &quot;have d&quot; and the server sends &quot;ACK d
+continue&quot; to let the client know to stop walking down
+that line (so don&rsquo;t send c&minus;b&minus;a), but
+it&rsquo;s not done yet, it needs a base for x. The client
+keeps going with S&minus;R&minus;Q, until a gets reached, at
+which point the server has a clear base and it all
+ends.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Without
+multi_ack the client would have sent that c&minus;b&minus;a
+chain anyway, interleaved with S&minus;R&minus;Q.</big></p>
+
+<h2>MULTI_ACK_DETAILED
+<a name="MULTI_ACK_DETAILED"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>This is an
+extension of multi_ack that permits client to better
+understand the server&rsquo;s in&minus;memory state. See
+<b>gitprotocol-pack</b>(5), section &quot;Packfile
+Negotiation&quot; for more information.</big></p>
+
+<h2>NO&minus;DONE
+<a name="NO&minus;DONE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>This
+capability should only be used with the smart HTTP protocol.
+If multi_ack_detailed and no&minus;done are both present,
+then the sender is free to immediately send a pack following
+its first &quot;ACK obj&minus;id ready&quot;
+message.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Without
+no&minus;done in the smart HTTP protocol, the server session
+would end and the client has to make another trip to send
+&quot;done&quot; before the server can send the pack.
+no&minus;done removes the last round and thus slightly
+reduces latency.</big></p>
+
+<h2>THIN&minus;PACK
+<a name="THIN&minus;PACK"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>A thin
+pack is one with deltas which reference base objects not
+contained within the pack (but are known to exist at the
+receiving end). This can reduce the network traffic
+significantly, but it requires the receiving end to know how
+to &quot;thicken&quot; these packs by adding the missing
+bases to the pack.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>The
+upload&minus;pack server advertises <i>thin&minus;pack</i>
+when it can generate and send a thin pack. A client requests
+the <i>thin&minus;pack</i> capability when it understands
+how to &quot;thicken&quot; it, notifying the server that it
+can receive such a pack. A client MUST NOT request the
+<i>thin&minus;pack</i> capability if it cannot turn a thin
+pack into a self&minus;contained pack.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>Receive&minus;pack,
+on the other hand, is assumed by default to be able to
+handle thin packs, but can ask the client not to use the
+feature by advertising the <i>no&minus;thin</i> capability.
+A client MUST NOT send a thin pack if the server advertises
+the <i>no&minus;thin</i> capability.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>The
+reasons for this asymmetry are historical. The
+receive&minus;pack program did not exist until after the
+invention of thin packs, so historically the reference
+implementation of receive&minus;pack always understood thin
+packs. Adding <i>no&minus;thin</i> later allowed
+receive&minus;pack to disable the feature in a
+backwards&minus;compatible manner.</big></p>
+
+<h2>SIDE&minus;BAND, SIDE&minus;BAND&minus;64K
+<a name="SIDE&minus;BAND, SIDE&minus;BAND&minus;64K"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>This
+capability means that server can send, and client understand
+multiplexed progress reports and error info interleaved with
+the packfile itself.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>These two
+options are mutually exclusive. A modern client always
+favors <i>side&minus;band&minus;64k</i>.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Either
+mode indicates that the packfile data will be streamed
+broken up into packets of up to either 1000 bytes in the
+case of <i>side_band</i>, or 65520 bytes in the case of
+<i>side_band_64k</i>. Each packet is made up of a leading
+4&minus;byte pkt&minus;line length of how much data is in
+the packet, followed by a 1&minus;byte stream code, followed
+by the actual data.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>The stream
+code can be one of:</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>1 &minus;
+pack data <br>
+2 &minus; progress messages <br>
+3 &minus; fatal error message just before stream
+aborts</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>The
+&quot;side&minus;band&minus;64k&quot; capability came about
+as a way for newer clients that can handle much larger
+packets to request packets that are actually crammed nearly
+full, while maintaining backward compatibility for the older
+clients.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Further,
+with side&minus;band and its up to 1000&minus;byte messages,
+it&rsquo;s actually 999 bytes of payload and 1 byte for the
+stream code. With side&minus;band&minus;64k, same deal, you
+have up to 65519 bytes of data and 1 byte for the stream
+code.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>The client
+MUST send only maximum of one of &quot;side&minus;band&quot;
+and &quot;side&minus; band&minus;64k&quot;. Server MUST
+diagnose it as an error if client requests both.</big></p>
+
+<h2>OFS&minus;DELTA
+<a name="OFS&minus;DELTA"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>Server can
+send, and client understand PACKv2 with delta referring to
+its base by position in pack rather than by an obj&minus;id.
+That is, they can send/read OBJ_OFS_DELTA (aka type 6) in a
+packfile.</big></p>
+
+<h2>AGENT
+<a name="AGENT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>The server
+may optionally send a capability of the form <b>agent=X</b>
+to notify the client that the server is running version
+<b>X</b>. The client may optionally return its own agent
+string by responding with an <b>agent=Y</b> capability (but
+it MUST NOT do so if the server did not mention the agent
+capability). The <b>X</b> and <b>Y</b> strings may contain
+any printable ASCII characters except space (i.e., the byte
+range 32 &lt; x &lt; 127), and are typically of the form
+&quot;package/version&quot; (e.g., &quot;git/1.8.3.1&quot;).
+The agent strings are purely informative for statistics and
+debugging purposes, and MUST NOT be used to programmatically
+assume the presence or absence of particular
+features.</big></p>
+
+<h2>OBJECT&minus;FORMAT
+<a name="OBJECT&minus;FORMAT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>This
+capability, which takes a hash algorithm as an argument,
+indicates that the server supports the given hash
+algorithms. It may be sent multiple times; if so, the first
+one given is the one used in the ref
+advertisement.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>When
+provided by the client, this indicates that it intends to
+use the given hash algorithm to communicate. The algorithm
+provided must be one that the server supports.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>If this
+capability is not provided, it is assumed that the only
+supported algorithm is SHA&minus;1.</big></p>
+
+<h2>SYMREF
+<a name="SYMREF"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>This
+parameterized capability is used to inform the receiver
+which symbolic ref points to which ref; for example,
+&quot;symref=HEAD:refs/heads/master&quot; tells the receiver
+that HEAD points to master. This capability can be repeated
+to represent multiple symrefs.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Servers
+SHOULD include this capability for the HEAD symref if it is
+one of the refs being sent.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Clients
+MAY use the parameters from this capability to select the
+proper initial branch when cloning a repository.</big></p>
+
+<h2>SHALLOW
+<a name="SHALLOW"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>This
+capability adds &quot;deepen&quot;, &quot;shallow&quot; and
+&quot;unshallow&quot; commands to the
+fetch&minus;pack/upload&minus;pack protocol so clients can
+request shallow clones.</big></p>
+
+<h2>DEEPEN&minus;SINCE
+<a name="DEEPEN&minus;SINCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>This
+capability adds &quot;deepen&minus;since&quot; command to
+fetch&minus;pack/upload&minus;pack protocol so the client
+can request shallow clones that are cut at a specific time,
+instead of depth. Internally it&rsquo;s equivalent of doing
+&quot;rev&minus;list
+&minus;&minus;max&minus;age=&lt;timestamp&gt;&quot; on the
+server side. &quot;deepen&minus;since&quot; cannot be used
+with &quot;deepen&quot;.</big></p>
+
+<h2>DEEPEN&minus;NOT
+<a name="DEEPEN&minus;NOT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>This
+capability adds &quot;deepen&minus;not&quot; command to
+fetch&minus;pack/upload&minus;pack protocol so the client
+can request shallow clones that are cut at a specific
+revision, instead of depth. Internally it&rsquo;s equivalent
+of doing &quot;rev&minus;list &minus;&minus;not
+&lt;rev&gt;&quot; on the server side.
+&quot;deepen&minus;not&quot; cannot be used with
+&quot;deepen&quot;, but can be used with
+&quot;deepen&minus;since&quot;.</big></p>
+
+<h2>DEEPEN&minus;RELATIVE
+<a name="DEEPEN&minus;RELATIVE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>If this
+capability is requested by the client, the semantics of
+&quot;deepen&quot; command is changed. The &quot;depth&quot;
+argument is the depth from the current shallow boundary,
+instead of the depth from remote refs.</big></p>
+
+<h2>NO&minus;PROGRESS
+<a name="NO&minus;PROGRESS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>The client
+was started with &quot;git clone &minus;q&quot; or
+something, and doesn&rsquo;t want that side band 2.
+Basically the client just says &quot;I do not wish to
+receive stream 2 on sideband, so do not send it to me, and
+if you did, I will drop it on the floor anyway&quot;.
+However, the sideband channel 3 is still used for error
+responses.</big></p>
+
+<h2>INCLUDE&minus;TAG
+<a name="INCLUDE&minus;TAG"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>The
+<i>include&minus;tag</i> capability is about sending
+annotated tags if we are sending objects they point to. If
+we pack an object to the client, and a tag object points
+exactly at that object, we pack the tag object too. In
+general this allows a client to get all new annotated tags
+when it fetches a branch, in a single network
+connection.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Clients
+MAY always send include&minus;tag, hardcoding it into a
+request when the server advertises this capability. The
+decision for a client to request include&minus;tag only has
+to do with the client&rsquo;s desires for tag data, whether
+or not a server had advertised objects in the refs/tags/*
+namespace.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Servers
+MUST pack the tags if their referrant is packed and the
+client has requested include&minus;tags.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Clients
+MUST be prepared for the case where a server has ignored
+include&minus;tag and has not actually sent tags in the
+pack. In such cases the client SHOULD issue a subsequent
+fetch to acquire the tags that include&minus;tag would have
+otherwise given the client.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>The server
+SHOULD send include&minus;tag, if it supports it, regardless
+of whether or not there are tags available.</big></p>
+
+<h2>REPORT&minus;STATUS
+<a name="REPORT&minus;STATUS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>The
+receive&minus;pack process can receive a
+<i>report&minus;status</i> capability, which tells it that
+the client wants a report of what happened after a packfile
+upload and reference update. If the pushing client requests
+this capability, after unpacking and updating references the
+server will respond with whether the packfile unpacked
+successfully and if each reference was updated successfully.
+If any of those were not successful, it will send back an
+error message. See <b>gitprotocol-pack</b>(5) for example
+messages.</big></p>
+
+<h2>REPORT&minus;STATUS&minus;V2
+<a name="REPORT&minus;STATUS&minus;V2"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>Capability
+<i>report&minus;status&minus;v2</i> extends capability
+<i>report&minus;status</i> by adding new &quot;option&quot;
+directives in order to support reference rewritten by the
+&quot;proc&minus;receive&quot; hook. The
+&quot;proc&minus;receive&quot; hook may handle a command for
+a pseudo&minus;reference which may create or update a
+reference with different name, new&minus;oid, and
+old&minus;oid. While the capability
+<i>report&minus;status</i> cannot report for such case. See
+<b>gitprotocol-pack</b>(5) for details.</big></p>
+
+<h2>DELETE&minus;REFS
+<a name="DELETE&minus;REFS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>If the
+server sends back the <i>delete&minus;refs</i> capability,
+it means that it is capable of accepting a zero&minus;id
+value as the target value of a reference update. It is not
+sent back by the client, it simply informs the client that
+it can be sent zero&minus;id values to delete
+references.</big></p>
+
+<h2>QUIET
+<a name="QUIET"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>If the
+receive&minus;pack server advertises the <i>quiet</i>
+capability, it is capable of silencing human&minus;readable
+progress output which otherwise may be shown when processing
+the received pack. A send&minus;pack client should respond
+with the <i>quiet</i> capability to suppress
+server&minus;side progress reporting if the local progress
+reporting is also being suppressed (e.g., via <b>push
+&minus;q</b>, or if stderr does not go to a tty).</big></p>
+
+<h2>ATOMIC
+<a name="ATOMIC"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>If the
+server sends the <i>atomic</i> capability it is capable of
+accepting atomic pushes. If the pushing client requests this
+capability, the server will update the refs in one atomic
+transaction. Either all refs are updated or none.</big></p>
+
+<h2>PUSH&minus;OPTIONS
+<a name="PUSH&minus;OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>If the
+server sends the <i>push&minus;options</i> capability it is
+able to accept push options after the update commands have
+been sent, but before the packfile is streamed. If the
+pushing client requests this capability, the server will
+pass the options to the pre&minus; and post&minus; receive
+hooks that process this push request.</big></p>
+
+<h2>ALLOW&minus;TIP&minus;SHA1&minus;IN&minus;WANT
+<a name="ALLOW&minus;TIP&minus;SHA1&minus;IN&minus;WANT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>If the
+upload&minus;pack server advertises this capability,
+fetch&minus;pack may send &quot;want&quot; lines with object
+names that exist at the server but are not advertised by
+upload&minus;pack. For historical reasons, the name of this
+capability contains &quot;sha1&quot;. Object names are
+always given using the object format negotiated through the
+<i>object&minus;format</i> capability.</big></p>
+
+<h2>ALLOW&minus;REACHABLE&minus;SHA1&minus;IN&minus;WANT
+<a name="ALLOW&minus;REACHABLE&minus;SHA1&minus;IN&minus;WANT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>If the
+upload&minus;pack server advertises this capability,
+fetch&minus;pack may send &quot;want&quot; lines with object
+names that exist at the server but are not advertised by
+upload&minus;pack. For historical reasons, the name of this
+capability contains &quot;sha1&quot;. Object names are
+always given using the object format negotiated through the
+<i>object&minus;format</i> capability.</big></p>
+
+<h2>PUSH&minus;CERT=&lt;NONCE&gt;
+<a name="PUSH&minus;CERT=&lt;NONCE&gt;"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>The
+receive&minus;pack server that advertises this capability is
+willing to accept a signed push certificate, and asks the
+&lt;nonce&gt; to be included in the push certificate. A
+send&minus;pack client MUST NOT send a push&minus;cert
+packet unless the receive&minus;pack server advertises this
+capability.</big></p>
+
+<h2>FILTER
+<a name="FILTER"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>If the
+upload&minus;pack server advertises the <i>filter</i>
+capability, fetch&minus;pack may send &quot;filter&quot;
+commands to request a partial clone or partial fetch and
+request that the server omit various objects from the
+packfile.</big></p>
+
+<h2>SESSION&minus;ID=&lt;SESSION ID&gt;
+<a name="SESSION&minus;ID=&lt;SESSION ID&gt;"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>The server
+may advertise a session ID that can be used to identify this
+process across multiple requests. The client may advertise
+its own session ID back to the server as well.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Session
+IDs should be unique to a given process. They must fit
+within a packet&minus;line, and must not contain
+non&minus;printable or whitespace characters. The current
+implementation uses trace2 session IDs (see
+<b><font color="#0000FF">api&minus;trace2</font></b></big>
+<font color="#000000">[1] <big>for details), but this may
+change and users of the session ID should not rely on this
+fact.</big></font></p>
+
+<h2>GIT
+<a name="GIT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><big>Part
+of the <b>git</b>(1) suite</big></font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000"><big>1.</big></font></p> </td>
+<td width="2%"></td>
+<td width="15%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000"><big>api-trace2</big></font></p> </td>
+<td width="68%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000"><big>file:///usr/share/doc/git-doc/technical/api-trace2.html</big></font></p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,294 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:05 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>TC</title>
+
+</head>
+<body>
+<h1>tc-ets</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">ETS &minus;
+Enhanced Transmission Selection scheduler</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tc qdisc ...
+ets [ bands</b> number <b>] [ strict</b> number <b>] [
+quanta</b> bytes bytes bytes... <b>] [ priomap</b> band band
+band... <b>]</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>tc class ...
+ets [ quantum</b> bytes <b>]</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The Enhanced
+Transmission Selection scheduler is a classful queuing
+discipline that merges functionality of PRIO and DRR qdiscs
+in one scheduler. ETS makes it easy to configure a set of
+strict and bandwidth-sharing bands to implement the
+transmission selection described in 802.1Qaz.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On creation
+with &rsquo;tc qdisc add&rsquo;, a fixed number of bands is
+created. Each band is a class, although it is not possible
+to directly add and remove bands with &rsquo;tc class&rsquo;
+commands. The number of bands to be created must instead be
+specified on the command line as the qdisc is added.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The minor
+number of classid to use when referring to a band is the
+band number increased by one. Thus band 0 will have classid
+of major:1, band 1 that of major:2, etc.</p>
+
+<p style="margin-left:11%; margin-top: 1em">ETS bands are
+of two types: some number may be in strict mode, the
+remaining ones are in bandwidth-sharing mode.</p>
+
+<h2>ALGORITHM
+<a name="ALGORITHM"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When dequeuing,
+strict bands are tried first, if there are any. Band 0 is
+tried first. If it did not deliver a packet, band 1 is tried
+next, and so on until one of the bands delivers a packet, or
+the strict bands are exhausted.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no packet
+has been dequeued from any of the strict bands, if there are
+any bandwidth-sharing bands, the dequeuing proceeds
+according to the DRR algorithm. Each bandwidth-sharing band
+is assigned a deficit counter, initialized to quantum
+assigned by a <b>quanta</b> element. ETS maintains an
+(internal) &rsquo;&rsquo;active&rsquo;&rsquo; list of
+bandwidth-sharing bands whose qdiscs are non-empty. This
+list is used for dequeuing. A packet is dequeued from the
+band at the head of the list if the packet size is smaller
+or equal to the deficit counter. If the counter is too
+small, it is increased by <b>quantum</b> and the scheduler
+moves on to the next band in the active list.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Only qdiscs
+that own their queue should be added below the
+bandwidth-sharing bands. Attaching to them
+non-work-conserving qdiscs like TBF does not make sense
+&minus;&minus; other qdiscs in the active list will be
+skipped until the dequeue operation succeeds. This
+limitation does not exist with the strict bands.</p>
+
+<h2>CLASSIFICATION
+<a name="CLASSIFICATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The ETS qdisc
+allows three ways to decide which band to enqueue a packet
+to:</p>
+
+<p style="margin-left:11%; margin-top: 1em">- Packet
+priority can be directly set to a class handle, in which
+case that <br>
+is the queue where the packet will be put. For example, band
+number 2 of <br>
+a qdisc with handle of 11: will have classid 11:3. To mark a
+packet for <br>
+queuing to this band, the packet priority should be set to
+0x110003.</p>
+
+<p style="margin-left:11%; margin-top: 1em">- A tc filter
+attached to the qdisc can put the packet to a band by using
+<br>
+the <b>flowid</b> keyword.</p>
+
+<p style="margin-left:11%; margin-top: 1em">- As a last
+resort, the ETS qdisc consults its priomap (see below),
+which <br>
+maps packets to bands based on packet priority.</p>
+
+<h2>PARAMETERS
+<a name="PARAMETERS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">strict</p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">The number of bands that should
+be created in strict mode. If not given, this value is
+0.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>quanta</p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>Each bandwidth-sharing band needs to know its quantum,
+which is the amount of bytes a band is allowed to dequeue
+before the scheduler moves to the next bandwidth-sharing
+band. The <b>quanta</b> argument lists quanta for the
+individual bandwidth-sharing bands. The minimum value of
+each quantum is 1. If <b>quanta</b> is not given, the
+default is no bandwidth-sharing bands, but note that when
+specifying a large number of <b>bands,</b> the extra ones
+are in bandwidth-sharing mode by default.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>bands</p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>Number of bands given explicitly. This value has to be
+at least large enough to cover the strict bands specified
+through the <b>strict</b> keyword and bandwidth-sharing
+bands specified in <b>quanta.</b> If a larger value is
+given, any extra bands are in bandwidth-sharing mode, and
+their quanta are deduced from the interface MTU. If no value
+is given, as many bands are created as necessary to cover
+all bands implied by the <b>strict</b> and <b>quanta</b>
+keywords.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%;">priomap</p>
+
+<p style="margin-left:22%;">The priomap maps the priority
+of a packet to a band. The argument is a list of numbers.
+The first number indicates which band the packets with
+priority 0 should be put to, the second is for priority 1,
+and so on.</p>
+
+<p style="margin-left:22%; margin-top: 1em">There can be up
+to 16 numbers in the list. If there are fewer, the default
+band that traffic with one of the unmentioned priorities
+goes to is the last one.</p>
+
+<h2>EXAMPLE &amp; USAGE
+<a name="EXAMPLE &amp; USAGE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Add a qdisc
+with 8 bandwidth-sharing bands, using the interface MTU as
+their quanta. Since all quanta are the same, this will lead
+to equal distribution of bandwidth between the bands, each
+will get about 12.5% of the link. The low 8 priorities go to
+individual bands in a reverse 1:1 fashion (such that the
+highest priority goes to the first band).</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 root handle 1: ets bands 8 priomap 7 6 5 4 3 2 1 0
+<br>
+# tc qdisc show dev eth0 <br>
+qdisc ets 1: root refcnt 2 bands 8 quanta 1514 1514 1514
+1514 1514 1514 1514 1514 priomap 7 6 5 4 3 2 1 0 7 7 7 7 7 7
+7 7</p>
+
+<p style="margin-left:11%; margin-top: 1em">Tweak the first
+band of the above qdisc to give it a quantum of 2650, which
+will give it about 20% of the link (and about 11.5% to the
+remaining bands):</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc class
+change dev eth0 classid 1:1 ets quantum 2650 <br>
+# tc qdisc show dev eth0 <br>
+qdisc ets 1: root refcnt 2 bands 8 quanta 2650 1514 1514
+1514 1514 1514 1514 1514 priomap 7 6 5 4 3 2 1 0 7 7 7 7 7 7
+7 7</p>
+
+<p style="margin-left:11%; margin-top: 1em">Create a purely
+strict Qdisc with reverse 1:1 mapping between priorities and
+bands:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 root handle 1: ets strict 8 priomap 7 6 5 4 3 2 1 0
+<br>
+# tc qdisc sh dev eth0 <br>
+qdisc ets 1: root refcnt 2 bands 8 strict 8 priomap 7 6 5 4
+3 2 1 0 7 7 7 7 7 7 7 7</p>
+
+<p style="margin-left:11%; margin-top: 1em">Add a Qdisc
+with 6 bands, 3 strict and 3 ETS with 35%-30%-25%
+weights:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 root handle 1: ets strict 3 quanta 3500 3000 2500
+priomap 0 1 1 1 2 3 4 5 <br>
+# tc qdisc sh dev eth0 <br>
+qdisc ets 1: root refcnt 2 bands 6 strict 3 quanta 3500 3000
+2500 priomap 0 1 1 1 2 3 4 5 5 5 5 5 5 5 5 5</p>
+
+<p style="margin-left:11%; margin-top: 1em">Create a Qdisc
+such that traffic with priorities 2, 3 and 4 are strictly
+prioritized over other traffic, and the rest goes into
+bandwidth-sharing classes with equal weights:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 root handle 1: ets bands 8 strict 3 priomap 3 4 0 1
+2 5 6 7 <br>
+# tc qdisc sh dev eth0 <br>
+qdisc ets 1: root refcnt 2 bands 8 strict 3 quanta 1514 1514
+1514 1514 1514 priomap 3 4 0 1 2 5 6 7 7 7 7 7 7 7 7 7</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tc</b>(8),
+<b>tc-prio</b>(8), <b>tc-drr</b>(8)</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Parts of both
+this manual page and the code itself are taken from PRIO and
+DRR qdiscs. <br>
+ETS qdisc itself was written by Petr Machata.</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,648 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:18 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Test::Alien</title>
+
+</head>
+<body>
+<h1>Test::Alien</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Test::Alien
+&minus; Testing tools for Alien modules</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+2.80</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Test commands
+that come with your Alien:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Test2::V0;
+<br>
+use Test::Alien; <br>
+use Alien::patch; <br>
+alien_ok 'Alien::patch'; <br>
+run_ok([ 'patch', '&minus;&minus;version' ]) <br>
+&minus;&gt;success <br>
+# we only accept the version written <br>
+# by Larry ... <br>
+&minus;&gt;out_like(qr{Larry Wall}); <br>
+done_testing;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Test that your
+library works with &quot;XS&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Test2::V0;
+<br>
+use Test::Alien; <br>
+use Alien::Editline; <br>
+alien_ok 'Alien::Editline'; <br>
+my $xs = do { local $/; &lt;DATA&gt; }; <br>
+xs_ok $xs, with_subtest { <br>
+my($module) = @_; <br>
+ok $module&minus;&gt;version; <br>
+}; <br>
+done_testing; <br>
+__DATA__ <br>
+#include &quot;EXTERN.h&quot; <br>
+#include &quot;perl.h&quot; <br>
+#include &quot;XSUB.h&quot; <br>
+#include &lt;editline/readline.h&gt; <br>
+const char * <br>
+version(const char *class) <br>
+{ <br>
+return rl_library_version; <br>
+} <br>
+MODULE = TA_MODULE PACKAGE = TA_MODULE <br>
+const char *version(class); <br>
+const char *class;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Test that your
+library works with FFI::Platypus:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Test2::V0;
+<br>
+use Test::Alien; <br>
+use Alien::LibYAML; <br>
+alien_ok 'Alien::LibYAML'; <br>
+ffi_ok { symbols =&gt; ['yaml_get_version'] }, with_subtest
+{ <br>
+my($ffi) = @_; <br>
+my $get_version = $ffi&minus;&gt;function(yaml_get_version
+=&gt; ['int*','int*','int*'] =&gt; 'void'); <br>
+$get_version&minus;&gt;call(\my $major, \my $minor, \my
+$patch); <br>
+like $major, qr{[0&minus;9]+}; <br>
+like $minor, qr{[0&minus;9]+}; <br>
+like $patch, qr{[0&minus;9]+}; <br>
+}; <br>
+done_testing;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+provides tools for testing Alien modules. It has hooks to
+work easily with Alien::Base based modules, but can also be
+used via the synthetic interface to test non Alien::Base
+based Alien modules. It has very modest prerequisites.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Prior to this
+module the best way to test a Alien module was via
+Test::CChecker. The main downside to that module is that it
+is heavily influenced by and uses ExtUtils::CChecker, which
+is a tool for checking at install time various things about
+your compiler. It was also written before Alien::Base became
+as stable as it is today. In particular, Test::CChecker does
+its testing by creating an executable and running it.
+Unfortunately Perl uses extensions by creating dynamic
+libraries and linking them into the Perl process, which is
+different in subtle and error prone ways. This module
+attempts to test the libraries in the way that they will
+actually be used, via either &quot;XS&quot; or
+FFI::Platypus. It also provides a mechanism for testing
+binaries that are provided by the various Alien modules (for
+example Alien::gmake and Alien::patch).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alien modules
+can actually be useable without a compiler, or without
+FFI::Platypus (for example, if the library is provided by
+the system, and you are using FFI::Platypus, or if you are
+building from source and you are using &quot;XS&quot;), so
+tests with missing prerequisites are automatically skipped.
+For example, &quot;xs_ok&quot; will automatically skip
+itself if a compiler is not found, and &quot;ffi_ok&quot;
+will automatically skip itself if FFI::Platypus is not
+installed.</p>
+
+<h2>FUNCTIONS
+<a name="FUNCTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>alien_ok</b>
+<br>
+alien_ok $alien, $message; <br>
+alien_ok $alien;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Load the given
+Alien instance or class. Checks that the instance or class
+conforms to the same interface as Alien::Base. Will be used
+by subsequent tests. The $alien module only needs to provide
+these methods in order to conform to the Alien::Base
+interface: <br>
+cflags</p>
+
+<p style="margin-left:17%;">String containing the compiler
+flags</p>
+
+<p style="margin-left:11%;">libs</p>
+
+<p style="margin-left:17%;">String containing the linker
+and library flags</p>
+
+<p style="margin-left:11%;">dynamic_libs</p>
+
+<p style="margin-left:17%;">List of dynamic libraries.
+Returns empty list if the Alien module does not provide
+this.</p>
+
+<p style="margin-left:11%;">bin_dir</p>
+
+<p style="margin-left:17%;">Directory containing tool
+binaries. Returns empty list if the Alien module does not
+provide this.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If your Alien
+module does not conform to this interface then you can
+create a synthetic Alien module using the
+&quot;synthetic&quot; function.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>synthetic</b>
+<br>
+my $alien = synthetic \%config;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Create a
+synthetic Alien module which can be passed into
+&quot;alien_ok&quot;. &quot;\%config&quot; can contain these
+keys (all of which are optional): <br>
+cflags</p>
+
+<p style="margin-left:17%;">String containing the compiler
+flags.</p>
+
+<p style="margin-left:11%;">cflags_static</p>
+
+<p style="margin-left:17%;">String containing the static
+compiler flags (optional).</p>
+
+<p style="margin-left:11%;">libs</p>
+
+<p style="margin-left:17%;">String containing the linker
+and library flags.</p>
+
+<p style="margin-left:11%;">libs_static</p>
+
+<p style="margin-left:17%;">String containing the static
+linker flags (optional).</p>
+
+<p style="margin-left:11%;">dynamic_libs</p>
+
+<p style="margin-left:17%;">List reference containing the
+dynamic libraries.</p>
+
+<p style="margin-left:11%;">bin_dir</p>
+
+<p style="margin-left:17%;">Tool binary directory.</p>
+
+<p style="margin-left:11%;">runtime_prop</p>
+
+<p style="margin-left:17%;">Runtime properties.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+Test::Alien::Synthetic for more details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>run_ok</b>
+<br>
+my $run = run_ok $command; <br>
+my $run = run_ok $command, $message;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Runs the given
+command, falling back on any &quot;Alien::Base#bin_dir&quot;
+methods provided by Alien modules specified with
+&quot;alien_ok&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$command can be
+either a string or an array reference.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Only fails if
+the command cannot be found, or if it is killed by a signal!
+Returns a Test::Alien::Run object, which you can use to test
+the exit status, output and standard error.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Always returns
+an instance of Test::Alien::Run, even if the command could
+not be found.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>xs_ok</b>
+<br>
+xs_ok $xs; <br>
+xs_ok $xs, $message;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Compiles, links
+the given &quot;XS&quot; code and attaches to Perl.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you use the
+special module name &quot;TA_MODULE&quot; in your
+&quot;XS&quot; code, it will be replaced by an automatically
+generated package name. This can be useful if you want to
+pass the same &quot;XS&quot; code to multiple calls to
+&quot;xs_ok&quot; without subsequent calls replacing
+previous ones.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$xs may be
+either a string containing the &quot;XS&quot; code, or a
+hash reference with these keys:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>xs</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>The <small>XS</small> code. This is the only required
+element.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>pxs</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Extra ExtUtils::ParseXS arguments passed in as a hash
+reference.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%;">cbuilder_check</p>
+
+<p style="margin-left:17%;">The compile check that should
+be done prior to attempting to build. Should be one of
+&quot;have_compiler&quot; or &quot;have_cplusplus&quot;.
+Defaults to &quot;have_compiler&quot;.</p>
+
+<p style="margin-left:11%;">cbuilder_config</p>
+
+<p style="margin-left:17%;">Hash to override values
+normally provided by &quot;Config&quot;.</p>
+
+<p style="margin-left:11%;">cbuilder_compile</p>
+
+<p style="margin-left:17%;">Extra The ExtUtils::CBuilder
+arguments passed in as a hash reference.</p>
+
+<p style="margin-left:11%;">cbuilder_link</p>
+
+<p style="margin-left:17%;">Extra The ExtUtils::CBuilder
+arguments passed in as a hash reference.</p>
+
+<p style="margin-left:11%;">verbose</p>
+
+<p style="margin-left:17%;">Spew copious debug information
+via test note.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use the
+&quot;with_subtest&quot; keyword to conditionally run a
+subtest if the &quot;xs_ok&quot; call succeeds. If
+&quot;xs_ok&quot; does not work, then the subtest will
+automatically be skipped. Example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">xs_ok $xs,
+with_subtest { <br>
+# skipped if $xs fails for some reason <br>
+my($module) = @_; <br>
+is $module&minus;&gt;foo, 1; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">The module name
+detected during the <small>XS</small> parsing phase will be
+passed in to the subtest. This is helpful when you are using
+a generated module name.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you need to
+test <small>XS C <small>++ interfaces, see
+Test::Alien::CPP.</small></small></p>
+
+<p style="margin-left:11%; margin-top: 1em">Caveats:
+&quot;xs_ok&quot; uses ExtUtils::ParseXS, which may call
+&quot;exit&quot; under certain error conditions. While this
+is not really good thing to happen in the middle of a test,
+it usually indicates a real failure condition, and it should
+return a failure condition so the test should still fail
+overall.</p>
+
+<p style="margin-left:11%; margin-top: 1em">[version
+2.53]</p>
+
+<p style="margin-left:11%; margin-top: 1em">As of version
+2.53, &quot;xs_ok&quot; will only remove temporary generated
+files if the test is successful by default. You can force
+either always or never removing the temporary generated
+files using the &quot;TEST_ALIEN_ALWAYS_KEEP&quot;
+environment variable (see &quot;
+<small>ENVIRONMENT&quot;</small> below).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>ffi_ok</b>
+<br>
+ffi_ok; <br>
+ffi_ok \%opt; <br>
+ffi_ok \%opt, $message;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Test that
+FFI::Platypus works.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;\%opt&quot;
+is a hash reference with these keys (all optional): <br>
+symbols</p>
+
+<p style="margin-left:17%;">List references of symbols that
+must be found for the test to succeed.</p>
+
+<p style="margin-left:11%;">ignore_not_found</p>
+
+<p style="margin-left:17%;">Ignores symbols that
+aren&rsquo;t found. This affects functions accessed via
+FFI::Platypus#attach and FFI::Platypus#function methods, and
+does not influence the &quot;symbols&quot; key above.</p>
+
+<p style="margin-left:11%;">lang</p>
+
+<p style="margin-left:17%;">Set the language. Used
+primarily for language specific native types.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>api</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Set the <small>API.</small> &quot;api = 1&quot; requires
+FFI::Platypus 0.99 or later. This option was added with
+Test::Alien version 1.90, so your use line should include
+this version as a safeguard to make sure it works:</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">use Test::Alien
+1.90; <br>
+... <br>
+ffi_ok ...;</p>
+
+<p style="margin-left:11%; margin-top: 1em">As with
+&quot;xs_ok&quot; above, you can use the
+&quot;with_subtest&quot; keyword to specify a subtest to be
+run if &quot;ffi_ok&quot; succeeds (it will skip otherwise).
+The FFI::Platypus instance is passed into the subtest as the
+first argument. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffi_ok
+with_subtest { <br>
+my($ffi) = @_; <br>
+is $ffi&minus;&gt;function(foo =&gt; [] =&gt;
+'void')&minus;&gt;call, 42; <br>
+};</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>helper_ok</b>
+<br>
+helper_ok $name; <br>
+helper_ok $name, $message;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Tests that the
+given helper has been defined.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>plugin_ok</b>
+<br>
+[version 2.52]</p>
+
+<p style="margin-left:11%; margin-top: 1em">plugin_ok
+$plugin_name, $message; <br>
+plugin_ok [$plugin_name, @args], $message;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This applies an
+Alien::Build::Plugin to the interpolator used by
+&quot;helper_ok&quot;, &quot;interpolate_template_is&quot;
+and &quot;interpolate_run_ok&quot; so that you can test with
+any helpers that plugin provides. Useful, for example for
+getting &quot;%{configure}&quot; from
+Alien::Build::Plugin::Build::Autoconf.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>interpolate_template_is</b>
+<br>
+interpolate_template_is $template, $string; <br>
+interpolate_template_is $template, $string, $message; <br>
+interpolate_template_is $template, $regex; <br>
+interpolate_template_is $template, $regex, $message;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Tests that the
+given template when evaluated with the appropriate helpers
+will match either the given string or regular
+expression.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>interpolate_run_ok</b>
+<br>
+[version 2.52]</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $run =
+interpolate_run_ok $command; <br>
+my $run = interpolate_run_ok $command, $message;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is the
+same as &quot;run_ok&quot; except it runs the command
+through the interpolator first.</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;TEST_ALIEN_ALWAYS_KEEP&quot;</p>
+
+<p style="margin-left:17%;">If this is defined then it will
+override the built in logic that decides if the temporary
+files generated by &quot;xs_ok&quot; should be kept when the
+test file terminates. If set to true the generated files
+will always be kept. If set to false, then they will always
+be removed.</p>
+
+
+<p style="margin-left:11%;">&quot;TEST_ALIEN_ALIENS_MISSING&quot;</p>
+
+<p style="margin-left:17%;">By default, this module will
+warn you if some tools are used without first invoking
+&quot;alien_ok&quot;. This is usually a mistake, but if you
+really do want to use one of these tools with no aliens
+loaded, you can set this environment variable to false.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Alien <br>
+Alien::Base <br>
+Alien::Build <br>
+alienfile <br>
+Test2 <br>
+Test::Alien::Run <br>
+Test::Alien::CanCompile <br>
+Test::Alien::CanPlatypus <br>
+Test::Alien::Synthetic <br>
+Test::Alien::CPP</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Author: Graham
+Ollis &lt;plicease@cpan.org&gt;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Contributors:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Diab Jerius (
+<small>DJERIUS</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Roy Storey (
+<small>KIWIROY</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ilya Pavlov</p>
+
+<p style="margin-left:11%; margin-top: 1em">David Mertens
+(run4flat)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Mark Nunberg
+(mordy, mnunberg)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Christian Walde
+(Mithaldu)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Brian Wightman
+(MidLifeXis)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Zaki Mughal
+(zmughal)</p>
+
+<p style="margin-left:11%; margin-top: 1em">mohawk
+(mohawk2, <small>ETJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Vikas N Kumar
+(vikasnkumar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Flavio Poletti
+(polettix)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Salvador
+Fandi&Atilde;&plusmn;o (salva)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Gianni
+Ceccarelli (dakkar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Pavel Shaydo
+(zwon, trinitum)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Kang-min Liu
+(&aring;&aring;&ordm;&middot;&aelig;&deg;, gugod)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Nicholas Shipp
+(nshp)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Juan
+Juli&Atilde;&iexcl;n Merelo Guerv&Atilde;&sup3;s (
+<small>JJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Joel Berger (
+<small>JBERGER</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Petr
+P&Atilde;sa&Aring; (ppisar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Lance Wicks (
+<small>LANCEW</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ahmad Fatoum
+(a3f, <small>ATHREEF</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jos&Atilde;&copy;
+Joaqu&Atilde;n Atria ( <small>JJATRIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Duke Leto (
+<small>LETO</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shoichi Kaji (
+<small>SKAJI</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shawn Laffan (
+<small>SLAFFAN</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Paul Evans
+(leonerd, <small>PEVANS</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">H&Atilde;&yen;kon
+H&Atilde;&brvbar;gland (hakonhagland, <small>HAKONH</small>
+)</p>
+
+<p style="margin-left:11%; margin-top: 1em">nick
+nauwelaerts ( <small>INPHOBIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Florian
+Weimer</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2011&minus;2022 by Graham Ollis.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+<hr>
+</body>
+</html>

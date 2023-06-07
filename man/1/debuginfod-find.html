@@ -1,0 +1,209 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:44 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>DEBUGINFOD-FIND</title>
+
+</head>
+<body>
+<h1>debuginfod-find</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">debuginfod-find
+&minus; request debuginfo-related data</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>debuginfod-find
+[</b><i>OPTION</i><b>]... debuginfo</b> <i>BUILDID</i>
+<b><br>
+debuginfod-find [</b><i>OPTION</i><b>]... debuginfo</b>
+<i>PATH</i> <b><br>
+debuginfod-find [</b><i>OPTION</i><b>]... executable</b>
+<i>BUILDID</i> <b><br>
+debuginfod-find [</b><i>OPTION</i><b>]... executable</b>
+<i>PATH</i> <b><br>
+debuginfod-find [</b><i>OPTION</i><b>]... source</b>
+<i>BUILDID /FILENAME</i> <b><br>
+debuginfod-find [</b><i>OPTION</i><b>]... source</b> <i>PATH
+/FILENAME</i></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i><b>debuginfod-find</b></i>
+queries one or more <b>debuginfod</b> servers for
+debuginfo-related data. In case of a match, it saves the the
+requested file into a local cache, prints the file name to
+standard output, and exits with a success status of 0. In
+case of any error, it exits with a failure status and an
+error message to standard error.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The debuginfod
+system uses buildids to identify debuginfo-related data.
+These are stored as binary notes in ELF/DWARF files, and are
+represented as lowercase hexadecimal. For example, for a
+program /bin/ls, look at the ELF note GNU_BUILD_ID:</p>
+
+<p style="margin-left:11%; margin-top: 1em">% readelf -n
+/bin/ls | grep -A4 build.id <br>
+Note section [ 4] &rsquo;.note.gnu.buildid&rsquo; of 36
+bytes at offset 0x340: <br>
+Owner Data size Type <br>
+GNU 20 GNU_BUILD_ID <br>
+Build ID: 8713b9c3fb8a720137a4a08b325905c7aaf8429d</p>
+
+<p style="margin-left:11%; margin-top: 1em">Then the
+hexadecimal BUILDID is simply:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">8713b9c3fb8a720137a4a08b325905c7aaf8429d</p>
+
+<p style="margin-left:11%; margin-top: 1em">In place of the
+hexadecimal <i>BUILDID</i>, debuginfod-find also accepts a
+path name to to an ELF binary, from which it extracts the
+buildid. In this case, ensure the file name has some
+character other than <b>[0-9a-f]</b>. Files ambiguously
+named files like &quot;<b>deadbeef</b>&quot; can be passed
+with a <b>./deadbeef</b> extra path component.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>debuginfo</b>
+<i>BUILDID</i> <br>
+If the given buildid is known to a server, this request will
+result in a binary object that contains the customary
+<b>.*debug_*</b> sections. This may be a split debuginfo
+file as created by <b>strip</b>, or it may be an original
+unstripped executable.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>executable</b>
+<i>BUILDID</i> <br>
+If the given buildid is known to the server, this request
+will result in a binary object that contains the normal
+executable segments. This may be a executable stripped by
+<b>strip</b>, or it may be an original unstripped
+executable. <b>ET_DYN</b> shared libraries are considered to
+be a type of executable.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>source</b>
+<i>BUILDID /SOURCE/FILE</i> <br>
+If the given buildid is known to the server, this request
+will result in a binary object that contains the source file
+mentioned. The path should be absolute. Relative path names
+commonly appear in the DWARF file&rsquo;s source directory,
+but these paths are relative to individual compilation unit
+AT_comp_dir paths, and yet an executable is made up of
+multiple CUs. Therefore, to disambiguate, debuginfod expects
+source queries to prefix relative path names with the CU
+compilation-directory, followed by a mandatory
+&quot;/&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: for
+software packaged by distributions, the CU
+compilation-directory may not be obvious. It can be found by
+inspecting AT_comp_dir values in downloaded debuginfo. For
+example, the comp_dir of the Fedora 37 version of /bin/ls
+can be found as follows:</p>
+
+<p style="margin-left:11%; margin-top: 1em">%
+debuginfod-find debuginfo /bin/ls <br>
+
+~/.cache/debuginfod_client/03529d48345409576cd5c82a56ad08555088d353/
+<br>
+% eu-readelf -w
+~/.cache/debuginfod_client/03529d48345409576cd5c82a56ad08555088d353/debuginfo
+| grep comp_dir <br>
+comp_dir (line_strp)
+&quot;/usr/src/debug/coreutils-9.1-6.fc37.x86_64/separate&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: the
+caller may or may not elide <b>../</b> or <b>/./</b> or
+extraneous <b>///</b> sorts of path components in the
+directory names. debuginfod accepts both forms.
+Specifically, debuginfod canonicalizes path names according
+to RFC3986 section 5.2.4 (Remove Dot Segments), plus
+reducing any <b>//</b> to <b>/</b> in the path.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+example:</p>
+
+
+<p align="center" style="margin-top: 1em"><img src="grohtml-30248271.png" alt="Image grohtml-30248271.png"></p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em"><b>&minus;v</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">Increase verbosity, including
+printing frequent download-progress messages and printing
+the http response headers from the server.</p></td></tr>
+</table>
+
+<h2>SECURITY
+<a name="SECURITY"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">debuginfod-find
+<b>does not</b> include any particular security features. It
+trusts that the binaries returned by the debuginfod(s) are
+accurate. Therefore, the list of servers should include only
+trustworthy ones. If accessed across HTTP rather than HTTPS,
+the network should be trustworthy. Authentication
+information through the internal <i>libcurl</i> library is
+not currently enabled, except for the basic plaintext
+<i>http[s]://userid:password@hostname/</i> style. (The
+debuginfod server does not perform authentication, but a
+front-end proxy server could.)</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>debuginfod(8)
+debuginfod_find_debuginfod(3)</i></p>
+<hr>
+</body>
+</html>

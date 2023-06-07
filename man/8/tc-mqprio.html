@@ -1,0 +1,389 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:06 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>MQPRIO</title>
+
+</head>
+<body>
+<h1>tc-mqprio</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">MQPRIO &minus;
+Multiqueue Priority Qdisc (Offloaded Hardware QOS)</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tc qdisc ...
+dev</b> dev ( <b>parent</b> classid | root) [ <b>handle</b>
+major: ] <b>mqprio</b> <br>
+[ <b>num_tc</b> tcs ] [ <b>map</b> P0 P1 P2... ] [
+<b>queues</b> count1@offset1 count2@offset2 ... ] <br>
+[ <b>hw</b> 1|0 ] [ <b>mode</b> dcb|channel ] [
+<b>shaper</b> dcb|bw_rlimit ] <br>
+[ <b>min_rate</b> min_rate1 min_rate2 ... ] [
+<b>max_rate</b> max_rate1 max_rate2 ... <b>]</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The MQPRIO
+qdisc is a simple queuing discipline that allows mapping
+traffic flows to hardware queue ranges using priorities and
+a configurable priority to traffic class mapping. A traffic
+class in this context is a set of contiguous qdisc classes
+which map 1:1 to a set of hardware exposed queues.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default the
+qdisc allocates a pfifo qdisc (packet limited first in,
+first out queue) per TX queue exposed by the lower layer
+device. Other queuing disciplines may be added subsequently.
+Packets are enqueued using the <b>map</b> parameter and
+hashed across the indicated queues in the <b>offset</b> and
+<b>count.</b> By default these parameters are configured by
+the hardware driver to match the hardware QOS
+structures.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Channel</b>
+mode supports full offload of the mqprio options, the
+traffic classes, the queue configurations and QOS attributes
+to the hardware. Enabled hardware can provide hardware QOS
+with the ability to steer traffic flows to designated
+traffic classes provided by this qdisc. Hardware based QOS
+is configured using the <b>shaper</b> parameter.
+<b>bw_rlimit</b> with minimum and maximum bandwidth rates
+can be used for setting transmission rates on each traffic
+class. Also further qdiscs may be added to the classes of
+MQPRIO to create more complex configurations.</p>
+
+<h2>ALGORITHM
+<a name="ALGORITHM"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On creation
+with &rsquo;tc qdisc add&rsquo;, eight traffic classes are
+created mapping priorities 0..7 to traffic classes 0..7 and
+priorities greater than 7 to traffic class 0. This requires
+base driver support and the creation will fail on devices
+that do not support hardware QOS schemes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These defaults
+can be overridden using the qdisc parameters. Providing the
+&rsquo;hw 0&rsquo; flag allows software to run without
+hardware coordination.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If hardware
+coordination is being used and arguments are provided that
+the hardware can not support then an error is returned. For
+many users hardware defaults should work reasonably
+well.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As one specific
+example numerous Ethernet cards support the 802.1Q link
+strict priority transmission selection algorithm (TSA).
+MQPRIO enabled hardware in conjunction with the
+classification methods below can provide hardware offloaded
+support for this TSA.</p>
+
+<h2>CLASSIFICATION
+<a name="CLASSIFICATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Multiple
+methods are available to set the SKB priority which MQPRIO
+uses to select which traffic class to enqueue the packet.
+<br>
+From user space</p>
+
+<p style="margin-left:22%;">A process with sufficient
+privileges can encode the destination class directly with
+SO_PRIORITY, see <b>socket(7).</b></p>
+
+<p style="margin-left:11%;">with iptables/nftables</p>
+
+<p style="margin-left:22%;">An iptables/nftables rule can
+be created to match traffic flows and set the priority.
+<b>iptables(8)</b></p>
+
+<p style="margin-left:11%;">with net_prio cgroups</p>
+
+<p style="margin-left:22%;">The net_prio cgroup can be used
+to set the priority of all sockets belong to an application.
+See kernel and cgroup documentation for details.</p>
+
+<h2>QDISC PARAMETERS
+<a name="QDISC PARAMETERS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">num_tc</p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">Number of traffic classes to
+use. Up to 16 classes supported. You cannot have more
+classes than queues</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>map</p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>The priority to traffic class map. Maps priorities 0..15
+to a specified traffic class.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>queues</p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>Provide count and offset of queue range for each traffic
+class. In the format, <b>count@offset.</b> Queue ranges for
+each traffic classes cannot overlap and must be a contiguous
+range of queues.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>hw</p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>Set to <b>1</b> to support hardware offload. Set to
+<b>0</b> to configure user specified values in software
+only. The default value of this parameter is <b>1</b></p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>mode</p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>Set to <b>channel</b> for full use of the mqprio
+options. Use <b>dcb</b> to offload only TC values and use
+hardware QOS defaults. Supported with &rsquo;hw&rsquo; set
+to 1 only.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>shaper</p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>Use <b>bw_rlimit</b> to set bandwidth rate limits for a
+traffic class. Use <b>dcb</b> for hardware QOS defaults.
+Supported with &rsquo;hw&rsquo; set to 1 only.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">min_rate</p>
+
+<p style="margin-left:22%;">Minimum value of bandwidth rate
+limit for a traffic class. Supported only when the
+<b>&rsquo;shaper&rsquo;</b> argument is set to
+<b>&rsquo;bw_rlimit&rsquo;.</b></p>
+
+<p style="margin-left:11%;">max_rate</p>
+
+<p style="margin-left:22%;">Maximum value of bandwidth rate
+limit for a traffic class. Supported only when the
+<b>&rsquo;shaper&rsquo;</b> argument is set to
+<b>&rsquo;bw_rlimit&rsquo;.</b></p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+example shows how to attach priorities to 4 traffic classes
+(&quot;num_tc 4&quot;), and then how to pair these traffic
+classes with 4 hardware queues with mqprio, with hardware
+coordination (&quot;hw 1&quot;, or does not specified,
+because 1 is the default value). Traffic class 0 (tc0) is
+mapped to hardware queue 0 (q0), tc1 is mapped to q1, tc2 is
+mapped to q2, and tc3 is mapped q3.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 root mqprio num_tc 4 map 0 0 0 0 1 1 1 1 2 2 2 2 3
+3 3 3 queues 1@0 1@1 1@2 1@3 hw 1</p>
+
+<p style="margin-left:11%; margin-top: 1em">The next
+example shows how to attach priorities to 3 traffic classes
+(&quot;num_tc 3&quot;), and how to pair these traffic
+classes with 4 queues, without hardware coordination
+(&quot;hw 0&quot;). Traffic class 0 (tc0) is mapped to
+hardware queue 0 (q0), tc1 is mapped to q1, tc2 and is
+mapped to q2 and q3, where the queue selection between these
+two queues is somewhat randomly decided.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 root mqprio num_tc 3 map 0 0 0 0 1 1 1 1 2 2 2 2 2
+2 2 2 queues 1@0 1@1 2@2 hw 0</p>
+
+<p style="margin-left:11%; margin-top: 1em">In both cases
+from above the priority values from 0 to 3 (prio0-3) are
+mapped to tc0, prio4-7 are mapped to tc1, and the prio8-11
+are mapped to tc2 (&quot;map&quot; attribute). The last four
+priority values (prio12-15) are mapped in different ways in
+the two examples. They are mapped to tc3 in the first
+example and mapped to tc2 in the second example. The values
+of these two examples are the following:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&not;&acirc;&acirc;&acirc;&acirc;&acirc;&not;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&not;&acirc;&acirc;&acirc;&acirc;&acirc;&not;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;
+<br>
+&acirc;Prio&acirc; tc &acirc; queue &acirc;
+&acirc;Prio&acirc; tc &acirc; queue &acirc; <br>
+
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&frac14;&acirc;&acirc;&acirc;&acirc;&acirc;&frac14;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&curren;
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&frac14;&acirc;&acirc;&acirc;&acirc;&acirc;&frac14;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&curren;
+<br>
+&acirc; 0 &acirc; 0 &acirc; 0 &acirc; &acirc; 0 &acirc; 0
+&acirc; 0 &acirc; <br>
+&acirc; 1 &acirc; 0 &acirc; 0 &acirc; &acirc; 1 &acirc; 0
+&acirc; 0 &acirc; <br>
+&acirc; 2 &acirc; 0 &acirc; 0 &acirc; &acirc; 2 &acirc; 0
+&acirc; 0 &acirc; <br>
+&acirc; 3 &acirc; 0 &acirc; 0 &acirc; &acirc; 3 &acirc; 0
+&acirc; 0 &acirc; <br>
+&acirc; 4 &acirc; 1 &acirc; 1 &acirc; &acirc; 4 &acirc; 1
+&acirc; 1 &acirc; <br>
+&acirc; 5 &acirc; 1 &acirc; 1 &acirc; &acirc; 5 &acirc; 1
+&acirc; 1 &acirc; <br>
+&acirc; 6 &acirc; 1 &acirc; 1 &acirc; &acirc; 6 &acirc; 1
+&acirc; 1 &acirc; <br>
+&acirc; 7 &acirc; 1 &acirc; 1 &acirc; &acirc; 7 &acirc; 1
+&acirc; 1 &acirc; <br>
+&acirc; 8 &acirc; 2 &acirc; 2 &acirc; &acirc; 8 &acirc; 2
+&acirc; 2 or 3 &acirc; <br>
+&acirc; 9 &acirc; 2 &acirc; 2 &acirc; &acirc; 9 &acirc; 2
+&acirc; 2 or 3 &acirc; <br>
+&acirc; 10 &acirc; 2 &acirc; 2 &acirc; &acirc; 10 &acirc; 2
+&acirc; 2 or 3 &acirc; <br>
+&acirc; 11 &acirc; 2 &acirc; 2 &acirc; &acirc; 11 &acirc; 2
+&acirc; 2 or 3 &acirc; <br>
+&acirc; 12 &acirc; 3 &acirc; 3 &acirc; &acirc; 12 &acirc; 2
+&acirc; 2 or 3 &acirc; <br>
+&acirc; 13 &acirc; 3 &acirc; 3 &acirc; &acirc; 13 &acirc; 2
+&acirc; 2 or 3 &acirc; <br>
+&acirc; 14 &acirc; 3 &acirc; 3 &acirc; &acirc; 14 &acirc; 2
+&acirc; 2 or 3 &acirc; <br>
+&acirc; 15 &acirc; 3 &acirc; 3 &acirc; &acirc; 15 &acirc; 2
+&acirc; 2 or 3 &acirc; <br>
+
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acute;&acirc;&acirc;&acirc;&acirc;&acirc;&acute;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acute;&acirc;&acirc;&acirc;&acirc;&acirc;&acute;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;
+<br>
+example1 example2</p>
+
+<p style="margin-left:11%; margin-top: 1em">Another example
+of queue mapping is the following. There are 5 traffic
+classes, and there are 8 hardware queues.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># tc qdisc add
+dev eth0 root mqprio num_tc 5 map 0 0 0 1 1 1 1 2 2 3 3 4 4
+4 4 4 queues 1@0 2@1 1@3 1@4 3@5</p>
+
+<p style="margin-left:11%; margin-top: 1em">The value
+mapping is the following for this example:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;
+<br>
+tc0&acirc;&acirc;&acirc;&acirc;&acirc;&curren;Queue
+0&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;1@0 <br>
+
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&curren;
+<br>
+&acirc;&acirc;&acirc;&curren;Queue
+1&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;2@1 <br>
+tc1&acirc;&acirc;&acirc;&curren;
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&curren;
+<br>
+&acirc;&acirc;&acirc;&curren;Queue 2&acirc; <br>
+
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&curren;
+<br>
+tc2&acirc;&acirc;&acirc;&acirc;&acirc;&curren;Queue
+3&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;1@3 <br>
+
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&curren;
+<br>
+tc3&acirc;&acirc;&acirc;&acirc;&acirc;&curren;Queue
+4&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;1@4 <br>
+
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&curren;
+<br>
+&acirc;&acirc;&acirc;&curren;Queue
+5&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;3@5 <br>
+&acirc;
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&curren;
+<br>
+tc4&acirc;&acirc;&acirc;&frac14;&acirc;&acirc;&curren;Queue
+6&acirc; <br>
+&acirc;
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&curren;
+<br>
+&acirc;&acirc;&acirc;&curren;Queue 7&acirc; <br>
+
+&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;&acirc;</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">John Fastabend,
+&lt;john.r.fastabend@intel.com&gt;</p>
+<hr>
+</body>
+</html>

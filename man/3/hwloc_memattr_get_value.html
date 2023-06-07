@@ -1,0 +1,504 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:17 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>hwlocality_memattrs</title>
+
+</head>
+<body>
+<h1>hwloc_memattr_get_value</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">hwlocality_memattrs
+&minus; Comparing memory node attributes for finding where
+to allocate on</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Data
+Structures</b></p>
+
+<p style="margin-left:17%;">struct
+<b>hwloc_location</b></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Typedefs</b></p>
+
+<p style="margin-left:17%;">typedef unsigned
+<b>hwloc_memattr_id_t</b></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Enumerations</b></p>
+
+<p style="margin-left:17%;">enum <b>hwloc_memattr_id_e</b>
+{ <b>HWLOC_MEMATTR_ID_CAPACITY</b>,
+<b>HWLOC_MEMATTR_ID_LOCALITY</b>,
+<b>HWLOC_MEMATTR_ID_BANDWIDTH</b>,
+<b>HWLOC_MEMATTR_ID_READ_BANDWIDTH</b>,
+<b>HWLOC_MEMATTR_ID_WRITE_BANDWIDTH</b>,
+<b>HWLOC_MEMATTR_ID_LATENCY</b>,
+<b>HWLOC_MEMATTR_ID_READ_LATENCY</b>,
+<b>HWLOC_MEMATTR_ID_WRITE_LATENCY</b>,
+<b>HWLOC_MEMATTR_ID_MAX</b> } <br>
+enum <b>hwloc_location_type_e</b> {
+<b>HWLOC_LOCATION_TYPE_CPUSET</b>,
+<b>HWLOC_LOCATION_TYPE_OBJECT</b> } <br>
+enum <b>hwloc_local_numanode_flag_e</b> {
+<b>HWLOC_LOCAL_NUMANODE_FLAG_LARGER_LOCALITY</b>,
+<b>HWLOC_LOCAL_NUMANODE_FLAG_SMALLER_LOCALITY</b>,
+<b>HWLOC_LOCAL_NUMANODE_FLAG_ALL</b> }</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Functions</b></p>
+
+<p style="margin-left:17%;">int
+<b>hwloc_memattr_get_by_name</b> (<b>hwloc_topology_t</b>
+topology, const char *name, <b>hwloc_memattr_id_t</b> *id)
+<br>
+int <b>hwloc_get_local_numanode_objs</b>
+(<b>hwloc_topology_t</b> topology, struct
+<b>hwloc_location</b> *location, unsigned *nr,
+<b>hwloc_obj_t</b> *nodes, unsigned long flags) <br>
+int <b>hwloc_memattr_get_value</b> (<b>hwloc_topology_t</b>
+topology, <b>hwloc_memattr_id_t</b> attribute,
+<b>hwloc_obj_t</b> target_node, struct <b>hwloc_location</b>
+*initiator, unsigned long flags, hwloc_uint64_t *value) <br>
+int <b>hwloc_memattr_get_best_target</b>
+(<b>hwloc_topology_t</b> topology, <b>hwloc_memattr_id_t</b>
+attribute, struct <b>hwloc_location</b> *initiator, unsigned
+long flags, <b>hwloc_obj_t</b> *best_target, hwloc_uint64_t
+*value) <br>
+int <b>hwloc_memattr_get_best_initiator</b>
+(<b>hwloc_topology_t</b> topology, <b>hwloc_memattr_id_t</b>
+attribute, <b>hwloc_obj_t</b> target, unsigned long flags,
+struct <b>hwloc_location</b> *best_initiator, hwloc_uint64_t
+*value)</p>
+
+<h2>Detailed Description
+<a name="Detailed Description"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Platforms with
+heterogeneous memory require ways to decide whether a buffer
+should be allocated on &rsquo;fast&rsquo; memory (such as
+HBM), &rsquo;normal&rsquo; memory (DDR) or even
+&rsquo;slow&rsquo; but large-capacity memory (non-volatile
+memory). These memory nodes are called &rsquo;Targets&rsquo;
+while the CPU accessing them is called the
+&rsquo;Initiator&rsquo;. Access performance depends on their
+locality (NUMA platforms) as well as the intrinsic
+performance of the targets (heterogeneous platforms).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+attributes describe the performance of memory accesses from
+an Initiator to a memory Target, for instance their latency
+or bandwidth. Initiators performing these memory accesses
+are usually some PUs or Cores (described as a CPU set).
+Hence a Core may choose where to allocate a memory buffer by
+comparing the attributes of different target memory nodes
+nearby.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are also
+some attributes that are system-wide. Their value does not
+depend on a specific initiator performing an access. The
+memory node Capacity is an example of such attribute without
+initiator.</p>
+
+<p style="margin-left:11%; margin-top: 1em">One way to use
+this API is to start with a cpuset describing the Cores
+where a program is bound. The best target NUMA node for
+allocating memory in this program on these Cores may be
+obtained by passing this cpuset as an initiator to
+<b>hwloc_memattr_get_best_target()</b> with the relevant
+memory attribute. For instance, if the code is latency
+limited, use the Latency attribute.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A more flexible
+approach consists in getting the list of local NUMA nodes by
+passing this cpuset to
+<b>hwloc_get_local_numanode_objs()</b>. Attribute values for
+these nodes, if any, may then be obtained with
+<b>hwloc_memattr_get_value()</b> and manually compared with
+the desired criteria.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>See
+also</b></p>
+
+<p style="margin-left:17%;">An example is available in
+doc/examples/memory-attributes.c in the source tree.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b></p>
+
+<p style="margin-left:17%;">The API also supports specific
+objects as initiator, but it is currently not used
+internally by hwloc. Users may for instance use it to
+provide custom performance values for host memory accesses
+performed by GPUs.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The interface
+actually also accepts targets that are not NUMA nodes.</p>
+
+<h2>Typedef Documentation
+<a name="Typedef Documentation"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>typedef
+unsigned hwloc_memattr_id_t</b> <br>
+A memory attribute identifier. May be either one of
+<b>hwloc_memattr_id_e</b> or a new id returned by
+<b>hwloc_memattr_register()</b>.</p>
+
+<h2>Enumeration Type Documentation
+<a name="Enumeration Type Documentation"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>enum
+hwloc_local_numanode_flag_e</b> <br>
+Flags for selecting target NUMA nodes.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Enumerator</b>
+<i><br>
+HWLOC_LOCAL_NUMANODE_FLAG_LARGER_LOCALITY</i></p>
+
+<p style="margin-left:22%;">Select NUMA nodes whose
+locality is larger than the given cpuset. For instance, if a
+single PU (or its cpuset) is given in <tt>initiator</tt>,
+select all nodes close to the package that contains this
+PU.</p>
+
+
+<p style="margin-left:11%;"><i>HWLOC_LOCAL_NUMANODE_FLAG_SMALLER_LOCALITY</i></p>
+
+<p style="margin-left:22%;">Select NUMA nodes whose
+locality is smaller than the given cpuset. For instance, if
+a package (or its cpuset) is given in <tt>initiator</tt>,
+also select nodes that are attached to only a half of that
+package.</p>
+
+
+<p style="margin-left:11%;"><i>HWLOC_LOCAL_NUMANODE_FLAG_ALL</i></p>
+
+<p style="margin-left:22%;">Select all NUMA nodes in the
+topology. The initiator <tt>initiator</tt> is ignored.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>enum
+hwloc_location_type_e</b> <br>
+Type of location.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Enumerator</b>
+<i><br>
+HWLOC_LOCATION_TYPE_CPUSET</i></p>
+
+<p style="margin-left:22%;">Location is given as a cpuset,
+in the location cpuset union field.</p>
+
+
+<p style="margin-left:11%;"><i>HWLOC_LOCATION_TYPE_OBJECT</i></p>
+
+<p style="margin-left:22%;">Location is given as an object,
+in the location object union field.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>enum
+hwloc_memattr_id_e</b> <br>
+Memory node attributes.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Enumerator</b>
+<i><br>
+HWLOC_MEMATTR_ID_CAPACITY</i></p>
+
+<p style="margin-left:22%;">The &quot;Capacity&quot; is
+returned in bytes (local_memory attribute in objects). Best
+capacity nodes are nodes with <b>higher capacity</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">No initiator is
+involved when looking at this attribute. The corresponding
+attribute flags are <b>HWLOC_MEMATTR_FLAG_HIGHER_FIRST</b>.
+<i><br>
+HWLOC_MEMATTR_ID_LOCALITY</i></p>
+
+<p style="margin-left:22%;">The &quot;Locality&quot; is
+returned as the number of PUs in that locality (e.g. the
+weight of its cpuset). Best locality nodes are nodes with
+<b>smaller locality</b> (nodes that are local to very few
+PUs). Poor locality nodes are nodes with larger locality
+(nodes that are local to the entire machine).</p>
+
+<p style="margin-left:11%; margin-top: 1em">No initiator is
+involved when looking at this attribute. The corresponding
+attribute flags are <b>HWLOC_MEMATTR_FLAG_HIGHER_FIRST</b>.
+<i><br>
+HWLOC_MEMATTR_ID_BANDWIDTH</i></p>
+
+<p style="margin-left:22%;">The &quot;Bandwidth&quot; is
+returned in MiB/s, as seen from the given initiator
+location. Best bandwidth nodes are nodes with <b>higher
+bandwidth</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+corresponding attribute flags are
+<b>HWLOC_MEMATTR_FLAG_HIGHER_FIRST</b> and
+<b>HWLOC_MEMATTR_FLAG_NEED_INITIATOR</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is the
+average bandwidth for read and write accesses. If the
+platform provides individual read and write bandwidths but
+no explicit average value, hwloc computes and returns the
+average. <i><br>
+HWLOC_MEMATTR_ID_READ_BANDWIDTH</i></p>
+
+<p style="margin-left:22%;">The &quot;ReadBandwidth&quot;
+is returned in MiB/s, as seen from the given initiator
+location. Best bandwidth nodes are nodes with <b>higher
+bandwidth</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+corresponding attribute flags are
+<b>HWLOC_MEMATTR_FLAG_HIGHER_FIRST</b> and
+<b>HWLOC_MEMATTR_FLAG_NEED_INITIATOR</b>. <i><br>
+HWLOC_MEMATTR_ID_WRITE_BANDWIDTH</i></p>
+
+<p style="margin-left:22%;">The &quot;WriteBandwidth&quot;
+is returned in MiB/s, as seen from the given initiator
+location. Best bandwidth nodes are nodes with <b>higher
+bandwidth</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+corresponding attribute flags are
+<b>HWLOC_MEMATTR_FLAG_HIGHER_FIRST</b> and
+<b>HWLOC_MEMATTR_FLAG_NEED_INITIATOR</b>. <i><br>
+HWLOC_MEMATTR_ID_LATENCY</i></p>
+
+<p style="margin-left:22%;">The &quot;Latency&quot; is
+returned as nanoseconds, as seen from the given initiator
+location. Best latency nodes are nodes with <b>smaller
+latency</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+corresponding attribute flags are
+<b>HWLOC_MEMATTR_FLAG_LOWER_FIRST</b> and
+<b>HWLOC_MEMATTR_FLAG_NEED_INITIATOR</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is the
+average latency for read and write accesses. If the platform
+provides individual read and write latencies but no explicit
+average value, hwloc computes and returns the average.
+<i><br>
+HWLOC_MEMATTR_ID_READ_LATENCY</i></p>
+
+<p style="margin-left:22%;">The &quot;ReadLatency&quot; is
+returned as nanoseconds, as seen from the given initiator
+location. Best latency nodes are nodes with <b>smaller
+latency</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+corresponding attribute flags are
+<b>HWLOC_MEMATTR_FLAG_LOWER_FIRST</b> and
+<b>HWLOC_MEMATTR_FLAG_NEED_INITIATOR</b>. <i><br>
+HWLOC_MEMATTR_ID_WRITE_LATENCY</i></p>
+
+<p style="margin-left:22%;">The &quot;WriteLatency&quot; is
+returned as nanoseconds, as seen from the given initiator
+location. Best latency nodes are nodes with <b>smaller
+latency</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+corresponding attribute flags are
+<b>HWLOC_MEMATTR_FLAG_LOWER_FIRST</b> and
+<b>HWLOC_MEMATTR_FLAG_NEED_INITIATOR</b>.</p>
+
+<h2>Function Documentation
+<a name="Function Documentation"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+hwloc_get_local_numanode_objs (hwloc_topology_t topology,
+struct hwloc_location * location, unsigned * nr, hwloc_obj_t
+* nodes, unsigned long flags)</b> <br>
+Return an array of local NUMA nodes. By default only select
+the NUMA nodes whose locality is exactly the given
+<tt>location</tt>. More nodes may be selected if additional
+flags are given as a OR&rsquo;ed set of
+<b>hwloc_local_numanode_flag_e</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<tt>location</tt> is given as an explicit object, its CPU
+set is used to find NUMA nodes with the corresponding
+locality. If the object does not have a CPU set (e.g. I/O
+object), the CPU parent (where the I/O object is attached)
+is used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On input,
+<tt>nr</tt> points to the number of nodes that may be stored
+in the <tt>nodes</tt> array. On output, <tt>nr</tt> will be
+changed to the number of stored nodes, or the number of
+nodes that would have been stored if there were enough
+room.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b></p>
+
+<p style="margin-left:17%;">Some of these NUMA nodes may
+not have any memory attribute values and hence not be
+reported as actual targets in other functions.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The number of
+NUMA nodes in the topology (obtained by
+<b>hwloc_bitmap_weight()</b> on the root object nodeset) may
+be used to allocate the <tt>nodes</tt> array.</p>
+
+<p style="margin-left:17%; margin-top: 1em">When an object
+CPU set is given as locality, for instance a Package, and
+when flags contain both
+<b>HWLOC_LOCAL_NUMANODE_FLAG_LARGER_LOCALITY</b> and
+<b>HWLOC_LOCAL_NUMANODE_FLAG_SMALLER_LOCALITY</b>, the
+returned array corresponds to the nodeset of that
+object.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+hwloc_memattr_get_best_initiator (hwloc_topology_t topology,
+hwloc_memattr_id_t attribute, hwloc_obj_t target, unsigned
+long flags, struct hwloc_location * best_initiator,
+hwloc_uint64_t * value)</b> <br>
+Return the best initiator for the given attribute and target
+NUMA node. If the attribute does not relate to a specific
+initiator (it does not have the flag
+<b>HWLOC_MEMATTR_FLAG_NEED_INITIATOR</b>), <tt>-1</tt> is
+returned and <tt>errno</tt> is set to <tt>EINVAL</tt>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<tt>value</tt> is non <tt>NULL</tt>, the corresponding value
+is returned there.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If multiple
+initiators have the same attribute values, only one is
+returned (and there is no way to clarify how that one is
+chosen). Applications that want to detect initiators with
+identical/similar values, or that want to look at values for
+multiple attributes, should rather get all values using
+<b>hwloc_memattr_get_value()</b> and manually select the
+initiator they consider the best.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The returned
+initiator should not be modified or freed, it belongs to the
+topology.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><tt>flags</tt>
+must be <tt>0</tt> for now.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If there are no
+matching initiators, <tt>-1</tt> is returned with
+<tt>errno</tt> set to <tt>ENOENT</tt>;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+hwloc_memattr_get_best_target (hwloc_topology_t topology,
+hwloc_memattr_id_t attribute, struct hwloc_location *
+initiator, unsigned long flags, hwloc_obj_t * best_target,
+hwloc_uint64_t * value)</b> <br>
+Return the best target NUMA node for the given attribute and
+initiator. If the attribute does not relate to a specific
+initiator (it does not have the flag
+<b>HWLOC_MEMATTR_FLAG_NEED_INITIATOR</b>), location
+<tt>initiator</tt> is ignored and may be <tt>NULL</tt>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<tt>value</tt> is non <tt>NULL</tt>, the corresponding value
+is returned there.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If multiple
+targets have the same attribute values, only one is returned
+(and there is no way to clarify how that one is chosen).
+Applications that want to detect targets with
+identical/similar values, or that want to look at values for
+multiple attributes, should rather get all values using
+<b>hwloc_memattr_get_value()</b> and manually select the
+target they consider the best.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><tt>flags</tt>
+must be <tt>0</tt> for now.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If there are no
+matching targets, <tt>-1</tt> is returned with
+<tt>errno</tt> set to <tt>ENOENT</tt>;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b></p>
+
+<p style="margin-left:17%;">The initiator
+<tt>initiator</tt> should be of type
+<b>HWLOC_LOCATION_TYPE_CPUSET</b> when refering to accesses
+performed by CPU cores. <b>HWLOC_LOCATION_TYPE_OBJECT</b> is
+currently unused internally by hwloc, but users may for
+instance use it to provide custom information about host
+memory accesses performed by GPUs.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+hwloc_memattr_get_by_name (hwloc_topology_t topology, const
+char * name, hwloc_memattr_id_t * id)</b> <br>
+Return the identifier of the memory attribute with the given
+name.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+hwloc_memattr_get_value (hwloc_topology_t topology,
+hwloc_memattr_id_t attribute, hwloc_obj_t target_node,
+struct hwloc_location * initiator, unsigned long flags,
+hwloc_uint64_t * value)</b> <br>
+Return an attribute value for a specific target NUMA node.
+If the attribute does not relate to a specific initiator (it
+does not have the flag
+<b>HWLOC_MEMATTR_FLAG_NEED_INITIATOR</b>), location
+<tt>initiator</tt> is ignored and may be <tt>NULL</tt>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><tt>flags</tt>
+must be <tt>0</tt> for now.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b></p>
+
+<p style="margin-left:17%;">The initiator
+<tt>initiator</tt> should be of type
+<b>HWLOC_LOCATION_TYPE_CPUSET</b> when refering to accesses
+performed by CPU cores. <b>HWLOC_LOCATION_TYPE_OBJECT</b> is
+currently unused internally by hwloc, but users may for
+instance use it to provide custom information about host
+memory accesses performed by GPUs.</p>
+
+<h2>Author
+<a name="Author"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Generated
+automatically by Doxygen for Hardware Locality (hwloc) from
+the source code.</p>
+<hr>
+</body>
+</html>

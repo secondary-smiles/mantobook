@@ -1,0 +1,686 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:43 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Devel::StackTrace</title>
+
+</head>
+<body>
+<h1>Devel::StackTrace</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Devel::StackTrace
+&minus; An object representing a stack trace</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+2.04</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Devel::StackTrace; <br>
+my $trace = Devel::StackTrace&minus;&gt;new; <br>
+print $trace&minus;&gt;as_string; # like carp <br>
+# from top (most recent) of stack to bottom. <br>
+while ( my $frame = $trace&minus;&gt;next_frame ) { <br>
+print &quot;Has args\n&quot; if $frame&minus;&gt;hasargs;
+<br>
+} <br>
+# from bottom (least recent) of stack to top. <br>
+while ( my $frame = $trace&minus;&gt;prev_frame ) { <br>
+print &quot;Sub: &quot;, $frame&minus;&gt;subroutine,
+&quot;\n&quot;; <br>
+}</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Devel::StackTrace&quot; module contains two classes,
+&quot;Devel::StackTrace&quot; and Devel::StackTrace::Frame.
+These objects encapsulate the information that can retrieved
+via Perl&rsquo;s &quot;caller&quot; function, as well as
+providing a simple interface to this data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Devel::StackTrace&quot; object contains a set of
+&quot;Devel::StackTrace::Frame&quot; objects, one for each
+level of the stack. The frames contain all the data
+available from &quot;caller&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This code was
+created to support my Exception::Class::Base class (part of
+Exception::Class) but may be useful in other contexts.</p>
+
+<h2>&rsquo;TOP&rsquo; AND &rsquo;BOTTOM&rsquo; OF THE STACK
+<a name="&rsquo;TOP&rsquo; AND &rsquo;BOTTOM&rsquo; OF THE STACK"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When describing
+the methods of the trace object, I use the words
+&rsquo;top&rsquo; and &rsquo;bottom&rsquo;. In this context,
+the &rsquo;top&rsquo; frame on the stack is the most recent
+frame and the &rsquo;bottom&rsquo; is the least recent.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s an
+example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">foo(); # bottom
+frame is here <br>
+sub foo { <br>
+bar(); <br>
+} <br>
+sub bar { <br>
+Devel::StackTrace&minus;&gt;new; # top frame is here. <br>
+}</p>
+
+<h2>METHODS
+<a name="METHODS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This class
+provide the following methods:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Devel::StackTrace&minus;&gt;new(%named_params)</b>
+<br>
+Returns a new Devel::StackTrace object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Takes the
+following parameters:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="31%">
+
+
+<p>frame_filter =&gt; $sub</p></td>
+<td width="52%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+Devel::StackTrace will include all stack frames before the
+call to its constructor.</p>
+
+<p style="margin-left:17%; margin-top: 1em">However, you
+may want to filter out some frames with more granularity
+than &rsquo;ignore_package&rsquo; or
+&rsquo;ignore_class&rsquo; allow.</p>
+
+<p style="margin-left:17%; margin-top: 1em">You can provide
+a subroutine which is called with the raw frame data for
+each frame. This is a hash reference with two keys,
+&quot;caller&quot;, and &quot;args&quot;, both of which are
+array references. The &quot;caller&quot; key is the raw data
+as returned by Perl&rsquo;s &quot;caller&quot; function, and
+the &quot;args&quot; key are the subroutine arguments found
+in @DB::args.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The filter
+should return true if the frame should be included, or false
+if it should be skipped.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="48%">
+
+
+<p style="margin-top: 1em">filter_frames_early =&gt;
+$boolean</p> </td>
+<td width="35%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If this
+parameter is true, &quot;frame_filter&quot; will be called
+as soon as the stacktrace is created, and before refs are
+stringified (if &quot;unsafe_ref_capture&quot; is not set),
+rather than being filtered lazily when
+Devel::StackTrace::Frame objects are first needed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is useful
+if you want to filter based on the frame&rsquo;s arguments
+and want to be able to examine object properties, for
+example.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em">ignore_package =&gt;
+$package_name <small>OR</small> \@package_names</p></td>
+<td width="6%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Any frames
+where the package is one of these packages will not be on
+the stack.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="74%">
+
+
+<p style="margin-top: 1em">ignore_class =&gt; $package_name
+<small>OR</small> \@package_names</p></td>
+<td width="9%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Any frames
+where the package is a subclass of one of these packages (or
+is the same package) will not be on the stack.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">Devel::StackTrace
+internally adds itself to the &rsquo;ignore_package&rsquo;
+parameter, meaning that the Devel::StackTrace package is
+<b><small>ALWAYS</small></b> ignored. However, if you create
+a subclass of Devel::StackTrace it will not be ignored.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="35%">
+
+
+<p style="margin-top: 1em">skip_frames =&gt; $integer</p></td>
+<td width="48%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This will cause
+this number of stack frames to be excluded from top of the
+stack trace. This prevents the frames from being captured at
+all, and applies before the &quot;frame_filter&quot;,
+&quot;ignore_package&quot;, or &quot;ignore_class&quot;
+options, even with &quot;filter_frames_early&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="46%">
+
+
+<p style="margin-top: 1em">unsafe_ref_capture =&gt;
+$boolean</p> </td>
+<td width="37%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If this
+parameter is true, then Devel::StackTrace will store
+references internally when generating stacktrace frames.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>This option
+is very dangerous, and should never be used with exception
+objects</b>. Using this option will keep any objects or
+references alive past their normal lifetime, until the stack
+trace object goes out of scope. It can keep objects alive
+even after their &quot;DESTROY&quot; sub is called,
+resulting it it being called multiple times on the same
+object.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If not set,
+Devel::StackTrace replaces any references with their
+stringified representation.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="29%">
+
+
+<p style="margin-top: 1em">no_args =&gt; $boolean</p></td>
+<td width="54%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If this
+parameter is true, then Devel::StackTrace will not store
+caller arguments in stack trace frames at all.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="43%">
+
+
+<p style="margin-top: 1em">respect_overload =&gt;
+$boolean</p> </td>
+<td width="40%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+Devel::StackTrace will call &quot;overload::AddrRef&quot; to
+get the underlying string representation of an object,
+instead of respecting the object&rsquo;s stringification
+overloading. If you would prefer to see the overloaded
+representation of objects in stack traces, then set this
+parameter to true.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="40%">
+
+
+<p style="margin-top: 1em">max_arg_length =&gt;
+$integer</p> </td>
+<td width="43%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+Devel::StackTrace will display the entire argument for each
+subroutine call. Setting this parameter causes truncates
+each subroutine argument&rsquo;s string representation if it
+is longer than this number of characters.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="28%">
+
+
+<p style="margin-top: 1em">message =&gt; $string</p></td>
+<td width="55%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+Devel::StackTrace will use &rsquo;Trace begun&rsquo; as the
+message for the first stack frame when you call
+&quot;as_string&quot;. You can supply an alternative message
+using this option.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="28%">
+
+
+<p style="margin-top: 1em">indent =&gt; $boolean</p></td>
+<td width="55%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If this
+parameter is true, each stack frame after the first will
+start with a tab character, just like
+&quot;Carp::confess&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$trace&minus;&gt;next_frame</b>
+<br>
+Returns the next Devel::StackTrace::Frame object on the
+stack, going down. If this method hasn&rsquo;t been called
+before it returns the first frame. It returns
+&quot;undef&quot; when it reaches the bottom of the stack
+and then resets its pointer so the next call to
+&quot;$trace&minus;&gt;next_frame&quot; or
+&quot;$trace&minus;&gt;prev_frame&quot; will work
+properly.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$trace&minus;&gt;prev_frame</b>
+<br>
+Returns the next Devel::StackTrace::Frame object on the
+stack, going up. If this method hasn&rsquo;t been called
+before it returns the last frame. It returns undef when it
+reaches the top of the stack and then resets its pointer so
+the next call to &quot;$trace&minus;&gt;next_frame&quot; or
+&quot;$trace&minus;&gt;prev_frame&quot; will work
+properly.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$trace&minus;&gt;reset_pointer</b>
+<br>
+Resets the pointer so that the next call to
+&quot;$trace&minus;&gt;next_frame&quot; or
+&quot;$trace&minus;&gt;prev_frame&quot; will start at the
+top or bottom of the stack, as appropriate.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$trace&minus;&gt;frames</b>
+<br>
+When this method is called with no arguments, it returns a
+list of Devel::StackTrace::Frame objects. They are returned
+in order from top (most recent) to bottom.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method can
+also be used to set the object&rsquo;s frames if you pass it
+a list of Devel::StackTrace::Frame objects.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is useful
+if you want to filter the list of frames in ways that are
+more complex than can be handled by the
+&quot;$trace&minus;&gt;filter_frames&quot; method:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$stacktrace&minus;&gt;frames(
+my_filter( $stacktrace&minus;&gt;frames ) );</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$trace&minus;&gt;frame($index)</b>
+<br>
+Given an index, this method returns the relevant frame, or
+undef if there is no frame at that index. The index is
+exactly like a Perl array. The first frame is 0 and negative
+indexes are allowed.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$trace&minus;&gt;frame_count</b>
+<br>
+Returns the number of frames in the trace object.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$trace&minus;&gt;as_string(\%p)</b>
+<br>
+Calls &quot;$frame&minus;&gt;as_string&quot; on each frame
+from top to bottom, producing output quite similar to the
+Carp module&rsquo;s cluck/confess methods.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The optional
+&quot;\%p&quot; parameter only has one option. The
+&quot;max_arg_length&quot; parameter truncates each
+subroutine argument&rsquo;s string representation if it is
+longer than this number of characters.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If all the
+frames in a trace are skipped then this just returns the
+&quot;message&quot; passed to the constructor or the string
+&quot;Trace begun&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$trace&minus;&gt;message</b>
+<br>
+Returns the message passed to the constructor. If this
+wasn&rsquo;t passed then this method returns
+&quot;undef&quot;.</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Bugs may be
+submitted at
+&lt;https://github.com/houseabsolute/Devel&minus;StackTrace/issues&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">I am also
+usually active on <small>IRC</small> as
+&rsquo;autarch&rsquo; on &quot;irc://irc.perl.org&quot;.</p>
+
+<h2>SOURCE
+<a name="SOURCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The source code
+repository for Devel-StackTrace can be found at
+&lt;https://github.com/houseabsolute/Devel&minus;StackTrace&gt;.</p>
+
+<h2>DONATIONS
+<a name="DONATIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;d
+like to thank me for the work I&rsquo;ve done on this
+module, please consider making a &quot;donation&quot; to me
+via PayPal. I spend a lot of free time creating free
+software, and would appreciate any support you&rsquo;d care
+to offer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Please note
+that <b>I am not suggesting that you must do this</b> in
+order for me to continue working on this particular
+software. I will continue to do so, inasmuch as I have in
+the past, for as long as it interests me.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Similarly, a
+donation made in this way will probably not make me work on
+this software much more, unless I get so many donations that
+I can consider working on free software full time
+(let&rsquo;s all have a chuckle at that together).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To donate, log
+into PayPal and send money to autarch@urth.org, or use the
+button at
+&lt;http://www.urth.org/~autarch/fs&minus;donation.html&gt;.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Dave Rolsky
+&lt;autarch@urth.org&gt;</p>
+
+<h2>CONTRIBUTORS
+<a name="CONTRIBUTORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p style="margin-top: 1em">Dagfinn Ilmari
+Manns&Atilde;&yen;ker &lt;ilmari@ilmari.org&gt;</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p>David Cantrell &lt;david@cantrell.org.uk&gt;</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p>Graham Knop &lt;haarg@haarg.org&gt;</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p>Ivan Bessarabov &lt;ivan@bessarabov.ru&gt;</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p>Mark Fowler &lt;mark@twoshortplanks.com&gt;</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p>Pali &lt;pali@cpan.org&gt;</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p>Ricardo Signes &lt;rjbs@cpan.org&gt;</p></td>
+<td width="14%">
+</td></tr>
+</table>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is Copyright (c) 2000 &minus; 2019 by David Rolsky.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software, licensed under:</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Artistic
+License 2.0 (GPL Compatible)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The full text
+of the license can be found in the
+<i><small>LICENSE</small></i> file included with this
+distribution.</p>
+<hr>
+</body>
+</html>

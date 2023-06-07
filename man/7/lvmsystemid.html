@@ -1,0 +1,563 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:00 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LVMSYSTEMID</title>
+
+</head>
+<body>
+<h1>lvmsystemid</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">lvmsystemid
+&mdash; LVM system ID</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>lvm</b>(8) system ID restricts Volume Group (VG) access
+to one host. This is useful when a VG is placed on shared
+storage devices, or when local devices are visible to both
+host and guest operating systems. In cases like these, a VG
+can be visible to multiple hosts at once, and some mechanism
+is needed to protect it from being used by more than one
+host at a time.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A VG&rsquo;s
+system ID identifies one host as the VG owner. The host with
+a matching system ID can use the VG and its LVs, while LVM
+on other hosts will ignore it. This protects the VG from
+being accidentally used from other hosts.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The system ID
+is a string that uniquely identifies a host. It can be
+configured as a custom value, or it can be assigned
+automatically by LVM using some unique identifier already
+available on the host, e.g. machine&minus;id or uname.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When a new VG
+is created, the system ID of the local host is recorded in
+the VG metadata. The creating host then owns the new VG, and
+LVM on other hosts will ignore it. When an existing,
+exported VG is imported (vgimport), the system ID of the
+local host is saved in the VG metadata, and the importing
+host owns the VG.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A VG without a
+system ID can be used by LVM on any host where the
+VG&rsquo;s devices are visible. When system IDs are not
+used, device filters should be configured on all hosts to
+exclude the VG&rsquo;s devices from all but one host.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A <b>foreign
+VG</b> is a VG seen by a host with an unmatching system ID,
+i.e. the system ID in the VG metadata does not match the
+system ID configured on the host. If the host has no system
+ID, and the VG does, the VG is foreign and LVM will ignore
+it. If the VG has no system ID, access is unrestricted, and
+LVM can access it from any host, whether the host has a
+system ID or not.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Changes to a
+host&rsquo;s system ID and a VG&rsquo;s system ID can be
+made in limited circumstances (see vgexport and vgimport).
+Improper changes can result in a host losing access to its
+VG, or a VG being accidentally damaged by access from an
+unintended host. Even limited changes to the VG system ID
+may not be perfectly reflected across hosts. A more coherent
+view of shared storage requires an inter-host locking system
+to coordinate access.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Valid system ID
+characters are the same as valid VG name characters. If a
+system ID contains invalid characters, those characters are
+omitted and remaining characters are used. If a system ID is
+longer than the maximum name length, the characters up to
+the maximum length are used. The maximum length of a system
+ID is 128 characters.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Print the
+system ID of a VG to check if it is set:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>vgs &minus;o
+systemid</b> <i>VG</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Print the
+system ID of the local host to check if it is
+configured:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvm
+systemid</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Limitations
+and warnings</b> <br>
+To benefit fully from system ID, all hosts should have a
+system ID configured, and all VGs should have a system ID
+set. Without any method to restrict access, e.g. system ID
+or device filters, a VG that is visible to multiple hosts
+can be accidentally damaged or destroyed.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>A VG without a system ID can be used without restriction
+from any host where it is visible, even from hosts that have
+a system ID.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>Many VGs will not have a system ID set because LVM has
+not enabled it by default, and even when enabled, many VGs
+were created before the feature was added to LVM or enabled.
+A system ID can be assigned to these VGs by using vgchange
+&minus;&minus;systemid (see below).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>Two hosts should not be assigned the same system ID.
+Doing so defeats the purpose of distinguishing different
+hosts with this value.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>Orphan PVs (or unused devices) on shared storage are
+unprotected by the system ID feature. Commands that use
+these PVs, such as vgcreate or vgextend, are not prevented
+from performing conflicting operations and corrupting the
+PVs. See the <b>orphans</b> section for more
+information.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>The system ID does not protect devices in a VG from
+programs other than LVM.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>A host using an old LVM version (without the system ID
+feature) will not recognize a system ID set in VGs. The old
+LVM can read a VG with a system ID, but is prevented from
+writing to the VG (or its LVs). The system ID feature
+changes the write mode of a VG, making it appear read-only
+to previous versions of LVM.</p></td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">This also means
+that if a host downgrades to the old LVM version, it would
+lose access to any VGs it had created with a system ID. To
+avoid this, the system ID should be removed from local VGs
+before downgrading LVM to a version without the system ID
+feature.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Types of VG
+access</b> <br>
+A local VG is meant to be used by a single host.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A shared or
+clustered VG is meant to be used by multiple hosts.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These can be
+further distinguished as: <b><br>
+Unrestricted:</b></p>
+
+<p style="margin-left:22%;">A local VG that has no system
+ID. This VG type is unprotected and accessible to any
+host.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>Owned:</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>A local VG that has a system ID set, as viewed from the
+host with a matching system ID (the owner). This VG type is
+accessible to the host.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>Foreign:</b></p>
+
+<p style="margin-left:22%;">A local VG that has a system ID
+set, as viewed from any host with an unmatching system ID
+(or no system ID). It is owned by another host. This VG type
+is not accessible to the host.</p>
+
+<p style="margin-left:11%;"><b>Exported:</b></p>
+
+<p style="margin-left:22%;">A local VG that has been
+exported with vgexport and has no system ID. This VG type
+can only be accessed by vgimport which will change it to
+owned.</p>
+
+<p style="margin-left:11%;"><b>Shared:</b></p>
+
+<p style="margin-left:22%;">A shared or &quot;lockd&quot;
+VG has the lock_type set and has no system ID. A shared VG
+is meant to be used on shared storage from multiple hosts,
+and is only accessible to hosts using lvmlockd. Applicable
+only if LVM is compiled with lvmlockd support.</p>
+
+<p style="margin-left:11%;"><b>Clustered:</b></p>
+
+<p style="margin-left:22%;">A clustered or &quot;clvm&quot;
+VG has the clustered flag set and has no system ID. A
+clustered VG is meant to be used on shared storage from
+multiple hosts, and is only accessible to hosts using clvmd.
+Applicable only if LVM is compiled with clvm support.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Host system
+ID configuration</b> <br>
+A host&rsquo;s own system ID can be defined in a number of
+ways. lvm.conf global/system_id_source defines the method
+LVM will use to find the local system ID:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>none</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>LVM will not use a system ID. LVM is allowed to access
+VGs without a system ID, and will create new VGs without a
+system ID. An undefined system_id_source is equivalent to
+none.</p> </td></tr>
+</table>
+
+
+<p style="margin-left:22%; margin-top: 1em"><i>lvm.conf</i>
+<br>
+global { <br>
+system_id_source = &quot;none&quot; <br>
+}</p>
+
+<p style="margin-left:11%;"><b>appmachineid</b></p>
+
+<p style="margin-left:22%; margin-top: 1em">An LVM-specific
+derivation of /etc/machine&minus;id is used as the system
+ID. See <b>machine&minus;id</b>(5) to check if
+machine&minus;id is available on the host.</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><i>lvm.conf</i>
+<br>
+global { <br>
+system_id_source = &quot;appmachineid&quot; <br>
+}</p>
+
+<p style="margin-left:11%;"><b>machineid</b></p>
+
+<p style="margin-left:22%;">The content of
+/etc/machine&minus;id is used as the system ID if available.
+See <b>machine&minus;id</b>(5) and
+<b>systemd&minus;machine&minus;id&minus;setup</b>(1) to
+check if machine&minus;id is available on the host.
+(appmachineid is recommended in place of machineid.)</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><i>lvm.conf</i>
+<br>
+global { <br>
+system_id_source = &quot;machineid&quot; <br>
+}</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="7%">
+
+
+<p><b>uname</b></p></td>
+<td width="4%"></td>
+<td width="78%">
+
+
+<p>The string utsname.nodename from <b>uname</b>(2) is used
+as the system ID. A uname beginning with
+&quot;localhost&quot; is ignored and equivalent to none.</p></td></tr>
+</table>
+
+
+<p style="margin-left:22%; margin-top: 1em"><i>lvm.conf</i>
+<br>
+global { <br>
+system_id_source = &quot;uname&quot; <br>
+}</p>
+
+<p style="margin-left:11%;"><b>lvmlocal</b></p>
+
+<p style="margin-left:22%;">The system ID is defined in
+lvmlocal.conf local/system_id.</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><i>lvm.conf</i>
+<br>
+global { <br>
+system_id_source = &quot;lvmlocal&quot; <br>
+}</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><i>lvmlocal.conf</i>
+<br>
+local { <br>
+system_id = &quot;example_name&quot; <br>
+}</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p><b>file</b></p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p>The system ID is defined in a file specified by lvm.conf
+global/system_id_file.</p> </td></tr>
+</table>
+
+
+<p style="margin-left:22%; margin-top: 1em"><i>lvm.conf</i>
+<br>
+global { <br>
+system_id_source = &quot;file&quot; <br>
+system_id_file = &quot;/path/to/file&quot; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Changing
+system_id_source will likely cause the system ID of the host
+to change, which will prevent the host from using VGs that
+it previously used (see extra_system_ids below to handle
+this.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a
+system_id_source other than none fails to produce a system
+ID value, it is the equivalent of having none. The host will
+be allowed to access VGs with no system ID, but will not be
+allowed to access VGs with a system ID set.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Overriding
+system ID</b> <br>
+In some cases, it may be necessary for a host to access VGs
+with different system IDs, e.g. if a host&rsquo;s system ID
+changes, and it wants to use VGs that it created with its
+old system ID. To allow a host to access VGs with other
+system IDs, those other system IDs can be listed in
+lvmlocal.conf local/extra_system_ids.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>lvmlocal.conf</i>
+<br>
+local { <br>
+extra_system_ids = [ &quot;my_other_name&quot; ] <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">A safer option
+may be configuring the extra values as needed on the command
+line as: <b><br>
+&minus;&minus;config
+&rsquo;local/extra_system_ids=[&quot;</b><i>id</i><b>&quot;]&rsquo;</b></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>vgcreate</b>
+<br>
+In vgcreate, the host running the command assigns its own
+system ID to the new VG. To override this and set another
+system ID:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>vgcreate
+&minus;&minus;systemid</b> <i>SystemID VG PVs</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Overriding the
+host&rsquo;s system ID makes it possible for a host to
+create a VG that it may not be able to use. Another host
+with a system ID matching the one specified may not
+recognize the new VG without manually rescanning
+devices.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+&minus;&minus;systemid argument is an empty string
+(&quot;&quot;), the VG is created with no system ID, making
+it accessible to other hosts (see warnings above.)</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>report/display</b>
+<br>
+The system ID of a VG is displayed with the
+&quot;systemid&quot; reporting option.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Report/display
+commands ignore foreign VGs by default. To report foreign
+VGs, the &minus;&minus;foreign option can be used. This
+causes the VGs to be read from disk.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>vgs
+&minus;&minus;foreign &minus;o +systemid</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">When a host
+with no system ID sees foreign VGs, it warns about them as
+they are skipped. The host should be assigned a system ID,
+after which standard reporting commands will silently ignore
+foreign VGs.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>vgexport/vgimport</b>
+<br>
+vgexport clears the VG system ID when exporting the VG.</p>
+
+<p style="margin-left:11%; margin-top: 1em">vgimport sets
+the VG system ID to the system ID of the host doing the
+import.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>vgchange</b>
+<br>
+A host can change the system ID of its own VGs, but the
+command requires confirmation because the host may lose
+access to the VG being changed:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>vgchange
+&minus;&minus;systemid</b> <i>SystemID VG</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The system ID
+can be removed from a VG by specifying an empty string
+(&quot;&quot;) as the new system ID. This makes the VG
+accessible to other hosts (see warnings above.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">A host cannot
+directly change the system ID of a foreign VG.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To move a VG
+from one host to another, vgexport and vgimport should be
+used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To forcibly
+gain ownership of a foreign VG, a host can temporarily add
+the foreign system ID to its extra_system_ids list, and
+change the system ID of the foreign VG to its own. See
+Overriding system ID above.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>shared
+VGs</b> <br>
+A shared VG has no system ID set, allowing multiple hosts to
+use it via lvmlockd. Changing a VG to shared will clear the
+existing system ID. Applicable only if LVM is compiled with
+lvmlockd support.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>clustered
+VGs</b> <br>
+A clustered/clvm VG has no system ID set, allowing multiple
+hosts to use it via clvmd. Changing a VG to clustered will
+clear the existing system ID. Changing a VG to not clustered
+will set the system ID to the host running the vgchange
+command.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>creation_host</b>
+<br>
+In vgcreate, the VG metadata field creation_host is set by
+default to the host&rsquo;s uname. The creation_host cannot
+be changed, and is not used to control access. When
+system_id_source is &quot;uname&quot;, the system_id and
+creation_host fields will be the same.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>orphans</b>
+<br>
+Orphan PVs are unused devices; they are not currently used
+in any VG. Because of this, they are not protected by a
+system ID, and any host can use them. Coordination of
+changes to orphan PVs is beyond the scope of system ID. The
+same is true of any block device that is not a PV.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>vgcreate</b>(8),
+<b>vgchange</b>(8), <b>vgimport</b>(8), <b>vgexport</b>(8),
+<b>vgs</b>(8), <b>lvmlockd</b>(8), <b>lvm.conf</b>(5),
+<b>machine&minus;id</b>(5), <b>uname</b>(2)</p>
+<hr>
+</body>
+</html>

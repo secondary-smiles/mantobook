@@ -1,0 +1,221 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:54 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>NDCTL&minus;ACTIVATE&minus;FIRMWARE</title>
+
+</head>
+<body>
+<h1>ndctl-activate-firmware</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">ndctl-activate-firmware
+&minus; activate staged firmware on memory devices</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>ndctl
+activate&minus;firmware</i> [&lt;bus&minus;id&gt;
+&lt;bus&minus;id2&gt; ... &lt;bus&minus;idN&gt;]
+[&lt;options&gt;]</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some persistent
+memory devices run a firmware locally on the device /
+&quot;DIMM&quot; to perform tasks like media management,
+capacity provisioning, and health monitoring. The process of
+updating that firmware typically involves a reboot because
+it has implications for in&minus;flight memory transactions.
+However, reboots can be costly for systems that can not
+tolerate extended downtime.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The kernel
+detects platforms that expose support for
+runtime&minus;firmware&minus;activation (FWA). The <i>ndctl
+update&minus;firmware</i> stages new firmware binaries, but
+if the platform supports FWA it will additionally arm the
+devices for activation. Then <i>ndctl
+activate&minus;firmware</i> may attempt to activate the
+firmware live. However, if the platform indicates that the
+memory controller will be taken off&minus;line for the
+duration of the update &quot;activate_method ==
+suspend&quot; then the default policy for firmware
+activation is to inject a truncated hibernate cycle to
+freeze devices and applications before the hard quiesce is
+injected by the platform, and then resume the system.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>DANGER</b>
+the activate&minus;firmware command includes a
+&minus;&minus;force option to tell the driver bypass the
+hibernation cycle and perform the update &quot;live&quot;.
+I.e. it arranges for applications and devices to race the
+platform injected quiesce period. This option should only be
+used explicit knowledge that the platform quiesce time will
+not trigger completion timeout violations for any devices in
+the system.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Check for any
+buses that support activation without triggering an
+activation:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># ndctl
+activate&minus;firmware all &minus;&minus;dry&minus;run <br>
+ACPI.NFIT: ndbus1: has no devices that support firmware
+update. <br>
+nfit_test.1: ndbus3: has no devices that support firmware
+update. <br>
+e820: ndbus0: has no devices that support firmware update.
+<br>
+[ <br>
+{ <br>
+&quot;provider&quot;:&quot;nfit_test.0&quot;, <br>
+&quot;dev&quot;:&quot;ndbus1&quot;, <br>
+&quot;scrub_state&quot;:&quot;idle&quot;, <br>
+&quot;firmware&quot;:{ <br>
+&quot;activate_method&quot;:&quot;suspend&quot;, <br>
+&quot;activate_state&quot;:&quot;idle&quot; <br>
+}, <br>
+&quot;dimms&quot;:[ <br>
+{ <br>
+...</p>
+
+<p style="margin-left:11%; margin-top: 1em">Check that a
+specific bus supports activation without performing an
+activation:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># ndctl
+activate&minus;firmware nfit_test.0
+&minus;&minus;dry&minus;run &minus;&minus;force <br>
+[ <br>
+{ <br>
+&quot;provider&quot;:&quot;nfit_test.0&quot;, <br>
+&quot;dev&quot;:&quot;ndbus2&quot;, <br>
+&quot;scrub_state&quot;:&quot;idle&quot;, <br>
+&quot;firmware&quot;:{ <br>
+&quot;activate_method&quot;:&quot;suspend&quot;, <br>
+&quot;activate_state&quot;:&quot;idle&quot; <br>
+}, <br>
+&quot;dimms&quot;:[ <br>
+... <br>
+]</p>
+
+<p style="margin-left:11%; margin-top: 1em">The result is
+equivalent to <i>ndctl list &minus;BFDu</i> upon successful
+activation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The <i>ndctl
+list</i> command can also enumerate the default activation
+method:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># ndctl list
+&minus;b nfit_test.0 &minus;BF <br>
+[ <br>
+{ <br>
+&quot;provider&quot;:&quot;nfit_test.0&quot;, <br>
+&quot;dev&quot;:&quot;ndbus2&quot;, <br>
+&quot;scrub_state&quot;:&quot;idle&quot;, <br>
+&quot;firmware&quot;:{ <br>
+&quot;activate_method&quot;:&quot;suspend&quot;, <br>
+&quot;activate_state&quot;:&quot;idle&quot; <br>
+} <br>
+} <br>
+]</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;n,
+&minus;&minus;dry&minus;run</p>
+
+<p style="margin-left:17%;">Perform all actions related to
+activation including honoring &minus;&minus;idle and
+&minus;&minus;force, but skip the final execution of the
+activation. The overrides are undone before the command
+completes. Any failed overrides will be reported as error
+messages.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;I,
+&minus;&minus;idle</p>
+
+<p style="margin-left:17%;">Implied by default, this option
+controls whether the platform will attempt to increase the
+completion timeout of all devices in the system and validate
+that the max completion timeout satisfies the time needed to
+perform the activation. This validation step can be
+overridden by specifying &minus;&minus;no&minus;idle.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;f,
+&minus;&minus;force</p>
+
+<p style="margin-left:17%;">The activation method defaults
+to the reported &quot;bus.firmware.activate_method&quot;
+property. When the method is &quot;live&quot; then this
+&minus;&minus;force option is ignored. When the method is
+&quot;reset&quot; no runtime activation is attempted. When
+the method is &quot;suspend&quot; this option indicates to
+the driver to bypass the hibernate cycle to activate
+firmware. in the bus When the reported
+&quot;activate_method&quot; is &quot;suspend&quot; the
+kernel driver may support overriding the suspend requirement
+and instead issue the firmware&minus;activation live.
+<b>CAUTION</b> this may lead to undefined system behavior if
+device completion timeouts are violated for in&minus;flight
+memory operations.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;v,
+&minus;&minus;verbose</p>
+
+<p style="margin-left:17%;">Emit debug messages for the
+firmware activation procedure</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+&copy; 2016 &minus; 2022, Intel Corporation. License GPLv2:
+GNU GPL version 2 &lt;http://gnu.org/licenses/gpl.html&gt;.
+This is free software: you are free to change and
+redistribute it. There is NO WARRANTY, to the extent
+permitted by law.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">ndctl&minus;update&minus;firmware(1),
+<i>Intel Optane PMem DSM Interface</i>
+&lt;https://pmem.io/documents/IntelOptanePMem_DSM_Interface&minus;V2.0.pdf&gt;</p>
+<hr>
+</body>
+</html>

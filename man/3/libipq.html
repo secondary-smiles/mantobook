@@ -1,0 +1,855 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:29 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LIBIPQ</title>
+
+</head>
+<body>
+<h1>libipq</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">libipq &mdash;
+iptables userspace packet queuing library.</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;linux/netfilter.h&gt; <br>
+#include &lt;libipq.h&gt;</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">libipq is a
+development library for iptables userspace packet
+queuing.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Userspace
+Packet Queuing</b> <br>
+Netfilter provides a mechanism for passing packets out of
+the stack for queueing to userspace, then receiving these
+packets back into the kernel with a verdict specifying what
+to do with the packets (such as ACCEPT or DROP). These
+packets may also be modified in userspace prior to
+reinjection back into the kernel.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For each
+supported protocol, a kernel module called a <i>queue
+handler</i> may register with Netfilter to perform the
+mechanics of passing packets to and from userspace.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The standard
+queue handler for IPv4 is ip_queue. It is provided as an
+experimental module with 2.4 kernels, and uses a Netlink
+socket for kernel/userspace communication.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once ip_queue
+is loaded, IP packets may be selected with iptables and
+queued for userspace processing via the QUEUE target. For
+example, running the following commands:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p># modprobe iptable_filter</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p># modprobe ip_queue</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p># iptables &minus;A OUTPUT &minus;p icmp &minus;j
+QUEUE</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">will cause any
+locally generated ICMP packets (e.g. ping output) to be sent
+to the ip_queue module, which will then attempt to deliver
+the packets to a userspace application. If no userspace
+application is waiting, the packets will be dropped</p>
+
+<p style="margin-left:11%; margin-top: 1em">An application
+may receive and process these packets via libipq.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Libipq
+Overview</b> <br>
+Libipq provides an API for communicating with ip_queue. The
+following is an overview of API usage, refer to individual
+man pages for more details on each function.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Initialisation</b>
+<br>
+To initialise the library, call <b>ipq_create_handle</b>(3).
+This will attempt to bind to the Netlink socket used by
+ip_queue and return an opaque context handle for subsequent
+library calls.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Setting the
+Queue Mode <br>
+ipq_set_mode</b>(3) allows the application to specify
+whether packet metadata, or packet payloads as well as
+metadata are copied to userspace. It is also used to
+initially notify ip_queue that an application is ready to
+receive queue messages.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Receiving
+Packets from the Queue <br>
+ipq_read</b>(3) waits for queue messages to arrive from
+ip_queue and copies them into a supplied buffer. Queue
+messages may be <i>packet messages</i> or <i>error
+messages.</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The type of
+packet may be determined with
+<b>ipq_message_type</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If it&rsquo;s a
+packet message, the metadata and optional payload may be
+retrieved with <b>ipq_get_packet</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To retrieve the
+value of an error message, use <b>ipq_get_msgerr</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Issuing
+Verdicts on Packets</b> <br>
+To issue a verdict on a packet, and optionally return a
+modified version of the packet to the kernel, call
+<b>ipq_set_verdict</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Error
+Handling</b> <br>
+An error string corresponding to the current value of the
+internal error variable <b>ipq_errno</b> may be obtained
+with <b>ipq_errstr</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">For simple
+applications, calling <b>ipq_perror</b>(3) will print the
+same message as <b>ipq_errstr</b>(3), as well as the string
+corresponding to the global <b>errno</b> value (if set) to
+stderr.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Cleaning
+Up</b> <br>
+To free up the Netlink socket and destroy resources
+associated with the context handle, call
+<b>ipq_destroy_handle</b>(3).</p>
+
+<h2>SUMMARY
+<a name="SUMMARY"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ipq_create_handle</b>(3)</p>
+
+<p style="margin-left:17%;">Initialise library, return
+context handle.</p>
+
+<p style="margin-left:11%;"><b>ipq_set_mode</b>(3)</p>
+
+<p style="margin-left:17%;">Set the queue mode, to copy
+either packet metadata, or payloads as well as metadata to
+userspace.</p>
+
+<p style="margin-left:11%;"><b>ipq_read</b>(3)</p>
+
+<p style="margin-left:17%;">Wait for a queue message to
+arrive from ip_queue and read it into a buffer.</p>
+
+<p style="margin-left:11%;"><b>ipq_message_type</b>(3)</p>
+
+<p style="margin-left:17%;">Determine message type in the
+buffer.</p>
+
+<p style="margin-left:11%;"><b>ipq_get_packet</b>(3)</p>
+
+<p style="margin-left:17%;">Retrieve a packet message from
+the buffer.</p>
+
+<p style="margin-left:11%;"><b>ipq_get_msgerr</b>(3)</p>
+
+<p style="margin-left:17%;">Retrieve an error message from
+the buffer.</p>
+
+<p style="margin-left:11%;"><b>ipq_set_verdict</b>(3)</p>
+
+<p style="margin-left:17%;">Set a verdict on a packet,
+optionally replacing its contents.</p>
+
+<p style="margin-left:11%;"><b>ipq_errstr</b>(3)</p>
+
+<p style="margin-left:17%;">Return an error message
+corresponding to the internal ipq_errno variable.</p>
+
+<p style="margin-left:11%;"><b>ipq_perror</b>(3)</p>
+
+<p style="margin-left:17%;">Helper function to print error
+messages to stderr.</p>
+
+
+<p style="margin-left:11%;"><b>ipq_destroy_handle</b>(3)</p>
+
+<p style="margin-left:17%;">Destroy context handle and
+associated resources.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+is an example of a simple application which receives packets
+and issues NF_ACCEPT verdicts on each packet.</p>
+
+<p style="margin-left:22%;">/* <br>
+* This code is GPL. <br>
+*/ <br>
+#include &lt;linux/netfilter.h&gt; <br>
+#include &lt;libipq.h&gt; <br>
+#include &lt;stdio.h&gt;</p>
+
+<p style="margin-left:22%; margin-top: 1em">#define BUFSIZE
+2048</p>
+
+<p style="margin-left:22%; margin-top: 1em">static void
+die(struct ipq_handle *h) <br>
+{</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>ipq_perror(&quot;passer&quot;);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>ipq_destroy_handle(h);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>exit(1);</p></td></tr>
+</table>
+
+<p style="margin-left:22%;">}</p>
+
+<p style="margin-left:22%; margin-top: 1em">int main(int
+argc, char **argv) <br>
+{</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+
+
+<p>int status;</p></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+
+
+<p>unsigned char buf[BUFSIZE];</p></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+
+
+<p>struct ipq_handle *h;</p></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+
+
+<p>h = ipq_create_handle(0, NFPROTO_IPV4);</p></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+
+
+<p>if (!h)</p></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+
+
+<p>die(h);</p></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+
+
+<p>status = ipq_set_mode(h, IPQ_COPY_PACKET, BUFSIZE);</p></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+
+
+<p>if (status &lt; 0)</p></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+
+
+<p>die(h);</p></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+
+
+<p>do{</p></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+
+
+<p>status = ipq_read(h, buf, BUFSIZE, 0);</p></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+
+
+<p>if (status &lt; 0)</p></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+
+
+<p>die(h);</p></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+
+
+<p>switch (ipq_message_type(buf)) {</p></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+
+
+<p>case NLMSG_ERROR:</p></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="54%">
+
+
+<p>fprintf(stderr, &quot;Received error message
+%d\n&quot;,</p> </td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="54%">
+
+
+<p>ipq_get_msgerr(buf));</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="54%">
+
+
+<p>break;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+
+
+<p>case IPQM_PACKET: {</p></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="54%">
+
+
+<p>ipq_packet_msg_t *m = ipq_get_packet(buf);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="54%">
+
+
+<p>status = ipq_set_verdict(h, m-&gt;packet_id,</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="54%">
+
+
+<p>NF_ACCEPT, 0, NULL);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="54%">
+
+
+<p>if (status &lt; 0)</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+
+
+<p>die(h);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="54%">
+
+
+<p>break;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+
+
+<p>}</p></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+
+
+<p>default:</p></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="54%">
+
+
+<p>fprintf(stderr, &quot;Unknown message
+type!\n&quot;);</p> </td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="54%">
+
+
+<p>break;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+</td>
+<td width="8%">
+</td>
+<td width="7%">
+
+
+<p>}</p></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+
+
+<p>} while (1);</p></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+
+
+<p>ipq_destroy_handle(h);</p></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="8%">
+
+
+<p>return 0;</p></td>
+<td width="7%"></td>
+<td width="8%"></td>
+<td width="54%">
+</td></tr>
+</table>
+
+<p style="margin-left:22%;">}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Pointers to
+more libipq application examples may be found in The
+Netfilter FAQ.</p>
+
+<h2>DIAGNOSTICS
+<a name="DIAGNOSTICS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">For information
+about monitoring and tuning ip_queue, refer to the Linux 2.4
+Packet Filtering HOWTO.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If an
+application modifies a packet, it needs to also update any
+checksums for the packet. Typically, the kernel will
+silently discard modified packets with invalid
+checksums.</p>
+
+<h2>SECURITY
+<a name="SECURITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Processes
+require CAP_NET_ADMIN capabilty to access the kernel
+ip_queue module. Such processes can potentially access and
+modify any IP packets received, generated or forwarded by
+the kernel.</p>
+
+<h2>TODO
+<a name="TODO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Per-handle
+<b>ipq_errno</b> values.</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Probably.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">James Morris
+&lt;jmorris@intercode.com.au&gt;</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (c)
+2000-2001 Netfilter Core Team.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Distributed
+under the GNU General Public License.</p>
+
+<h2>CREDITS
+<a name="CREDITS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Joost Remijn
+implemented the <b>ipq_read</b> timeout feature, which
+appeared in the 1.2.4 release of iptables.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Fernando Anton
+added support for IPv6.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>iptables</b>(8),
+<b>ipq_create_handle</b>(3), <b>ipq_destroy_handle</b>(3),
+<b>ipq_errstr</b>(3), <b>ipq_get_msgerr</b>(3),
+<b>ipq_get_packet</b>(3), <b>ipq_message_type</b>(3),
+<b>ipq_perror</b>(3), <b>ipq_read</b>(3),
+<b>ipq_set_mode</b>(3), <b>ipq_set_verdict</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Netfilter
+home page at http://netfilter.samba.org/ which has links to
+The Networking Concepts HOWTO, The Linux 2.4 Packet
+Filtering HOWTO, The Linux 2.4 NAT HOWTO, The Netfilter
+Hacking HOWTO, The Netfilter FAQ and many other useful
+resources.</p>
+<hr>
+</body>
+</html>

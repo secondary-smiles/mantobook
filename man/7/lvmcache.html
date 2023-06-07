@@ -1,0 +1,973 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:01 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LVMCACHE</title>
+
+</head>
+<body>
+<h1>lvmcache</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">lvmcache
+&mdash; LVM caching</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvm</b>(8)
+includes two kinds of caching that can be used to improve
+the performance of a Logical Volume (LV). When caching,
+varying subsets of an LV&rsquo;s data are temporarily stored
+on a smaller, faster device (e.g. an SSD) to improve the
+performance of the LV.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To do this with
+lvm, a new special LV is first created from the faster
+device. This LV will hold the cache. Then, the new fast LV
+is attached to the main LV by way of an lvconvert command.
+lvconvert inserts one of the device mapper caching targets
+into the main LV&rsquo;s i/o path. The device mapper target
+combines the main LV and fast LV into a hybrid device that
+looks like the main LV, but has better performance. While
+the main LV is being used, portions of its data will be
+temporarily and transparently stored on the special fast
+LV.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The two kinds
+of caching are:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>A read and write hot-spot cache, using the dm-cache
+kernel module. This cache tracks access patterns and adjusts
+its content deliberately so that commonly used parts of the
+main LV are likely to be found on the fast storage. LVM
+refers to this using the LV type <b>cache</b>.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>A write cache, using the dm-writecache kernel module.
+This cache can be used with SSD or PMEM devices to speed up
+all writes to the main LV. Data read from the main LV is not
+stored in the cache, only newly written data. LVM refers to
+this using the LV type <b>writecache</b>.</p></td></tr>
+</table>
+
+<h2>USAGE
+<a name="USAGE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>1. Identify
+main LV that needs caching</b> <br>
+The main LV may already exist, and is located on larger,
+slower devices. A main LV would be created with a command
+like:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;n main &minus;L Size vg /dev/slow_hhd</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>2. Identify
+fast LV to use as the cache</b> <br>
+A fast LV is created using one or more fast devices, like an
+SSD. This special LV will be used to hold the cache:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;n fast &minus;L Size vg /dev/fast_ssd</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvs &minus;a
+<br>
+LV Attr Type Devices <br>
+fast
+&minus;wi&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+linear /dev/fast_ssd <br>
+main
+&minus;wi&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+linear /dev/slow_hhd</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>3. Start
+caching the main LV</b> <br>
+To start caching the main LV, convert the main LV to the
+desired caching type, and specify the fast LV to use as the
+cache:</p>
+
+<p style="margin-left:11%; margin-top: 1em">using dm-cache
+(with cachepool):</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvconvert
+&minus;&minus;type cache &minus;&minus;cachepool fast
+vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em">using dm-cache
+(with cachevol):</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvconvert
+&minus;&minus;type cache &minus;&minus;cachevol fast
+vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em">using
+dm-writecache (with cachevol):</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvconvert
+&minus;&minus;type writecache &minus;&minus;cachevol fast
+vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em">For more
+alternatives see: <br>
+dm-cache command shortcut <br>
+dm-cache with separate data and metadata LVs</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>4. Display
+LVs</b> <br>
+Once the fast LV has been attached to the main LV, lvm
+reports the main LV type as either <b>cache</b> or
+<b>writecache</b> depending on the type used. While
+attached, the fast LV is hidden, and renamed with a _cvol or
+_cpool suffix. It is displayed by lvs &minus;a. The _corig
+or _wcorig LV represents the original LV without the
+cache.</p>
+
+<p style="margin-left:11%; margin-top: 1em">using dm-cache
+(with cachepool):</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvs
+&minus;ao+devices <br>
+LV Pool Type Devices <br>
+main [fast_cpool] cache main_corig(0) <br>
+[fast_cpool] cache&minus;pool fast_pool_cdata(0) <br>
+[fast_cpool_cdata] linear /dev/fast_ssd <br>
+[fast_cpool_cmeta] linear /dev/fast_ssd <br>
+[main_corig] linear /dev/slow_hhd</p>
+
+<p style="margin-left:11%; margin-top: 1em">using dm-cache
+(with cachevol):</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvs
+&minus;ao+devices</p>
+
+<p style="margin-left:11%; margin-top: 1em">LV Pool Type
+Devices <br>
+main [fast_cvol] cache main_corig(0) <br>
+[fast_cvol] linear /dev/fast_ssd <br>
+[main_corig] linear /dev/slow_hhd</p>
+
+<p style="margin-left:11%; margin-top: 1em">using
+dm-writecache (with cachevol):</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvs
+&minus;ao+devices</p>
+
+<p style="margin-left:11%; margin-top: 1em">LV Pool Type
+Devices <br>
+main [fast_cvol] writecache main_wcorig(0) <br>
+[fast_cvol] linear /dev/fast_ssd <br>
+[main_wcorig] linear /dev/slow_hhd</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>5. Use the
+main LV</b> <br>
+Use the LV until the cache is no longer wanted, or needs to
+be changed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>6. Stop
+caching</b> <br>
+To stop caching the main LV and also remove unneeded cache
+pool, use the &minus;&minus;uncache:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvconvert
+&minus;&minus;uncache vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvs &minus;a
+<br>
+LV VG Attr Type Devices <br>
+main vg
+&minus;wi&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+linear /dev/slow_hhd</p>
+
+<p style="margin-left:11%; margin-top: 1em">To stop caching
+the main LV, separate the fast LV from the main LV. This
+changes the type of the main LV back to what it was before
+the cache was attached.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvconvert
+&minus;&minus;splitcache vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvs &minus;a
+<br>
+LV VG Attr Type Devices <br>
+fast vg
+&minus;wi&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+linear /dev/fast_ssd <br>
+main vg
+&minus;wi&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+linear /dev/slow_hhd</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>7. Create a
+new LV with caching</b> <br>
+A new LV can be created with caching attached at the time of
+creation using the following command:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;&minus;type cache|writecache &minus;n Name &minus;L
+Size</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>&minus;&minus;cachedevice /dev/fast_ssd vg
+/dev/slow_hhd</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">The main LV is
+created with the specified Name and Size from the slow_hhd.
+A hidden fast LV is created on the fast_ssd and is then
+attached to the new main LV. If the fast_ssd is unused, the
+entire disk will be used as the cache unless the
+&minus;&minus;cachesize option is used to specify a size for
+the fast LV. The &minus;&minus;cachedevice option can be
+repeated to use multiple disks for the fast LV.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>option args
+<br>
+&minus;&minus;cachepool</b> <i>CachePoolLV</i>|<i>LV</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Pass this
+option a cachepool LV or a standard LV. When using a cache
+pool, lvm places cache data and cache metadata on different
+LVs. The two LVs together are called a cache pool. This has
+a bit better performance for dm-cache and permits specific
+placement and segment type selection for data and metadata
+volumes. A cache pool is represented as a special type of LV
+that cannot be used directly. If a standard LV is passed
+with this option, lvm will first convert it to a cache pool
+by combining it with another LV to use for metadata. This
+option can be used with dm-cache.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;cachevol</b>
+<i>LV</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Pass this
+option a fast LV that should be used to hold the cache. With
+a cachevol, cache data and metadata are stored in different
+parts of the same fast LV. This option can be used with
+dm-writecache or dm-cache.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;cachedevice</b>
+<i>PV</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This option can
+be used in place of &minus;&minus;cachevol, in which case a
+cachevol LV will be created using the specified device. This
+option can be repeated to create a cachevol using multiple
+devices, or a tag name can be specified in which case the
+cachevol will be created using any of the devices with the
+given tag. If a named cache device is unused, the entire
+device will be used to create the cachevol. To create a
+cachevol of a specific size from the cache devices, include
+the &minus;&minus;cachesize option.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-cache
+block size</b> <br>
+A cache pool will have a logical block size of 4096 bytes if
+it is created on a device with a logical block size of 4096
+bytes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a main LV
+has logical block size 512 (with an existing xfs file system
+using that size), then it cannot use a cache pool with a
+4096 logical block size. If the cache pool is attached, the
+main LV will likely fail to mount.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To avoid this
+problem, use a mkfs option to specify a 4096 block size for
+the file system, or attach the cache pool before running
+mkfs.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-writecache
+block size</b> <br>
+The dm-writecache block size can be 4096 bytes (the
+default), or 512 bytes. The default 4096 has better
+performance and should be used except when 512 is necessary
+for compatibility. The dm-writecache block size is specified
+with &minus;&minus;cachesettings block_size=4096|512 when
+caching is started.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When a file
+system like xfs already exists on the main LV prior to
+caching, and the file system is using a block size of 512,
+then the writecache block size should be set to 512. (The
+file system will likely fail to mount if writecache block
+size of 4096 is used in this case.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Check the xfs
+sector size while the fs is mounted:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># xfs_info
+/dev/vg/main <br>
+Look for sectsz=512 or sectsz=4096</p>
+
+<p style="margin-left:11%; margin-top: 1em">The writecache
+block size should be chosen to match the xfs sectsz
+value.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is also
+possible to specify a sector size of 4096 to mkfs.xfs when
+creating the file system. In this case the writecache block
+size of 4096 can be used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The writecache
+block size is displayed by the command: <br>
+lvs &minus;o writecacheblocksize VG/LV</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-writecache
+memory usage</b> <br>
+The amount of main system memory used by dm-writecache can
+be a factor when selecting the writecache cachevol size and
+the writecache block size.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">writecache block size 4096: each
+100&nbsp;GiB of writecache cachevol uses slightly over
+2&nbsp;GiB of system memory.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>writecache block size 512: each 100&nbsp;GiB of
+writecache cachevol uses a little over 16&nbsp;GiB of system
+memory.</p> </td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-writecache
+settings</b> <br>
+To specify dm-writecache tunable settings on the command
+line, use: <br>
+&minus;&minus;cachesettings &rsquo;option=N&rsquo; or <br>
+&minus;&minus;cachesettings &rsquo;option1=N option2=N
+...&rsquo;</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example,
+&minus;&minus;cachesettings &rsquo;high_watermark=90
+writeback_jobs=4&rsquo;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To include
+settings when caching is started, run:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvconvert
+&minus;&minus;type writecache &minus;&minus;cachevol fast
+\</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>&minus;&minus;cachesettings &rsquo;option=N&rsquo;
+vg/main</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">To change
+settings for an existing writecache, run:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvchange
+&minus;&minus;cachesettings &rsquo;option=N&rsquo;
+vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em">To clear all
+settings that have been applied, run:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvchange
+&minus;&minus;cachesettings &rsquo;&rsquo; vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em">To view the
+settings that are applied to a writecache LV, run:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvs &minus;o
+cachesettings vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em">Tunable
+settings are: <br>
+high_watermark = &lt;percent&gt;</p>
+
+<p style="margin-left:22%;">Start writeback when the
+writecache usage reaches this percent (0&minus;100).</p>
+
+<p style="margin-left:11%;">low_watermark =
+&lt;percent&gt;</p>
+
+<p style="margin-left:22%;">Stop writeback when the
+writecache usage reaches this percent (0&minus;100).</p>
+
+<p style="margin-left:11%;">writeback_jobs =
+&lt;count&gt;</p>
+
+<p style="margin-left:22%;">Limit the number of blocks that
+are in flight during writeback. Setting this value reduces
+writeback throughput, but it may improve latency of read
+requests.</p>
+
+<p style="margin-left:11%;">autocommit_blocks =
+&lt;count&gt;</p>
+
+<p style="margin-left:22%;">When the application writes
+this amount of blocks without issuing the FLUSH request, the
+blocks are automatically committed.</p>
+
+<p style="margin-left:11%;">autocommit_time =
+&lt;milliseconds&gt;</p>
+
+<p style="margin-left:22%;">The data is automatically
+committed if this time passes and no FLUSH request is
+received.</p>
+
+<p style="margin-left:11%;">fua = 0|1</p>
+
+<p style="margin-left:22%;">Use the FUA flag when writing
+data from persistent memory back to the underlying device.
+Applicable only to persistent memory.</p>
+
+<p style="margin-left:11%;">nofua = 0|1</p>
+
+<p style="margin-left:22%;">Don&rsquo;t use the FUA flag
+when writing back data and send the FLUSH request
+afterwards. Some underlying devices perform better with fua,
+some with nofua. Testing is necessary to determine which.
+Applicable only to persistent memory.</p>
+
+<p style="margin-left:11%;">cleaner = 0|1</p>
+
+<p style="margin-left:22%;">Setting cleaner=1 enables the
+writecache cleaner mode in which data is gradually flushed
+from the cache. If this is done prior to detaching the
+writecache, then the splitcache command will have little or
+no flushing to perform. If not done beforehand, the
+splitcache command enables the cleaner mode and waits for
+flushing to complete before detaching the writecache. Adding
+cleaner=0 to the splitcache command will skip the cleaner
+mode, and any required flushing is performed in device
+suspend.</p>
+
+<p style="margin-left:11%;">max_age =
+&lt;milliseconds&gt;</p>
+
+<p style="margin-left:22%;">Specifies the maximum age of a
+block in milliseconds. If a block is stored in the cache for
+too long, it will be written to the underlying device and
+cleaned up.</p>
+
+<p style="margin-left:11%;">metadata_only = 0|1</p>
+
+<p style="margin-left:22%;">Only metadata is promoted to
+the cache. This option improves performance for heavier
+REQ_META workloads.</p>
+
+<p style="margin-left:11%;">pause_writeback =
+&lt;milliseconds&gt;</p>
+
+<p style="margin-left:22%;">Pause writeback if there was
+some write I/O redirected to the origin volume in the last
+number of milliseconds.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-writecache
+using metadata profiles</b> <br>
+In addition to specifying writecache settings on the command
+line, they can also be set in lvm.conf, or in a profile
+file, using the allocation/cache_settings/writecache config
+structure shown below.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It&rsquo;s
+possible to prepare a number of different profile files in
+the <i>/etc/lvm/profile</i> directory and specify the file
+name of the profile when starting writecache.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# cat &lt;&lt;EOF &gt;
+/etc/lvm/profile/cache_writecache.profile <br>
+allocation {</p>
+
+<p style="margin-left:22%;">cache_settings {</p>
+
+<p style="margin-left:32%;">writecache {</p>
+
+<p style="margin-left:43%;">high_watermark=60 <br>
+writeback_jobs=1024</p>
+
+<p style="margin-left:32%;">}</p>
+
+<p style="margin-left:22%;">}</p>
+
+<p style="margin-left:11%;">} <br>
+EOF</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;an &minus;L10G &minus;&minus;name fast vg
+/dev/fast_ssd <br>
+# lvcreate &minus;&minus;type writecache &minus;L10G
+&minus;&minus;name main &minus;&minus;cachevol fast \ <br>
+&minus;&minus;metadataprofile cache_writecache vg
+/dev/slow_hdd</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-cache
+with separate data and metadata LVs</b> <br>
+Preferred way of using dm-cache is to place the cache
+metadata and cache data on separate LVs. To do this, a
+&quot;cache pool&quot; is created, which is a special LV
+that references two sub LVs, one for data and one for
+metadata.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To create a
+cache pool of given data size and let lvm2 calculate
+appropriate metadata size:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;&minus;type cache&minus;pool &minus;L DataSize
+&minus;n fast vg /dev/fast_ssd1</p>
+
+<p style="margin-left:11%; margin-top: 1em">To create a
+cache pool from separate LV and let lvm2 calculate
+appropriate cache metadata size:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;n fast &minus;L DataSize vg /dev/fast_ssd1 <br>
+# lvconvert &minus;&minus;type cache&minus;pool vg/fast
+/dev/fast_ssd1</p>
+
+<p style="margin-left:11%; margin-top: 1em">To create a
+cache pool from two separate LVs:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;n fast &minus;L DataSize vg /dev/fast_ssd1 <br>
+# lvcreate &minus;n fastmeta &minus;L MetadataSize vg
+/dev/fast_ssd2 <br>
+# lvconvert &minus;&minus;type cache&minus;pool
+&minus;&minus;poolmetadata fastmeta vg/fast</p>
+
+<p style="margin-left:11%; margin-top: 1em">Then use the
+cache pool LV to start caching the main LV:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvconvert
+&minus;&minus;type cache &minus;&minus;cachepool fast
+vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em">A variation of
+the same procedure automatically creates a cache pool when
+caching is started. To do this, use a standard LV as the
+&minus;&minus;cachepool (this will hold cache data), and use
+another standard LV as the &minus;&minus;poolmetadata (this
+will hold cache metadata). LVM will create a cache pool LV
+from the two specified LVs, and use the cache pool to start
+caching the main LV.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;n fast &minus;L DataSize vg /dev/fast_ssd1 <br>
+# lvcreate &minus;n fastmeta &minus;L MetadataSize vg
+/dev/fast_ssd2 <br>
+# lvconvert &minus;&minus;type cache &minus;&minus;cachepool
+fast \ <br>
+&minus;&minus;poolmetadata fastmeta vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-cache
+cache modes</b> <br>
+The default dm-cache cache mode is &quot;writethrough&quot;.
+Writethrough ensures that any data written will be stored
+both in the cache and on the origin LV. The loss of a device
+associated with the cache in this case would not mean the
+loss of any data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A second cache
+mode is &quot;writeback&quot;. Writeback delays writing data
+blocks from the cache back to the origin LV. This mode will
+increase performance, but the loss of a cache device can
+result in lost data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">With the
+&minus;&minus;cachemode option, the cache mode can be set
+when caching is started, or changed on an LV that is already
+cached. The current cache mode can be displayed with the
+cache_mode reporting option:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvs
+&minus;o+cache_mode VG/LV</b></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvm.conf</b>(5)
+<b>allocation/cache_mode</b> <br>
+defines the default cache mode.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvconvert
+&minus;&minus;type cache &minus;&minus;cachemode
+writethrough \ <br>
+&minus;&minus;cachepool fast vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvconvert
+&minus;&minus;type cache &minus;&minus;cachemode
+writethrough \ <br>
+&minus;&minus;cachevol fast vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-cache
+chunk size</b> <br>
+The size of data blocks managed by dm-cache can be specified
+with the &minus;&minus;chunksize option when caching is
+started. The default unit is KiB. The value must be a
+multiple of 32&nbsp;KiB between 32&nbsp;KiB and 1&nbsp;GiB.
+Cache chunks bigger then 512KiB shall be only used when
+necessary.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Using a chunk
+size that is too large can result in wasteful use of the
+cache, in which small reads and writes cause large sections
+of an LV to be stored in the cache. It can also require
+increasing migration threshold which defaults to 2048
+sectors (1&nbsp;MiB). Lvm2 ensures migration threshold is at
+least 8 chunks in size. This may in some cases result in
+very high bandwidth load of transferring data between the
+cache LV and its cache origin LV. However, choosing a chunk
+size that is too small can result in more overhead trying to
+manage the numerous chunks that become mapped into the
+cache. Overhead can include both excessive CPU time
+searching for chunks, and excessive memory tracking
+chunks.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Command to
+display the chunk size:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvs
+&minus;o+chunksize VG/LV</b></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvm.conf</b>(5)
+<b>allocation/cache_pool_chunk_size</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">controls the
+default chunk size.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default
+value is shown by:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvmconfig
+&minus;&minus;type default
+allocation/cache_pool_chunk_size</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Checking
+migration threshold (in sectors) of running cached LV:
+<b><br>
+lvs &minus;o+kernel_cache_settings VG/LV</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-cache
+cache settings</b> <br>
+To set dm-cache cache setting use:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;cachesettings
+&rsquo;option1=N option2=N ...&rsquo;</p>
+
+<p style="margin-left:11%; margin-top: 1em">To unset/drop
+cache setting and restore its default kernel value use
+special keyword &rsquo;default&rsquo; as option
+parameter:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;cachesettings
+&rsquo;option1=default option2=default ...&rsquo;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-cache
+migration threshold cache setting</b> <br>
+Migrating data between the origin and cache LV uses
+bandwidth. The user can set a throttle to prevent more than
+a certain amount of migration occurring at any one time.
+Currently dm-cache is not taking any account of normal io
+traffic going to the devices.</p>
+
+<p style="margin-left:11%; margin-top: 1em">User can set
+migration threshold via cache policy settings as
+&quot;migration_threshold=&lt;#sectors&gt;&quot; to set the
+maximum number of sectors being migrated, the default being
+2048 sectors (1&nbsp;MiB) or 8 cache chunks whichever of
+those two values is larger.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Command to set
+migration threshold to 2&nbsp;MiB (4096 sectors):</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvcreate
+&minus;&minus;cachesettings
+&rsquo;migration_threshold=4096&rsquo; VG/LV</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Command to
+display the migration threshold:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvs
+&minus;o+kernel_cache_settings,cache_settings VG/LV <br>
+lvs &minus;o+chunksize VG/LV</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Command to
+restore/revert to default value:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvchange
+&minus;&minus;cachesettings
+&rsquo;migration_threshold=default&rsquo; VG/LV</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-cache
+cache policy</b> <br>
+The dm-cache subsystem has additional per-LV parameters: the
+cache policy to use, and possibly tunable parameters for the
+cache policy. Three policies are currently available:
+&quot;smq&quot; is the default policy, &quot;mq&quot; is an
+older implementation, and &quot;cleaner&quot; is used to
+force the cache to write back (flush) all cached writes to
+the origin LV.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The older
+&quot;mq&quot; policy has a number of tunable parameters.
+The defaults are chosen to be suitable for the majority of
+systems, but in special circumstances, changing the settings
+can improve performance. Newer kernels however alias this
+policy with &quot;smq&quot; policy. Cache settings used to
+configure &quot;mq&quot; policy [random_threshold,
+sequential_threshold, discard_promote_adjustment,
+read_promote_adjustment, write_promote_adjustment] are thus
+silently ignored also performance matches
+&quot;smq&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">With the
+&minus;&minus;cachepolicy and &minus;&minus;cachesettings
+options, the cache policy and settings can be set when
+caching is started, or changed on an existing cached LV
+(both options can be used together). The current cache
+policy and settings can be displayed with the cache_policy
+and cache_settings reporting options:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvs
+&minus;o+cache_policy,cache_settings VG/LV</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Change the
+cache policy and settings of an existing LV. <br>
+# lvchange &minus;&minus;cachepolicy mq
+&minus;&minus;cachesettings \</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>'migration_threshold=2048 random_threshold=4'
+vg/main</p> </td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvm.conf</b>(5)
+<b>allocation/cache_policy</b> <br>
+defines the default cache policy.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvm.conf</b>(5)
+<b>allocation/cache_settings</b> <br>
+defines the default cache settings.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-cache
+using metadata profiles</b> <br>
+Cache pools allows to set a variety of options. Lots of
+these settings can be specified in lvm.conf or profile
+settings. You can prepare a number of different profiles in
+the <i>/etc/lvm/profile</i> directory and just specify the
+metadata profile file name when caching LV or creating
+cache&minus;pool. Check the output of <b>lvmconfig
+&minus;&minus;type default &minus;&minus;withcomments</b>
+for a detailed description of all individual cache
+settings.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# cat &lt;&lt;EOF &gt;
+/etc/lvm/profile/cache_big_chunk.profile <br>
+allocation {</p>
+
+
+<p style="margin-left:22%;">cache_pool_metadata_require_separate_pvs=0
+<br>
+cache_pool_chunk_size=512 <br>
+cache_metadata_format=2 <br>
+cache_mode=&quot;writethrough&quot; <br>
+cache_policy=&quot;smq&quot; <br>
+cache_settings {</p>
+
+<p style="margin-left:32%;">smq {</p>
+
+<p style="margin-left:43%;">migration_threshold=8192</p>
+
+<p style="margin-left:32%;">}</p>
+
+<p style="margin-left:22%;">}</p>
+
+<p style="margin-left:11%;">} <br>
+EOF</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;&minus;cache &minus;L10G
+&minus;&minus;metadataprofile cache_big_chunk vg/main \ <br>
+/dev/fast_ssd <br>
+# lvcreate &minus;&minus;cache &minus;L10G vg/main
+&minus;&minus;config \ <br>
+&rsquo;allocation/cache_pool_chunk_size=512&rsquo;
+/dev/fast_ssd</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-cache
+spare metadata LV</b> <br>
+See <b>lvmthin</b>(7) for a description of the &quot;pool
+metadata spare&quot; LV. The same concept is used for cache
+pools.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-cache
+metadata formats</b> <br>
+There are two disk formats for dm-cache metadata. The
+metadata format can be specified with
+&minus;&minus;cachemetadataformat when caching is started,
+and cannot be changed. Format <b>2</b> has better
+performance; it is more compact, and stores dirty bits in a
+separate btree, which improves the speed of shutting down
+the cache. With <b>auto</b>, lvm selects the best option
+provided by the current dm-cache kernel module.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>RAID1 cache
+device</b> <br>
+RAID1 can be used to create the fast LV holding the cache so
+that it can tolerate a device failure. (When using dm-cache
+with separate data and metadata LVs, each of the sub-LVs can
+use RAID1.)</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;n main &minus;L Size vg /dev/slow <br>
+# lvcreate &minus;&minus;type raid1 &minus;m 1 &minus;n fast
+&minus;L Size vg /dev/ssd1 /dev/ssd2 <br>
+# lvconvert &minus;&minus;type cache &minus;&minus;cachevol
+fast vg/main</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>dm-cache
+command shortcut</b> <br>
+A single command can be used to cache main LV with automatic
+creation of a cache&minus;pool:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;&minus;cache &minus;&minus;size CacheDataSize VG/LV
+[FastPVs]</p>
+
+<p style="margin-left:11%; margin-top: 1em">or the longer
+variant</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;&minus;type cache &minus;&minus;size CacheDataSize \
+<br>
+&minus;&minus;name NameCachePool VG/LV [FastPVs]</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this
+command, the specified LV already exists, and is the main LV
+to be cached. The command creates a new cache pool with size
+and given name or the name is automatically selected from a
+sequence lvolX_cpool, using the optionally specified fast
+PV(s) (typically an ssd). Then it attaches the new cache
+pool to the existing main LV to begin caching.</p>
+
+<p style="margin-left:11%; margin-top: 1em">(Note: ensure
+that the specified main LV is a standard LV. If a cache pool
+LV is mistakenly specified, then the command does something
+different.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">(Note: the type
+option is interpreted differently by this command than by
+normal lvcreate commands in which &minus;&minus;type
+specifies the type of the newly created LV. In this case, an
+LV with type cache&minus;pool is being created, and the
+existing main LV is being converted to type cache.)</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvm.conf</b>(5),
+<b>lvchange</b>(8), <b>lvcreate</b>(8), <b>lvdisplay</b>(8),
+<b>lvextend</b>(8), <b>lvremove</b>(8), <b>lvrename</b>(8),
+<b>lvresize</b>(8), <b>lvs</b>(8), <b><br>
+vgchange</b>(8), <b>vgmerge</b>(8), <b>vgreduce</b>(8),
+<b>vgsplit</b>(8),</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>cache_check</b>(8),
+<b>cache_dump</b>(8), <b>cache_repair</b>(8)</p>
+<hr>
+</body>
+</html>

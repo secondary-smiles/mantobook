@@ -1,0 +1,402 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:15 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Alien::Build::Manual::AlienUser</title>
+
+</head>
+<body>
+<h1>Alien::Build::Manual::AlienUser</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Alien::Build::Manual::AlienUser
+&minus; Alien user documentation</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+2.80</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perldoc
+Alien::Build::Manual::AlienUser</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+is intended for a user of an Alien::Base based Alien
+module&rsquo;s user. Although specifically geared for
+Alien::Base subclasses, it may have some useful hints for
+Alien in general.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Full working
+examples of how to use an Alien module are also bundled with
+Alien::Build in the distribution&rsquo;s
+&quot;example/user&quot; directory. Those examples use
+Alien::xz, which uses alienfile + Alien::Build +
+Alien::Base.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+documentation will assume you are trying to use an Alien
+called &quot;Alien::Foo&quot; which provides the library
+&quot;libfoo&quot; and the command line tool
+&quot;foo&quot;. Many Aliens will only provide one or the
+other.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The best
+interface to use for using Alien::Base based aliens is
+Alien::Base::Wrapper. This allows you to combine multiple
+aliens together and handles a number of corner obscure
+corner cases that using Aliens directly does not. Also as of
+0.64, Alien::Base::Wrapper comes bundled with Alien::Build
+and Alien::Base anyway, so it is not an extra
+dependency.</p>
+
+<p style="margin-left:11%; margin-top: 1em">What follows
+are the main use cases.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ExtUtils::MakeMaker</b>
+<br>
+use ExtUtils::MakeMaker; <br>
+use Alien::Base::Wrapper (); <br>
+WriteMakefile( <br>
+
+Alien::Base::Wrapper&minus;&gt;new('Alien::Foo')&minus;&gt;mm_args2(
+<br>
+NAME =&gt; 'FOO::XS', <br>
+... <br>
+), <br>
+);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Alien::Base::Wrapper
+will take a hash of &quot;WriteMakefile&quot; arguments and
+insert the appropriate compiler and linker flags for you.
+This is recommended over doing this yourself as the exact
+incantation to get <small>EUMM</small> to work is tricky to
+get right.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;mm_args2&quot; method will also set your
+&quot;CONFIGURE_REQUIRES&quot; for Alien::Base::Wrapper,
+ExtUtils::MakeMaker and any aliens that you specify.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Module::Build</b>
+<br>
+use Module::Build; <br>
+use Alien::Base::Wrapper qw( Alien::Foo !export ); <br>
+use Alien::Foo; <br>
+my $build = Module::Build&minus;&gt;new( <br>
+... <br>
+configure_requires =&gt; { <br>
+'Alien::Base::Wrapper' =&gt; '0', <br>
+'Alien::Foo' =&gt; '0', <br>
+... <br>
+}, <br>
+Alien::Base::Wrapper&minus;&gt;mb_args, <br>
+... <br>
+); <br>
+$build&minus;&gt;create_build_script;</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+Module::Build you can also use Alien::Base::Wrapper, but you
+will have to specify the &quot;configure_requires&quot;
+yourself.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Inline::C /
+Inline::CPP</b> <br>
+use Inline 0.56 with =&gt; 'Alien::Foo';</p>
+
+<p style="margin-left:11%; margin-top: 1em">Inline::C and
+Inline::CPP can be configured to use an Alien::Base based
+Alien with the &quot;with&quot; keyword.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ExtUtils::Depends</b>
+<br>
+use ExtUtils::MakeMaker; <br>
+use ExtUtils::Depends; <br>
+my $pkg =
+ExtUtils::Depends&minus;&gt;new(&quot;Alien::Foo&quot;);
+<br>
+WriteMakefile( <br>
+... <br>
+$pkg&minus;&gt;get_makefile_vars, <br>
+... <br>
+);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">ExtUtils::Depends
+works similar to Alien::Base::Wrapper, but uses the Inline
+interface under the covers.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Dist::Zilla</b>
+<br>
+[@Filter] <br>
+&minus;bundle = @Basic <br>
+&minus;remove = MakeMaker <br>
+[Prereqs / ConfigureRequires] <br>
+Alien::Foo = 0 <br>
+[MakeMaker::Awesome] <br>
+header = use Alien::Base::Wrapper qw( Alien::Foo !export );
+<br>
+WriteMakefile_arg =
+Alien::Base::Wrapper&minus;&gt;mm_args</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>FFI::Platypus</b>
+<br>
+Requires &quot;Alien::Foo&quot; always:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+FFI::Platypus; <br>
+use Alien::Foo; <br>
+my $ffi = FFI::Platypus&minus;&gt;new( <br>
+lib =&gt; [ Alien::Foo&minus;&gt;dynamic_libs ], <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Use
+&quot;Alien::Foo&quot; in fallback mode:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+FFI::Platypus; <br>
+use FFI::CheckLib 0.28 qw( find_lib_or_die ); <br>
+use Alien::Foo; <br>
+my $ffi = FFI::Platypus&minus;&gt;new( <br>
+lib =&gt; [ find_lib_or_die lib =&gt; 'foo', alien =&gt;
+['Alien::Foo'] ], <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+going to always require an Alien you can just call
+&quot;dynamic_libs&quot; and pass it into
+FFI::Platypus&rsquo; lib method. You should consider using
+FFI::CheckLib to use the Alien in fallback mode instead.
+This way you only need to install the Alien if the system
+doesn&rsquo;t provide it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For fallback
+mode to work correctly you need to be using FFI::CheckLib
+0.28 or better.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Inline::C</b>
+<br>
+use Inline with =&gt; 'Alien::Foo'; <br>
+use Inline C =&gt; &lt;&lt;~'END'; <br>
+#include &lt;foo.h&gt; <br>
+const char *my_foo_wrapper() <br>
+{ <br>
+foo(); <br>
+} <br>
+END <br>
+sub exported_foo() <br>
+{ <br>
+my_foo_wrapper(); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>tool</b>
+<br>
+use Alien::Foo; <br>
+use Env qw( @PATH ); <br>
+unshift @PATH, Alien::Foo&minus;&gt;bin_dir; <br>
+system 'foo', '&minus;&minus;bar', '&minus;&minus;baz';</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some Aliens
+provide tools instead of or in addition to a library. You
+need to add them to the &quot;PATH&quot; environment
+variable though. (Unless the tool is already provided by the
+system, in which case it is already in the path and the
+&quot;bin_dir&quot; method will return an empty list).</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>ALIEN_INSTALL_TYPE</small></p>
+
+<p style="margin-left:17%;">Although the recommended way
+for a consumer to use an Alien::Base based Alien is to
+declare it as a static configure and build-time dependency,
+some consumers may prefer to fallback on using an Alien only
+when the consumer itself cannot detect the necessary
+package. In some cases the consumer may want the user to
+opt-in to using an Alien before requiring it.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To keep the
+interface consistent among Aliens, the consumer of the
+fallback opt-in Alien may fallback on the Alien if the
+environment variable &quot;ALIEN_INSTALL_TYPE&quot; is set
+to any value. The rationale is that by setting this
+environment variable the user is aware that Alien modules
+may be installed and have indicated consent. The actual
+implementation of this, by its nature would have to be in
+the consuming <small>CPAN</small> module.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This behavior
+should be documented in the consumer&rsquo;s
+<small>POD.</small></p>
+
+<p style="margin-left:17%; margin-top: 1em">See &quot;
+<small>ENVIRONMENT&quot;</small> in Alien::Build for more
+details on the usage of this environment variable.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Alien::Build::Manual</p>
+
+<p style="margin-left:17%;">Other Alien::Build manuals.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Author: Graham
+Ollis &lt;plicease@cpan.org&gt;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Contributors:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Diab Jerius (
+<small>DJERIUS</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Roy Storey (
+<small>KIWIROY</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ilya Pavlov</p>
+
+<p style="margin-left:11%; margin-top: 1em">David Mertens
+(run4flat)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Mark Nunberg
+(mordy, mnunberg)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Christian Walde
+(Mithaldu)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Brian Wightman
+(MidLifeXis)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Zaki Mughal
+(zmughal)</p>
+
+<p style="margin-left:11%; margin-top: 1em">mohawk
+(mohawk2, <small>ETJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Vikas N Kumar
+(vikasnkumar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Flavio Poletti
+(polettix)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Salvador
+Fandi&Atilde;&plusmn;o (salva)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Gianni
+Ceccarelli (dakkar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Pavel Shaydo
+(zwon, trinitum)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Kang-min Liu
+(&aring;&aring;&ordm;&middot;&aelig;&deg;, gugod)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Nicholas Shipp
+(nshp)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Juan
+Juli&Atilde;&iexcl;n Merelo Guerv&Atilde;&sup3;s (
+<small>JJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Joel Berger (
+<small>JBERGER</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Petr
+P&Atilde;sa&Aring; (ppisar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Lance Wicks (
+<small>LANCEW</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ahmad Fatoum
+(a3f, <small>ATHREEF</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jos&Atilde;&copy;
+Joaqu&Atilde;n Atria ( <small>JJATRIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Duke Leto (
+<small>LETO</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shoichi Kaji (
+<small>SKAJI</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shawn Laffan (
+<small>SLAFFAN</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Paul Evans
+(leonerd, <small>PEVANS</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">H&Atilde;&yen;kon
+H&Atilde;&brvbar;gland (hakonhagland, <small>HAKONH</small>
+)</p>
+
+<p style="margin-left:11%; margin-top: 1em">nick
+nauwelaerts ( <small>INPHOBIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Florian
+Weimer</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2011&minus;2022 by Graham Ollis.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+<hr>
+</body>
+</html>

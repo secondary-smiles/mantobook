@@ -1,0 +1,328 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:50 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Eval::Closure</title>
+
+</head>
+<body>
+<h1>Eval::Closure</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Eval::Closure
+&minus; safely and cleanly create closures via string
+eval</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+0.14</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Eval::Closure; <br>
+my $code = eval_closure( <br>
+source =&gt; 'sub { $foo++ }', <br>
+environment =&gt; { <br>
+'$foo' =&gt; \1, <br>
+}, <br>
+); <br>
+warn $code&minus;&gt;(); # 1 <br>
+warn $code&minus;&gt;(); # 2 <br>
+my $code2 = eval_closure( <br>
+source =&gt; 'sub { $code&minus;&gt;() }', <br>
+); # dies, $code isn't in scope</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">String eval is
+often used for dynamic code generation. For instance,
+&quot;Moose&quot; uses it heavily, to generate inlined
+versions of accessors and constructors, which speeds code up
+at runtime by a significant amount. String eval is not
+without its issues however &minus; it&rsquo;s difficult to
+control the scope it&rsquo;s used in (which determines which
+variables are in scope inside the eval), and it&rsquo;s easy
+to miss compilation errors, since eval catches them and
+sticks them in $@ instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This module
+attempts to solve these problems. It provides an
+&quot;eval_closure&quot; function, which evals a string in a
+clean environment, other than a fixed list of specified
+variables. Compilation errors are rethrown
+automatically.</p>
+
+<h2>FUNCTIONS
+<a name="FUNCTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>eval_closure(%args)</b>
+<br>
+This function provides the main functionality of this
+module. It is exported by default. It takes a hash of
+parameters, with these keys being valid: <br>
+source</p>
+
+<p style="margin-left:17%;">The string to be evaled. It
+should end by returning a code reference. It can access any
+variable declared in the &quot;environment&quot; parameter
+(and only those variables). It can be either a string, or an
+arrayref of lines (which will be joined with newlines to
+produce the string).</p>
+
+<p style="margin-left:11%;">environment</p>
+
+<p style="margin-left:17%;">The environment to provide to
+the eval. This should be a hashref, mapping variable names
+(including sigils) to references of the appropriate type.
+For instance, a valid value for environment would be &quot;{
+'@foo' =&gt; [] }&quot; (which would allow the generated
+function to use an array named @foo). Generally, this is
+used to allow the generated function to access externally
+defined variables (so you would pass in a reference to a
+variable that already exists).</p>
+
+<p style="margin-left:17%; margin-top: 1em">In perl 5.18
+and greater, the environment hash can contain variables with
+a sigil of &quot;&amp;&quot;. This will create a lexical sub
+in the evaluated code (see &quot;The
+&rsquo;lexical_subs&rsquo; feature&quot; in feature). Using
+a &quot;&amp;&quot; sigil on perl versions before lexical
+subs were available will throw an error.</p>
+
+<p style="margin-left:11%;">alias</p>
+
+<p style="margin-left:17%;">If set to true, the coderef
+returned closes over the variables referenced in the
+environment hashref. (This feature requires
+Devel::LexAlias.) If set to false, the coderef closes over a
+<i>shallow copy</i> of the variables.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If this
+argument is omitted, Eval::Closure will currently assume
+false, but this assumption may change in a future
+version.</p>
+
+<p style="margin-left:11%;">description</p>
+
+<p style="margin-left:17%;">This lets you provide a bit
+more information in backtraces. Normally, when a function
+that was generated through string eval is called, that stack
+frame will show up as &quot;(eval n)&quot;, where
+&rsquo;n&rsquo; is a sequential identifier for every string
+eval that has happened so far in the program. Passing a
+&quot;description&quot; parameter lets you override that to
+something more useful (for instance, Moose overrides the
+description for accessors to something like &quot;accessor
+foo at MyClass.pm, line 123&quot;).</p>
+
+<p style="margin-left:11%;">line</p>
+
+<p style="margin-left:17%;">This lets you override the
+particular line number that appears in backtraces, much like
+the &quot;description&quot; option. The default is 1.</p>
+
+<p style="margin-left:11%;">terse_error</p>
+
+<p style="margin-left:17%;">Normally, this function appends
+the source code that failed to compile, and prepends some
+explanatory text. Setting this option to true suppresses
+that behavior so you get only the compilation error that
+Perl actually reported.</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">No known
+bugs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Please report
+any bugs to GitHub Issues at
+&lt;https://github.com/doy/eval&minus;closure/issues&gt;.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="43%">
+
+
+
+<p style="margin-top: 1em">Class::MOP::Method::Accessor</p> </td>
+<td width="40%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This module is
+a factoring out of code that used to live here</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">You can find
+this documentation for this module with the perldoc
+command.</p>
+
+<p style="margin-left:11%; margin-top: 1em">perldoc
+Eval::Closure</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+look for information at:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="12%">
+
+
+<p style="margin-top: 1em">MetaCPAN</p></td>
+<td width="71%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em">&lt;https://metacpan.org/release/Eval&minus;Closure&gt;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">Github</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em">&lt;https://github.com/doy/eval&minus;closure&gt;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="40%">
+
+
+<p style="margin-top: 1em"><small>RT: CPAN</small> &rsquo;s
+request tracker</p></td>
+<td width="43%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em">&lt;http://rt.cpan.org/NoAuth/Bugs.html?Dist=Eval&minus;Closure&gt;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="18%">
+
+
+<p style="margin-top: 1em"><small>CPAN</small> Ratings</p></td>
+<td width="65%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em">&lt;http://cpanratings.perl.org/d/Eval&minus;Closure&gt;</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Based on code
+from Class::MOP::Method::Accessor, by Stevan Little and the
+Moose Cabal.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jesse Luehrs
+&lt;doy@tozt.net&gt;</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2016 by Jesse Luehrs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:02 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>seccomp_notify_alloc</title>
+
+</head>
+<body>
+<h1>seccomp_notify_receive</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">seccomp_notify_alloc,
+seccomp_notify_free, seccomp_notify_receive,
+seccomp_notify_respond, seccomp_notify_id_valid,
+seccomp_notify_fd &minus; Manage seccomp notifications</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;seccomp.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+seccomp_notify_alloc(struct seccomp_notif
+**</b><i>req</i><b>, struct seccomp_notif_resp
+**</b><i>resp</i><b>) <br>
+void seccomp_notify_free(struct seccomp_notif
+*</b><i>req</i><b>, struct seccomp_notif_resp
+*</b><i>resp</i><b>) <br>
+int seccomp_notify_receive(int</b> <i>fd</i><b>, struct
+seccomp_notif *</b><i>req</i><b>) <br>
+int seccomp_notify_respond(int</b> <i>fd</i><b>, struct
+seccomp_notif_resp *</b><i>resp</i><b>) <br>
+int seccomp_notify_id_valid(int</b> <i>fd</i><b>,
+uint64_t</b> <i>id</i><b>) <br>
+int seccomp_notify_fd(const scmp_filter_ctx</b>
+<i>ctx</i><b>)</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Link with
+<i>&minus;lseccomp</i>.</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>seccomp_notify_alloc</b>() function dynamically allocates
+enough memory for a seccomp notification and response. Note
+that one should always use these functions and not depend on
+the structure sizes in headers, since the size can vary
+depending on the kernel version. This function takes care to
+ask the kernel how big each structure should be, and
+allocates the right amount of memory. The
+<b>seccomp_notify_free</b>() function frees memory allocated
+by <b>seccomp_notify_alloc</b>().</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>seccomp_notify_receive</b>() function receives a
+notification from a seccomp notify fd (obtained from
+<b>seccomp_notify_fd</b>()).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>seccomp_notify_respond</b>() function sends a response to
+a particular notification. The id field should be the same
+as the id from the request, so that the kernel knows which
+request this response corresponds to.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>seccomp_notify_id_valid</b>() function checks to see if
+the syscall from a particular notification request is still
+valid, i.e. if the task is still alive. See NOTES below for
+details on race conditions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>seccomp_notify_fd</b>() returns the notification fd of a
+filter after it has been loaded.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>seccomp_notify_fd</b>() returns the notification fd of
+the loaded filter, -1 if a notification fd has not yet been
+created, and -EINVAL if the filter context is invalid.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>seccomp_notify_id_valid</b>() returns 0 if the id is
+valid, and -ENOENT if it is not.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>seccomp_notify_alloc</b>(),
+<b>seccomp_notify_receive</b>(), and
+<b>seccomp_notify_respond</b>() functions return zero on
+success, or one of the following error codes on failure:
+<b><br>
+-ECANCELED</b></p>
+
+<p style="margin-left:22%;">There was a system failure
+beyond the control of the library, check the <i>errno</i>
+value for more information.</p>
+
+<p style="margin-left:11%;"><b>-EFAULT</b></p>
+
+<p style="margin-left:22%;">Internal libseccomp
+failure.</p>
+
+<p style="margin-left:11%;"><b>-ENOMEM</b></p>
+
+<p style="margin-left:22%;">The library was unable to
+allocate enough memory.</p>
+
+<p style="margin-left:11%;"><b>-EOPNOTSUPP</b></p>
+
+<p style="margin-left:22%;">The library doesn&rsquo;t
+support the particular operation.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Care should be
+taken to avoid two different time of check/time of use
+errors. First, after opening any resources relevant to the
+pid for a notification (e.g. /proc/pid/mem for reading
+tracee memory to make policy decisions), applications should
+call <b>seccomp_notify_id_valid</b>() to make sure that the
+resources the application has opened correspond to the right
+pid, i.e. that the pid didn&rsquo;t die and a different task
+take its place.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Second, the
+classic time of check/time of use issue with seccomp memory
+should also be avoided: applications should copy any memory
+they wish to use to make decisions from the tracee into its
+own address space before applying any policy decisions,
+since a multi-threaded tracee may edit the memory at any
+time, including after it&rsquo;s used to make a policy
+decision.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A complete
+example of how to avoid these two races is available in the
+Linux Kernel source tree at
+<b>/samples/seccomp/user-trap.c.</b></p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Tycho Andersen
+&lt;tycho@tycho.ws&gt;</p>
+<hr>
+</body>
+</html>

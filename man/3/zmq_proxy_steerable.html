@@ -1,0 +1,209 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:48 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>ZMQ_PROXY_STEERABLE</title>
+
+</head>
+<body>
+<h1>zmq_proxy_steerable</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">zmq_proxy_steerable
+&minus; built&minus;in 0MQ proxy with control flow</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+zmq_proxy_steerable (const void</b> <i>*frontend</i><b>,
+const void</b> <i>*backend</i><b>, const void</b>
+<i>*capture</i><b>, const void</b>
+<i>*control</i><b>);</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>zmq_proxy_steerable()</i> function starts the
+built&minus;in 0MQ proxy in the current application thread,
+as <i>zmq_proxy()</i> do. Please, refer to this function for
+the general description and usage. We describe here only the
+additional control flow provided by the socket passed as the
+fourth argument &quot;control&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the control
+socket is not NULL, the proxy supports control flow. If
+<i>PAUSE</i> is received on this socket, the proxy suspends
+its activities. If <i>RESUME</i> is received, it goes on. If
+<i>TERMINATE</i> is received, it terminates smoothly. If
+<i>STATISTICS</i> is received, the proxy will reply on the
+control socket sending a multipart message with 8 frames,
+each with an unsigned integer 64&minus;bit wide that provide
+in the following order: &minus; number of messages received
+by the frontend socket &minus; number of bytes received by
+the frontend socket &minus; number of messages sent out the
+frontend socket &minus; number of bytes sent out the
+frontend socket &minus; number of messages received by the
+backend socket &minus; number of bytes received by the
+backend socket &minus; number of messages sent out the
+backend socket &minus; number of bytes sent out the backend
+socket</p>
+
+<p style="margin-left:11%; margin-top: 1em">At start, the
+proxy runs normally as if zmq_proxy was used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the control
+socket is NULL, the function behave exactly as if
+<b>zmq_proxy</b>(3) had been called.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Refer to
+<b>zmq_socket</b>(3) for a description of the available
+socket types. Refer to <b>zmq_proxy</b>(3) for a description
+of the zmq_proxy.</p>
+
+<h2>EXAMPLE USAGE
+<a name="EXAMPLE USAGE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">cf
+zmq_proxy</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>zmq_proxy_steerable()</i> function returns 0 if TERMINATE
+is sent to its control socket. Otherwise, it returns
+&minus;1 and <i>errno</i> set to <b>ETERM</b> or
+<b>EINTR</b> (the 0MQ <i>context</i> associated with either
+of the specified sockets was terminated) or <b>EFAULT</b>
+(the provided <i>frontend</i> or <i>backend</i> was
+invalid).</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Creating a
+shared queue proxy</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">// Create
+frontend, backend and control sockets <br>
+void *frontend = zmq_socket (context, ZMQ_ROUTER); <br>
+assert (frontend); <br>
+void *backend = zmq_socket (context, ZMQ_DEALER); <br>
+assert (backend); <br>
+void *control = zmq_socket (context, ZMQ_SUB); <br>
+assert (control);</p>
+
+<p style="margin-left:17%; margin-top: 1em">// Bind sockets
+to TCP ports <br>
+assert (zmq_bind (frontend, &quot;tcp://*:5555&quot;) == 0);
+<br>
+assert (zmq_bind (backend, &quot;tcp://*:5556&quot;) == 0);
+<br>
+assert (zmq_connect (control, &quot;tcp://*:5557&quot;) ==
+0);</p>
+
+<p style="margin-left:17%; margin-top: 1em">// Subscribe to
+the control socket since we have chosen SUB here <br>
+assert (zmq_setsockopt (control, ZMQ_SUBSCRIBE,
+&quot;&quot;, 0));</p>
+
+<p style="margin-left:17%; margin-top: 1em">// Start the
+queue proxy, which runs until ETERM or &quot;TERMINATE&quot;
+<br>
+// received on the control socket <br>
+zmq_proxy_steerable (frontend, backend, NULL, control);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Set up a
+controller in another node, process or whatever</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">void *control =
+zmq_socket (context, ZMQ_PUB); <br>
+assert (control); <br>
+assert (zmq_bind (control, &quot;tcp://*:5557&quot;) ==
+0);</p>
+
+<p style="margin-left:17%; margin-top: 1em">// pause the
+proxy <br>
+assert (zmq_send (control, &quot;PAUSE&quot;, 5, 0) ==
+0);</p>
+
+<p style="margin-left:17%; margin-top: 1em">// resume the
+proxy <br>
+assert (zmq_send (control, &quot;RESUME&quot;, 6, 0) ==
+0);</p>
+
+<p style="margin-left:17%; margin-top: 1em">// terminate
+the proxy <br>
+assert (zmq_send (control, &quot;TERMINATE&quot;, 9, 0) ==
+0);</p>
+
+<p style="margin-left:17%; margin-top: 1em">// check
+statistics <br>
+assert (zmq_send (control, &quot;STATISTICS&quot;, 10, 0) ==
+0); <br>
+zmq_msg_t stats_msg;</p>
+
+<p style="margin-left:17%; margin-top: 1em">while (1) {
+<br>
+assert (zmq_msg_init (&amp;stats_msg) == 0); <br>
+assert (zmq_recvmsg (control, &amp;stats_msg, 0) == sizeof
+(uint64_t)); <br>
+assert (rc == sizeof (uint64_t)); <br>
+printf (&quot;Stat: %lu\n&quot;, *(unsigned long int
+*)zmq_msg_data (&amp;stats_msg)); <br>
+if (!zmq_msg_get (&amp;stats_msg, ZMQ_MORE)) <br>
+break; <br>
+assert (zmq_msg_close (&amp;stats_msg) == 0); <br>
+} <br>
+assert (zmq_msg_close (&amp;stats_msg) == 0); <br>
+&minus;&minus;&minus;</p>
+
+<p style="margin-left:17%; margin-top: 1em">SEE ALSO</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>zmq_proxy</b>(3)
+<b>zmq_bind</b>(3) <b>zmq_connect</b>(3)
+<b>zmq_socket</b>(3) <b>zmq</b>(7)</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This page was
+written by the 0MQ community. To make a change please read
+the 0MQ Contribution Policy at
+<b><font color="#0000FF">http://www.zeromq.org/docs:contributing</font></b><font color="#000000">.</font></p>
+<hr>
+</body>
+</html>

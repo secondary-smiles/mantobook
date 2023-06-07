@@ -1,0 +1,213 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:43 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>BTOOL_FAQ</title>
+
+</head>
+<body>
+<h1>btool_faq</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">btool_faq
+&minus; Frequently&minus;Asked Questions about btparse and
+Text::BibTeX</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+attempts to address questions that I have been asked several
+times, and are easy to answer -- but not by perusing the
+documentation. For various reasons, the answers tend to be
+thinly distributed across several man pages, making it
+difficult to figure out what&rsquo;s going on. Hence, this
+man page will attempt to tie together various strands of
+thought, providing quick, focused, &quot;How do I do
+X?&quot; answers as opposed to lengthy descriptions of the
+capabilities and conventions of the btOOL libraries.</p>
+
+<h2>PERL LIBRARY
+<a name="PERL LIBRARY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This section
+covers questions that users of &quot;Text::BibTeX&quot;, the
+Perl component of <b>btOOL</b>, have asked.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Why
+aren&rsquo;t the BibTeX &quot;month&quot; macros
+defined?</b> <br>
+Because they&rsquo;re bibliography-specific, and
+&quot;Text::BibTeX&quot; by default doesn&rsquo;t impose any
+assumptions about a particular type of database or
+data-processing domain on your entries. The problem arises
+when you parse entries from a file, say <i>foo.bib</i> that
+quite sensibly use the month macros (&quot;jan&quot;,
+&quot;feb&quot;, etc.) provided by the BibTeX standard style
+files:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$bibfile =
+Text::BibTeX::File&minus;&gt;new('foo.bib') # open file <br>
+or die &quot;foo.bib: $!\n&quot;; <br>
+$entry = Text::BibTeX::Entry&minus;&gt;new($bibfile); #
+parse first entry</p>
+
+<p style="margin-left:11%; margin-top: 1em">Using this
+code, you might get an &quot;undefined macro&quot; warning
+for every entry parsed from <i>foo.bib</i>. Apart from the
+superficial annoyance of all those warning messages, the
+undefined macros are expanded as empty strings, meaning you
+lose any information about them&minus;&minus;&minus;not
+good.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You could
+always kludge it and forcibly define the month macros
+yourself. Prior to release 0.30, this had to be done by
+parsing a set of fake entries, but now
+&quot;Text::BibTeX&quot; provides a direct interface to the
+underlying macro table. You <i>could</i> just do this before
+parsing any entries:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Text::BibTeX qw(:macrosubs); <br>
+# ... <br>
+my %month = (jan =&gt; 'January', feb =&gt; 'February', ...
+); <br>
+add_macro_text ($macro, $value) <br>
+while (($macro, $value) = each %month);</p>
+
+<p style="margin-left:11%; margin-top: 1em">But
+there&rsquo;s a better way that&rsquo;s more in keeping with
+how things are done under BibTeX (where default macros are
+defined in the style file): use
+&quot;Text::BibTeX&quot;&rsquo;s object-oriented analogue to
+style files, called structure modules.
+&quot;Text::BibTeX&quot; provides a structure module,
+&quot;Text::BibTeX::Bib&quot;, that (partially) emulates the
+standard style files of BibTeX 0.99, including the
+definition of month macros. Structure modules are specified
+on a per-file basis by using the &quot;set_structure&quot;
+method on a &quot;Text::BibTeX::File&quot; object.
+It&rsquo;s quite simple to tell &quot;Text::BibTeX&quot;
+that entries from $bibfile are expected to conform to the
+&quot;Bib&quot; structure (which is implemented by the
+&quot;Text::BibTeX::Bib&quot; module, but you don&rsquo;t
+really need to know that):</p>
+
+<p style="margin-left:11%; margin-top: 1em">$bibfile =
+Text::BibTeX::File&minus;&gt;new('foo.bib') <br>
+or die &quot;foo.bib: $!\n&quot;; <br>
+$bibfile&minus;&gt;set_structure ('Bib');</p>
+
+<p style="margin-left:11%; margin-top: 1em">You probably
+shouldn&rsquo;t hardcode the name of a particular structure
+in your programs, though, as there will eventually be a
+multitude of structure modules to choose from (just as there
+are a multitude of BibTeX style files to choose from). My
+preferred approach is to make the structure a command-line
+option which defaults to &quot;Bib&quot; (since that&rsquo;s
+the only structure actually implemented as of this
+writing).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I
+append to a BibTeX file?</b> <br>
+Just open it in append mode, and write entries to it as
+usual. Remember, a &quot;Text::BibTeX::File&quot; object is
+mainly a wrapper around an &quot;IO::File&quot; object, and
+the &quot;Text::BibTeX::File::open&quot; method (and thus
+&quot;new&quot; as well) is just a front-end to
+&quot;IO::File::open&quot;. &quot;IO::File::open&quot;, in
+turn, is a front-end either to Perl&rsquo;s builtin
+&quot;open&quot; (if called with one argument) or
+&quot;sysopen&quot; (two or three arguments). To save you
+the trouble of going off and reading all those man pages,
+here&rsquo;s the trick: if you pass just a filename to
+&quot;Text::BibTeX::File&quot;&rsquo;s &quot;new&quot;
+method, then it&rsquo;s treated just like a filename passed
+to Perl&rsquo;s builtin &quot;open&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $append_file
+=
+Text::BibTeX::File&minus;&gt;new(&quot;&gt;&gt;$filename&quot;)
+<br>
+or die &quot;couldn't open $filename for appending:
+$!\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">opens $filename
+for appending. If, later on, you have an entry from another
+file (say $entry), then you can append it to $append_file by
+just writing it as usual:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$entry&minus;&gt;write
+($append_file);</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+&quot;append_entries&quot; in the <i>examples/</i>
+subdirectory of the &quot;Text::BibTeX&quot; distribution
+for a complete example.</p>
+
+<h2>C LIBRARY
+<a name="C LIBRARY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This section
+covers frequently-asked questions about <b>btparse</b>, the
+C component of <b>btOOL</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Is there a
+Python binding for btparse yet?</b> <br>
+Not that I know of. I haven&rsquo;t written one. If you do
+so, please let me know about it.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">btparse,
+Text::BibTeX</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Greg Ward
+&lt;gward@python.net&gt;</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (c)
+1997&minus;2000 by Gregory P. Ward. All rights reserved.
+This file is part of the Text::BibTeX library. This library
+is free software; you may redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+<hr>
+</body>
+</html>

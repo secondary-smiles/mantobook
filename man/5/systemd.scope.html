@@ -1,0 +1,279 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:55 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SYSTEMD.SCOPE</title>
+
+</head>
+<body>
+<h1>systemd.scope</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd.scope
+&minus; Scope unit configuration</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>scope</i>.scope</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Scope units are
+not configured via unit configuration files, but are only
+created programmatically using the bus interfaces of
+systemd. They are named similar to filenames. A unit whose
+name ends in &quot;.scope&quot; refers to a scope unit.
+Scopes units manage a set of system processes. Unlike
+service units, scope units manage externally created
+processes, and do not fork off processes on its own.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The main
+purpose of scope units is grouping worker processes of a
+system service for organization and for managing
+resources.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd&minus;run
+&minus;&minus;scope</b> may be used to easily launch a
+command in a new scope unit from the command line.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See the
+<b><font color="#0000FF">New Control Group
+Interfaces</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">for an introduction on how to make use
+of scope units from programs.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Note
+that, unlike service units, scope units have no
+&quot;main&quot; process: all processes in the scope are
+equivalent. The lifecycle of the scope unit is thus not
+bound to the lifetime of one specific process, but to the
+existence of at least one process in the scope. This also
+means that the exit statuses of these processes are not
+relevant for the scope unit failure state. Scope units may
+still enter a failure state, for example due to resource
+exhaustion or stop timeouts being reached, but not due to
+programs inside of them terminating uncleanly. Since
+processes managed as scope units generally remain children
+of the original process that forked them off, it is also the
+job of that process to collect their exit statuses and act
+on them as needed.</font></p>
+
+<h2>AUTOMATIC DEPENDENCIES
+<a name="AUTOMATIC DEPENDENCIES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Implicit
+Dependencies</b> <br>
+Implicit dependencies may be added as result of resource
+control parameters as documented in
+<b>systemd.resource-control</b>(5).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Default
+Dependencies</b> <br>
+The following dependencies are added unless
+<i>DefaultDependencies=no</i> is set:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Scope units will automatically have dependencies of type
+<i>Conflicts=</i> and <i>Before=</i> on shutdown.target.
+These ensure that scope units are removed prior to system
+shutdown. Only scope units involved with early boot or late
+system shutdown should disable <i>DefaultDependencies=</i>
+option.</font></p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Scope
+files may include a [Unit] section, which is described in
+<b>systemd.unit</b>(5).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Scope
+files may include a [Scope] section, which carries
+information about the scope and the units it contains. A
+number of options that may be used in this section are
+shared with other unit types. These options are documented
+in <b>systemd.kill</b>(5) and
+<b>systemd.resource-control</b>(5). The options specific to
+the [Scope] section of scope units are the
+following:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>OOMPolicy=</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configure
+the out&minus;of&minus;memory (OOM) killing policy for the
+kernel and the userspace OOM killer
+<b>systemd-oomd.service</b>(8). On Linux, when memory
+becomes scarce to the point that the kernel has trouble
+allocating memory for itself, it might decide to kill a
+running process in order to free up memory and reduce memory
+pressure. Note that systemd&minus;oomd.service is a more
+flexible solution that aims to prevent
+out&minus;of&minus;memory situations for the userspace too,
+not just the kernel, by attempting to terminate services
+earlier, before the kernel would have to act.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">This
+setting takes one of <b>continue</b>, <b>stop</b> or
+<b>kill</b>. If set to <b>continue</b> and a process in the
+unit is killed by the OOM killer, this is logged but the
+unit continues running. If set to <b>stop</b> the event is
+logged but the unit is terminated cleanly by the service
+manager. If set to <b>kill</b> and one of the unit's
+processes is killed by the OOM killer the kernel is
+instructed to kill all remaining processes of the unit too,
+by setting the memory.oom.group attribute to <b>1</b>; also
+see</font> <b><font color="#0000FF">kernel
+documentation</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Defaults
+to the setting <i>DefaultOOMPolicy=</i> in
+<b>systemd-system.conf</b>(5) is set to, except for units
+where <i>Delegate=</i> is turned on, where it defaults to
+<b>continue</b>.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Use
+the <i>OOMScoreAdjust=</i> setting to configure whether
+processes of the unit shall be considered preferred or less
+preferred candidates for process termination by the Linux
+OOM killer logic. See <b>systemd.exec</b>(5) for
+details.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">This
+setting also applies to <b>systemd&minus;oomd</b>. Similarly
+to the kernel OOM kills, this setting determines the state
+of the unit after <b>systemd&minus;oomd</b> kills a cgroup
+associated with it.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>RuntimeMaxSec=</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configures
+a maximum time for the scope to run. If this is used and the
+scope has been active for longer than the specified time it
+is terminated and put into a failure state. Pass
+&quot;infinity&quot; (the default) to configure no runtime
+limit.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>RuntimeRandomizedExtraSec=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This
+option modifies <i>RuntimeMaxSec=</i> by increasing the
+maximum runtime by an evenly distributed duration between 0
+and the specified value (in seconds). If
+<i>RuntimeMaxSec=</i> is unspecified, then this feature will
+be disabled.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Check
+<b>systemd.unit</b>(5), <b>systemd.exec</b>(5), and
+<b>systemd.kill</b>(5) for more settings.</font></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>systemd</b>(1),
+<b>systemd-run</b>(1), <b>systemd.unit</b>(5),
+<b>systemd.resource-control</b>(5),
+<b>systemd.service</b>(5),
+<b>systemd.directives</b>(7).</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="43%">
+
+
+<p style="margin-top: 1em"><font color="#000000">New
+Control Group Interfaces</font></p></td>
+<td width="40%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://www.freedesktop.org/wiki/Software/systemd/ControlGroupInterface</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">2.</font></p> </td>
+<td width="2%"></td>
+<td width="31%">
+
+
+<p style="margin-top: 1em"><font color="#000000">kernel
+documentation</font></p> </td>
+<td width="52%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://docs.kernel.org/admin-guide/cgroup-v2.html</font></p>
+<hr>
+</body>
+</html>

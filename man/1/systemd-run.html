@@ -1,0 +1,705 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:02 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SYSTEMD&minus;RUN</title>
+
+</head>
+<body>
+<h1>systemd-run</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd-run
+&minus; Run programs in transient scope units, service
+units, or path&minus;, socket&minus;, or
+timer&minus;triggered service units</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;run</b>
+[OPTIONS...] <i>COMMAND&nbsp;</i>[ARGS...]</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;run</b>
+[OPTIONS...] [PATH&nbsp;OPTIONS...] {<i>COMMAND</i>}
+[ARGS...]</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;run</b>
+[OPTIONS...] [SOCKET&nbsp;OPTIONS...] {<i>COMMAND</i>}
+[ARGS...]</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;run</b>
+[OPTIONS...] [TIMER&nbsp;OPTIONS...] {<i>COMMAND</i>}
+[ARGS...]</p> </td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd&minus;run</b>
+may be used to create and start a transient .service or
+.scope unit and run the specified <i>COMMAND</i> in it. It
+may also be used to create and start a transient .path,
+.socket, or .timer unit, that activates a .service unit when
+elapsing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a command is
+run as transient service unit, it will be started and
+managed by the service manager like any other service, and
+thus shows up in the output of <b>systemctl
+list&minus;units</b> like any other unit. It will run in a
+clean and detached execution environment, with the service
+manager as its parent process. In this mode,
+<b>systemd&minus;run</b> will start the service
+asynchronously in the background and return after the
+command has begun execution (unless
+<b>&minus;&minus;no&minus;block</b> or
+<b>&minus;&minus;wait</b> are specified, see below).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a command is
+run as transient scope unit, it will be executed by
+<b>systemd&minus;run</b> itself as parent process and will
+thus inherit the execution environment of the caller.
+However, the processes of the command are managed by the
+service manager similarly to normal services, and will show
+up in the output of <b>systemctl list&minus;units</b>.
+Execution in this case is synchronous, and will return only
+when the command finishes. This mode is enabled via the
+<b>&minus;&minus;scope</b> switch (see below).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a command is
+run with path, socket, or timer options such as
+<b>&minus;&minus;on&minus;calendar=</b> (see below), a
+transient path, socket, or timer unit is created alongside
+the service unit for the specified command. Only the
+transient path, socket, or timer unit is started
+immediately, the transient service unit will be triggered by
+the path, socket, or timer unit. If the
+<b>&minus;&minus;unit=</b> option is specified, the
+<i>COMMAND</i> may be omitted. In this case,
+<b>systemd&minus;run</b> creates only a .path, .socket, or
+.timer unit that triggers the specified unit.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default,
+services created with <b>systemd&minus;run</b> default to
+the <b>simple</b> type, see the description of <i>Type=</i>
+in <b>systemd.service</b>(5) for details. Note that when
+this type is used, the service manager (and thus the
+<b>systemd&minus;run</b> command) considers service
+start&minus;up successful as soon as the <b>fork()</b> for
+the main service process succeeded, i.e. before the
+<b>execve()</b> is invoked, and thus even if the specified
+command cannot be started. Consider using the <b>exec</b>
+service type (i.e. <b>&minus;&minus;property=Type=exec</b>)
+to ensure that <b>systemd&minus;run</b> returns successfully
+only if the specified command line has been successfully
+started.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+options are understood:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;no&minus;ask&minus;password</b></p>
+
+<p style="margin-left:17%;">Do not query the user for
+authentication for privileged operations.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;scope</b></p>
+
+<p style="margin-left:17%;">Create a transient .scope unit
+instead of the default transient .service unit (see
+above).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;unit=</b>,
+<b>&minus;u</b></p>
+
+<p style="margin-left:17%;">Use this unit name instead of
+an automatically generated one.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;property=</b>,
+<b>&minus;p</b></p>
+
+<p style="margin-left:17%;">Sets a property on the scope or
+service unit that is created. This option takes an
+assignment in the same format as <b>systemctl</b>(1)'s
+<b>set&minus;property</b> command.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;description=</b></p>
+
+<p style="margin-left:17%;">Provide a description for the
+service, scope, path, socket, or timer unit. If not
+specified, the command itself will be used as a description.
+See <i>Description=</i> in <b>systemd.unit</b>(5).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;slice=</b></p>
+
+<p style="margin-left:17%;">Make the new .service or .scope
+unit part of the specified slice, instead of system.slice
+(when running in <b>&minus;&minus;system</b> mode) or the
+root slice (when running in <b>&minus;&minus;user</b>
+mode).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;slice&minus;inherit</b></p>
+
+<p style="margin-left:17%;">Make the new .service or .scope
+unit part of the inherited slice. This option can be
+combined with <b>&minus;&minus;slice=</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">An inherited
+slice is located within <b>systemd&minus;run</b> slice.
+Example: if <b>systemd&minus;run</b> slice is foo.slice, and
+the <b>&minus;&minus;slice=</b> argument is bar, the unit
+will be placed under the foo&minus;bar.slice.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;r</b>,
+<b>&minus;&minus;remain&minus;after&minus;exit</b></p>
+
+<p style="margin-left:17%;">After the service process has
+terminated, keep the service around until it is explicitly
+stopped. This is useful to collect runtime information about
+the service after it finished running. Also see
+<i>RemainAfterExit=</i> in <b>systemd.service</b>(5).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;send&minus;sighup</b></p>
+
+<p style="margin-left:17%;">When terminating the scope or
+service unit, send a SIGHUP immediately after SIGTERM. This
+is useful to indicate to shells and shell&minus;like
+processes that the connection has been severed. Also see
+<i>SendSIGHUP=</i> in <b>systemd.kill</b>(5).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;service&minus;type=</b></p>
+
+<p style="margin-left:17%;">Sets the service type. Also see
+<i>Type=</i> in <b>systemd.service</b>(5). This option has
+no effect in conjunction with <b>&minus;&minus;scope</b>.
+Defaults to <b>simple</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;uid=</b>,
+<b>&minus;&minus;gid=</b></p>
+
+<p style="margin-left:17%;">Runs the service process under
+the specified UNIX user and group. Also see <i>User=</i> and
+<i>Group=</i> in <b>systemd.exec</b>(5).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;nice=</b></p>
+
+<p style="margin-left:17%;">Runs the service process with
+the specified nice level. Also see <i>Nice=</i> in
+<b>systemd.exec</b>(5).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;working&minus;directory=</b></p>
+
+<p style="margin-left:17%;">Runs the service process with
+the specified working directory. Also see
+<i>WorkingDirectory=</i> in <b>systemd.exec</b>(5).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;same&minus;dir</b>,
+<b>&minus;d</b></p>
+
+<p style="margin-left:17%;">Similar to
+<b>&minus;&minus;working&minus;directory=</b>, but uses the
+current working directory of the caller for the service to
+execute.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;E</b>
+<i>NAME</i><b>[=</b><i>VALUE</i><b>]</b>,
+<b>&minus;&minus;setenv=</b><i>NAME</i><b>[=</b><i>VALUE</i><b>]</b></p>
+
+<p style="margin-left:17%;">Runs the service process with
+the specified environment variable set. This parameter may
+be used more than once to set multiple variables. When
+&quot;=&quot; and <i>VALUE</i> are omitted, the value of the
+variable with the same name in the program environment will
+be used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Also see
+<i>Environment=</i> in <b>systemd.exec</b>(5).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;pty</b>,
+<b>&minus;t</b></p>
+
+<p style="margin-left:17%;">When invoking the command, the
+transient service connects its standard input, output and
+error to the terminal <b>systemd&minus;run</b> is invoked
+on, via a pseudo TTY device. This allows running programs
+that expect interactive user input/output as services, such
+as interactive command shells.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+<b>machinectl</b>(1)'s <b>shell</b> command is usually a
+better alternative for requesting a new, interactive login
+session on the local host or a local container.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See below for
+details on how this switch combines with
+<b>&minus;&minus;pipe</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;pipe</b>,
+<b>&minus;P</b></p>
+
+<p style="margin-left:17%;">If specified, standard input,
+output, and error of the transient service are inherited
+from the <b>systemd&minus;run</b> command itself. This
+allows <b>systemd&minus;run</b> to be used within shell
+pipelines. Note that this mode is not suitable for
+interactive command shells and similar, as the service
+process will not become a TTY controller when invoked on a
+terminal. Use <b>&minus;&minus;pty</b> instead in that
+case.</p>
+
+<p style="margin-left:17%; margin-top: 1em">When both
+<b>&minus;&minus;pipe</b> and <b>&minus;&minus;pty</b> are
+used in combination the more appropriate option is
+automatically determined and used. Specifically, when
+invoked with standard input, output and error connected to a
+TTY <b>&minus;&minus;pty</b> is used, and otherwise
+<b>&minus;&minus;pipe</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">When this
+option is used the original file descriptors
+<b>systemd&minus;run</b> receives are passed to the service
+processes as&minus;is. If the service runs with different
+privileges than <b>systemd&minus;run</b>, this means the
+service might not be able to re&minus;open the passed file
+descriptors, due to normal file descriptor access
+restrictions. If the invoked process is a shell script that
+uses the <b>echo &quot;hello&quot; &gt;/dev/stderr</b>
+construct for writing messages to stderr, this might cause
+problems, as this only works if stderr can be
+re&minus;opened. To mitigate this use the construct <b>echo
+&quot;hello&quot; &gt;&amp;2</b> instead, which is mostly
+equivalent and avoids this pitfall.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;shell</b>,
+<b>&minus;S</b></p>
+
+<p style="margin-left:17%;">A shortcut for
+&quot;&minus;&minus;pty &minus;&minus;same&minus;dir
+&minus;&minus;wait &minus;&minus;collect
+&minus;&minus;service&minus;type=exec $SHELL&quot;, i.e.
+requests an interactive shell in the current working
+directory, running in service context, accessible with a
+single switch.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;quiet</b>,
+<b>&minus;q</b></p>
+
+<p style="margin-left:17%;">Suppresses additional
+informational output while running. This is particularly
+useful in combination with <b>&minus;&minus;pty</b> when it
+will suppress the initial message explaining how to
+terminate the TTY connection.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;on&minus;active=</b>,
+<b>&minus;&minus;on&minus;boot=</b>,
+<b>&minus;&minus;on&minus;startup=</b>,
+<b>&minus;&minus;on&minus;unit&minus;active=</b>,
+<b>&minus;&minus;on&minus;unit&minus;inactive=</b></p>
+
+<p style="margin-left:17%;">Defines a monotonic timer
+relative to different starting points for starting the
+specified command. See <i>OnActiveSec=</i>,
+<i>OnBootSec=</i>, <i>OnStartupSec=</i>,
+<i>OnUnitActiveSec=</i> and <i>OnUnitInactiveSec=</i> in
+<b>systemd.timer</b>(5) for details. These options are
+shortcuts for <b>&minus;&minus;timer&minus;property=</b>
+with the relevant properties. These options may not be
+combined with <b>&minus;&minus;scope</b> or
+<b>&minus;&minus;pty</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;on&minus;calendar=</b></p>
+
+<p style="margin-left:17%;">Defines a calendar timer for
+starting the specified command. See <i>OnCalendar=</i> in
+<b>systemd.timer</b>(5). This option is a shortcut for
+<b>&minus;&minus;timer&minus;property=OnCalendar=</b>. This
+option may not be combined with <b>&minus;&minus;scope</b>
+or <b>&minus;&minus;pty</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;on&minus;clock&minus;change</b>,
+<b>&minus;&minus;on&minus;timezone&minus;change</b></p>
+
+<p style="margin-left:17%;">Defines a trigger based on
+system clock jumps or timezone changes for starting the
+specified command. See <i>OnClockChange=</i> and
+<i>OnTimezoneChange=</i> in <b>systemd.timer</b>(5). These
+options are shortcuts for
+<b>&minus;&minus;timer&minus;property=OnClockChange=yes</b>
+and
+<b>&minus;&minus;timer&minus;property=OnTimezoneChange=yes</b>.
+These options may not be combined with
+<b>&minus;&minus;scope</b> or <b>&minus;&minus;pty</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;path&minus;property=</b>,
+<b>&minus;&minus;socket&minus;property=</b>,
+<b>&minus;&minus;timer&minus;property=</b></p>
+
+<p style="margin-left:17%;">Sets a property on the path,
+socket, or timer unit that is created. This option is
+similar to <b>&minus;&minus;property=</b>, but applies to
+the transient path, socket, or timer unit rather than the
+transient service unit created. This option takes an
+assignment in the same format as <b>systemctl</b>(1)'s
+<b>set&minus;property</b> command. These options may not be
+combined with <b>&minus;&minus;scope</b> or
+<b>&minus;&minus;pty</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;no&minus;block</b></p>
+
+<p style="margin-left:17%;">Do not synchronously wait for
+the unit start operation to finish. If this option is not
+specified, the start request for the transient unit will be
+verified, enqueued and <b>systemd&minus;run</b> will wait
+until the unit's start&minus;up is completed. By passing
+this argument, it is only verified and enqueued. This option
+may not be combined with <b>&minus;&minus;wait</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;wait</b></p>
+
+<p style="margin-left:17%;">Synchronously wait for the
+transient service to terminate. If this option is specified,
+the start request for the transient unit is verified,
+enqueued, and waited for. Subsequently the invoked unit is
+monitored, and it is waited until it is deactivated again
+(most likely because the specified command completed). On
+exit, terse information about the unit's runtime is shown,
+including total runtime (as well as CPU usage, if
+<b>&minus;&minus;property=CPUAccounting=1</b> was set) and
+the exit code and status of the main process. This output
+may be suppressed with <b>&minus;&minus;quiet</b>. This
+option may not be combined with
+<b>&minus;&minus;no&minus;block</b>,
+<b>&minus;&minus;scope</b> or the various path, socket, or
+timer options.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;G</b>,
+<b>&minus;&minus;collect</b></p>
+
+<p style="margin-left:17%;">Unload the transient unit after
+it completed, even if it failed. Normally, without this
+option, all units that ran and failed are kept in memory
+until the user explicitly resets their failure state with
+<b>systemctl reset&minus;failed</b> or an equivalent
+command. On the other hand, units that ran successfully are
+unloaded immediately. If this option is turned on the
+&quot;garbage collection&quot; of units is more aggressive,
+and unloads units regardless if they exited successfully or
+failed. This option is a shortcut for
+<b>&minus;&minus;property=CollectMode=inactive&minus;or&minus;failed</b>,
+see the explanation for <i>CollectMode=</i> in
+<b>systemd.unit</b>(5) for further information.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;user</b></p>
+
+<p style="margin-left:17%;">Talk to the service manager of
+the calling user, rather than the service manager of the
+system.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;system</b></p>
+
+<p style="margin-left:17%;">Talk to the service manager of
+the system. This is the implied default.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;H</b>,
+<b>&minus;&minus;host=</b></p>
+
+<p style="margin-left:17%;">Execute the operation remotely.
+Specify a hostname, or a username and hostname separated by
+&quot;@&quot;, to connect to. The hostname may optionally be
+suffixed by a port ssh is listening on, separated by
+&quot;:&quot;, and then a container name, separated by
+&quot;/&quot;, which connects directly to a specific
+container on the specified host. This will use SSH to talk
+to the remote machine manager instance. Container names may
+be enumerated with <b>machinectl &minus;H</b> <i>HOST</i>.
+Put IPv6 addresses in brackets.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;M</b>,
+<b>&minus;&minus;machine=</b></p>
+
+<p style="margin-left:17%;">Execute operation on a local
+container. Specify a container name to connect to,
+optionally prefixed by a user name to connect as and a
+separating &quot;@&quot; character. If the special string
+&quot;.host&quot; is used in place of the container name, a
+connection to the local system is made (which is useful to
+connect to a specific user's user bus:
+&quot;&minus;&minus;user
+&minus;&minus;machine=lennart@.host&quot;). If the
+&quot;@&quot; syntax is not used, the connection is made as
+root user. If the &quot;@&quot; syntax is used either the
+left hand side or the right hand side may be omitted (but
+not both) in which case the local user name and
+&quot;.host&quot; are implied.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;h</b>,
+<b>&minus;&minus;help</b></p>
+
+<p style="margin-left:17%;">Print a short help text and
+exit.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;version</b></p>
+
+<p style="margin-left:17%;">Print a short version string
+and exit.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All command
+line arguments after the first non&minus;option argument
+become part of the command line of the launched process.</p>
+
+<h2>EXIT STATUS
+<a name="EXIT STATUS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On success, 0
+is returned. If <b>systemd&minus;run</b> failed to start the
+service, a non&minus;zero return value will be returned. If
+<b>systemd&minus;run</b> waits for the service to terminate,
+the return value will be propagated from the service. 0 will
+be returned on success, including all the cases where
+systemd considers a service to have exited cleanly, see the
+discussion of <i>SuccessExitStatus=</i> in
+<b>systemd.service</b>(5).</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;1.&nbsp;Logging
+environment variables provided by systemd to
+services</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">#
+systemd&minus;run env <br>
+Running as unit: run&minus;19945.service <br>
+# journalctl &minus;u run&minus;19945.service <br>
+Sep 08 07:37:21 bupkis systemd[1]: Starting /usr/bin/env...
+<br>
+Sep 08 07:37:21 bupkis systemd[1]: Started /usr/bin/env.
+<br>
+Sep 08 07:37:21 bupkis env[19948]:
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin <br>
+Sep 08 07:37:21 bupkis env[19948]: LANG=en_US.UTF&minus;8
+<br>
+Sep 08 07:37:21 bupkis env[19948]:
+BOOT_IMAGE=/vmlinuz&minus;3.11.0&minus;0.rc5.git6.2.fc20.x86_64</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;2.&nbsp;Limiting
+resources available to a command</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">#
+systemd&minus;run &minus;p IOWeight=10 updatedb</p>
+
+<p style="margin-left:11%; margin-top: 1em">This command
+invokes the <b>updatedb</b>(8) tool, but lowers the block
+I/O weight for it to 10. See
+<b>systemd.resource-control</b>(5) for more information on
+the <i>IOWeight=</i> property.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;3.&nbsp;Running
+commands at a specified time</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+command will touch a file after 30 seconds.</p>
+
+<p style="margin-left:17%; margin-top: 1em"># date;
+systemd&minus;run &minus;&minus;on&minus;active=30
+&minus;&minus;timer&minus;property=AccuracySec=100ms
+/bin/touch /tmp/foo <br>
+Mon Dec 8 20:44:24 KST 2014 <br>
+Running as unit: run&minus;71.timer <br>
+Will run service as unit: run&minus;71.service <br>
+# journalctl &minus;b &minus;u run&minus;71.timer <br>
+&minus;&minus; Journal begins at Fri 2014&minus;12&minus;05
+19:09:21 KST, ends at Mon 2014&minus;12&minus;08 20:44:54
+KST. &minus;&minus; <br>
+Dec 08 20:44:38 container systemd[1]: Starting /bin/touch
+/tmp/foo. <br>
+Dec 08 20:44:38 container systemd[1]: Started /bin/touch
+/tmp/foo. <br>
+# journalctl &minus;b &minus;u run&minus;71.service <br>
+&minus;&minus; Journal begins at Fri 2014&minus;12&minus;05
+19:09:21 KST, ends at Mon 2014&minus;12&minus;08 20:44:54
+KST. &minus;&minus; <br>
+Dec 08 20:44:48 container systemd[1]: Starting /bin/touch
+/tmp/foo... <br>
+Dec 08 20:44:48 container systemd[1]: Started /bin/touch
+/tmp/foo.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;4.&nbsp;Allowing
+access to the tty</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+command invokes <b>bash</b>(1) as a service passing its
+standard input, output and error to the calling TTY.</p>
+
+<p style="margin-left:17%; margin-top: 1em">#
+systemd&minus;run &minus;t &minus;&minus;send&minus;sighup
+bash</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;5.&nbsp;Start
+screen as a user service</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">$
+systemd&minus;run &minus;&minus;scope &minus;&minus;user
+screen <br>
+Running scope as unit
+run&minus;r14b0047ab6df45bfb45e7786cc839e76.scope.</p>
+
+<p style="margin-left:17%; margin-top: 1em">$ screen
+&minus;ls <br>
+There is a screen on: <br>
+492..laptop (Detached) <br>
+1 Socket in /var/run/screen/S&minus;fatima.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This starts the
+<b>screen</b> process as a child of the <b>systemd
+&minus;&minus;user</b> process that was started by
+user@.service, in a scope unit. A <b>systemd.scope</b>(5)
+unit is used instead of a <b>systemd.service</b>(5) unit,
+because <b>screen</b> will exit when detaching from the
+terminal, and a service unit would be terminated. Running
+<b>screen</b> as a user unit has the advantage that it is
+not part of the session scope. If
+<i>KillUserProcesses=yes</i> is configured in
+<b>logind.conf</b>(5), the default, the session scope will
+be terminated when the user logs out of that session.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+user@.service is started automatically when the user first
+logs in, and stays around as long as at least one login
+session is open. After the user logs out of the last
+session, user@.service and all services underneath it are
+terminated. This behavior is the default, when
+&quot;lingering&quot; is not enabled for that user. Enabling
+lingering means that user@.service is started automatically
+during boot, even if the user is not logged in, and that the
+service is not terminated when the user logs out.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Enabling
+lingering allows the user to run processes without being
+logged in, for example to allow <b>screen</b> to persist
+after the user logs out, even if the session scope is
+terminated. In the default configuration, users can enable
+lingering for themselves:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$ loginctl
+enable&minus;linger</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;6.&nbsp;Return
+value</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">$
+systemd&minus;run &minus;&minus;user &minus;&minus;wait true
+<br>
+$ systemd&minus;run &minus;&minus;user &minus;&minus;wait
+&minus;p SuccessExitStatus=11 bash &minus;c 'exit 11' <br>
+$ systemd&minus;run &minus;&minus;user &minus;&minus;wait
+&minus;p SuccessExitStatus=SIGUSR1 bash &minus;c 'kill
+&minus;SIGUSR1 $$$$'</p>
+
+<p style="margin-left:11%; margin-top: 1em">Those three
+invocations will succeed, i.e. terminate with an exit code
+of 0.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>systemctl</b>(1), <b>systemd.unit</b>(5),
+<b>systemd.service</b>(5), <b>systemd.scope</b>(5),
+<b>systemd.slice</b>(5), <b>systemd.exec</b>(5),
+<b>systemd.resource-control</b>(5), <b>systemd.timer</b>(5),
+<b>systemd-mount</b>(1), <b>machinectl</b>(1)</p>
+<hr>
+</body>
+</html>

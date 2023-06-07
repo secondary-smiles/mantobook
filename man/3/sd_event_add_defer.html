@@ -1,0 +1,240 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:59 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SD_EVENT_ADD_DEFER</title>
+
+</head>
+<body>
+<h1>sd_event_add_defer</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">sd_event_add_defer,
+sd_event_add_post, sd_event_add_exit, sd_event_handler_t
+&minus; Add static event sources to an event loop</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;systemd/sd&minus;event.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>typedef
+struct sd_event_source sd_event_source;</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>typedef int
+(*sd_event_handler_t)(sd_event_source&nbsp;*</b><i>s</i><b>,
+void&nbsp;*</b><i>userdata</i><b>);</b></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_event_add_defer(sd_event&nbsp;*</b><i>event</i><b>,
+sd_event_source&nbsp;**</b><i>source</i><b>,
+sd_event_handler_t&nbsp;</b><i>handler</i><b>,
+void&nbsp;*</b><i>userdata</i><b>);</b></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_event_add_post(sd_event&nbsp;*</b><i>event</i><b>,
+sd_event_source&nbsp;**</b><i>source</i><b>,
+sd_event_handler_t&nbsp;</b><i>handler</i><b>,
+void&nbsp;*</b><i>userdata</i><b>);</b></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_event_add_exit(sd_event&nbsp;*</b><i>event</i><b>,
+sd_event_source&nbsp;**</b><i>source</i><b>,
+sd_event_handler_t&nbsp;</b><i>handler</i><b>,
+void&nbsp;*</b><i>userdata</i><b>);</b></p> </td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These three
+functions add new static event sources to an event loop. The
+event loop object is specified in the <i>event</i>
+parameter, the event source object is returned in the
+<i>source</i> parameter. The event sources are enabled
+statically and will &quot;fire&quot; when the event loop is
+run and the conditions described below are met.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>handler</i> is a function to call or <b>NULL</b>. The
+handler function will be passed the <i>userdata</i> pointer,
+which may be chosen freely by the caller. The handler may
+return negative to signal an error (see below), other return
+values are ignored. If <i>handler</i> is <b>NULL</b>, a
+default handler that calls <b>sd_event_exit</b>(3) will be
+used.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_event_add_defer()</b>
+adds a new event source that will be dispatched instantly,
+before the event loop goes to sleep again and waits for new
+events. By default, the handler will be called once
+(<b>SD_EVENT_ONESHOT</b>). Note that if the event source is
+set to <b>SD_EVENT_ON</b> the event loop will never go to
+sleep again, but continuously call the handler, possibly
+interleaved with other event sources.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_event_add_post()</b>
+adds a new event source that is run before the event loop
+will sleep and wait for new events, but only after at least
+one other non&minus;post event source was dispatched. By
+default, the source is enabled permanently
+(<b>SD_EVENT_ON</b>). Note that this event source type will
+still allow the event loop to go to sleep again, even if set
+to <b>SD_EVENT_ON</b>, as long as no other event source is
+ever triggered.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_event_add_exit()</b>
+adds a new event source that will be dispatched when the
+event loop is terminated with <b>sd_event_exit</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>sd_event_source_set_enabled</b>(3) function may be used
+to enable the event source permanently (<b>SD_EVENT_ON</b>)
+or to make it fire just once (<b>SD_EVENT_ONESHOT</b>).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the handler
+function returns a negative error code, it will either be
+disabled after the invocation, even if the
+<b>SD_EVENT_ON</b> mode was requested before, or it will
+cause the loop to terminate, see
+<b>sd_event_source_set_exit_on_failure</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To destroy an
+event source object use <b>sd_event_source_unref</b>(3), but
+note that the event source is only removed from the event
+loop when all references to the event source are dropped. To
+make sure an event source does not fire anymore, even when
+there's still a reference to it kept, consider setting the
+event source to <b>SD_EVENT_OFF</b> with
+<b>sd_event_source_set_enabled</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the second
+parameter of these functions is passed as <b>NULL</b> no
+reference to the event source object is returned. In this
+case the event source is considered &quot;floating&quot;,
+and will be destroyed implicitly when the event loop itself
+is destroyed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+<i>handler</i> parameter to <b>sd_event_add_defer()</b> or
+<b>sd_event_add_post()</b> is <b>NULL</b>, and the event
+source fires, this will be considered a request to exit the
+event loop. In this case, the <i>userdata</i> parameter,
+cast to an integer, is passed as the exit code parameter to
+<b>sd_event_exit</b>(3). Similar functionality is not
+available for <b>sd_event_add_exit()</b>, as these types of
+event sources are only dispatched when exiting anyway.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On success,
+these functions return 0 or a positive integer. On failure,
+they return a negative errno&minus;style error code.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Errors</b>
+<br>
+Returned errors may indicate the following problems:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ENOMEM</b></p>
+
+<p style="margin-left:17%;">Not enough memory to allocate
+an object.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;EINVAL</b></p>
+
+<p style="margin-left:17%;">An invalid argument has been
+passed.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ESTALE</b></p>
+
+<p style="margin-left:17%;">The event loop is already
+terminated.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ECHILD</b></p>
+
+<p style="margin-left:17%;">The event loop has been created
+in a different process.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These APIs are
+implemented as a shared library, which can be compiled and
+linked to with the <b>libsystemd&nbsp;pkg-config</b>(1)
+file.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>sd-event</b>(3), <b>sd_event_new</b>(3),
+<b>sd_event_now</b>(3), <b>sd_event_add_io</b>(3),
+<b>sd_event_add_time</b>(3), <b>sd_event_add_signal</b>(3),
+<b>sd_event_add_child</b>(3),
+<b>sd_event_add_inotify</b>(3),
+<b>sd_event_source_set_enabled</b>(3),
+<b>sd_event_source_set_priority</b>(3),
+<b>sd_event_source_set_userdata</b>(3),
+<b>sd_event_source_set_description</b>(3),
+<b>sd_event_source_set_floating</b>(3),
+<b>sd_event_exit</b>(3)</p>
+<hr>
+</body>
+</html>

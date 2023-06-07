@@ -1,0 +1,1164 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:48 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GIT&minus;FILTER&minus;BRANCH</title>
+
+</head>
+<body>
+<h1>git-filter-branch</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">git-filter-branch
+&minus; Rewrite branches</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>git
+filter&minus;branch</i> [&minus;&minus;setup
+&lt;command&gt;] [&minus;&minus;subdirectory&minus;filter
+&lt;directory&gt;] <br>
+[&minus;&minus;env&minus;filter &lt;command&gt;]
+[&minus;&minus;tree&minus;filter &lt;command&gt;] <br>
+[&minus;&minus;index&minus;filter &lt;command&gt;]
+[&minus;&minus;parent&minus;filter &lt;command&gt;] <br>
+[&minus;&minus;msg&minus;filter &lt;command&gt;]
+[&minus;&minus;commit&minus;filter &lt;command&gt;] <br>
+[&minus;&minus;tag&minus;name&minus;filter &lt;command&gt;]
+[&minus;&minus;prune&minus;empty] <br>
+[&minus;&minus;original &lt;namespace&gt;] [&minus;d
+&lt;directory&gt;] [&minus;f | &minus;&minus;force] <br>
+[&minus;&minus;state&minus;branch &lt;branch&gt;]
+[&minus;&minus;] [&lt;rev&minus;list options&gt;...]</p>
+
+<h2>WARNING
+<a name="WARNING"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>git
+filter&minus;branch</i> has a plethora of pitfalls that can
+produce non&minus;obvious manglings of the intended history
+rewrite (and can leave you with little time to investigate
+such problems since it has such abysmal performance). These
+safety and performance issues cannot be backward compatibly
+fixed and as such, its use is not recommended. Please use an
+alternative history filtering tool such as
+<b><font color="#0000FF">git filter&minus;repo</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">. If you still need to use <i>git
+filter&minus;branch</i>, please carefully read the section
+called &ldquo;SAFETY&rdquo; (and the section called
+&ldquo;PERFORMANCE&rdquo;) to learn about the land mines of
+filter&minus;branch, and then vigilantly avoid as many of
+the hazards listed there as reasonably possible.</font></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Lets
+you rewrite Git revision history by rewriting the branches
+mentioned in the &lt;rev&minus;list options&gt;, applying
+custom filters on each revision. Those filters can modify
+each tree (e.g. removing a file or running a perl rewrite on
+all files) or information about each commit. Otherwise, all
+information (including original commit times or merge
+information) will be preserved.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+command will only rewrite the <i>positive</i> refs mentioned
+in the command line (e.g. if you pass <i>a..b</i>, only
+<i>b</i> will be rewritten). If you specify no filters, the
+commits will be recommitted without any changes, which would
+normally have no effect. Nevertheless, this may be useful in
+the future for compensating for some Git bugs or such,
+therefore such a usage is permitted.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>NOTE</b>:
+This command honors <b>.git/info/grafts</b> file and refs in
+the <b>refs/replace/</b> namespace. If you have any grafts
+or replacement refs defined, running this command will make
+them permanent.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>WARNING</b>!
+The rewritten history will have different object names for
+all the objects and will not converge with the original
+branch. You will not be able to easily push and distribute
+the rewritten branch on top of the original branch. Please
+do not use this command if you do not know the full
+implications, and avoid using it anyway, if a simple single
+commit would suffice to fix your problem. (See the
+&quot;RECOVERING FROM UPSTREAM REBASE&quot; section in
+<b>git-rebase</b>(1) for further information about rewriting
+published history.)</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Always
+verify that the rewritten version is correct: The original
+refs, if different from the rewritten ones, will be stored
+in the namespace <i>refs/original/</i>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Note
+that since this operation is very I/O expensive, it might be
+a good idea to redirect the temporary directory
+off&minus;disk with the <b>&minus;d</b> option, e.g. on
+tmpfs. Reportedly the speedup is very noticeable.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Filters</b>
+<br>
+The filters are applied in the order as listed below. The
+&lt;command&gt; argument is always evaluated in the shell
+context using the <i>eval</i> command (with the notable
+exception of the commit filter, for technical reasons).
+Prior to that, the <b>$GIT_COMMIT</b> environment variable
+will be set to contain the id of the commit being rewritten.
+Also, GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_AUTHOR_DATE,
+GIT_COMMITTER_NAME, GIT_COMMITTER_EMAIL, and
+GIT_COMMITTER_DATE are taken from the current commit and
+exported to the environment, in order to affect the author
+and committer identities of the replacement commit created
+by <b>git-commit-tree</b>(1) after the filters have
+run.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">If
+any evaluation of &lt;command&gt; returns a non&minus;zero
+exit status, the whole operation will be aborted.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">A
+<i>map</i> function is available that takes an
+&quot;original sha1 id&quot; argument and outputs a
+&quot;rewritten sha1 id&quot; if the commit has been already
+rewritten, and &quot;original sha1 id&quot; otherwise; the
+<i>map</i> function can return several ids on separate lines
+if your commit filter emitted multiple commits.</font></p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;setup
+&lt;command&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This is
+not a real filter executed for each commit but a one time
+setup just before the loop. Therefore no
+commit&minus;specific variables are defined yet. Functions
+or variables defined here can be used or modified in the
+following filter steps except the commit filter, for
+technical reasons.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;subdirectory&minus;filter
+&lt;directory&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Only look
+at the history which touches the given subdirectory. The
+result will contain that directory (and only that) as its
+project root. Implies the section called &ldquo;Remap to
+ancestor&rdquo;.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;env&minus;filter
+&lt;command&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This
+filter may be used if you only need to modify the
+environment in which the commit will be performed.
+Specifically, you might want to rewrite the author/committer
+name/email/time environment variables (see
+<b>git-commit-tree</b>(1) for details).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;tree&minus;filter
+&lt;command&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This is
+the filter for rewriting the tree and its contents. The
+argument is evaluated in shell with the working directory
+set to the root of the checked out tree. The new tree is
+then used as&minus;is (new files are auto&minus;added,
+disappeared files are auto&minus;removed &minus; neither
+.gitignore files nor any other ignore rules <b>HAVE ANY
+EFFECT</b>!).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;index&minus;filter
+&lt;command&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This is
+the filter for rewriting the index. It is similar to the
+tree filter but does not check out the tree, which makes it
+much faster. Frequently used with <b>git rm
+&minus;&minus;cached &minus;&minus;ignore&minus;unmatch
+...</b>, see EXAMPLES below. For hairy cases, see
+<b>git-update-index</b>(1).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;parent&minus;filter
+&lt;command&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This is
+the filter for rewriting the commit&rsquo;s parent list. It
+will receive the parent string on stdin and shall output the
+new parent string on stdout. The parent string is in the
+format described in <b>git-commit-tree</b>(1): empty for the
+initial commit, &quot;&minus;p parent&quot; for a normal
+commit and &quot;&minus;p parent1 &minus;p parent2 &minus;p
+parent3 ...&quot; for a merge commit.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;msg&minus;filter
+&lt;command&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This is
+the filter for rewriting the commit messages. The argument
+is evaluated in the shell with the original commit message
+on standard input; its standard output is used as the new
+commit message.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;commit&minus;filter
+&lt;command&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This is
+the filter for performing the commit. If this filter is
+specified, it will be called instead of the <i>git
+commit&minus;tree</i> command, with arguments of the form
+&quot;&lt;TREE_ID&gt; [(&minus;p
+&lt;PARENT_COMMIT_ID&gt;)...]&quot; and the log message on
+stdin. The commit id is expected on stdout.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">As
+a special extension, the commit filter may emit multiple
+commit ids; in that case, the rewritten children of the
+original commit will have all of them as parents.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">You
+can use the <i>map</i> convenience function in this filter,
+and other convenience functions, too. For example, calling
+<i>skip_commit &quot;$@&quot;</i> will leave out the current
+commit (but not its changes! If you want that, use <i>git
+rebase</i> instead).</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">You
+can also use the <b>git_commit_non_empty_tree
+&quot;$@&quot;</b> instead of <b>git commit&minus;tree
+&quot;$@&quot;</b> if you don&rsquo;t wish to keep commits
+with a single parent and that makes no change to the
+tree.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;tag&minus;name&minus;filter
+&lt;command&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This is
+the filter for rewriting tag names. When passed, it will be
+called for every tag ref that points to a rewritten object
+(or to a tag object which points to a rewritten object). The
+original tag name is passed via standard input, and the new
+tag name is expected on standard output.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">The
+original tags are not deleted, but can be overwritten; use
+&quot;&minus;&minus;tag&minus;name&minus;filter cat&quot; to
+simply update the tags. In this case, be very careful and
+make sure you have the old tags backed up in case the
+conversion has run afoul.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Nearly
+proper rewriting of tag objects is supported. If the tag has
+a message attached, a new tag object will be created with
+the same message, author, and timestamp. If the tag has a
+signature attached, the signature will be stripped. It is by
+definition impossible to preserve signatures. The reason
+this is &quot;nearly&quot; proper, is because ideally if the
+tag did not change (points to the same object, has the same
+name, etc.) it should retain any signature. That is not the
+case, signatures will always be removed, buyer beware. There
+is also no support for changing the author or timestamp (or
+the tag message for that matter). Tags which point to other
+tags will be rewritten to point to the underlying
+commit.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;prune&minus;empty</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Some
+filters will generate empty commits that leave the tree
+untouched. This option instructs
+git&minus;filter&minus;branch to remove such commits if they
+have exactly one or zero non&minus;pruned parents; merge
+commits will therefore remain intact. This option cannot be
+used together with <b>&minus;&minus;commit&minus;filter</b>,
+though the same effect can be achieved by using the provided
+<b>git_commit_non_empty_tree</b> function in a commit
+filter.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;original
+&lt;namespace&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Use this
+option to set the namespace where the original commits will
+be stored. The default value is
+<i>refs/original</i>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;d
+&lt;directory&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Use this
+option to set the path to the temporary directory used for
+rewriting. When applying a tree filter, the command needs to
+temporarily check out the tree to some directory, which may
+consume considerable space in case of large projects. By
+default it does this in the <b>.git&minus;rewrite/</b>
+directory but you can override that choice by this
+parameter.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;f,
+&minus;&minus;force</font></p>
+
+<p style="margin-left:17%;"><font color="#000000"><i>git
+filter&minus;branch</i> refuses to start with an existing
+temporary directory or when there are already refs starting
+with <i>refs/original/</i>, unless forced.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&minus;&minus;state&minus;branch
+&lt;branch&gt;</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This
+option will cause the mapping from old to new objects to be
+loaded from named branch upon startup and saved as a new
+commit to that branch upon exit, enabling incremental of
+large trees. If <i>&lt;branch&gt;</i> does not exist it will
+be created.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">&lt;rev&minus;list
+options&gt;...</font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Arguments
+for <i>git rev&minus;list</i>. All positive refs included by
+these options are rewritten. You may also specify options
+such as <b>&minus;&minus;all</b>, but you must use
+<b>&minus;&minus;</b> to separate them from the <i>git
+filter&minus;branch</i> options. Implies the section called
+&ldquo;Remap to ancestor&rdquo;.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Remap
+to ancestor</b> <br>
+By using <b>git-rev-list</b>(1) arguments, e.g., path
+limiters, you can limit the set of revisions which get
+rewritten. However, positive refs on the command line are
+distinguished: we don&rsquo;t let them be excluded by such
+limiters. For this purpose, they are instead rewritten to
+point at the nearest ancestor that was not
+excluded.</font></p>
+
+<h2>EXIT STATUS
+<a name="EXIT STATUS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">On
+success, the exit status is <b>0</b>. If the filter
+can&rsquo;t find any commits to rewrite, the exit status is
+<b>2</b>. On any other error, the exit status may be any
+other non&minus;zero value.</font></p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Suppose
+you want to remove a file (containing confidential
+information or copyright violation) from all
+commits:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch &minus;&minus;tree&minus;filter 'rm
+filename' HEAD</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">However,
+if the file is absent from the tree of some commit, a simple
+<b>rm filename</b> will fail for that tree and commit. Thus
+you may instead want to use <b>rm &minus;f filename</b> as
+the script.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Using
+<b>&minus;&minus;index&minus;filter</b> with <i>git rm</i>
+yields a significantly faster version. Like with using <b>rm
+filename</b>, <b>git rm &minus;&minus;cached filename</b>
+will fail if the file is absent from the tree of a commit.
+If you want to &quot;completely forget&quot; a file, it does
+not matter when it entered history, so we also add
+<b>&minus;&minus;ignore&minus;unmatch</b>:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch &minus;&minus;index&minus;filter 'git rm
+&minus;&minus;cached &minus;&minus;ignore&minus;unmatch
+filename' HEAD</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Now,
+you will get the rewritten history saved in HEAD.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">To
+rewrite the repository to look as if <b>foodir/</b> had been
+its project root, and discard all other history:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch &minus;&minus;subdirectory&minus;filter
+foodir &minus;&minus; &minus;&minus;all</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Thus
+you can, e.g., turn a library subdirectory into a repository
+of its own. Note the <b>&minus;&minus;</b> that separates
+<i>filter&minus;branch</i> options from revision options,
+and the <b>&minus;&minus;all</b> to rewrite all branches and
+tags.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">To
+set a commit (which typically is at the tip of another
+history) to be the parent of the current initial commit, in
+order to paste the other history behind the current
+history:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch &minus;&minus;parent&minus;filter 'sed
+&quot;s/^\$/&minus;p &lt;graft&minus;id&gt;/&quot;'
+HEAD</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">(if
+the parent string is empty &minus; which happens when we are
+dealing with the initial commit &minus; add graftcommit as a
+parent). Note that this assumes history with a single root
+(that is, no merge without common ancestors happened). If
+this is not the case, use:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch &minus;&minus;parent&minus;filter \ <br>
+'test $GIT_COMMIT = &lt;commit&minus;id&gt; &amp;&amp; echo
+&quot;&minus;p &lt;graft&minus;id&gt;&quot; || cat'
+HEAD</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">or
+even simpler:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+replace &minus;&minus;graft $commit&minus;id $graft&minus;id
+<br>
+git filter&minus;branch $graft&minus;id..HEAD</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">To
+remove commits authored by &quot;Darl McBribe&quot; from the
+history:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch &minus;&minus;commit&minus;filter ' <br>
+if [ &quot;$GIT_AUTHOR_NAME&quot; = &quot;Darl McBribe&quot;
+]; <br>
+then <br>
+skip_commit &quot;$@&quot;; <br>
+else <br>
+git commit&minus;tree &quot;$@&quot;; <br>
+fi' HEAD</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+function <i>skip_commit</i> is defined as
+follows:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">skip_commit()
+<br>
+{ <br>
+shift; <br>
+while [ &minus;n &quot;$1&quot; ]; <br>
+do <br>
+shift; <br>
+map &quot;$1&quot;; <br>
+shift; <br>
+done; <br>
+}</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+shift magic first throws away the tree id and then the
+&minus;p parameters. Note that this handles merges properly!
+In case Darl committed a merge between P1 and P2, it will be
+propagated properly and all children of the merge will
+become merge commits with P1,P2 as their parents instead of
+the merge commit.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>NOTE</b>
+the changes introduced by the commits, and which are not
+reverted by subsequent commits, will still be in the
+rewritten branch. If you want to throw out <i>changes</i>
+together with the commits, you should use the interactive
+mode of <i>git rebase</i>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">You
+can rewrite the commit log messages using
+<b>&minus;&minus;msg&minus;filter</b>. For example, <i>git
+svn&minus;id</i> strings in a repository created by <i>git
+svn</i> can be removed this way:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch &minus;&minus;msg&minus;filter ' <br>
+sed &minus;e &quot;/^git&minus;svn&minus;id:/d&quot; <br>
+'</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">If
+you need to add <i>Acked&minus;by</i> lines to, say, the
+last 10 commits (none of which is a merge), use this
+command:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch &minus;&minus;msg&minus;filter ' <br>
+cat &amp;&amp; <br>
+echo &quot;Acked&minus;by: Bugs Bunny
+&lt;bunny@bugzilla.org&gt;&quot; <br>
+' HEAD~10..HEAD</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+<b>&minus;&minus;env&minus;filter</b> option can be used to
+modify committer and/or author identity. For example, if you
+found out that your commits have the wrong identity due to a
+misconfigured user.email, you can make a correction, before
+publishing the project, like this:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch &minus;&minus;env&minus;filter ' <br>
+if test &quot;$GIT_AUTHOR_EMAIL&quot; =
+&quot;root@localhost&quot; <br>
+then <br>
+GIT_AUTHOR_EMAIL=john@example.com <br>
+fi <br>
+if test &quot;$GIT_COMMITTER_EMAIL&quot; =
+&quot;root@localhost&quot; <br>
+then <br>
+GIT_COMMITTER_EMAIL=john@example.com <br>
+fi <br>
+' &minus;&minus; &minus;&minus;all</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">To
+restrict rewriting to only part of the history, specify a
+revision range in addition to the new branch name. The new
+branch name will point to the top&minus;most revision that a
+<i>git rev&minus;list</i> of this range will
+print.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Consider
+this history:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">D&minus;&minus;E&minus;&minus;F&minus;&minus;G&minus;&minus;H
+<br>
+/ / <br>
+
+A&minus;&minus;B&minus;&minus;&minus;&minus;&minus;C</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">To
+rewrite only commits D,E,F,G,H, but leave A, B and C alone,
+use:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch ... C..H</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">To
+rewrite commits E,F,G,H, use one of these:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch ... C..H &minus;&minus;not D <br>
+git filter&minus;branch ... D..H &minus;&minus;not
+C</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">To
+move the whole tree into a subdirectory, or remove it from
+there:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">git
+filter&minus;branch &minus;&minus;index&minus;filter \ <br>
+'git ls&minus;files &minus;s | sed
+&quot;s&minus;\t\&quot;*&minus;&amp;newsubdir/&minus;&quot;
+| <br>
+GIT_INDEX_FILE=$GIT_INDEX_FILE.new \ <br>
+git update&minus;index &minus;&minus;index&minus;info
+&amp;&amp; <br>
+mv &quot;$GIT_INDEX_FILE.new&quot;
+&quot;$GIT_INDEX_FILE&quot;' HEAD</font></p>
+
+<h2>CHECKLIST FOR SHRINKING A REPOSITORY
+<a name="CHECKLIST FOR SHRINKING A REPOSITORY"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">git&minus;filter&minus;branch
+can be used to get rid of a subset of files, usually with
+some combination of <b>&minus;&minus;index&minus;filter</b>
+and <b>&minus;&minus;subdirectory&minus;filter</b>. People
+expect the resulting repository to be smaller than the
+original, but you need a few more steps to actually make it
+smaller, because Git tries hard not to lose your objects
+until you tell it to. First make sure that:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+You really removed all variants of a filename, if a blob was
+moved over its lifetime. <b>git log
+&minus;&minus;name&minus;only &minus;&minus;follow
+&minus;&minus;all &minus;&minus; filename</b> can help you
+find renames.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+You really filtered all refs: use
+<b>&minus;&minus;tag&minus;name&minus;filter cat
+&minus;&minus; &minus;&minus;all</b> when calling
+git&minus;filter&minus;branch.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Then
+there are two ways to get a smaller repository. A safer way
+is to clone, that keeps your original intact.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Clone it with <b>git clone file:///path/to/repo</b>. The
+clone will not have the removed objects. See
+<b>git-clone</b>(1). (Note that cloning with a plain path
+just hardlinks everything!)</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">If
+you really don&rsquo;t want to clone it, for whatever
+reasons, check the following points instead (in this order).
+This is a very destructive approach, so <b>make a backup</b>
+or go back to cloning it. You have been warned.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Remove the original refs backed up by
+git&minus;filter&minus;branch: say <b>git
+for&minus;each&minus;ref
+&minus;&minus;format=&quot;%(refname)&quot; refs/original/ |
+xargs &minus;n 1 git update&minus;ref
+&minus;d</b>.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Expire all reflogs with <b>git reflog expire
+&minus;&minus;expire=now &minus;&minus;all</b>.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Garbage collect all unreferenced objects with <b>git gc
+&minus;&minus;prune=now</b> (or if your git&minus;gc is not
+new enough to support arguments to
+<b>&minus;&minus;prune</b>, use <b>git repack &minus;ad; git
+prune</b> instead).</font></p>
+
+<h2>PERFORMANCE
+<a name="PERFORMANCE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+performance of git&minus;filter&minus;branch is glacially
+slow; its design makes it impossible for a
+backward&minus;compatible implementation to ever be
+fast:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+In editing files, git&minus;filter&minus;branch by design
+checks out each and every commit as it existed in the
+original repo. If your repo has <b>10^5</b> files and
+<b>10^5</b> commits, but each commit only modifies five
+files, then git&minus;filter&minus;branch will make you do
+<b>10^10</b> modifications, despite only having (at most)
+<b>5*10^5</b> unique blobs.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+If you try and cheat and try to make
+git&minus;filter&minus;branch only work on files modified in
+a commit, then two things happen</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+you run into problems with deletions whenever the user is
+simply trying to rename files (because attempting to delete
+files that don&rsquo;t exist looks like a no&minus;op; it
+takes some chicanery to remap deletes across file renames
+when the renames happen via arbitrary user&minus;provided
+shell)</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+even if you succeed at the
+map&minus;deletes&minus;for&minus;renames chicanery, you
+still technically violate backward compatibility because
+users are allowed to filter files in ways that depend upon
+topology of commits instead of filtering solely based on
+file contents or names (though this has not been observed in
+the wild).</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Even if you don&rsquo;t need to edit files but only want to
+e.g. rename or remove some and thus can avoid checking out
+each file (i.e. you can use
+&minus;&minus;index&minus;filter), you still are passing
+shell snippets for your filters. This means that for every
+commit, you have to have a prepared git repo where those
+filters can be run. That&rsquo;s a significant
+setup.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Further, several additional files are created or updated per
+commit by git&minus;filter&minus;branch. Some of these are
+for supporting the convenience functions provided by
+git&minus;filter&minus;branch (such as map()), while others
+are for keeping track of internal state (but could have also
+been accessed by user filters; one of
+git&minus;filter&minus;branch&rsquo;s regression tests does
+so). This essentially amounts to using the filesystem as an
+IPC mechanism between git&minus;filter&minus;branch and the
+user&minus;provided filters. Disks tend to be a slow IPC
+mechanism, and writing these files also effectively
+represents a forced synchronization point between separate
+processes that we hit with every commit.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+The user&minus;provided shell commands will likely involve a
+pipeline of commands, resulting in the creation of many
+processes per commit. Creating and running another process
+takes a widely varying amount of time between operating
+systems, but on any platform it is very slow relative to
+invoking a function.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+git&minus;filter&minus;branch itself is written in shell,
+which is kind of slow. This is the one performance issue
+that could be backward&minus;compatibly fixed, but compared
+to the above problems that are intrinsic to the design of
+git&minus;filter&minus;branch, the language of the tool
+itself is a relatively minor issue.</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+Side note: Unfortunately, people tend to fixate on the
+written&minus;in&minus;shell aspect and periodically ask if
+git&minus;filter&minus;branch could be rewritten in another
+language to fix the performance issues. Not only does that
+ignore the bigger intrinsic problems with the design,
+it&rsquo;d help less than you&rsquo;d expect: if
+git&minus;filter&minus;branch itself were not shell, then
+the convenience functions (map(), skip_commit(), etc) and
+the <b>&minus;&minus;setup</b> argument could no longer be
+executed once at the beginning of the program but would
+instead need to be prepended to every user filter (and thus
+re&minus;executed with every commit).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The</font>
+<b><font color="#0000FF">git filter&minus;repo</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">tool is an alternative to
+git&minus;filter&minus;branch which does not suffer from
+these performance problems or the safety problems (mentioned
+below). For those with existing tooling which relies upon
+git&minus;filter&minus;branch, <i>git filter&minus;repo</i>
+also provides</font>
+<b><font color="#0000FF">filter&minus;lamely</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">, a drop&minus;in
+git&minus;filter&minus;branch replacement (with a few
+caveats). While filter&minus;lamely suffers from all the
+same safety issues as git&minus;filter&minus;branch, it at
+least ameliorates the performance issues a
+little.</font></p>
+
+<h2>SAFETY
+<a name="SAFETY"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">git&minus;filter&minus;branch
+is riddled with gotchas resulting in various ways to easily
+corrupt repos or end up with a mess worse than what you
+started with:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Someone can have a set of &quot;working and tested
+filters&quot; which they document or provide to a coworker,
+who then runs them on a different OS where the same commands
+are not working/tested (some examples in the
+git&minus;filter&minus;branch manpage are also affected by
+this). BSD vs. GNU userland differences can really bite. If
+lucky, error messages are spewed. But just as likely, the
+commands either don&rsquo;t do the filtering requested, or
+silently corrupt by making some unwanted change. The
+unwanted change may only affect a few commits, so it&rsquo;s
+not necessarily obvious either. (The fact that problems
+won&rsquo;t necessarily be obvious means they are likely to
+go unnoticed until the rewritten history is in use for quite
+a while, at which point it&rsquo;s really hard to justify
+another flag&minus;day for another rewrite.)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Filenames with spaces are often mishandled by shell snippets
+since they cause problems for shell pipelines. Not everyone
+is familiar with find &minus;print0, xargs &minus;0,
+git&minus;ls&minus;files &minus;z, etc. Even people who are
+familiar with these may assume such flags are not relevant
+because someone else renamed any such files in their repo
+back before the person doing the filtering joined the
+project. And often, even those familiar with handling
+arguments with spaces may not do so just because they
+aren&rsquo;t in the mindset of thinking about everything
+that could possibly go wrong.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Non&minus;ascii filenames can be silently removed despite
+being in a desired directory. Keeping only wanted paths is
+often done using pipelines like <b>git ls&minus;files | grep
+&minus;v ^WANTED_DIR/ | xargs git rm</b>. ls&minus;files
+will only quote filenames if needed, so folks may not notice
+that one of the files didn&rsquo;t match the regex (at least
+not until it&rsquo;s much too late). Yes, someone who knows
+about core.quotePath can avoid this (unless they have other
+special characters like \t, \n, or &quot;), and people who
+use ls&minus;files &minus;z with something other than grep
+can avoid this, but that doesn&rsquo;t mean they
+will.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Similarly, when moving files around, one can find that
+filenames with non&minus;ascii or special characters end up
+in a different directory, one that includes a double quote
+character. (This is technically the same issue as above with
+quoting, but perhaps an interesting different way that it
+can and has manifested as a problem.)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+It&rsquo;s far too easy to accidentally mix up old and new
+history. It&rsquo;s still possible with any tool, but
+git&minus;filter&minus;branch almost invites it. If lucky,
+the only downside is users getting frustrated that they
+don&rsquo;t know how to shrink their repo and remove the old
+stuff. If unlucky, they merge old and new history and end up
+with multiple &quot;copies&quot; of each commit, some of
+which have unwanted or sensitive files and others which
+don&rsquo;t. This comes about in multiple different
+ways:</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+the default to only doing a partial history rewrite
+(<i>&minus;&minus;all</i> is not the default and few
+examples show it)</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+the fact that there&rsquo;s no automatic post&minus;run
+cleanup</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+the fact that &minus;&minus;tag&minus;name&minus;filter
+(when used to rename tags) doesn&rsquo;t remove the old tags
+but just adds new ones with the new name</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+the fact that little educational information is provided to
+inform users of the ramifications of a rewrite and how to
+avoid mixing old and new history. For example, this man page
+discusses how users need to understand that they need to
+rebase their changes for all their branches on top of new
+history (or delete and reclone), but that&rsquo;s only one
+of multiple concerns to consider. See the
+&quot;DISCUSSION&quot; section of the git filter&minus;repo
+manual page for more details.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Annotated tags can be accidentally converted to lightweight
+tags, due to either of two issues:</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+Someone can do a history rewrite, realize they messed up,
+restore from the backups in refs/original/, and then redo
+their git&minus;filter&minus;branch command. (The backup in
+refs/original/ is not a real backup; it dereferences tags
+first.)</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+Running git&minus;filter&minus;branch with either
+&minus;&minus;tags or &minus;&minus;all in your
+&lt;rev&minus;list options&gt;. In order to retain annotated
+tags as annotated, you must use
+&minus;&minus;tag&minus;name&minus;filter (and must not have
+restored from refs/original/ in a previously botched
+rewrite).</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Any commit messages that specify an encoding will become
+corrupted by the rewrite; git&minus;filter&minus;branch
+ignores the encoding, takes the original bytes, and feeds it
+to commit&minus;tree without telling it the proper encoding.
+(This happens whether or not &minus;&minus;msg&minus;filter
+is used.)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Commit messages (even if they are all UTF&minus;8) by
+default become corrupted due to not being updated &mdash;
+any references to other commit hashes in commit messages
+will now refer to no&minus;longer&minus;extant
+commits.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+There are no facilities for helping users find what unwanted
+crud they should delete, which means they are much more
+likely to have incomplete or partial cleanups that sometimes
+result in confusion and people wasting time trying to
+understand. (For example, folks tend to just look for big
+files to delete instead of big directories or extensions,
+and once they do so, then sometime later folks using the new
+repository who are going through history will notice a build
+artifact directory that has some files but not others, or a
+cache of dependencies (node_modules or similar) which
+couldn&rsquo;t have ever been functional since it&rsquo;s
+missing some files.)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+If &minus;&minus;prune&minus;empty isn&rsquo;t specified,
+then the filtering process can create hoards of confusing
+empty commits</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+If &minus;&minus;prune&minus;empty is specified, then
+intentionally placed empty commits from before the filtering
+operation are also pruned instead of just pruning commits
+that became empty due to filtering rules.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+If &minus;&minus;prune&minus;empty is specified, sometimes
+empty commits are missed and left around anyway (a somewhat
+rare bug, but it happens...)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+A minor issue, but users who have a goal to update all names
+and emails in a repository may be led to
+&minus;&minus;env&minus;filter which will only update
+authors and committers, missing taggers.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+If the user provides a
+&minus;&minus;tag&minus;name&minus;filter that maps multiple
+tags to the same name, no warning or error is provided;
+git&minus;filter&minus;branch simply overwrites each tag in
+some undocumented pre&minus;defined order resulting in only
+one tag at the end. (A git&minus;filter&minus;branch
+regression test requires this surprising
+behavior.)</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Also,
+the poor performance of git&minus;filter&minus;branch often
+leads to safety issues:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+Coming up with the correct shell snippet to do the filtering
+you want is sometimes difficult unless you&rsquo;re just
+doing a trivial modification such as deleting a couple
+files. Unfortunately, people often learn if the snippet is
+right or wrong by trying it out, but the rightness or
+wrongness can vary depending on special circumstances
+(spaces in filenames, non&minus;ascii filenames, funny
+author names or emails, invalid timezones, presence of
+grafts or replace objects, etc.), meaning they may have to
+wait a long time, hit an error, then restart. The
+performance of git&minus;filter&minus;branch is so bad that
+this cycle is painful, reducing the time available to
+carefully re&minus;check (to say nothing about what it does
+to the patience of the person doing the rewrite even if they
+do technically have more time available). This problem is
+extra compounded because errors from broken filters may not
+be shown for a long time and/or get lost in a sea of output.
+Even worse, broken filters often just result in silent
+incorrect rewrites.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&bull;
+To top it all off, even when users finally find working
+commands, they naturally want to share them. But they may be
+unaware that their repo didn&rsquo;t have some special cases
+that someone else&rsquo;s does. So, when someone else with a
+different repository runs the same commands, they get hit by
+the problems above. Or, the user just runs commands that
+really were vetted for special cases, but they run it on a
+different OS where it doesn&rsquo;t work, as noted
+above.</font></p>
+
+<h2>GIT
+<a name="GIT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Part
+of the <b>git</b>(1) suite</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="23%">
+
+
+<p style="margin-top: 1em"><font color="#000000">git
+filter-repo</font></p> </td>
+<td width="60%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://github.com/newren/git-filter-repo/</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">2.</font></p> </td>
+<td width="2%"></td>
+<td width="20%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">filter-lamely</font></p> </td>
+<td width="63%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://github.com/newren/git-filter-repo/blob/master/contrib/filter-repo-demos/filter-lamely</font></p>
+<hr>
+</body>
+</html>

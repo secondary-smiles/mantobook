@@ -1,0 +1,341 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:30 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LIBUNWIND&minus;IA64</title>
+
+</head>
+<body>
+<h1>libunwind-ia64</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">libunwind&minus;ia64
+&minus;&minus; IA&minus;64&minus;specific support in
+libunwind</p>
+
+<h2>INTRODUCTION
+<a name="INTRODUCTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The IA&minus;64
+version of libunwind uses a platform&minus;string of ia64
+and, at least in theory, should be able to support all
+operating systems adhering to the processor&minus;specific
+ABI defined for the Itanium Processor Family. This includes
+both little&minus;endian Linux and big&minus;endian
+HP&minus;UX. Furthermore, to make it possible for a single
+library to unwind both 32&minus; and 64&minus;bit targets,
+the type unw_word_t is always defined to be 64 bits wide
+(independent of the natural word&minus;size of the host).
+Having said that, the current implementation has been tested
+only with IA&minus;64 Linux.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When targeting
+IA&minus;64, the libunwind header file defines the macro
+UNW_TARGET_IA64 as 1 and the macro UNW_TARGET as
+&lsquo;&lsquo;ia64&rsquo;&rsquo; (without the quotation
+marks). The former makes it possible for
+platform&minus;dependent unwind code to use
+conditional&minus;compilation to select an appropriate
+implementation. The latter is useful for stringification
+purposes and to construct
+target&minus;platform&minus;specific symbols.</p>
+
+<p style="margin-left:11%; margin-top: 1em">One special
+feature of IA&minus;64 is the use of NaT bits to support
+speculative execution. Often, NaT bits are thought of as the
+&lsquo;&lsquo;65&minus;th bit&rsquo;&rsquo; of a general
+register. However, to make everything fit into 64&minus;bit
+wide unw_word_t values, libunwind treats the NaT&minus;bits
+like separate boolean registers, whose 64&minus;bit value is
+either TRUE (non&minus;zero) or FALSE (zero).</p>
+
+<h2>MACHINE&minus;STATE
+<a name="MACHINE&minus;STATE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+machine&minus;state (set of registers) that is accessible
+through libunwind depends on the type of stack frame that a
+cursor points to. For normal frames, all
+&lsquo;&lsquo;preserved&rsquo;&rsquo; (callee&minus;saved)
+registers are accessible. For signal&minus;trampoline
+frames, all registers (including
+&lsquo;&lsquo;scratch&rsquo;&rsquo; (caller&minus;saved)
+registers) are accessible. Most applications do not have to
+worry a&minus;priori about which registers are accessible
+when. In case of doubt, it is always safe to <i>try</i> to
+access a register (via unw_get_reg() or unw_get_fpreg()) and
+if the register isn&rsquo;t accessible, the call will fail
+with a return&minus;value of &minus;UNW_EBADREG.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As a special
+exception to the above general rule, scratch registers
+r15&minus;r18 are always accessible, even in normal frames.
+This makes it possible to pass arguments, e.g., to exception
+handlers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For a detailed
+description of the IA&minus;64 register usage convention,
+please see the &lsquo;&lsquo;Itanium Software Conventions
+and Runtime Architecture Guide&rsquo;&rsquo;, available
+at:</p>
+
+
+<p align="center"><b>http://www.intel.com/design/itanium/downloads/245358.htm</b></p>
+
+<h2>REGISTER NAMES
+<a name="REGISTER NAMES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+IA&minus;64&minus;version of libunwind defines three kinds
+of register name macros: frame&minus;register macros, normal
+register macros, and convenience macros. Below, we describe
+each kind in turn:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>FRAME&minus;REGISTER
+MACROS</b> <br>
+Frame&minus;registers are special (pseudo) registers because
+they always have a valid value, even though sometimes they
+do not get saved explicitly (e.g., if a memory stack frame
+is 16 bytes in size, the previous stack&minus;pointer value
+can be calculated simply as sp+16, so there is no need to
+save the stack&minus;pointer explicitly). Moreover, the set
+of frame register values uniquely identifies a stack frame.
+The IA&minus;64 architecture defines two stacks (a memory
+and a register stack). Including the
+instruction&minus;pointer (IP), this means there are three
+frame registers: <br>
+UNW_IA64_IP:</p>
+
+<p style="margin-left:22%;">Contains the instruction
+pointer (IP, or &lsquo;&lsquo;program counter&rsquo;&rsquo;)
+of the current stack frame. Given this value, the remaining
+machine&minus;state corresponds to the register&minus;values
+that were present in the CPU when it was just about to
+execute the instruction pointed to by UNW_IA64_IP. Bits 0
+and 1 of this frame&minus;register encode the slot number of
+the instruction. <b>Note:</b> Due to the way the call
+instruction works on IA&minus;64, the slot number is usually
+zero, but can be non&minus;zero, e.g., in the
+stack&minus;frame of a signal&minus;handler trampoline.</p>
+
+<p style="margin-left:11%;">UNW_IA64_SP:</p>
+
+<p style="margin-left:22%;">Contains the (memory)
+stack&minus;pointer value (SP).</p>
+
+<p style="margin-left:11%;">UNW_IA64_BSP:</p>
+
+<p style="margin-left:22%;">Contains the register
+backing&minus;store pointer (BSP). <b>Note:</b> the value in
+this register is equal to the contents of register ar.bsp at
+the time the instruction at UNW_IA64_IP was about to begin
+execution.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>NORMAL
+REGISTER MACROS</b> <br>
+The following normal register name macros are available:
+<br>
+UNW_IA64_GR:</p>
+
+<p style="margin-left:22%;">The base&minus;index for
+general (integer) registers. Add an index in the range from
+0..127 to get a particular general register. For example, to
+access r4, the index UNW_IA64_GR+4 should be used. Registers
+r0 and r1 (gp) are read&minus;only, and any attempt to write
+them will result in an error (&minus;UNW_EREADONLYREG). Even
+though r1 is read&minus;only, libunwind will automatically
+adjust its value if the instruction&minus;pointer
+(UNW_IA64_IP) is modified. For example, if UNW_IA64_IP is
+set to a value inside a function func(), then reading
+UNW_IA64_GR+1 will return the global&minus;pointer value for
+this function.</p>
+
+<p style="margin-left:11%;">UNW_IA64_NAT:</p>
+
+<p style="margin-left:22%;">The base&minus;index for the
+NaT bits of the general (integer) registers. A
+non&minus;zero value in these registers corresponds to a set
+NaT&minus;bit. Add an index in the range from 0..127 to get
+a particular NaT&minus;bit register. For example, to access
+the NaT bit of r4, the index UNW_IA64_NAT+4 should be
+used.</p>
+
+<p style="margin-left:11%;">UNW_IA64_FR:</p>
+
+<p style="margin-left:22%;">The base&minus;index for
+floating&minus;point registers. Add an index in the range
+from 0..127 to get a particular floating&minus;point
+register. For example, to access f2, the index UNW_IA64_FR+2
+should be used. Registers f0 and f1 are read&minus;only, and
+any attempt to write to indices UNW_IA64_FR+0 or
+UNW_IA64_FR+1 will result in an error
+(&minus;UNW_EREADONLYREG).</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR:</p>
+
+<p style="margin-left:22%;">The base&minus;index for
+application registers. Add an index in the range from 0..127
+to get a particular application register. For example, to
+access ar40, the index UNW_IA64_AR+40 should be used. The
+IA&minus;64 architecture defines several application
+registers as &lsquo;&lsquo;reserved for future
+use&rsquo;&rsquo;. Attempting to access such registers
+results in an error (&minus;UNW_EBADREG).</p>
+
+<p style="margin-left:11%;">UNW_IA64_BR:</p>
+
+<p style="margin-left:22%;">The base&minus;index for branch
+registers. Add an index in the range from 0..7 to get a
+particular branch register. For example, to access b6, the
+index UNW_IA64_BR+6 should be used.</p>
+
+<p style="margin-left:11%;">UNW_IA64_PR:</p>
+
+<p style="margin-left:22%;">Contains the set of predicate
+registers. This 64&minus;bit wide register contains
+registers p0 through p63 in the
+&lsquo;&lsquo;broad&minus;side&rsquo;&rsquo; format. Just
+like with the &lsquo;&lsquo;move predicates&rsquo;&rsquo;
+instruction, the registers are mapped as if CFM.rrb.pr were
+set to 0. Thus, in general the value of predicate register
+pN with N&gt;=16 can be found in bit 16 +
+((N&minus;16)+CFM.rrb.pr) % 48.</p>
+
+<p style="margin-left:11%;">UNW_IA64_CFM:</p>
+
+<p style="margin-left:22%;">Contains the
+current&minus;frame&minus;mask register.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>CONVENIENCE
+MACROS</b> <br>
+Convenience macros are simply aliases for certain frequently
+used registers: <br>
+UNW_IA64_GP:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+1, the
+global&minus;pointer register.</p>
+
+<p style="margin-left:11%;">UNW_IA64_TP:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+13, the
+thread&minus;pointer register.</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR_RSC:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+16, the
+register&minus;stack configuration register.</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR_BSP:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+17. This
+register index accesses the value of register ar.bsp as of
+the time it was last saved explicitly. This is rarely what
+you want. Normally, you&rsquo;ll want to use UNW_IA64_BSP
+instead.</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR_BSPSTORE:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+18, the
+register&minus;backing store write pointer.</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR_RNAT:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+19, the
+register&minus;backing store NaT&minus;collection
+register.</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR_CCV:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+32, the
+compare&minus;and&minus;swap value register.</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR_CSD:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+25, the
+compare&minus;and&minus;swap&minus;data register (used by
+16&minus;byte atomic operations).</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR_UNAT:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+36, the
+user NaT&minus;collection register.</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR_FPSR:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+40, the
+floating&minus;point status (and control) register.</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR_PFS:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+64, the
+previous frame&minus;state register.</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR_LC:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+65 the
+loop&minus;count register.</p>
+
+<p style="margin-left:11%;">UNW_IA64_AR_EC:</p>
+
+<p style="margin-left:22%;">Alias for UNW_IA64_GR+66, the
+epilogue&minus;count register.</p>
+
+<h2>THE UNWIND&minus;CONTEXT TYPE
+<a name="THE UNWIND&minus;CONTEXT TYPE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On IA&minus;64,
+unw_context_t is simply an alias for ucontext_t (as defined
+by the Single UNIX Spec). This implies that it is possible
+to initialize a value of this type not just with
+unw_getcontext(), but also with getcontext(), for example.
+However, since this is an IA&minus;64&minus;specific
+extension to libunwind, portable code should not rely on
+this equivalence.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">libunwind(3)</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">David
+Mosberger&minus;Tang <br>
+Email: <b>dmosberger@gmail.com</b> <br>
+WWW: <b>http://www.nongnu.org/libunwind/</b>.</p>
+<hr>
+</body>
+</html>

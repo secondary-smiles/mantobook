@@ -1,0 +1,1669 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:58 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERLIOL</title>
+
+</head>
+<body>
+<h1>perliol</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perliol &minus;
+C API for Perl&rsquo;s implementation of IO in Layers.</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">/* Defining a
+layer ... */ <br>
+#include &lt;perliol.h&gt;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This document
+describes the behavior and implementation of the PerlIO
+abstraction described in perlapio when
+&quot;USE_PERLIO&quot; is defined.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>History and
+Background</b> <br>
+The PerlIO abstraction was introduced in perl5.003_02 but
+languished as just an abstraction until perl5.7.0. However
+during that time a number of perl extensions switched to
+using it, so the <small>API</small> is mostly fixed to
+maintain (source) compatibility.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The aim of the
+implementation is to provide the PerlIO <small>API</small>
+in a flexible and platform neutral manner. It is also a
+trial of an &quot;Object Oriented C, with vtables&quot;
+approach which may be applied to Raku.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Basic
+Structure</b> <br>
+PerlIO is a stack of layers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The low levels
+of the stack work with the low-level operating system calls
+(file descriptors in C) getting bytes in and out, the higher
+layers of the stack buffer, filter, and otherwise manipulate
+the I/O, and return characters (or bytes) to Perl. Terms
+<i>above</i> and <i>below</i> are used to refer to the
+relative positioning of the stack layers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A layer
+contains a &quot;vtable&quot;, the table of I/O operations
+(at C level a table of function pointers), and status flags.
+The functions in the vtable implement operations like
+&quot;open&quot;, &quot;read&quot;, and
+&quot;write&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When I/O, for
+example &quot;read&quot;, is requested, the request goes
+from Perl first down the stack using &quot;read&quot;
+functions of each layer, then at the bottom the input is
+requested from the operating system services, then the
+result is returned up the stack, finally being interpreted
+as Perl data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The requests do
+not necessarily go always all the way down to the operating
+system: that&rsquo;s where PerlIO buffering comes into
+play.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When you do an
+<b>open()</b> and specify extra PerlIO layers to be
+deployed, the layers you specify are &quot;pushed&quot; on
+top of the already existing default stack. One way to see it
+is that &quot;operating system is on the left&quot; and
+&quot;Perl is on the right&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">What exact
+layers are in this default stack depends on a lot of things:
+your operating system, Perl version, Perl compile time
+configuration, and Perl runtime configuration. See PerlIO,
+&quot; <small>PERLIO&quot;</small> in perlrun, and open for
+more information.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>binmode()</b>
+operates similarly to <b>open()</b>: by default the
+specified layers are pushed on top of the existing
+stack.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, note
+that even as the specified layers are &quot;pushed on
+top&quot; for <b>open()</b> and <b>binmode()</b>, this
+doesn&rsquo;t mean that the effects are limited to the
+&quot;top&quot;: PerlIO layers can be very
+&rsquo;active&rsquo; and inspect and affect layers also
+deeper in the stack. As an example there is a layer called
+&quot;raw&quot; which repeatedly &quot;pops&quot; layers
+until it reaches the first layer that has declared itself
+capable of handling binary data. The &quot;pushed&quot;
+layers are processed in left-to-right order.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sysopen()</b>
+operates (unsurprisingly) at a lower level in the stack than
+<b>open()</b>. For example in Unix or Unix-like systems
+<b>sysopen()</b> operates directly at the level of file
+descriptors: in the terms of PerlIO layers, it uses only the
+&quot;unix&quot; layer, which is a rather thin wrapper on
+top of the Unix file descriptors.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Layers vs
+Disciplines</b> <br>
+Initial discussion of the ability to modify
+<small>IO</small> streams behaviour used the term
+&quot;discipline&quot; for the entities which were added.
+This came (I believe) from the use of the term in
+&quot;sfio&quot;, which in turn borrowed it from &quot;line
+disciplines&quot; on Unix terminals. However, this document
+(and the C code) uses the term &quot;layer&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is, I
+hope, a natural term given the implementation, and should
+avoid connotations that are inherent in earlier uses of
+&quot;discipline&quot; for things which are rather
+different.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Data
+Structures</b> <br>
+The basic data structure is a PerlIOl:</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef struct
+_PerlIO PerlIOl; <br>
+typedef struct _PerlIO_funcs PerlIO_funcs; <br>
+typedef PerlIOl *PerlIO; <br>
+struct _PerlIO <br>
+{ <br>
+PerlIOl * next; /* Lower layer */ <br>
+PerlIO_funcs * tab; /* Functions for this layer */ <br>
+U32 flags; /* Various flags for state */ <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">A &quot;PerlIOl
+*&quot; is a pointer to the struct, and the
+<i>application</i> level &quot;PerlIO *&quot; is a pointer
+to a &quot;PerlIOl *&quot; &minus; i.e. a pointer to a
+pointer to the struct. This allows the application level
+&quot;PerlIO *&quot; to remain constant while the actual
+&quot;PerlIOl *&quot; underneath changes. (Compare
+perl&rsquo;s &quot;SV *&quot; which remains constant while
+its &quot;sv_any&quot; field changes as the scalar&rsquo;s
+type changes.) An <small>IO</small> stream is then in
+general represented as a pointer to this linked-list of
+&quot;layers&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It should be
+noted that because of the double indirection in a
+&quot;PerlIO *&quot;, a
+&quot;&amp;(perlio&minus;&gt;next)&quot; &quot;is&quot; a
+&quot;PerlIO *&quot;, and so to some degree at least one
+layer can use the &quot;standard&quot; <small>API</small> on
+the next layer down.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A
+&quot;layer&quot; is composed of two parts:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>1.</p></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p>The functions and attributes of the &quot;layer
+class&quot;.</p> </td>
+<td width="6%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>2.</p></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p>The per-instance data for a particular handle.</p></td>
+<td width="6%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Functions
+and Attributes</b> <br>
+The functions and attributes are accessed via the
+&quot;tab&quot; (for table) member of &quot;PerlIOl&quot;.
+The functions (methods of the layer &quot;class&quot;) are
+fixed, and are defined by the &quot;PerlIO_funcs&quot; type.
+They are broadly the same as the public
+&quot;PerlIO_xxxxx&quot; functions:</p>
+
+<p style="margin-left:11%; margin-top: 1em">struct
+_PerlIO_funcs <br>
+{ <br>
+Size_t fsize; <br>
+char * name; <br>
+Size_t size; <br>
+IV kind; <br>
+IV (*Pushed)(pTHX_ PerlIO *f, <br>
+const char *mode, <br>
+SV *arg, <br>
+PerlIO_funcs *tab); <br>
+IV (*Popped)(pTHX_ PerlIO *f); <br>
+PerlIO * (*Open)(pTHX_ PerlIO_funcs *tab, <br>
+PerlIO_list_t *layers, IV n, <br>
+const char *mode, <br>
+int fd, int imode, int perm, <br>
+PerlIO *old, <br>
+int narg, SV **args); <br>
+IV (*Binmode)(pTHX_ PerlIO *f); <br>
+SV * (*Getarg)(pTHX_ PerlIO *f, CLONE_PARAMS *param, int
+flags) <br>
+IV (*Fileno)(pTHX_ PerlIO *f); <br>
+PerlIO * (*Dup)(pTHX_ PerlIO *f, <br>
+PerlIO *o, <br>
+CLONE_PARAMS *param, <br>
+int flags) <br>
+/* Unix&minus;like functions &minus; cf sfio line
+disciplines */ <br>
+SSize_t (*Read)(pTHX_ PerlIO *f, void *vbuf, Size_t count);
+<br>
+SSize_t (*Unread)(pTHX_ PerlIO *f, const void *vbuf, Size_t
+count); <br>
+SSize_t (*Write)(pTHX_ PerlIO *f, const void *vbuf, Size_t
+count); <br>
+IV (*Seek)(pTHX_ PerlIO *f, Off_t offset, int whence); <br>
+Off_t (*Tell)(pTHX_ PerlIO *f); <br>
+IV (*Close)(pTHX_ PerlIO *f); <br>
+/* Stdio&minus;like buffered IO functions */ <br>
+IV (*Flush)(pTHX_ PerlIO *f); <br>
+IV (*Fill)(pTHX_ PerlIO *f); <br>
+IV (*Eof)(pTHX_ PerlIO *f); <br>
+IV (*Error)(pTHX_ PerlIO *f); <br>
+void (*Clearerr)(pTHX_ PerlIO *f); <br>
+void (*Setlinebuf)(pTHX_ PerlIO *f); <br>
+/* Perl's snooping functions */ <br>
+STDCHAR * (*Get_base)(pTHX_ PerlIO *f); <br>
+Size_t (*Get_bufsiz)(pTHX_ PerlIO *f); <br>
+STDCHAR * (*Get_ptr)(pTHX_ PerlIO *f); <br>
+SSize_t (*Get_cnt)(pTHX_ PerlIO *f); <br>
+void (*Set_ptrcnt)(pTHX_ PerlIO *f,STDCHAR *ptr,SSize_t
+cnt); <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first few
+members of the struct give a function table size for
+compatibility check &quot;name&quot; for the layer, the size
+to &quot;malloc&quot; for the per-instance data, and some
+flags which are attributes of the class as whole (such as
+whether it is a buffering layer), then follow the functions
+which fall into four basic groups:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em">1.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Opening and setup functions</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>2.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>Basic <small>IO</small> operations</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>3.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>Stdio class buffering options.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>4.</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>Functions to support Perl&rsquo;s traditional
+&quot;fast&quot; access to the buffer.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">A layer does
+not have to implement all the functions, but the whole table
+has to be present. Unimplemented slots can be
+<small>NULL</small> (which will result in an error when
+called) or can be filled in with stubs to
+&quot;inherit&quot; behaviour from a &quot;base class&quot;.
+This &quot;inheritance&quot; is fixed for all instances of
+the layer, but as the layer chooses which stubs to populate
+the table, limited &quot;multiple inheritance&quot; is
+possible.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Per-instance
+Data</b> <br>
+The per-instance data are held in memory beyond the basic
+PerlIOl struct, by making a PerlIOl the first member of the
+layer&rsquo;s struct thus:</p>
+
+<p style="margin-left:11%; margin-top: 1em">typedef struct
+<br>
+{ <br>
+struct _PerlIO base; /* Base &quot;class&quot; info */ <br>
+STDCHAR * buf; /* Start of buffer */ <br>
+STDCHAR * end; /* End of valid part of buffer */ <br>
+STDCHAR * ptr; /* Current position in buffer */ <br>
+Off_t posn; /* Offset of buf into the file */ <br>
+Size_t bufsiz; /* Real size of buffer */ <br>
+IV oneword; /* Emergency buffer */ <br>
+} PerlIOBuf;</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this way (as
+for perl&rsquo;s scalars) a pointer to a PerlIOBuf can be
+treated as a pointer to a PerlIOl.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Layers in
+action.</b> <br>
+table perlio unix <br>
+| | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+PerlIO &minus;&gt;| |&minus;&minus;&minus;&gt;| next
+|&minus;&minus;&minus;&gt;| NULL | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| | | buffer | | fd | <br>
+
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+| |
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+
+<br>
+| |
++&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+</p>
+
+<p style="margin-left:11%; margin-top: 1em">The above
+attempts to show how the layer scheme works in a simple
+case. The application&rsquo;s &quot;PerlIO *&quot; points to
+an entry in the table(s) representing open (allocated)
+handles. For example the first three slots in the table
+correspond to &quot;stdin&quot;,&quot;stdout&quot; and
+&quot;stderr&quot;. The table in turn points to the current
+&quot;top&quot; layer for the handle &minus; in this case an
+instance of the generic buffering layer &quot;perlio&quot;.
+That layer in turn points to the next layer down &minus; in
+this case the low-level &quot;unix&quot; layer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The above is
+roughly equivalent to a &quot;stdio&quot; buffered stream,
+but with much more flexibility:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">If Unix level
+&quot;read&quot;/&quot;write&quot;/&quot;lseek&quot; is not
+appropriate for (say) sockets then the &quot;unix&quot;
+layer can be replaced (at open time or even dynamically)
+with a &quot;socket&quot; layer.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Different handles can have different buffering schemes.
+The &quot;top&quot; layer could be the &quot;mmap&quot;
+layer if reading disk files was quicker using
+&quot;mmap&quot; than &quot;read&quot;. An
+&quot;unbuffered&quot; stream can be implemented simply by
+not having a buffer layer.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Extra layers can be inserted to process the data as it
+flows through. This was the driving need for including the
+scheme in perl 5.7.0+ &minus; we needed a mechanism to allow
+data to be translated between perl&rsquo;s internal encoding
+(conceptually at least Unicode as <small>UTF&minus;8</small>
+), and the &quot;native&quot; format used by the system.
+This is provided by the &quot;:encoding(xxxx)&quot; layer
+which typically sits above the buffering layer.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>A layer can be added that does &quot;\n&quot; to
+<small>CRLF</small> translation. This layer can be used on
+any platform, not just those that normally do such
+things.</p> </td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Per-instance
+flag bits</b> <br>
+The generic flag bits are a hybrid of &quot;O_XXXXX&quot;
+style flags deduced from the mode string passed to
+&quot;PerlIO_open()&quot;, and state bits for typical buffer
+layers. <small><br>
+PERLIO_F_EOF</small></p>
+
+<p style="margin-left:17%;">End of file.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_CANWRITE</small></p>
+
+<p style="margin-left:17%;">Writes are permitted, i.e.
+opened as &quot;w&quot; or &quot;r+&quot; or &quot;a&quot;,
+etc.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_CANREAD</small></p>
+
+<p style="margin-left:17%;">Reads are permitted i.e. opened
+&quot;r&quot; or &quot;w+&quot; (or even &quot;a+&quot;
+&minus; ick).</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_ERROR</small></p>
+
+<p style="margin-left:17%;">An error has occurred (for
+&quot;PerlIO_error()&quot;).</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_TRUNCATE</small></p>
+
+<p style="margin-left:17%;">Truncate file suggested by open
+mode.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_APPEND</small></p>
+
+<p style="margin-left:17%;">All writes should be
+appends.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_CRLF</small></p>
+
+<p style="margin-left:17%;">Layer is performing
+Win32&minus;like &quot;\n&quot; mapped to
+<small>CR,LF</small> for output and <small>CR,LF</small>
+mapped to &quot;\n&quot; for input. Normally the provided
+&quot;crlf&quot; layer is the only layer that need bother
+about this. &quot;PerlIO_binmode()&quot; will mess with this
+flag rather than add/remove layers if the
+&quot;PERLIO_K_CANCRLF&quot; bit is set for the layers
+class.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_UTF8</small></p>
+
+<p style="margin-left:17%;">Data written to this layer
+should be <small>UTF&minus;8</small> encoded; data provided
+by this layer should be considered
+<small>UTF&minus;8</small> encoded. Can be set on any layer
+by &quot;:utf8&quot; dummy layer. Also set on
+&quot;:encoding&quot; layer.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_UNBUF</small></p>
+
+<p style="margin-left:17%;">Layer is unbuffered &minus;
+i.e. write to next layer down should occur for each write to
+this layer.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_WRBUF</small></p>
+
+<p style="margin-left:17%;">The buffer for this layer
+currently holds data written to it but not sent to next
+layer.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_RDBUF</small></p>
+
+<p style="margin-left:17%;">The buffer for this layer
+currently holds unconsumed data read from layer below.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_LINEBUF</small></p>
+
+<p style="margin-left:17%;">Layer is line buffered. Write
+data should be passed to next layer down whenever a
+&quot;\n&quot; is seen. Any data beyond the &quot;\n&quot;
+should then be processed.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_TEMP</small></p>
+
+<p style="margin-left:17%;">File has been
+&quot;unlink()&quot;ed, or should be deleted on
+&quot;close()&quot;.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_OPEN</small></p>
+
+<p style="margin-left:17%;">Handle is open.</p>
+
+
+<p style="margin-left:11%;"><small>PERLIO_F_FASTGETS</small></p>
+
+<p style="margin-left:17%;">This instance of this layer
+supports the &quot;fast &quot;gets&quot;&quot; interface.
+Normally set based on &quot;PERLIO_K_FASTGETS&quot; for the
+class and by the existence of the function(s) in the table.
+However a class that normally provides that interface may
+need to avoid it on a particular instance. The
+&quot;pending&quot; layer needs to do this when it is pushed
+above a layer which does not support the interface.
+(Perl&rsquo;s &quot;sv_gets()&quot; does not expect the
+streams fast &quot;gets&quot; behaviour to change during one
+&quot;get&quot;.)</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Methods in
+Detail</b> <br>
+fsize</p>
+
+<p style="margin-left:17%;">Size_t fsize;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Size of the
+function table. This is compared against the value PerlIO
+code &quot;knows&quot; as a compatibility check. Future
+versions <i>may</i> be able to tolerate layers compiled
+against an old version of the headers.</p>
+
+<p style="margin-left:11%;">name</p>
+
+<p style="margin-left:17%;">char * name;</p>
+
+<p style="margin-left:17%; margin-top: 1em">The name of the
+layer whose <b>open()</b> method Perl should invoke on
+<b>open()</b>. For example if the layer is called
+<small>APR,</small> you will call:</p>
+
+<p style="margin-left:17%; margin-top: 1em">open $fh,
+&quot;&gt;:APR&quot;, ...</p>
+
+<p style="margin-left:17%; margin-top: 1em">and Perl knows
+that it has to invoke the <b>PerlIOAPR_open()</b> method
+implemented by the <small>APR</small> layer.</p>
+
+<p style="margin-left:11%;">size</p>
+
+<p style="margin-left:17%;">Size_t size;</p>
+
+<p style="margin-left:17%; margin-top: 1em">The size of the
+per-instance data structure, e.g.:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">sizeof(PerlIOAPR)</p>
+
+<p style="margin-left:17%; margin-top: 1em">If this field
+is zero then &quot;PerlIO_pushed&quot; does not malloc
+anything and assumes layer&rsquo;s Pushed function will do
+any required layer stack manipulation &minus; used to avoid
+malloc/free overhead for dummy layers. If the field is
+non-zero it must be at least the size of
+&quot;PerlIOl&quot;, &quot;PerlIO_pushed&quot; will allocate
+memory for the layer&rsquo;s data structures and link new
+layer onto the stream&rsquo;s stack. (If the layer&rsquo;s
+Pushed method returns an error indication the layer is
+popped again.)</p>
+
+<p style="margin-left:11%;">kind</p>
+
+<p style="margin-left:17%;">IV kind;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="26%">
+
+
+<p><small>PERLIO_K_BUFFERED</small></p></td>
+<td width="51%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">The layer is
+buffered.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="19%">
+
+
+<p style="margin-top: 1em"><small>PERLIO_K_RAW</small></p></td>
+<td width="58%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">The layer is
+acceptable to have in a binmode( <small>FH</small> ) stack
+&minus; i.e. it does not (or will configure itself not to)
+transform bytes passing through it.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="25%">
+
+
+
+<p style="margin-top: 1em"><small>PERLIO_K_CANCRLF</small></p> </td>
+<td width="52%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">Layer can
+translate between &quot;\n&quot; and <small>CRLF</small>
+line ends.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="26%">
+
+
+
+<p style="margin-top: 1em"><small>PERLIO_K_FASTGETS</small></p> </td>
+<td width="51%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">Layer allows
+buffer snooping.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="26%">
+
+
+
+<p style="margin-top: 1em"><small>PERLIO_K_MULTIARG</small></p> </td>
+<td width="51%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">Used when the
+layer&rsquo;s <b>open()</b> accepts more arguments than
+usual. The extra arguments should come not before the
+&quot;MODE&quot; argument. When this flag is used it&rsquo;s
+up to the layer to validate the args.</p>
+
+<p style="margin-left:11%;">Pushed</p>
+
+<p style="margin-left:17%;">IV (*Pushed)(pTHX_ PerlIO
+*f,const char *mode, SV *arg);</p>
+
+<p style="margin-left:17%; margin-top: 1em">The only
+absolutely mandatory method. Called when the layer is pushed
+onto the stack. The &quot;mode&quot; argument may be
+<small>NULL</small> if this occurs post-open. The
+&quot;arg&quot; will be non&minus;&quot;NULL&quot; if an
+argument string was passed. In most cases this should call
+&quot;PerlIOBase_pushed()&quot; to convert &quot;mode&quot;
+into the appropriate &quot;PERLIO_F_XXXXX&quot; flags in
+addition to any actions the layer itself takes. If a layer
+is not expecting an argument it need neither save the one
+passed to it, nor provide &quot;Getarg()&quot; (it could
+perhaps &quot;Perl_warn&quot; that the argument was
+un-expected).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns 0 on
+success. On failure returns &minus;1 and should set
+errno.</p>
+
+<p style="margin-left:11%;">Popped</p>
+
+<p style="margin-left:17%;">IV (*Popped)(pTHX_ PerlIO
+*f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Called when the
+layer is popped from the stack. A layer will normally be
+popped after &quot;Close()&quot; is called. But a layer can
+be popped without being closed if the program is dynamically
+managing layers on the stream. In such cases
+&quot;Popped()&quot; should free any resources (buffers,
+translation tables, ...) not held directly in the
+layer&rsquo;s struct. It should also &quot;Unread()&quot;
+any unconsumed data that has been read and buffered from the
+layer below back to that layer, so that it can be
+re-provided to what ever is now above.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns 0 on
+success and failure. If &quot;Popped()&quot; returns
+<i>true</i> then <i>perlio.c</i> assumes that either the
+layer has popped itself, or the layer is super special and
+needs to be retained for other reasons. In most cases it
+should return <i>false</i>.</p>
+
+<p style="margin-left:11%;">Open</p>
+
+<p style="margin-left:17%;">PerlIO * (*Open)(...);</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;Open()&quot; method has lots of arguments because it
+combines the functions of perl&rsquo;s &quot;open&quot;,
+&quot;PerlIO_open&quot;, perl&rsquo;s &quot;sysopen&quot;,
+&quot;PerlIO_fdopen&quot; and &quot;PerlIO_reopen&quot;. The
+full prototype is as follows:</p>
+
+<p style="margin-left:17%; margin-top: 1em">PerlIO *
+(*Open)(pTHX_ PerlIO_funcs *tab, <br>
+PerlIO_list_t *layers, IV n, <br>
+const char *mode, <br>
+int fd, int imode, int perm, <br>
+PerlIO *old, <br>
+int narg, SV **args);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Open should
+(perhaps indirectly) call &quot;PerlIO_allocate()&quot; to
+allocate a slot in the table and associate it with the
+layers information for the opened file, by calling
+&quot;PerlIO_push&quot;. The <i>layers</i> is an array of
+all the layers destined for the &quot;PerlIO *&quot;, and
+any arguments passed to them, <i>n</i> is the index into
+that array of the layer being called. The macro
+&quot;PerlIOArg&quot; will return a (possibly
+&quot;NULL&quot;) <small>SV</small> * for the argument
+passed to the layer.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Where a layer
+opens or takes ownership of a file descriptor, that layer is
+responsible for getting the file descriptor&rsquo;s
+close-on-exec flag into the correct state. The flag should
+be clear for a file descriptor numbered less than or equal
+to &quot;PL_maxsysfd&quot;, and set for any file descriptor
+numbered higher. For thread safety, when a layer opens a new
+file descriptor it should if possible open it with the
+close-on-exec flag initially set.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The <i>mode</i>
+string is an &quot;&quot;fopen()&quot;&minus;like&quot;
+string which would match the regular expression
+&quot;/^[I#]?[rwa]\+?[bt]?$/&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The 'I' prefix
+is used during creation of
+&quot;stdin&quot;..&quot;stderr&quot; via special
+&quot;PerlIO_fdopen&quot; calls; the '#' prefix means that
+this is &quot;sysopen&quot; and that <i>imode</i> and
+<i>perm</i> should be passed to &quot;PerlLIO_open3&quot;;
+'r' means <b>r</b>ead, 'w' means <b>w</b>rite and 'a' means
+<b>a</b>ppend. The '+' suffix means that both reading and
+writing/appending are permitted. The 'b' suffix means file
+should be binary, and 't' means it is text. (Almost all
+layers should do the <small>IO</small> in binary mode, and
+ignore the b/t bits. The &quot;:crlf&quot; layer should be
+pushed to handle the distinction.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">If <i>old</i>
+is not &quot;NULL&quot; then this is a
+&quot;PerlIO_reopen&quot;. Perl itself does not use this
+(yet?) and semantics are a little vague.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If <i>fd</i>
+not negative then it is the numeric file descriptor
+<i>fd</i>, which will be open in a manner compatible with
+the supplied mode string, the call is thus equivalent to
+&quot;PerlIO_fdopen&quot;. In this case <i>nargs</i> will be
+zero. The file descriptor may have the close-on-exec flag
+either set or clear; it is the responsibility of the layer
+that takes ownership of it to get the flag into the correct
+state.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If <i>nargs</i>
+is greater than zero then it gives the number of arguments
+passed to &quot;open&quot;, otherwise it will be 1 if for
+example &quot;PerlIO_open&quot; was called. In simple cases
+SvPV_nolen(*args) is the pathname to open.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If a layer
+provides &quot;Open()&quot; it should normally call the
+&quot;Open()&quot; method of next layer down (if any) and
+then push itself on top if that succeeds.
+&quot;PerlIOBase_open&quot; is provided to do exactly that,
+so in most cases you don&rsquo;t have to write your own
+&quot;Open()&quot; method. If this method is not defined,
+other layers may have difficulty pushing themselves on top
+of it during open.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;PerlIO_push&quot; was performed and open has failed,
+it must &quot;PerlIO_pop&quot; itself, since if it&rsquo;s
+not, the layer won&rsquo;t be removed and may cause bad
+problems.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns
+&quot;NULL&quot; on failure.</p>
+
+<p style="margin-left:11%;">Binmode</p>
+
+<p style="margin-left:17%;">IV (*Binmode)(pTHX_ PerlIO
+*f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Optional. Used
+when &quot;:raw&quot; layer is pushed (explicitly or as a
+result of binmode( <small>FH</small> )). If not present
+layer will be popped. If present should configure layer as
+binary (or pop itself) and return 0. If it returns &minus;1
+for error &quot;binmode&quot; will fail with layer still on
+the stack.</p>
+
+<p style="margin-left:11%;">Getarg</p>
+
+<p style="margin-left:17%;">SV * (*Getarg)(pTHX_ PerlIO *f,
+<br>
+CLONE_PARAMS *param, int flags);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Optional. If
+present should return an <small>SV</small> * representing
+the string argument passed to the layer when it was pushed.
+e.g. &quot;:encoding(ascii)&quot; would return an SvPV with
+value &quot;ascii&quot;. (<i>param</i> and <i>flags</i>
+arguments can be ignored in most cases)</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;Dup&quot;
+uses &quot;Getarg&quot; to retrieve the argument originally
+passed to &quot;Pushed&quot;, so you must implement this
+function if your layer has an extra argument to
+&quot;Pushed&quot; and will ever be &quot;Dup&quot;ed.</p>
+
+<p style="margin-left:11%;">Fileno</p>
+
+<p style="margin-left:17%;">IV (*Fileno)(pTHX_ PerlIO
+*f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+Unix/Posix numeric file descriptor for the handle. Normally
+&quot;PerlIOBase_fileno()&quot; (which just asks next layer
+down) will suffice for this.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns
+&minus;1 on error, which is considered to include the case
+where the layer cannot provide such a file descriptor.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>Dup</p></td>
+<td width="14%"></td>
+<td width="66%">
+
+
+<p>PerlIO * (*Dup)(pTHX_ PerlIO *f, PerlIO *o,</p></td>
+<td width="5%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%;">CLONE_PARAMS *param, int
+flags);</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>XXX:</small>
+Needs more docs.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Used as part of
+the &quot;clone&quot; process when a thread is spawned (in
+which case param will be non-NULL) and when a stream is
+being duplicated via &rsquo;&amp;&rsquo; in the
+&quot;open&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Similar to
+&quot;Open&quot;, returns PerlIO* on success,
+&quot;NULL&quot; on failure.</p>
+
+<p style="margin-left:11%;">Read</p>
+
+<p style="margin-left:17%;">SSize_t (*Read)(pTHX_ PerlIO
+*f, void *vbuf, Size_t count);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Basic read
+operation.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Typically will
+call &quot;Fill&quot; and manipulate pointers (possibly via
+the <small>API</small> ). &quot;PerlIOBuf_read()&quot; may
+be suitable for derived classes which provide &quot;fast
+gets&quot; methods.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns actual
+bytes read, or &minus;1 on an error.</p>
+
+<p style="margin-left:11%;">Unread</p>
+
+<p style="margin-left:17%;">SSize_t (*Unread)(pTHX_ PerlIO
+*f, <br>
+const void *vbuf, Size_t count);</p>
+
+<p style="margin-left:17%; margin-top: 1em">A superset of
+stdio&rsquo;s &quot;ungetc()&quot;. Should arrange for
+future reads to see the bytes in &quot;vbuf&quot;. If there
+is no obviously better implementation then
+&quot;PerlIOBase_unread()&quot; provides the function by
+pushing a &quot;fake&quot; &quot;pending&quot; layer above
+the calling layer.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+number of unread chars.</p>
+
+<p style="margin-left:11%;">Write</p>
+
+<p style="margin-left:17%;">SSize_t (*Write)(PerlIO *f,
+const void *vbuf, Size_t count);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Basic write
+operation.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns bytes
+written or &minus;1 on an error.</p>
+
+<p style="margin-left:11%;">Seek</p>
+
+<p style="margin-left:17%;">IV (*Seek)(pTHX_ PerlIO *f,
+Off_t offset, int whence);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Position the
+file pointer. Should normally call its own &quot;Flush&quot;
+method and then the &quot;Seek&quot; method of next layer
+down.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns 0 on
+success, &minus;1 on failure.</p>
+
+<p style="margin-left:11%;">Tell</p>
+
+<p style="margin-left:17%;">Off_t (*Tell)(pTHX_ PerlIO
+*f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Return the file
+pointer. May be based on layers cached concept of position
+to avoid overhead.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns
+&minus;1 on failure to get the file pointer.</p>
+
+<p style="margin-left:11%;">Close</p>
+
+<p style="margin-left:17%;">IV (*Close)(pTHX_ PerlIO
+*f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Close the
+stream. Should normally call &quot;PerlIOBase_close()&quot;
+to flush itself and close layers below, and then deallocate
+any data structures (buffers, translation tables, ...) not
+held directly in the data structure.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns 0 on
+success, &minus;1 on failure.</p>
+
+<p style="margin-left:11%;">Flush</p>
+
+<p style="margin-left:17%;">IV (*Flush)(pTHX_ PerlIO
+*f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Should make
+stream&rsquo;s state consistent with layers below. That is,
+any buffered write data should be written, and file position
+of lower layers adjusted for data read from below but not
+actually consumed. (Should perhaps &quot;Unread()&quot; such
+data to the lower layer.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns 0 on
+success, &minus;1 on failure.</p>
+
+<p style="margin-left:11%;">Fill</p>
+
+<p style="margin-left:17%;">IV (*Fill)(pTHX_ PerlIO
+*f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">The buffer for
+this layer should be filled (for read) from layer below.
+When you &quot;subclass&quot; PerlIOBuf layer, you want to
+use its <i>_read</i> method and to supply your own fill
+method, which fills the PerlIOBuf&rsquo;s buffer.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns 0 on
+success, &minus;1 on failure.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>Eof</p></td>
+<td width="14%"></td>
+<td width="49%">
+
+
+<p>IV (*Eof)(pTHX_ PerlIO *f);</p></td>
+<td width="22%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Return
+end-of-file indicator. &quot;PerlIOBase_eof()&quot; is
+normally sufficient.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns 0 on
+end-of-file, 1 if not end-of-file, &minus;1 on error.</p>
+
+<p style="margin-left:11%;">Error</p>
+
+<p style="margin-left:17%;">IV (*Error)(pTHX_ PerlIO
+*f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Return error
+indicator. &quot;PerlIOBase_error()&quot; is normally
+sufficient.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns 1 if
+there is an error (usually when &quot;PERLIO_F_ERROR&quot;
+is set), 0 otherwise.</p>
+
+<p style="margin-left:11%;">Clearerr</p>
+
+<p style="margin-left:17%;">void (*Clearerr)(pTHX_ PerlIO
+*f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Clear
+end-of-file and error indicators. Should call
+&quot;PerlIOBase_clearerr()&quot; to set the
+&quot;PERLIO_F_XXXXX&quot; flags, which may suffice.</p>
+
+<p style="margin-left:11%;">Setlinebuf</p>
+
+<p style="margin-left:17%;">void (*Setlinebuf)(pTHX_ PerlIO
+*f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Mark the stream
+as line buffered. &quot;PerlIOBase_setlinebuf()&quot; sets
+the <small>PERLIO_F_LINEBUF</small> flag and is normally
+sufficient.</p>
+
+<p style="margin-left:11%;">Get_base</p>
+
+<p style="margin-left:17%;">STDCHAR * (*Get_base)(pTHX_
+PerlIO *f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Allocate (if
+not already done so) the read buffer for this layer and
+return pointer to it. Return <small>NULL</small> on
+failure.</p>
+
+<p style="margin-left:11%;">Get_bufsiz</p>
+
+<p style="margin-left:17%;">Size_t (*Get_bufsiz)(pTHX_
+PerlIO *f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Return the
+number of bytes that last &quot;Fill()&quot; put in the
+buffer.</p>
+
+<p style="margin-left:11%;">Get_ptr</p>
+
+<p style="margin-left:17%;">STDCHAR * (*Get_ptr)(pTHX_
+PerlIO *f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Return the
+current read pointer relative to this layer&rsquo;s
+buffer.</p>
+
+<p style="margin-left:11%;">Get_cnt</p>
+
+<p style="margin-left:17%;">SSize_t (*Get_cnt)(pTHX_ PerlIO
+*f);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Return the
+number of bytes left to be read in the current buffer.</p>
+
+<p style="margin-left:11%;">Set_ptrcnt</p>
+
+<p style="margin-left:17%;">void (*Set_ptrcnt)(pTHX_ PerlIO
+*f, <br>
+STDCHAR *ptr, SSize_t cnt);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Adjust the read
+pointer and count of bytes to match &quot;ptr&quot; and/or
+&quot;cnt&quot;. The application (or layer above) must
+ensure they are consistent. (Checking is allowed by the
+paranoid.)</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Utilities</b>
+<br>
+To ask for the next layer down use PerlIONext(PerlIO
+*f).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To check that a
+PerlIO* is valid use PerlIOValid(PerlIO *f). (All this does
+is really just to check that the pointer is non-NULL and
+that the pointer behind that is non-NULL.)</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">PerlIOBase(PerlIO
+*f) returns the &quot;Base&quot; pointer, or in other words,
+the &quot;PerlIOl*&quot; pointer.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">PerlIOSelf(PerlIO*
+f, type) return the PerlIOBase cast to a type.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Perl_PerlIO_or_Base(PerlIO*
+f, callback, base, failure, args) either calls the
+<i>callback</i> from the functions of the layer <i>f</i>
+(just by the name of the <small>IO</small> function, like
+&quot;Read&quot;) with the <i>args</i>, or if there is no
+such callback, calls the <i>base</i> version of the callback
+with the same args, or if the f is invalid, set errno to
+<small>EBADF</small> and return <i>failure</i>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Perl_PerlIO_or_fail(PerlIO*
+f, callback, failure, args) either calls the <i>callback</i>
+of the functions of the layer <i>f</i> with the <i>args</i>,
+or if there is no such callback, set errno to
+<small>EINVAL.</small> Or if the f is invalid, set errno to
+<small>EBADF</small> and return <i>failure</i>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Perl_PerlIO_or_Base_void(PerlIO*
+f, callback, base, args) either calls the <i>callback</i> of
+the functions of the layer <i>f</i> with the <i>args</i>, or
+if there is no such callback, calls the <i>base</i> version
+of the callback with the same args, or if the f is invalid,
+set errno to <small>EBADF.</small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Perl_PerlIO_or_fail_void(PerlIO*
+f, callback, args) either calls the <i>callback</i> of the
+functions of the layer <i>f</i> with the <i>args</i>, or if
+there is no such callback, set errno to
+<small>EINVAL.</small> Or if the f is invalid, set errno to
+<small>EBADF.</small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Implementing
+PerlIO Layers</b> <br>
+If you find the implementation document unclear or not
+sufficient, look at the existing PerlIO layer
+implementations, which include:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="26%">
+
+
+<p>C implementations</p></td>
+<td width="57%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The
+<i>perlio.c</i> and <i>perliol.h</i> in the Perl core
+implement the &quot;unix&quot;, &quot;perlio&quot;,
+&quot;stdio&quot;, &quot;crlf&quot;, &quot;utf8&quot;,
+&quot;byte&quot;, &quot;raw&quot;, &quot;pending&quot;
+layers, and also the &quot;mmap&quot; and &quot;win32&quot;
+layers if applicable. (The &quot;win32&quot; is currently
+unfinished and unused, to see what is used instead in Win32,
+see &quot;Querying the layers of filehandles&quot; in PerlIO
+.)</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">PerlIO::encoding,
+PerlIO::scalar, PerlIO::via in the Perl core.</p>
+
+<p style="margin-left:17%; margin-top: 1em">PerlIO::gzip
+and APR::PerlIO (mod_perl 2.0) on <small>CPAN.</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="31%">
+
+
+<p style="margin-top: 1em">Perl implementations</p></td>
+<td width="52%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em">PerlIO::via::QuotedPrint
+in the Perl core and PerlIO::via::* on
+<small>CPAN.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+creating a PerlIO layer, you may want to be lazy, in other
+words, implement only the methods that interest you. The
+other methods you can either replace with the
+&quot;blank&quot; methods</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">PerlIOBase_noop_ok
+<br>
+PerlIOBase_noop_fail</p>
+
+<p style="margin-left:11%; margin-top: 1em">(which do
+nothing, and return zero and &minus;1, respectively) or for
+certain methods you may assume a default behaviour by using
+a <small>NULL</small> method. The Open method looks for help
+in the &rsquo;parent&rsquo; layer. The following table
+summarizes the behaviour:</p>
+
+<p style="margin-left:11%; margin-top: 1em">method
+behaviour with NULL <br>
+Clearerr PerlIOBase_clearerr <br>
+Close PerlIOBase_close <br>
+Dup PerlIOBase_dup <br>
+Eof PerlIOBase_eof <br>
+Error PerlIOBase_error <br>
+Fileno PerlIOBase_fileno <br>
+Fill FAILURE <br>
+Flush SUCCESS <br>
+Getarg SUCCESS <br>
+Get_base FAILURE <br>
+Get_bufsiz FAILURE <br>
+Get_cnt FAILURE <br>
+Get_ptr FAILURE <br>
+Open INHERITED <br>
+Popped SUCCESS <br>
+Pushed SUCCESS <br>
+Read PerlIOBase_read <br>
+Seek FAILURE <br>
+Set_cnt FAILURE <br>
+Set_ptrcnt FAILURE <br>
+Setlinebuf PerlIOBase_setlinebuf <br>
+Tell FAILURE <br>
+Unread PerlIOBase_unread <br>
+Write FAILURE <br>
+FAILURE Set errno (to EINVAL in Unixish, to LIB$_INVARG in
+VMS) <br>
+and return &minus;1 (for numeric return values) or NULL (for
+<br>
+pointers) <br>
+INHERITED Inherited from the layer below <br>
+SUCCESS Return 0 (for numeric return values) or a
+pointer</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Core
+Layers</b> <br>
+The file &quot;perlio.c&quot; provides the following layers:
+<br>
+&quot;unix&quot;</p>
+
+<p style="margin-left:17%;">A basic non-buffered layer
+which calls Unix/POSIX &quot;read()&quot;,
+&quot;write()&quot;, &quot;lseek()&quot;,
+&quot;close()&quot;. No buffering. Even on platforms that
+distinguish between O_TEXT and O_BINARY this layer is always
+O_BINARY.</p>
+
+<p style="margin-left:11%;">&quot;perlio&quot;</p>
+
+<p style="margin-left:17%;">A very complete generic
+buffering layer which provides the whole of PerlIO
+<small>API.</small> It is also intended to be used as a
+&quot;base class&quot; for other layers. (For example its
+&quot;Read()&quot; method is implemented in terms of the
+&quot;Get_cnt()&quot;/&quot;Get_ptr()&quot;/&quot;Set_ptrcnt()&quot;
+methods).</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;perlio&quot;
+over &quot;unix&quot; provides a complete replacement for
+stdio as seen via PerlIO <small>API.</small> This is the
+default for <small>USE_PERLIO</small> when system&rsquo;s
+stdio does not permit perl&rsquo;s &quot;fast gets&quot;
+access, and which do not distinguish between
+&quot;O_TEXT&quot; and &quot;O_BINARY&quot;.</p>
+
+<p style="margin-left:11%;">&quot;stdio&quot;</p>
+
+<p style="margin-left:17%;">A layer which provides the
+PerlIO <small>API</small> via the layer scheme, but
+implements it by calling system&rsquo;s stdio. This is
+(currently) the default if system&rsquo;s stdio provides
+sufficient access to allow perl&rsquo;s &quot;fast
+gets&quot; access and which do not distinguish between
+&quot;O_TEXT&quot; and &quot;O_BINARY&quot;.</p>
+
+<p style="margin-left:11%;">&quot;crlf&quot;</p>
+
+<p style="margin-left:17%;">A layer derived using
+&quot;perlio&quot; as a base class. It provides
+Win32&minus;like &quot;\n&quot; to <small>CR,LF</small>
+translation. Can either be applied above &quot;perlio&quot;
+or serve as the buffer layer itself. &quot;crlf&quot; over
+&quot;unix&quot; is the default if system distinguishes
+between &quot;O_TEXT&quot; and &quot;O_BINARY&quot; opens.
+(At some point &quot;unix&quot; will be replaced by a
+&quot;native&quot; Win32 <small>IO</small> layer on that
+platform, as Win32&rsquo;s read/write layer has various
+drawbacks.) The &quot;crlf&quot; layer is a reasonable model
+for a layer which transforms data in some way.</p>
+
+<p style="margin-left:11%;">&quot;mmap&quot;</p>
+
+<p style="margin-left:17%;">If Configure detects
+&quot;mmap()&quot; functions this layer is provided (with
+&quot;perlio&quot; as a &quot;base&quot;) which does
+&quot;read&quot; operations by <b>mmap()</b>ing the file.
+Performance improvement is marginal on modern systems, so it
+is mainly there as a proof of concept. It is likely to be
+unbundled from the core at some point. The &quot;mmap&quot;
+layer is a reasonable model for a minimalist
+&quot;derived&quot; layer.</p>
+
+<p style="margin-left:11%;">&quot;pending&quot;</p>
+
+<p style="margin-left:17%;">An &quot;internal&quot;
+derivative of &quot;perlio&quot; which can be used to
+provide <b>Unread()</b> function for layers which have no
+buffer or cannot be bothered. (Basically this layer&rsquo;s
+&quot;Fill()&quot; pops itself off the stack and so resumes
+reading from layer below.)</p>
+
+<p style="margin-left:11%;">&quot;raw&quot;</p>
+
+<p style="margin-left:17%;">A dummy layer which never
+exists on the layer stack. Instead when &quot;pushed&quot;
+it actually pops the stack removing itself, it then calls
+Binmode function table entry on all the layers in the stack
+&minus; normally this (via PerlIOBase_binmode) removes any
+layers which do not have &quot;PERLIO_K_RAW&quot; bit set.
+Layers can modify that behaviour by defining their own
+Binmode entry.</p>
+
+<p style="margin-left:11%;">&quot;utf8&quot;</p>
+
+<p style="margin-left:17%;">Another dummy layer. When
+pushed it pops itself and sets the &quot;PERLIO_F_UTF8&quot;
+flag on the layer which was (and now is once more) the top
+of the stack.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In addition
+<i>perlio.c</i> also provides a number of
+&quot;PerlIOBase_xxxx()&quot; functions which are intended
+to be used in the table slots of classes which do not need
+to do anything special for a particular method.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Extension
+Layers</b> <br>
+Layers can be made available by extension modules. When an
+unknown layer is encountered the PerlIO code will perform
+the equivalent of :</p>
+
+<p style="margin-left:11%; margin-top: 1em">use PerlIO
+'layer';</p>
+
+<p style="margin-left:11%; margin-top: 1em">Where
+<i>layer</i> is the unknown layer. <i>PerlIO.pm</i> will
+then attempt to:</p>
+
+<p style="margin-left:11%; margin-top: 1em">require
+PerlIO::layer;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If after that
+process the layer is still not defined then the
+&quot;open&quot; will fail.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+extension layers are bundled with perl: <br>
+&quot;:encoding&quot;</p>
+
+<p style="margin-left:17%;">use Encoding;</p>
+
+<p style="margin-left:17%; margin-top: 1em">makes this
+layer available, although <i>PerlIO.pm</i> &quot;knows&quot;
+where to find it. It is an example of a layer which takes an
+argument as it is called thus:</p>
+
+<p style="margin-left:17%; margin-top: 1em">open( $fh,
+&quot;&lt;:encoding(iso&minus;8859&minus;7)&quot;, $pathname
+);</p>
+
+<p style="margin-left:11%;">&quot;:scalar&quot;</p>
+
+<p style="margin-left:17%;">Provides support for reading
+data from and writing data to a scalar.</p>
+
+<p style="margin-left:17%; margin-top: 1em">open( $fh,
+&quot;+&lt;:scalar&quot;, \$scalar );</p>
+
+<p style="margin-left:17%; margin-top: 1em">When a handle
+is so opened, then reads get bytes from the string value of
+<i>$scalar</i>, and writes change the value. In both cases
+the position in <i>$scalar</i> starts as zero but can be
+altered via &quot;seek&quot;, and determined via
+&quot;tell&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Please note
+that this layer is implied when calling <b>open()</b>
+thus:</p>
+
+<p style="margin-left:17%; margin-top: 1em">open( $fh,
+&quot;+&lt;&quot;, \$scalar );</p>
+
+<p style="margin-left:11%;">&quot;:via&quot;</p>
+
+<p style="margin-left:17%;">Provided to allow layers to be
+implemented as Perl code. For instance:</p>
+
+<p style="margin-left:17%; margin-top: 1em">use
+PerlIO::via::StripHTML; <br>
+open( my $fh, &quot;&lt;:via(StripHTML)&quot;,
+&quot;index.html&quot; );</p>
+
+<p style="margin-left:17%; margin-top: 1em">See PerlIO::via
+for details.</p>
+
+<h2>TODO
+<a name="TODO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Things that
+need to be done to improve this document.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Explain how to make a valid fh without going through
+<b>open()</b>(i.e. apply a layer). For example if the file
+is not opened through perl, but we want to get back a fh,
+like it was opened by Perl.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">How
+PerlIO_apply_layera fits in, where its docs, was it made
+public?</p>
+
+<p style="margin-left:17%; margin-top: 1em">Currently the
+example could be something like this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">PerlIO
+*foo_to_PerlIO(pTHX_ char *mode, ...) <br>
+{ <br>
+char *mode; /* &quot;w&quot;, &quot;r&quot;, etc */ <br>
+const char *layers = &quot;:APR&quot;; /* the layer name */
+<br>
+PerlIO *f = PerlIO_allocate(aTHX); <br>
+if (!f) { <br>
+return NULL; <br>
+} <br>
+PerlIO_apply_layers(aTHX_ f, mode, layers); <br>
+if (f) { <br>
+PerlIOAPR *st = PerlIOSelf(f, PerlIOAPR); <br>
+/* fill in the st struct, as in _open() */ <br>
+st&minus;&gt;file = file; <br>
+PerlIOBase(f)&minus;&gt;flags |= PERLIO_F_OPEN; <br>
+return f; <br>
+} <br>
+return NULL; <br>
+}</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">fix/add the documentation in
+places marked as <small>XXX.</small></p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The handling of errors by the layer is not specified.
+e.g. when $! should be set explicitly, when the error
+handling should be just delegated to the top layer.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Probably give
+some hints on using <b><small>SETERRNO</small> ()</b> or
+pointers to where they can be found.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">I think it would help to give
+some concrete examples to make it easier to understand the
+<small>API.</small> Of course I agree that the
+<small>API</small> has to be concise, but since there is no
+second document that is more of a guide, I think that
+it&rsquo;d make it easier to start with the doc which is an
+<small>API,</small> but has examples in it in places where
+things are unclear, to a person who is not a PerlIO guru
+(yet).</p> </td></tr>
+ </table>
+<hr>
+</body>
+</html>

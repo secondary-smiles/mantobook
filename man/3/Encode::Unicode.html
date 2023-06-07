@@ -1,0 +1,378 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:47 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Encode::Unicode</title>
+
+</head>
+<body>
+<h1>Encode::Unicode</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Encode::Unicode
+&minus;&minus; Various Unicode Transformation Formats</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use Encode
+qw/encode decode/; <br>
+$ucs2 = encode(&quot;UCS&minus;2BE&quot;, $utf8); <br>
+$utf8 = decode(&quot;UCS&minus;2BE&quot;, $ucs2);</p>
+
+<h2>ABSTRACT
+<a name="ABSTRACT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+implements all Character Encoding Schemes of Unicode that
+are officially documented by Unicode Consortium (except, of
+course, for <small>UTF&minus;8,</small> which is a native
+format in perl). <br>
+&lt;http://www.unicode.org/glossary/&gt; says:</p>
+
+<p style="margin-left:17%;"><i>Character Encoding
+Scheme</i> A character encoding form plus byte
+serialization. There are Seven character encoding schemes in
+Unicode: <small>UTF&minus;8, UTF&minus;16, UTF&minus;16BE,
+UTF&minus;16LE, UTF&minus;32</small> (
+<small>UCS&minus;4</small> ), <small>UTF&minus;32BE</small>
+( <small>UCS&minus;4BE</small> ) and
+<small>UTF&minus;32LE</small> ( <small>UCS&minus;4LE</small>
+), and <small>UTF&minus;7.</small></p>
+
+<p style="margin-left:17%; margin-top: 1em">Since
+<small>UTF&minus;7</small> is a 7&minus;bit (re)encoded
+version of <small>UTF&minus;16BE,</small> It is not part of
+Unicode&rsquo;s Character Encoding Scheme. It is separately
+implemented in Encode::Unicode::UTF7. For details see
+Encode::Unicode::UTF7.</p>
+
+<p style="margin-left:11%;">Quick Reference</p>
+
+<p style="margin-left:17%;">Decodes from ord(N) Encodes
+chr(N) to... <br>
+octet/char BOM S.P d800&minus;dfff ord &gt; 0xffff \x{1abcd}
+== <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+UCS&minus;2BE 2 N N is bogus Not Available <br>
+UCS&minus;2LE 2 N N bogus Not Available <br>
+UTF&minus;16 2/4 Y Y is S.P S.P BE/LE <br>
+UTF&minus;16BE 2/4 N Y S.P S.P 0xd82a,0xdfcd <br>
+UTF&minus;16LE 2/4 N Y S.P S.P 0x2ad8,0xcddf <br>
+UTF&minus;32 4 Y &minus; is bogus As is BE/LE <br>
+UTF&minus;32BE 4 N &minus; bogus As is 0x0001abcd <br>
+UTF&minus;32LE 4 N &minus; bogus As is 0xcdab0100 <br>
+UTF&minus;8 1&minus;4 &minus; &minus; bogus &gt;= 4 octets
+\xf0\x9a\af\8d <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;</p>
+
+<h2>Size, Endianness, and BOM
+<a name="Size, Endianness, and BOM"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">You can
+categorize these <small>CES</small> by 3 criteria: size of
+each character, endianness, and Byte Order Mark.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>by size</b>
+<small><br>
+UCS&minus;2</small> is a fixed-length encoding with each
+character taking 16 bits. It <b>does not</b> support
+<i>surrogate pairs</i>. When a surrogate pair is encountered
+during <b>decode()</b>, its place is filled with \x{
+<small>FFFD</small> } if <i><small>CHECK</small></i> is 0,
+or the routine croaks if <i><small>CHECK</small></i> is 1.
+When a character whose ord value is larger than 0xFFFF is
+encountered, its place is filled with \x{
+<small>FFFD</small> } if <i><small>CHECK</small></i> is 0,
+or the routine croaks if <i><small>CHECK</small></i> is
+1.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>UTF&minus;16</small>
+is almost the same as <small>UCS&minus;2</small> but it
+supports <i>surrogate pairs</i>. When it encounters a high
+surrogate (0xD800&minus;0xDBFF), it fetches the following
+low surrogate (0xDC00&minus;0xDFFF) and
+&quot;desurrogate&quot;s them to form a character. Bogus
+surrogates result in death. When \x{10000} or above is
+encountered during <b>encode()</b>, it
+&quot;ensurrogate&quot;s them and pushes the surrogate pair
+to the output stream.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>UTF&minus;32</small>
+( <small>UCS&minus;4</small> ) is a fixed-length encoding
+with each character taking 32 bits. Since it is
+32&minus;bit, there is no need for <i>surrogate
+pairs</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>by
+endianness</b> <br>
+The first (and now failed) goal of Unicode was to map all
+character repertoires into a fixed-length integer so that
+programmers are happy. Since each character is either a
+<i>short</i> or <i>long</i> in C, you have to pay attention
+to the endianness of each platform when you pass data to one
+another.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Anything marked
+as <small>BE</small> is Big Endian (or network byte order)
+and <small>LE</small> is Little Endian (aka
+<small>VAX</small> byte order). For anything not marked
+either <small>BE</small> or <small>LE,</small> a character
+called Byte Order Mark ( <small>BOM</small> ) indicating the
+endianness is prepended to the string.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>CAVEAT:</small>
+Though <small>BOM</small> in utf8 (\xEF\xBB\xBF) is valid,
+it is meaningless and as of this writing Encode suite just
+leave it as is (\x{FeFF}). <small><br>
+BOM</small> as integer when fetched in network byte
+order</p>
+
+<p style="margin-left:17%;">16 32 bits/char <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+BE 0xFeFF 0x0000FeFF <br>
+LE 0xFFFe 0xFFFe0000 <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This modules
+handles the <small>BOM</small> as follows.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>When <small>BE</small> or <small>LE</small> is
+explicitly stated as the name of encoding,
+<small>BOM</small> is simply treated as a normal character (
+<small>ZERO WIDTH</small> NO-BREAK <small>SPACE</small>
+).</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>When <small>BE</small> or <small>LE</small> is omitted
+during <b>decode()</b>, it checks if <small>BOM</small> is
+at the beginning of the string; if one is found, the
+endianness is set to what the <small>BOM</small> says.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Default Byte Order</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">When no
+<small>BOM</small> is found, Encode 2.76 and blow croaked.
+Since Encode 2.77, it falls back to <small>BE</small>
+accordingly to <small>RFC2781</small> and the Unicode
+Standard version 8.0</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">When <small>BE</small> or
+<small>LE</small> is omitted during <b>encode()</b>, it
+returns a BE-encoded string with <small>BOM</small>
+prepended. So when you want to encode a whole text file,
+make sure you <b>encode()</b> the whole text at once, not
+line by line or each line, not file, will have a
+<small>BOM</small> prepended.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;UCS&minus;2&quot; is an exception. Unlike others,
+this is an alias of <small>UCS&minus;2BE.
+UCS&minus;2</small> is already registered by
+<small>IANA</small> and others that way.</p></td></tr>
+</table>
+
+<h2>Surrogate Pairs
+<a name="Surrogate Pairs"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">To say the
+least, surrogate pairs were the biggest mistake of the
+Unicode Consortium. But according to the late Douglas Adams
+in <i>The Hitchhiker&rsquo;s Guide to the Galaxy</i>
+Trilogy, &quot;In the beginning the Universe was created.
+This has made a lot of people very angry and been widely
+regarded as a bad move&quot;. Their mistake was not of this
+magnitude so let&rsquo;s forgive them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">(I don&rsquo;t
+dare make any comparison with Unicode Consortium and the
+Vogons here ;) Or, comparing Encode to Babel Fish is
+completely appropriate -- if you can only stick this into
+your ear :)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Surrogate pairs
+were born when the Unicode Consortium finally admitted that
+16 bits were not big enough to hold all the world&rsquo;s
+character repertoires. But they already made
+<small>UCS&minus;2</small> 16&minus;bit. What do we do?</p>
+
+<p style="margin-left:11%; margin-top: 1em">Back then, the
+range 0xD800&minus;0xDFFF was not allocated. Let&rsquo;s
+split that range in half and use the first half to represent
+the &quot;upper half of a character&quot; and the second
+half to represent the &quot;lower half of a character&quot;.
+That way, you can represent 1024 * 1024 = 1048576 more
+characters. Now we can store character ranges up to
+\x{10ffff} even with 16&minus;bit encodings. This pair of
+half-character is now called a <i>surrogate pair</i> and
+<small>UTF&minus;16</small> is the name of the encoding that
+embraces them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here is a
+formula to ensurrogate a Unicode character \x{10000} and
+above;</p>
+
+<p style="margin-left:11%; margin-top: 1em">$hi = ($uni
+&minus; 0x10000) / 0x400 + 0xD800; <br>
+$lo = ($uni &minus; 0x10000) % 0x400 + 0xDC00;</p>
+
+<p style="margin-left:11%; margin-top: 1em">And to
+desurrogate;</p>
+
+<p style="margin-left:11%; margin-top: 1em">$uni = 0x10000
++ ($hi &minus; 0xD800) * 0x400 + ($lo &minus; 0xDC00);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note this move
+has made \x{D800}&minus;\x{ <small>DFFF</small> } into a
+forbidden zone but perl does not prohibit the use of
+characters within this range. To perl, every one of
+\x{0000_0000} up to \x{ffff_ffff} (*) is <i>a
+character</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">(*) or
+\x{ffff_ffff_ffff_ffff} if your perl is compiled with
+64&minus;bit <br>
+integer support!</p>
+
+<h2>Error Checking
+<a name="Error Checking"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Unlike most
+encodings which accept various ways to handle errors,
+Unicode encodings simply croaks.</p>
+
+<p style="margin-left:11%; margin-top: 1em">% perl
+&minus;MEncode &minus;e'$_ =
+&quot;\xfe\xff\xd8\xd9\xda\xdb\0\n&quot;' \ <br>
+&minus;e'Encode::from_to($_,
+&quot;utf16&quot;,&quot;shift_jis&quot;, 0); print' <br>
+UTF&minus;16:Malformed LO surrogate d8d9 at
+/path/to/Encode.pm line 184. <br>
+% perl &minus;MEncode &minus;e'$a = &quot;BOM missing&quot;'
+\ <br>
+&minus;e' Encode::from_to($a, &quot;utf16&quot;,
+&quot;shift_jis&quot;, 0); print' <br>
+UTF&minus;16:Unrecognised BOM 424f at /path/to/Encode.pm
+line 184.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unlike other
+encodings where mappings are not one-to-one against Unicode,
+UTFs are supposed to map 100% against one another. So Encode
+is more strict on UTFs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Consider that
+&quot;division by zero&quot; of Encode :)</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Encode,
+Encode::Unicode::UTF7,
+&lt;https://www.unicode.org/glossary/&gt;,
+&lt;https://www.unicode.org/faq/utf_bom.html&gt;,</p>
+
+<p style="margin-left:11%; margin-top: 1em"><small>RFC
+2781</small>
+&lt;http://www.ietf.org/rfc/rfc2781.txt&gt;,</p>
+
+<p style="margin-left:11%; margin-top: 1em">The whole
+Unicode standard
+&lt;https://www.unicode.org/standard/standard.html&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ch. 6 pp. 275
+of &quot;Programming Perl (3rd Edition)&quot; by Tom
+Christiansen, brian d foy &amp; Larry Wall; O&rsquo;Reilly
+&amp; Associates; <small>ISBN
+978&minus;0&minus;596&minus;00492&minus;7</small></p>
+<hr>
+</body>
+</html>

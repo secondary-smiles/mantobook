@@ -1,0 +1,184 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:08 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SSL_GET_CLIENT_RANDOM</title>
+
+</head>
+<body>
+<h1>SSL_get_server_random</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">SSL_get_client_random,
+SSL_get_server_random, SSL_SESSION_get_master_key,
+SSL_SESSION_set1_master_key &minus; get internal TLS/SSL
+random values and get/set master key</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;openssl/ssl.h&gt; <br>
+size_t SSL_get_client_random(const SSL *ssl, unsigned char
+*out, size_t outlen); <br>
+size_t SSL_get_server_random(const SSL *ssl, unsigned char
+*out, size_t outlen); <br>
+size_t SSL_SESSION_get_master_key(const SSL_SESSION
+*session, <br>
+unsigned char *out, size_t outlen); <br>
+int SSL_SESSION_set1_master_key(SSL_SESSION *sess, const
+unsigned char *in, <br>
+size_t len);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_get_client_random()</b>
+extracts the random value sent from the client to the server
+during the initial <small>SSL/TLS</small> handshake. It
+copies as many bytes as it can of this value into the buffer
+provided in <b>out</b>, which must have at least
+<b>outlen</b> bytes available. It returns the total number
+of bytes that were actually copied. If <b>outlen</b> is
+zero, <b>SSL_get_client_random()</b> copies nothing, and
+returns the total size of the client_random value.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_get_server_random()</b>
+behaves the same, but extracts the random value sent from
+the server to the client during the initial
+<small>SSL/TLS</small> handshake.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_SESSION_get_master_key()</b>
+behaves the same, but extracts the master secret used to
+guarantee the security of the <small>SSL/TLS</small>
+session. This one can be dangerous if misused; see
+<small>NOTES</small> below.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_SESSION_set1_master_key()</b>
+sets the master key value associated with the
+<small>SSL_SESSION</small> <b>sess</b>. For example, this
+could be used to set up a session based <small>PSK</small>
+(see <b>SSL_CTX_set_psk_use_session_callback</b>(3)). The
+master key of length <b>len</b> should be provided at
+<b>in</b>. The supplied master key is copied by the
+function, so the caller is responsible for freeing and
+cleaning any memory associated with <b>in</b>. The caller
+must ensure that the length of the key is suitable for the
+ciphersuite associated with the
+<small>SSL_SESSION.</small></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">You probably
+shouldn&rsquo;t use these functions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These functions
+expose internal values from the <small>TLS</small>
+handshake, for use in low-level protocols. You probably
+should not use them, unless you are implementing something
+that needs access to the internal protocol details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Despite the
+names of <b>SSL_get_client_random()</b> and
+<b>SSL_get_server_random()</b>, they <small>ARE NOT</small>
+random number generators. Instead, they return the
+mostly-random values that were already generated and used in
+the <small>TLS</small> protocol. Using them in place of
+<b>RAND_bytes()</b> would be grossly foolish.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The security of
+your <small>TLS</small> session depends on keeping the
+master key secret: do not expose it, or any information
+about it, to anybody. If you need to calculate another
+secret value that depends on the master secret, you should
+probably use <b>SSL_export_keying_material()</b> instead,
+and forget that you ever saw these functions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In current
+versions of the <small>TLS</small> protocols, the length of
+client_random (and also server_random) is always
+<small>SSL3_RANDOM_SIZE</small> bytes. Support for other
+outlen arguments to the SSL_get_*<b>_random()</b> functions
+is provided in case of the unlikely event that a future
+version or variant of <small>TLS</small> uses some other
+length there.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Finally, though
+the &quot;client_random&quot; and &quot;server_random&quot;
+values are called &quot;random&quot;, many
+<small>TLS</small> implementations will generate four bytes
+of those values based on their view of the current time.</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_SESSION_set1_master_key()</b>
+returns 1 on success or 0 on failure.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For the other
+functions, if <b>outlen</b> is greater than 0 then these
+functions return the number of bytes actually copied, which
+will be less than or equal to <b>outlen</b>. If
+<b>outlen</b> is 0 then these functions return the maximum
+number of bytes they would copy -- that is, the length of
+the underlying field.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ssl</b>(7),
+<b>RAND_bytes</b>(3), <b>SSL_export_keying_material</b>(3),
+<b>SSL_CTX_set_psk_use_session_callback</b>(3)</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2015&minus;2017 The OpenSSL Project Authors. All Rights
+Reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Licensed under
+the Apache License 2.0 (the &quot;License&quot;). You may
+not use this file except in compliance with the License. You
+can obtain a copy in the file <small>LICENSE</small> in the
+source distribution or at
+&lt;https://www.openssl.org/source/license.html&gt;.</p>
+<hr>
+</body>
+</html>

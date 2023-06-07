@@ -1,0 +1,380 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:37 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>namespace::clean</title>
+
+</head>
+<body>
+<h1>namespace::clean</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">namespace::clean
+&minus; Keep imports and functions out of your namespace</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">package Foo;
+<br>
+use warnings; <br>
+use strict; <br>
+use Carp qw(croak); # 'croak' will be removed <br>
+sub bar { 23 } # 'bar' will be removed <br>
+# remove all previously defined functions <br>
+use namespace::clean; <br>
+sub baz { bar() } # 'baz' still defined, 'bar' still bound
+<br>
+# begin to collection function names from here again <br>
+no namespace::clean; <br>
+sub quux { baz() } # 'quux' will be removed <br>
+# remove all functions defined after the 'no' unimport <br>
+use namespace::clean; <br>
+# Will print: 'No', 'No', 'Yes' and 'No' <br>
+print +(__PACKAGE__&minus;&gt;can('croak') ? 'Yes' : 'No'),
+&quot;\n&quot;; <br>
+print +(__PACKAGE__&minus;&gt;can('bar') ? 'Yes' : 'No'),
+&quot;\n&quot;; <br>
+print +(__PACKAGE__&minus;&gt;can('baz') ? 'Yes' : 'No'),
+&quot;\n&quot;; <br>
+print +(__PACKAGE__&minus;&gt;can('quux') ? 'Yes' : 'No'),
+&quot;\n&quot;; <br>
+1;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Keeping
+packages clean</b> <br>
+When you define a function, or import one, into a Perl
+package, it will naturally also be available as a method.
+This does not per se cause problems, but it can complicate
+subclassing and, for example, plugin classes that are
+included via multiple inheritance by loading them as base
+classes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;namespace::clean&quot; pragma will remove all
+previously declared or imported symbols at the end of the
+current package&rsquo;s compile cycle. Functions called in
+the package itself will still be bound by their name, but
+they won&rsquo;t show up as methods on your class or
+instances.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By unimporting
+via &quot;no&quot; you can tell &quot;namespace::clean&quot;
+to start collecting functions for the next &quot;use
+namespace::clean;&quot; specification.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can use the
+&quot;&minus;except&quot; flag to tell
+&quot;namespace::clean&quot; that you don&rsquo;t want it to
+remove a certain function or method. A common use would be a
+module exporting an &quot;import&quot; method along with
+some functions:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+ModuleExportingImport; <br>
+use namespace::clean &minus;except =&gt; [qw( import )];</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you just
+want to &quot;&minus;except&quot; a single sub, you can pass
+it directly. For more than one value you have to use an
+array reference.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Late binding
+caveat</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+technique used by this module relies on perl having resolved
+all names to actual code references during the compilation
+of a scope. While this is almost always what the interpreter
+does, there are some exceptions, notably the sort
+<small>SUBNAME</small> style of the &quot;sort&quot;
+built-in invocation. The following example will not work,
+because &quot;sort&quot; does not try to resolve the
+function name to an actual code reference until
+<b>runtime</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+MyApp::Utils 'my_sorter'; <br>
+use namespace::clean; <br>
+my @sorted = sort my_sorter @list;</p>
+
+<p style="margin-left:11%; margin-top: 1em">You need to
+work around this by forcing a compile-time resolution like
+so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+MyApp::Utils 'my_sorter'; <br>
+use namespace::clean; <br>
+my $my_sorter_cref = \&amp;my_sorter; <br>
+my @sorted = sort $my_sorter_cref @list;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Explicitly
+removing functions when your scope is compiled</b> <br>
+It is also possible to explicitly tell
+&quot;namespace::clean&quot; what packages to remove when
+the surrounding scope has finished compiling. Here is an
+example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package Foo;
+<br>
+use strict; <br>
+# blessed NOT available <br>
+sub my_class { <br>
+use Scalar::Util qw( blessed ); <br>
+use namespace::clean qw( blessed ); <br>
+# blessed available <br>
+return blessed shift; <br>
+} <br>
+# blessed NOT available</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Moose</b>
+<br>
+When using &quot;namespace::clean&quot; together with Moose
+you want to keep the installed &quot;meta&quot; method. So
+your classes should look like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package Foo;
+<br>
+use Moose; <br>
+use namespace::clean &minus;except =&gt; 'meta'; <br>
+...</p>
+
+<p style="margin-left:11%; margin-top: 1em">Same goes for
+Moose::Role.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Cleaning
+other packages</b> <br>
+You can tell &quot;namespace::clean&quot; that you want to
+clean up another package instead of the one importing. To do
+this you have to pass in the &quot;&minus;cleanee&quot;
+option like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+My::MooseX::namespace::clean; <br>
+use strict; <br>
+use namespace::clean (); # no cleanup, just load <br>
+sub import { <br>
+namespace::clean&minus;&gt;import( <br>
+&minus;cleanee =&gt; scalar(caller), <br>
+&minus;except =&gt; 'meta', <br>
+); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you
+don&rsquo;t care about &quot;namespace::clean&quot;s
+discover&minus;and&minus;&quot;&minus;except&quot; logic,
+and just want to remove subroutines, try
+&quot;clean_subroutines&quot;.</p>
+
+<h2>METHODS
+<a name="METHODS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>clean_subroutines</b>
+<br>
+This exposes the actual subroutine-removal logic.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">namespace::clean&minus;&gt;clean_subroutines($cleanee,
+qw( subA subB ));</p>
+
+<p style="margin-left:11%; margin-top: 1em">will remove
+&quot;subA&quot; and &quot;subB&quot; from $cleanee. Note
+that this will remove the subroutines <b>immediately</b> and
+not wait for scope end. If you want to have this effect at a
+specific time (e.g. &quot;namespace::clean&quot; acts on
+scope compile end) it is your responsibility to make sure it
+runs at that time.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>import</b>
+<br>
+Makes a snapshot of the current defined functions and
+installs a B::Hooks::EndOfScope hook in the current scope to
+invoke the cleanups.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>unimport</b>
+<br>
+This method will be called when you do a</p>
+
+<p style="margin-left:11%; margin-top: 1em">no
+namespace::clean;</p>
+
+<p style="margin-left:11%; margin-top: 1em">It will start a
+new section of code that defines functions to clean up.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>get_class_store</b>
+<br>
+This returns a reference to a hash in a passed package
+containing information about function names included and
+excluded from removal.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>get_functions</b>
+<br>
+Takes a class as argument and returns all currently defined
+functions in it as a hash reference with the function name
+as key and a typeglob reference to the symbol as value.</p>
+
+<h2>IMPLEMENTATION DETAILS
+<a name="IMPLEMENTATION DETAILS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+works through the effect that a</p>
+
+<p style="margin-left:11%; margin-top: 1em">delete
+$SomePackage::{foo};</p>
+
+<p style="margin-left:11%; margin-top: 1em">will remove the
+&quot;foo&quot; symbol from $SomePackage for run time
+lookups (e.g., method calls) but will leave the entry alive
+to be called by already resolved names in the package
+itself. &quot;namespace::clean&quot; will restore and
+therefor in effect keep all glob slots that aren&rsquo;t
+&quot;CODE&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A test file has
+been added to the perl core to ensure that this behaviour
+will be stable in future releases.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Just for
+completeness sake, if you want to remove the symbol
+completely, use &quot;undef&quot; instead.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">B::Hooks::EndOfScope</p>
+
+<h2>THANKS
+<a name="THANKS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Many thanks to
+Matt S Trout for the inspiration on the whole idea.</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="57%">
+
+
+<p style="margin-top: 1em">Robert &rsquo;phaylon&rsquo;
+Sedlacek &lt;rs@474.at&gt;</p></td>
+<td width="26%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="57%">
+
+
+<p>Florian Ragwitz &lt;rafl@debian.org&gt;</p></td>
+<td width="26%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="57%">
+
+
+<p>Jesse Luehrs &lt;doy@tozt.net&gt;</p></td>
+<td width="26%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="57%">
+
+
+<p>Peter Rabbitson &lt;ribasushi@cpan.org&gt;</p></td>
+<td width="26%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="57%">
+
+
+<p>Father Chrysostomos &lt;sprout@cpan.org&gt;</p></td>
+<td width="26%">
+</td></tr>
+</table>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2011 by &quot;
+<small>AUTHORS&quot;</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+<hr>
+</body>
+</html>

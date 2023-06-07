@@ -1,0 +1,194 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:07 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SSL_GET_SESSION</title>
+
+</head>
+<body>
+<h1>SSL_get1_session</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">SSL_get_session,
+SSL_get0_session, SSL_get1_session &minus; retrieve TLS/SSL
+session data</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;openssl/ssl.h&gt; <br>
+SSL_SESSION *SSL_get_session(const SSL *ssl); <br>
+SSL_SESSION *SSL_get0_session(const SSL *ssl); <br>
+SSL_SESSION *SSL_get1_session(SSL *ssl);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_get_session()</b>
+returns a pointer to the <b><small>SSL_SESSION</small></b>
+actually used in <b>ssl</b>. The reference count of the
+<b><small>SSL_SESSION</small></b> is not incremented, so
+that the pointer can become invalid by other operations.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_get0_session()</b>
+is the same as <b>SSL_get_session()</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_get1_session()</b>
+is the same as <b>SSL_get_session()</b>, but the reference
+count of the <b><small>SSL_SESSION</small></b> is
+incremented by one.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The ssl session
+contains all information required to re-establish the
+connection without a full handshake for <small>SSL</small>
+versions up to and including TLSv1.2. In TLSv1.3 the same is
+true, but sessions are established after the main handshake
+has occurred. The server will send the session information
+to the client at a time of its choosing, which may be some
+while after the initial connection is established (or
+never). Calling these functions on the client side in
+TLSv1.3 before the session has been established will still
+return an <small>SSL_SESSION</small> object but that object
+cannot be used for resuming the session. See
+<b>SSL_SESSION_is_resumable</b>(3) for information on how to
+determine whether an <small>SSL_SESSION</small> object can
+be used for resumption or not.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Additionally,
+in TLSv1.3, a server can send multiple messages that
+establish a session for a single connection. In that case,
+on the client side, the above functions will only return
+information on the last session that was received. On the
+server side they will only return information on the last
+session that was sent, or if no session tickets were sent
+then the session for the current connection.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The preferred
+way for applications to obtain a resumable
+<small>SSL_SESSION</small> object is to use a new session
+callback as described in <b>SSL_CTX_sess_set_new_cb</b>(3).
+The new session callback is only invoked when a session is
+actually established, so this avoids the problem described
+above where an application obtains an
+<small>SSL_SESSION</small> object that cannot be used for
+resumption in TLSv1.3. It also enables applications to
+obtain information about all sessions sent by the
+server.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A session will
+be automatically removed from the session cache and marked
+as non-resumable if the connection is not closed down
+cleanly, e.g. if a fatal error occurs on the connection or
+<b>SSL_shutdown</b>(3) is not called prior to
+<b>SSL_free</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">In TLSv1.3 it
+is recommended that each <small>SSL_SESSION</small> object
+is only used for resumption once.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_get0_session()</b>
+returns a pointer to the actual session. As the reference
+counter is not incremented, the pointer is only valid while
+the connection is in use. If <b>SSL_clear</b>(3) or
+<b>SSL_free</b>(3) is called, the session may be removed
+completely (if considered bad), and the pointer obtained
+will become invalid. Even if the session is valid, it can be
+removed at any time due to timeout during
+<b>SSL_CTX_flush_sessions</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the data is
+to be kept, <b>SSL_get1_session()</b> will increment the
+reference count, so that the session will not be implicitly
+removed by other operations but stays in memory. In order to
+remove the session <b>SSL_SESSION_free</b>(3) must be
+explicitly called once to decrement the reference count
+again.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>SSL_SESSION</small>
+objects keep internal link information about the session
+cache list, when being inserted into one
+<small>SSL_CTX</small> object&rsquo;s session cache. One
+<small>SSL_SESSION</small> object, regardless of its
+reference count, must therefore only be used with one
+<small>SSL_CTX</small> object (and the <small>SSL</small>
+objects created from this <small>SSL_CTX</small>
+object).</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+return values can occur: <small><br>
+NULL</small></p>
+
+<p style="margin-left:17%;">There is no session available
+in <b>ssl</b>.</p>
+
+<p style="margin-left:11%;">Pointer to an
+<small>SSL_SESSION</small></p>
+
+<p style="margin-left:17%;">The return value points to the
+data of an <small>SSL</small> session.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ssl</b>(7),
+<b>SSL_free</b>(3), <b>SSL_clear</b>(3),
+<b>SSL_SESSION_free</b>(3)</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2000&minus;2021 The OpenSSL Project Authors. All Rights
+Reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Licensed under
+the Apache License 2.0 (the &quot;License&quot;). You may
+not use this file except in compliance with the License. You
+can obtain a copy in the file <small>LICENSE</small> in the
+source distribution or at
+&lt;https://www.openssl.org/source/license.html&gt;.</p>
+<hr>
+</body>
+</html>

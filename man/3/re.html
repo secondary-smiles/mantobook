@@ -1,0 +1,775 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:53 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>re</title>
+
+</head>
+<body>
+<h1>re</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">re &minus; Perl
+pragma to alter regular expression behaviour</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use re 'taint';
+<br>
+($x) = ($^X =~ /^(.*)$/s); # $x is tainted here <br>
+$pat = '(?{ $foo = 1 })'; <br>
+use re 'eval'; <br>
+/foo${pat}bar/; # won't fail (when not under &minus;T <br>
+# switch) <br>
+{ <br>
+no re 'taint'; # the default <br>
+($x) = ($^X =~ /^(.*)$/s); # $x is not tainted here <br>
+no re 'eval'; # the default <br>
+/foo${pat}bar/; # disallowed (with or without &minus;T <br>
+# switch) <br>
+} <br>
+use re 'strict'; # Raise warnings for more conditions <br>
+use re '/ix'; <br>
+&quot;FOO&quot; =~ / foo /; # /ix implied <br>
+no re '/x'; <br>
+&quot;FOO&quot; =~ /foo/; # just /i implied <br>
+use re 'debug'; # output debugging info during <br>
+/^(.*)$/s; # compile and run time <br>
+use re 'debugcolor'; # same as 'debug', but with colored
+<br>
+# output <br>
+... <br>
+use re qw(Debug All); # Same as &quot;use re 'debug'&quot;,
+but you <br>
+# can use &quot;Debug&quot; with things other <br>
+# than 'All' <br>
+use re qw(Debug More); # 'All' plus output more details <br>
+no re qw(Debug ALL); # Turn on (almost) all re debugging
+<br>
+# in this scope <br>
+use re qw(is_regexp regexp_pattern); # import utility
+functions <br>
+my ($pat,$mods)=regexp_pattern(qr/foo/i); <br>
+if (is_regexp($obj)) { <br>
+print &quot;Got regexp: &quot;, <br>
+scalar regexp_pattern($obj); # just as perl would stringify
+<br>
+} # it but no hassle with blessed <br>
+# re's.</p>
+
+<p style="margin-left:11%; margin-top: 1em">(We use $^X in
+these examples because it&rsquo;s tainted by default.)</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&rsquo;taint&rsquo;
+mode</b> <br>
+When &quot;use re 'taint'&quot; is in effect, and a tainted
+string is the target of a regexp, the regexp memories (or
+values returned by the m// operator in list context) are
+tainted. This feature is useful when regexp operations on
+tainted data aren&rsquo;t meant to extract safe substrings,
+but to perform other transformations.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&rsquo;eval&rsquo;
+mode</b> <br>
+When &quot;use re 'eval'&quot; is in effect, a regexp is
+allowed to contain &quot;(?{ ... })&quot; zero-width
+assertions and &quot;(??{ ... })&quot; postponed
+subexpressions that are derived from variable interpolation,
+rather than appearing literally within the regexp. That is
+normally disallowed, since it is a potential security risk.
+Note that this pragma is ignored when the regular expression
+is obtained from tainted data, i.e. evaluation is always
+disallowed with tainted regular expressions. See &quot;(?{
+code })&quot; in perlre and &quot;(??{ code })&quot; in
+perlre.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For the purpose
+of this pragma, interpolation of precompiled regular
+expressions (i.e., the result of &quot;qr//&quot;) is
+<i>not</i> considered variable interpolation. Thus:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">/foo${pat}bar/</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>is</i>
+allowed if $pat is a precompiled regular expression, even if
+$pat contains &quot;(?{ ... })&quot; assertions or
+&quot;(??{ ... })&quot; subexpressions.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&rsquo;strict&rsquo;
+mode</b> <br>
+Note that this is an experimental feature which may be
+changed or removed in a future Perl release.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When &quot;use
+re 'strict'&quot; is in effect, stricter checks are applied
+than otherwise when compiling regular expressions patterns.
+These may cause more warnings to be raised than otherwise,
+and more things to be fatal instead of just warnings. The
+purpose of this is to find and report at compile time some
+things, which may be legal, but have a reasonable
+possibility of not being the programmer&rsquo;s actual
+intent. This automatically turns on the &quot;regexp&quot;
+warnings category (if not already on) within its scope.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As an example
+of something that is caught under &quot;&quot;strict'&quot;,
+but not otherwise, is the pattern</p>
+
+<p style="margin-left:11%; margin-top: 1em">qr/\xABC/</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;\x&quot; construct without curly braces should be
+followed by exactly two hex digits; this one is followed by
+three. This currently evaluates as equivalent to</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">qr/\x{AB}C/</p>
+
+<p style="margin-left:11%; margin-top: 1em">that is, the
+character whose code point value is 0xAB, followed by the
+letter &quot;C&quot;. But since &quot;C&quot; is a hex
+digit, there is a reasonable chance that the intent was</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">qr/\x{ABC}/</p>
+
+<p style="margin-left:11%; margin-top: 1em">that is the
+single character at 0xABC. Under 'strict' it is an error to
+not follow &quot;\x&quot; with exactly two hex digits. When
+not under 'strict' a warning is generated if there is only
+one hex digit, and no warning is raised if there are more
+than two.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is expected
+that what exactly 'strict' does will evolve over time as we
+gain experience with it. This means that programs that
+compile under it in today&rsquo;s Perl may not compile, or
+may have more or fewer warnings, in future Perls. There is
+no backwards compatibility promises with regards to it. Also
+there are already proposals for an alternate syntax for
+enabling it. For these reasons, using it will raise a
+&quot;experimental::re_strict&quot; class warning, unless
+that category is turned off.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that if a
+pattern compiled within 'strict' is recompiled, say by
+interpolating into another pattern, outside of 'strict', it
+is not checked again for strictness. This is because if it
+works under strict it must work under non-strict.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&rsquo;/flags&rsquo;
+mode</b> <br>
+When &quot;use re '/<i>flags</i>'&quot; is specified, the
+given <i>flags</i> are automatically added to every regular
+expression till the end of the lexical scope. <i>flags</i>
+can be any combination of 'a', 'aa', 'd', 'i', 'l', 'm',
+'n', 'p', 's', 'u', 'x', and/or 'xx'.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;no re
+'/<i>flags</i>'&quot; will turn off the effect of &quot;use
+re '/<i>flags</i>'&quot; for the given flags.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example, if
+you want all your regular expressions to have /msxx on by
+default, simply put</p>
+
+<p style="margin-left:11%; margin-top: 1em">use re
+'/msxx';</p>
+
+<p style="margin-left:11%; margin-top: 1em">at the top of
+your code.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The character
+set &quot;/adul&quot; flags cancel each other out. So, in
+this example,</p>
+
+<p style="margin-left:11%; margin-top: 1em">use re
+&quot;/u&quot;; <br>
+&quot;ss&quot; =~ /\xdf/; <br>
+use re &quot;/d&quot;; <br>
+&quot;ss&quot; =~ /\xdf/;</p>
+
+<p style="margin-left:11%; margin-top: 1em">the second
+&quot;use re&quot; does an implicit &quot;no re
+'/u'&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Similarly,</p>
+
+<p style="margin-left:11%; margin-top: 1em">use re
+&quot;/xx&quot;; # Doubled&minus;x <br>
+... <br>
+use re &quot;/x&quot;; # Single x from here on <br>
+...</p>
+
+<p style="margin-left:11%; margin-top: 1em">Turning on one
+of the character set flags with &quot;use re&quot; takes
+precedence over the &quot;locale&quot; pragma and the
+&rsquo;unicode_strings&rsquo; &quot;feature&quot;, for
+regular expressions. Turning off one of these flags when it
+is active reverts to the behaviour specified by whatever
+other pragmata are in scope. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use feature
+&quot;unicode_strings&quot;; <br>
+no re &quot;/u&quot;; # does nothing <br>
+use re &quot;/l&quot;; <br>
+no re &quot;/l&quot;; # reverts to unicode_strings
+behaviour</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&rsquo;debug&rsquo;
+mode</b> <br>
+When &quot;use re 'debug'&quot; is in effect, perl emits
+debugging messages when compiling and using regular
+expressions. The output is the same as that obtained by
+running a &quot;&minus;DDEBUGGING&quot;&minus;enabled perl
+interpreter with the <b>&minus;Dr</b> switch. It may be
+quite voluminous depending on the complexity of the match.
+Using &quot;debugcolor&quot; instead of &quot;debug&quot;
+enables a form of output that can be used to get a colorful
+display on terminals that understand termcap color
+sequences. Set $ENV{PERL_RE_TC} to a comma-separated list of
+&quot;termcap&quot; properties to use for highlighting
+strings on/off, pre-point part on/off. See &quot;Debugging
+Regular Expressions&quot; in perldebug for additional
+info.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>NOTE</small></b>
+that the exact format of the &quot;debug&quot; mode is
+<b><small>NOT</small></b> considered to be an officially
+supported <small>API</small> of Perl. It is intended for
+debugging only and may change as the core development team
+deems appropriate without notice or deprecation in any
+release of Perl, major or minor. Any documentation of the
+output is purely advisory.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As of 5.9.5 the
+directive &quot;use re 'debug'&quot; and its equivalents are
+lexically scoped, as the other directives are. However they
+have both compile-time and run-time effects.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+&quot;Pragmatic Modules&quot; in perlmodlib.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&rsquo;Debug&rsquo;
+mode</b> <br>
+Similarly &quot;use re 'Debug'&quot; produces debugging
+output, the difference being that it allows the fine tuning
+of what debugging output will be emitted. Options are
+divided into three groups, those related to compilation,
+those related to execution and those related to special
+purposes.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>NOTE</small></b>
+that the options provided under the &quot;Debug&quot; mode
+and the exact format of the output they create is
+<b><small>NOT</small></b> considered to be an officially
+supported <small>API</small> of Perl. It is intended for
+debugging only and may change as the core development team
+deems appropriate without notice or deprecation in any
+release of Perl, major or minor. Any documentation of the
+format or options available is advisory only and is subject
+to change without notice.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The options are
+as follows: <br>
+Compile related options</p>
+
+<p style="margin-left:17%;"><small>COMPILE</small></p>
+
+<p style="margin-left:23%;">Turns on all non-extra compile
+related debug options.</p>
+
+<p style="margin-left:17%;"><small>PARSE</small></p>
+
+<p style="margin-left:23%;">Turns on debug output related
+to the process of parsing the pattern.</p>
+
+<p style="margin-left:17%;"><small>OPTIMISE</small></p>
+
+<p style="margin-left:23%;">Enables output related to the
+optimisation phase of compilation.</p>
+
+<p style="margin-left:17%;"><small>TRIEC</small></p>
+
+<p style="margin-left:23%;">Detailed info about trie
+compilation.</p>
+
+<p style="margin-left:17%;"><small>DUMP</small></p>
+
+<p style="margin-left:23%;">Dump the final program out
+after it is compiled and optimised.</p>
+
+<p style="margin-left:17%;"><small>FLAGS</small></p>
+
+<p style="margin-left:23%;">Dump the flags associated with
+the program</p>
+
+<p style="margin-left:17%;"><small>TEST</small></p>
+
+<p style="margin-left:23%;">Print output intended for
+testing the internals of the compile process</p>
+
+<p style="margin-left:11%;">Execute related options</p>
+
+<p style="margin-left:17%;"><small>EXECUTE</small></p>
+
+<p style="margin-left:23%;">Turns on all non-extra execute
+related debug options.</p>
+
+<p style="margin-left:17%;"><small>MATCH</small></p>
+
+<p style="margin-left:23%;">Turns on debugging of the main
+matching loop.</p>
+
+<p style="margin-left:17%;"><small>TRIEE</small></p>
+
+<p style="margin-left:23%;">Extra debugging of how tries
+execute.</p>
+
+<p style="margin-left:17%;"><small>INTUIT</small></p>
+
+<p style="margin-left:23%;">Enable debugging of start-point
+optimisations.</p>
+
+<p style="margin-left:11%;">Extra debugging options</p>
+
+<p style="margin-left:17%;"><small>EXTRA</small></p>
+
+<p style="margin-left:23%;">Turns on all &quot;extra&quot;
+debugging options.</p>
+
+<p style="margin-left:17%;"><small>BUFFERS</small></p>
+
+<p style="margin-left:23%;">Enable debugging the capture
+group storage during match. Warning, this can potentially
+produce extremely large output.</p>
+
+<p style="margin-left:17%;"><small>TRIEM</small></p>
+
+<p style="margin-left:23%;">Enable enhanced
+<small>TRIE</small> debugging. Enhances both
+<small>TRIEE</small> and <small>TRIEC.</small></p>
+
+<p style="margin-left:17%;"><small>STATE</small></p>
+
+<p style="margin-left:23%;">Enable debugging of states in
+the engine.</p>
+
+<p style="margin-left:17%;"><small>STACK</small></p>
+
+<p style="margin-left:23%;">Enable debugging of the
+recursion stack in the engine. Enabling or disabling this
+option automatically does the same for debugging states as
+well. This output from this can be quite large.</p>
+
+<p style="margin-left:17%;"><small>GPOS</small></p>
+
+<p style="margin-left:23%;">Enable debugging of the \G
+modifier.</p>
+
+<p style="margin-left:17%;"><small>OPTIMISEM</small></p>
+
+<p style="margin-left:23%;">Enable enhanced optimisation
+debugging and start-point optimisations. Probably not useful
+except when debugging the regexp engine itself.</p>
+
+
+<p style="margin-left:17%;"><small>DUMP_PRE_OPTIMIZE</small></p>
+
+<p style="margin-left:23%;">Enable the dumping of the
+compiled pattern before the optimization phase.</p>
+
+<p style="margin-left:17%;"><small>WILDCARD</small></p>
+
+<p style="margin-left:23%;">When Perl encounters a wildcard
+subpattern, (see &quot;Wildcards in Property Values&quot; in
+perlunicode), it suspends compilation of the main pattern,
+compiles the subpattern, and then matches that against all
+legal possibilities to determine the actual code points the
+subpattern matches. After that it adds these to the main
+pattern, and continues its compilation.</p>
+
+<p style="margin-left:23%; margin-top: 1em">You may very
+well want to see how your subpattern gets compiled, but it
+is likely of less use to you to see how Perl matches that
+against all the legal possibilities, as that is under
+control of Perl, not you. Therefore, the debugging
+information of the compilation portion is as specified by
+the other options, but the debugging output of the matching
+portion is normally suppressed.</p>
+
+<p style="margin-left:23%; margin-top: 1em">You can use the
+<small>WILDCARD</small> option to enable the debugging
+output of this subpattern matching. Careful! This can lead
+to voluminous outputs, and it may not make much sense to you
+what and why Perl is doing what it is. But it may be helpful
+to you to see why things aren&rsquo;t going the way you
+expect.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Note that this
+option alone doesn&rsquo;t cause any debugging information
+to be output. What it does is stop the normal suppression of
+execution-related debugging information during the matching
+portion of the compilation of wildcards. You also have to
+specify which execution debugging information you want, such
+as by also including the <small>EXECUTE</small> option.</p>
+
+<p style="margin-left:11%;">Other useful flags</p>
+
+<p style="margin-left:17%;">These are useful shortcuts to
+save on the typing.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><small>ALL</small></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Enable all options at once except <small>BUFFERS,
+WILDCARD,</small> and <small>DUMP_PRE_OPTIMIZE.</small> (To
+get every single option without exception, use both
+<small>ALL</small> and <small>EXTRA,</small> or starting in
+5.30 on a &quot;&minus;DDEBUGGING&quot;&minus;enabled perl
+interpreter, use the <b>&minus;Drv</b> command-line
+switches.)</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p>All</p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Enable <small>DUMP</small> and all non-extra execute
+options. Equivalent to:</p></td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">use re
+'debug';</p>
+
+<p style="margin-left:17%;"><small>MORE</small> <br>
+More</p>
+
+<p style="margin-left:23%;">Enable the options enabled by
+&quot;All&quot;, plus <small>STATE, TRIEC,</small> and
+<small>TRIEM.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">As of 5.9.5 the
+directive &quot;use re 'debug'&quot; and its equivalents are
+lexically scoped, as are the other directives. However they
+have both compile-time and run-time effects.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Exportable
+Functions</b> <br>
+As of perl 5.9.5 &rsquo;re&rsquo; debug contains a number of
+utility functions that may be optionally exported into the
+caller&rsquo;s namespace. They are listed below. <br>
+is_regexp($ref)</p>
+
+<p style="margin-left:17%;">Returns true if the argument is
+a compiled regular expression as returned by
+&quot;qr//&quot;, false if it is not.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This function
+will not be confused by overloading or blessing. In
+internals terms, this extracts the regexp pointer out of the
+PERL_MAGIC_qr structure so it cannot be fooled.</p>
+
+<p style="margin-left:11%;">regexp_pattern($ref)</p>
+
+<p style="margin-left:17%;">If the argument is a compiled
+regular expression as returned by &quot;qr//&quot;, then
+this function returns the pattern.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In list context
+it returns a two element list, the first element containing
+the pattern and the second containing the modifiers used
+when the pattern was compiled.</p>
+
+<p style="margin-left:17%; margin-top: 1em">my ($pat,
+$mods) = regexp_pattern($ref);</p>
+
+<p style="margin-left:17%; margin-top: 1em">In scalar
+context it returns the same as perl would when stringifying
+a raw &quot;qr//&quot; with the same pattern inside. If the
+argument is not a compiled reference then this routine
+returns false but defined in scalar context, and the empty
+list in list context. Thus the following</p>
+
+<p style="margin-left:17%; margin-top: 1em">if
+(regexp_pattern($ref) eq '(?^i:foo)')</p>
+
+<p style="margin-left:17%; margin-top: 1em">will be warning
+free regardless of what $ref actually is.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Like
+&quot;is_regexp&quot; this function will not be confused by
+overloading or blessing of the object.</p>
+
+<p style="margin-left:11%;">regname($name,$all)</p>
+
+<p style="margin-left:17%;">Returns the contents of a named
+buffer of the last successful match. If $all is true, then
+returns an array ref containing one entry per buffer,
+otherwise returns the first defined buffer.</p>
+
+<p style="margin-left:11%;">regnames($all)</p>
+
+<p style="margin-left:17%;">Returns a list of all of the
+named buffers defined in the last successful match. If $all
+is true, then it returns all names defined, if not it
+returns only names which were involved in the match.</p>
+
+<p style="margin-left:11%;"><b>regnames_count()</b></p>
+
+<p style="margin-left:17%;">Returns the number of distinct
+names defined in the pattern used for the last successful
+match.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Note:</b>
+this result is always the actual number of distinct named
+buffers defined, it may not actually match that which is
+returned by &quot;regnames()&quot; and related routines when
+those routines have not been called with the $all parameter
+set.</p>
+
+<p style="margin-left:11%;">regmust($ref)</p>
+
+<p style="margin-left:17%;">If the argument is a compiled
+regular expression as returned by &quot;qr//&quot;, then
+this function returns what the optimiser considers to be the
+longest anchored fixed string and longest floating fixed
+string in the pattern.</p>
+
+<p style="margin-left:17%; margin-top: 1em">A <i>fixed
+string</i> is defined as being a substring that must appear
+for the pattern to match. An <i>anchored fixed string</i> is
+a fixed string that must appear at a particular offset from
+the beginning of the match. A <i>floating fixed string</i>
+is defined as a fixed string that can appear at any point in
+a range of positions relative to the start of the match. For
+example,</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $qr =
+qr/here .* there/x; <br>
+my ($anchored, $floating) = regmust($qr); <br>
+print
+&quot;anchored:'$anchored'\nfloating:'$floating'\n&quot;;</p>
+
+<p style="margin-left:17%; margin-top: 1em">results in</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">anchored:'here'
+<br>
+floating:'there'</p>
+
+<p style="margin-left:17%; margin-top: 1em">Because the
+&quot;here&quot; is before the &quot;.*&quot; in the
+pattern, its position can be determined exactly.
+That&rsquo;s not true, however, for the &quot;there&quot;;
+it could appear at any point after where the anchored string
+appeared. Perl uses both for its optimisations, preferring
+the longer, or, if they are equal, the floating.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>NOTE:</small></b>
+This may not necessarily be the definitive longest anchored
+and floating string. This will be what the optimiser of the
+Perl that you are using thinks is the longest. If you
+believe that the result is wrong please report it via the
+perlbug utility.</p>
+
+<p style="margin-left:11%;">optimization($ref)</p>
+
+<p style="margin-left:17%;">If the argument is a compiled
+regular expression as returned by &quot;qr//&quot;, then
+this function returns a hashref of the optimization
+information discovered at compile time, so we can write
+tests around it. If any other argument is given, returns
+&quot;undef&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The hash
+contents are expected to change from time to time as we
+develop new ways to optimize &minus; no assumption of
+stability should be made, not even between minor versions of
+perl.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For the current
+version, the hash will have the following contents: <br>
+minlen</p>
+
+<p style="margin-left:23%;">An integer, the least number of
+characters in any string that can match.</p>
+
+<p style="margin-left:17%;">minlenret</p>
+
+<p style="margin-left:23%;">An integer, the least number of
+characters that can be in $&amp; after a match. (Consider eg
+&quot; /ns(?=\d)/ &quot;.)</p>
+
+<p style="margin-left:17%;">gofs</p>
+
+<p style="margin-left:23%;">An integer, the number of
+characters before &quot;pos()&quot; to start match at.</p>
+
+<p style="margin-left:17%;">noscan</p>
+
+<p style="margin-left:23%;">A boolean, &quot;TRUE&quot; to
+indicate that any anchored/floating substrings found should
+not be used. ( <small>CHECKME:</small> apparently this is
+set for an anchored pattern with no floating substring, but
+never used.)</p>
+
+<p style="margin-left:17%;">isall</p>
+
+<p style="margin-left:23%;">A boolean, &quot;TRUE&quot; to
+indicate that the optimizer information is all that the
+regular expression contains, and thus one does not need to
+enter the regexp runtime engine at all.</p>
+
+<p style="margin-left:17%;">anchor <small>SBOL</small></p>
+
+<p style="margin-left:23%;">A boolean, &quot;TRUE&quot; if
+the pattern is anchored to start of string.</p>
+
+<p style="margin-left:17%;">anchor <small>MBOL</small></p>
+
+<p style="margin-left:23%;">A boolean, &quot;TRUE&quot; if
+the pattern is anchored to any start of line within the
+string.</p>
+
+<p style="margin-left:17%;">anchor <small>GPOS</small></p>
+
+<p style="margin-left:23%;">A boolean, &quot;TRUE&quot; if
+the pattern is anchored to the end of the previous
+match.</p>
+
+<p style="margin-left:17%;">skip</p>
+
+<p style="margin-left:23%;">A boolean, &quot;TRUE&quot; if
+the start class can match only the first of a run.</p>
+
+<p style="margin-left:17%;">implicit</p>
+
+<p style="margin-left:23%;">A boolean, &quot;TRUE&quot; if
+a &quot;/.*/&quot; has been turned implicitly into a
+&quot;/^.*/&quot;.</p>
+
+<p style="margin-left:17%;">anchored/floating</p>
+
+<p style="margin-left:23%;">A byte string representing an
+anchored or floating substring respectively that any match
+must contain, or undef if no such substring was found, or if
+the substring would require utf8 to represent.</p>
+
+<p style="margin-left:17%;">anchored utf8/floating utf8</p>
+
+<p style="margin-left:23%;">A utf8 string representing an
+anchored or floating substring respectively that any match
+must contain, or undef if no such substring was found, or if
+the substring contains only 7&minus;bit <small>ASCII</small>
+characters.</p>
+
+<p style="margin-left:17%;">anchored min offset/floating
+min offset</p>
+
+<p style="margin-left:23%;">An integer, the first offset in
+characters from a match location at which we should look for
+the corresponding substring.</p>
+
+<p style="margin-left:17%;">anchored max offset/floating
+max offset</p>
+
+<p style="margin-left:23%;">An integer, the last offset in
+characters from a match location at which we should look for
+the corresponding substring.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Ignored for
+anchored, so may be 0 or same as min.</p>
+
+<p style="margin-left:17%;">anchored end shift/floating end
+shift</p>
+
+<p style="margin-left:23%;"><small>FIXME:</small> not sure
+what this is, something to do with lookbehind. regcomp.c
+says: <br>
+When the final pattern is compiled and the data is moved
+from the <br>
+scan_data_t structure into the regexp structure the
+information <br>
+about lookbehind is factored in, with the information that
+would <br>
+have been lost precalculated in the end_shift field for the
+<br>
+associated string.</p>
+
+<p style="margin-left:17%;">checking</p>
+
+<p style="margin-left:23%;">A constant string, one of
+&quot;anchored&quot;, &quot;floating&quot; or
+&quot;none&quot; to indicate which substring (if any) should
+be checked for first.</p>
+
+<p style="margin-left:17%;">stclass</p>
+
+<p style="margin-left:23%;">A string representation of a
+character class (&quot;start class&quot;) that must be the
+first character of any match.</p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><small>TODO:</small>
+explain the representations.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Pragmatic
+Modules&quot; in perlmodlib.</p>
+<hr>
+</body>
+</html>

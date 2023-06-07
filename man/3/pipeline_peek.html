@@ -1,0 +1,900 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:50 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title></title>
+</head>
+<body>
+<h1>pipeline_peek</h1>
+
+<hr>
+
+
+<p>LIBPIPELINE(3) BSD Library Functions Manual
+LIBPIPELINE(3)</p>
+
+<p style="margin-top: 1em"><b>NAME</b></p>
+
+<p style="margin-left:6%;"><b>libpipeline</b> &mdash;
+pipeline manipulation library</p>
+
+<p style="margin-top: 1em"><b>SYNOPSIS</b></p>
+
+<p style="margin-left:6%;"><b>#include
+&lt;pipeline.h&gt;</b></p>
+
+<p style="margin-top: 1em"><b>DESCRIPTION</b></p>
+
+<p style="margin-left:6%;"><b>libpipeline</b> is a C
+library for setting up and running pipelines of processes,
+without needing to involve shell command-line parsing which
+is often error-prone and insecure. This relieves programmers
+of the need to laboriously construct pipelines using
+lower-level primitives such as <b>fork</b> and
+<b>execve</b>.</p>
+
+<p style="margin-left:6%; margin-top: 1em">The general way
+to use <b>libpipeline</b> involves constructing a
+<i>pipeline</i> structure and adding one or more
+<i>pipecmd</i> structures to it. A <i>pipecmd</i> represents
+a subprocess (or &ldquo;command&rdquo;), while a
+<i>pipeline</i> represents a sequence of subprocesses each
+of whose outputs is connected to the next one&rsquo;s input,
+as in the example <b>ls</b> | <b>grep pattern</b> |
+<b>less</b>. The calling program may adjust certain
+properties of each command independently, such as its
+environment and nice(3) priority, as well as properties of
+the entire pipeline such as its input and output and the way
+signals are handled while executing it. The calling program
+may then start the pipeline, read output from it, wait for
+it to complete, and gather its exit status.</p>
+
+<p style="margin-left:6%; margin-top: 1em">Strings passed
+as <i>const char *</i> function arguments will be copied by
+the library.</p>
+
+<p style="margin-left:6%; margin-top: 1em"><b>Functions to
+build individual commands</b></p>
+
+<p><i>pipecmd *</i><b>pipecmd_new</b>(<i>const char
+*name</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Construct a new
+command representing execution of a program called
+<i>name</i>.</p>
+
+<p style="margin-top: 1em"><i>pipecmd
+*</i><b>pipecmd_new_argv</b>(<i>const char *name</i>,
+<i>va_list argv</i>) <i><br>
+pipecmd *</i><b>pipecmd_new_args</b>(<i>const char
+*name</i>, <i>...</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Convenience
+constructors wrapping <b>pipecmd_new</b>() and
+<b>pipecmd_arg</b>(). Construct a new command representing
+execution of a program called <i>name</i> with arguments.
+Terminate arguments with NULL.</p>
+
+<p style="margin-top: 1em"><i>pipecmd
+*</i><b>pipecmd_new_argstr</b>(<i>const char
+*argstr</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Split
+<i>argstr</i> on whitespace to construct a command and
+arguments, honouring shell-style single-quoting,
+double-quoting, and backslashes, but not other shell
+evilness like wildcards, semicolons, or backquotes. This is
+included only to support situations where command arguments
+are encoded into configuration files and the like. While it
+is safer than system(3), it still involves significant
+string parsing which is inherently riskier than avoiding it
+altogether. Please try to avoid using it in new code.</p>
+
+<p style="margin-top: 1em"><i>typedef void
+pipecmd_function_type (void *)</i>; <i><br>
+typedef void pipecmd_function_free_type (void *)</i>;
+<i><br>
+pipecmd *</i> <b><br>
+pipecmd_new_function</b>(<i>const&nbsp;char&nbsp;*name</i>,
+<i>pipecmd_function_type&nbsp;*func</i>,
+<i>pipecmd_function_free_type&nbsp;*free_func</i>,
+<i>void&nbsp;*data</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Construct a new
+command that calls a given function rather than executing a
+process.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The data
+argument is passed as the function&rsquo;s only argument,
+and will be freed before returning using free_func (if
+non-<i>NULL</i>).</p>
+
+<p style="margin-left:14%; margin-top: 1em">pipecmd_*
+functions that deal with arguments cannot be used with the
+command returned by this function.</p>
+
+<p style="margin-top: 1em"><i>pipecmd
+*</i><b>pipecmd_new_sequencev</b>(<i>const char *name</i>,
+<i>va_list cmdv</i>) <i><br>
+pipecmd *</i><b>pipecmd_new_sequence</b>(<i>const char
+*name</i>, <i>...</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Construct a new
+command that itself runs a sequence of commands, supplied as
+<i>command *</i> arguments following <i>name</i> and
+terminated by NULL. The commands will be executed in forked
+children; if any exits non-zero then it will terminate the
+sequence, as with &quot;&amp;&amp;&quot; in shell.</p>
+
+<p style="margin-left:14%; margin-top: 1em">pipecmd_*
+functions that deal with arguments cannot be used with the
+command returned by this function.</p>
+
+<p style="margin-top: 1em"><i>pipecmd
+*</i><b>pipecmd_new_passthrough</b>(<i>void</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Return a new
+command that just passes data from its input to its
+output.</p>
+
+<p style="margin-top: 1em"><i>pipecmd
+*</i><b>pipecmd_dup</b>(<i>pipecmd *cmd</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Return a
+duplicate of a command.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_arg</b>(<i>pipecmd *cmd</i>, <i>const char
+*arg</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Add an argument
+to a command.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_argf</b>(<i>pipecmd *cmd</i>, <i>const char
+*format</i>, <i>...</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Convenience
+function to add an argument with printf substitutions.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_argv</b>(<i>pipecmd *cmd</i>, <i>va_list
+argv</i>) <i><br>
+void</i> <b>pipecmd_args</b>(<i>pipecmd *cmd</i>,
+<i>...</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Convenience
+functions wrapping <b>pipecmd_arg</b>() to add multiple
+arguments at once. Terminate arguments with NULL.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_argstr</b>(<i>pipecmd *cmd</i>, <i>const char
+*argstr</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Split
+<i>argstr</i> on whitespace to add a list of arguments,
+honouring shell-style single-quoting, double-quoting, and
+backslashes, but not other shell evilness like wildcards,
+semicolons, or backquotes. This is included only to support
+situations where command arguments are encoded into
+configuration files and the like. While it is safer than
+system(3), it still involves significant string parsing
+which is inherently riskier than avoiding it altogether.
+Please try to avoid using it in new code.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_get_nargs</b>(<i>pipecmd *cmd</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Return the
+number of arguments to this command. Note that this includes
+the command name as the first argument, so the command
+&lsquo;echo foo bar&rsquo; is counted as having three
+arguments.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Added in
+<b>libpipeline</b> 1.1.0.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_nice</b>(<i>pipecmd *cmd</i>, <i>int
+value</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Set the nice(3)
+value for this command. Defaults to 0. Errors while
+attempting to set the nice value are ignored, aside from
+emitting a debug message.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_discard_err</b>(<i>pipecmd *cmd</i>, <i>int
+discard_err</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">If
+<i>discard_err</i> is non-zero, redirect this
+command&rsquo;s standard error to <i>/dev/null</i>.
+Otherwise, and by default, pass it through. This is usually
+a bad idea.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_chdir</b>(<i>pipecmd *cmd</i>, <i>const char
+*directory</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Change the
+working directory to <i>directory</i> while running this
+command.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Added in
+<b>libpipeline</b> 1.3.0.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_fchdir</b>(<i>pipecmd *cmd</i>, <i>int
+directory_fd</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Change the
+working directory to the directory given by the open file
+descriptor <i>directory_fd</i> while running this
+command.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Added in
+<b>libpipeline</b> 1.4.0.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_setenv</b>(<i>pipecmd *cmd</i>, <i>const char
+*name</i>, <i>const char *value</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Set environment
+variable <i>name</i> to <i>value</i> while running this
+command.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_unsetenv</b>(<i>pipecmd *cmd</i>, <i>const char
+*name</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Unset
+environment variable <i>name</i> while running this
+command.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_clearenv</b>(<i>pipecmd *cmd</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Clear the
+environment while running this command. (Note that
+environment operations work in sequence; pipecmd_clearenv
+followed by pipecmd_setenv causes the command to have just a
+single environment variable set.) Beware that this may cause
+unexpected failures, for example if some of the contents of
+the environment are necessary to execute programs at all
+(say, PATH).</p>
+
+<p style="margin-left:14%; margin-top: 1em">Added in
+<b>libpipeline</b> 1.1.0.</p>
+
+<p style="margin-top: 1em"><i>void</i> <b><br>
+pipecmd_pre_exec</b>(<i>pipecmd&nbsp;*cmd</i>,
+<i>pipecmd_function_type&nbsp;*func</i>,
+<i>pipecmd_function_free_type&nbsp;*free_func</i>,
+<i>void&nbsp;*data</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Install a
+pre-exec handler. This will be run immediately before
+executing the command&rsquo;s payload (process or function).
+Pass NULL to clear any existing pre-exec handler. The data
+argument is passed as the function&rsquo;s only argument,
+and will be freed before returning using free_func (if
+non-NULL).</p>
+
+<p style="margin-left:14%; margin-top: 1em">This is similar
+to pipeline_install_post_fork, except that is specific to a
+single command rather than installing a global handler, and
+it runs slightly later (immediately before exec rather than
+immediately after fork).</p>
+
+<p style="margin-left:14%; margin-top: 1em">Added in
+<b>libpipeline</b> 1.5.0.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_sequence_command</b>(<i>pipecmd *cmd</i>,
+<i>pipecmd *child</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Add a command
+to a sequence created using
+<b>pipecmd_new_sequence</b>().</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_dump</b>(<i>pipecmd *cmd</i>, <i>FILE
+*stream</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Dump a string
+representation of a command to stream.</p>
+
+<p style="margin-top: 1em"><i>char
+*</i><b>pipecmd_tostring</b>(<i>pipecmd *cmd</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Return a string
+representation of a command. The caller should free the
+result.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_exec</b>(<i>pipecmd *cmd</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Execute a
+single command, replacing the current process. Never
+returns, instead exiting non-zero on failure.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Added in
+<b>libpipeline</b> 1.1.0.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipecmd_free</b>(<i>pipecmd *cmd</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Destroy a
+command. Safely does nothing if <i>cmd</i> is NULL.</p>
+
+<p style="margin-left:6%; margin-top: 1em"><b>Functions to
+build pipelines</b></p>
+
+<p><i>pipeline *</i><b>pipeline_new</b>(<i>void</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Construct a new
+pipeline.</p>
+
+<p style="margin-top: 1em"><i>pipeline
+*</i><b>pipeline_new_commandv</b>(<i>pipecmd *cmd1</i>,
+<i>va_list cmdv</i>) <i><br>
+pipeline *</i><b>pipeline_new_commands</b>(<i>pipecmd
+*cmd1</i>, <i>...</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Convenience
+constructors wrapping <b>pipeline_new</b>() and
+<b>pipeline_command</b>(). Construct a new pipeline
+consisting of the given list of commands. Terminate commands
+with NULL.</p>
+
+<p style="margin-top: 1em"><i>pipeline
+*</i><b>pipeline_new_command_argv</b>(<i>const char
+*name</i>, <i>va_list argv</i>) <i><br>
+pipeline *</i><b>pipeline_new_command_args</b>(<i>const char
+*name</i>, <i>...</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Construct a new
+pipeline and add a single command to it.</p>
+
+<p style="margin-top: 1em"><i>pipeline
+*</i><b>pipeline_join</b>(<i>pipeline *p1</i>, <i>pipeline
+*p2</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Joins two
+pipelines, neither of which are allowed to be started.
+Discards <i>want_out</i>, <i>want_outfile</i>, and
+<i>outfd</i> from <i>p1</i>, and <i>want_in</i>,
+<i>want_infile</i>, and <i>infd</i> from <i>p2</i>.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_connect</b>(<i>pipeline *source</i>, <i>pipeline
+*sink</i>, <i>...</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Connect the
+input of one or more sink pipelines to the output of a
+source pipeline. The source pipeline may be started, but in
+that case <b>pipeline_want_out</b>() must have been called
+with a negative <i>fd</i>; otherwise, calls
+<b>pipeline_want_out</b>(<i>source</i>, <i>-1</i>). In any
+event, calls <b>pipeline_want_in</b>(<i>sink</i>, <i>-1</i>)
+on all sinks, none of which are allowed to be started.
+Terminate arguments with NULL.</p>
+
+<p style="margin-left:14%; margin-top: 1em">This is an
+application-level connection; data may be intercepted
+between the pipelines by the program before calling
+<b>pipeline_pump</b>(), which sets data flowing from the
+source to the sinks. It is primarily useful when more than
+one sink pipeline is involved, in which case the pipelines
+cannot simply be concatenated into one.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The result is
+similar to tee(1), except that output can be sent to more
+than two places and can easily be sent to multiple
+processes.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_command</b>(<i>pipeline *p</i>, <i>pipecmd
+*cmd</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Add a command
+to a pipeline.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_command_argv</b>(<i>pipeline *p</i>, <i>const
+char *name</i>, <i>va_list argv</i>) <i><br>
+void</i> <b>pipeline_command_args</b>(<i>pipeline *p</i>,
+<i>const char *name</i>, <i>...</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Construct a new
+command and add it to a pipeline in one go.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_command_argstr</b>(<i>pipeline *p</i>, <i>const
+char *argstr</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Construct a new
+command from a shell-quoted string and add it to a pipeline
+in one go. See the comment against
+<b>pipecmd_new_argstr</b>() above if you&rsquo;re tempted to
+use this function.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_commandv</b>(<i>pipeline *p</i>, <i>va_list
+cmdv</i>) <i><br>
+void</i> <b>pipeline_commands</b>(<i>pipeline *p</i>,
+<i>...</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Convenience
+functions wrapping <b>pipeline_command</b>() to add multiple
+commands at once. Terminate arguments with NULL.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_want_in</b>(<i>pipeline *p</i>, <i>int fd</i>)
+<i><br>
+void</i> <b>pipeline_want_out</b>(<i>pipeline *p</i>, <i>int
+fd</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Set file
+descriptors to use as the input and output of the whole
+pipeline. If non-negative, <i>fd</i> is used directly as a
+file descriptor. If negative, <b>pipeline_start</b>() will
+create pipes and store the input writing half and the output
+reading half in the pipeline&rsquo;s <i>infd</i> or
+<i>outfd</i> field as appropriate. The default is to leave
+input and output as stdin and stdout unless
+<b>pipeline_want_infile</b>() or
+<b>pipeline_want_outfile</b>() respectively has been
+called.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Calling these
+functions supersedes any previous call to
+<b>pipeline_want_infile</b>() or
+<b>pipeline_want_outfile</b>() respectively.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_want_infile</b>(<i>pipeline *p</i>, <i>const
+char *file</i>) <i><br>
+void</i> <b>pipeline_want_outfile</b>(<i>pipeline *p</i>,
+<i>const char *file</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Set file names
+to open and use as the input and output of the whole
+pipeline. This may be more convenient than supplying file
+descriptors, and guarantees that the files are opened with
+the same privileges under which the pipeline is run.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Calling these
+functions (even with NULL, which returns to the default of
+leaving input and output as stdin and stdout) supersedes any
+previous call to <b>pipeline_want_in</b>() or
+<b>pipeline_want_outfile</b>() respectively.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The given files
+will be opened when the pipeline is started. If an output
+file does not already exist, it is created (with mode 0666
+modified in the usual way by umask); if it does exist, then
+it is truncated.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_ignore_signals</b>(<i>pipeline *p</i>, <i>int
+ignore_signals</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">If
+<i>ignore_signals</i> is non-zero, ignore SIGINT and SIGQUIT
+in the calling process while the pipeline is running, like
+system(3). Otherwise, and by default, leave their
+dispositions unchanged.</p>
+
+<p style="margin-top: 1em"><i>int</i>
+<b>pipeline_get_ncommands</b>(<i>pipeline *p</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Return the
+number of commands in this pipeline.</p>
+
+<p style="margin-top: 1em"><i>pipecmd
+*</i><b>pipeline_get_command</b>(<i>pipeline *p</i>, <i>int
+n</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Return command
+number <i>n</i> from this pipeline, counting from zero, or
+NULL if <i>n</i> is out of range.</p>
+
+<p style="margin-top: 1em"><i>pipecmd
+*</i><b>pipeline_set_command</b>(<i>pipeline *p</i>, <i>int
+n</i>, <i>pipecmd *cmd</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Set command
+number <i>n</i> in this pipeline, counting from zero, to
+<i>cmd</i>, and return the previous command in that
+position. Do nothing and return NULL if <i>n</i> is out of
+range.</p>
+
+<p style="margin-top: 1em"><i>pid_t</i>
+<b>pipeline_get_pid</b>(<i>pipeline *p</i>, <i>int
+n</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Return the
+process ID of command number <i>n</i> from this pipeline,
+counting from zero. The pipeline must be started. Return
+&minus;1 if <i>n</i> is out of range or if the command has
+already exited and been reaped.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Added in
+<b>libpipeline</b> 1.2.0.</p>
+
+<p style="margin-top: 1em"><i>FILE
+*</i><b>pipeline_get_infile</b>(<i>pipeline *p</i>) <i><br>
+FILE *</i><b>pipeline_get_outfile</b>(<i>pipeline
+*p</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Get streams
+corresponding to <i>infd</i> and <i>outfd</i> respectively.
+The pipeline must be started.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_dump</b>(<i>pipeline *p</i>, <i>FILE
+*stream</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Dump a string
+representation of <i>p</i> to stream.</p>
+
+<p style="margin-top: 1em"><i>char
+*</i><b>pipeline_tostring</b>(<i>pipeline *p</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Return a string
+representation of <i>p</i>. The caller should free the
+result.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_free</b>(<i>pipeline *p</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Destroy a
+pipeline and all its commands. Safely does nothing if
+<i>p</i> is NULL. May wait for the pipeline to complete if
+it has not already done so.</p>
+
+<p style="margin-left:6%; margin-top: 1em"><b>Functions to
+run pipelines and handle signals</b></p>
+
+<p><i>typedef void pipeline_post_fork_fn (void)</i>;
+<i><br>
+void</i>
+<b>pipeline_install_post_fork</b>(<i>pipeline_post_fork_fn
+*fn</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Install a
+post-fork handler. This will be run in any child process
+immediately after it is forked. For instance, this may be
+used for cleaning up application-specific signal handlers.
+Pass NULL to clear any existing post-fork handler.</p>
+
+<p style="margin-left:14%; margin-top: 1em">See
+pipecmd_pre_exec for a similar facility limited to a single
+command rather than global to the calling process.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_start</b>(<i>pipeline *p</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Start the
+processes in a pipeline. Installs this library&rsquo;s
+SIGCHLD handler if not already installed. Calls error
+(FATAL) on error.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The standard
+file descriptors (0, 1, and 2) must be open before calling
+this function.</p>
+
+<p style="margin-top: 1em"><i>int</i>
+<b>pipeline_wait_all</b>(<i>pipeline *p</i>, <i>int
+**statuses</i>, <i>int *n_statuses</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Wait for a
+pipeline to complete. Set *<i>statuses</i> to a
+newly-allocated array of wait statuses, as returned by
+waitpid(2), and *<i>n_statuses</i> to the length of that
+array. The return value is similar to the exit status that a
+shell would return, with some modifications. If the last
+command exits with a signal (other than SIGPIPE, which is
+considered equivalent to exiting zero), then the return
+value is 128 plus the signal number; if the last command
+exits normally but non-zero, then the return value is its
+exit status; if any other command exits non-zero, then the
+return value is 127; otherwise, the return value is 0. This
+means that the return value is only 0 if all commands in the
+pipeline exit successfully.</p>
+
+<p style="margin-top: 1em"><i>int</i>
+<b>pipeline_wait</b>(<i>pipeline *p</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Wait for a
+pipeline to complete and return its combined exit status,
+calculated as for <b>pipeline_wait_all</b>().</p>
+
+<p style="margin-top: 1em"><i>int</i>
+<b>pipeline_run</b>(<i>pipeline *p</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Start a
+pipeline, wait for it to complete, and free it, all in one
+go.</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_pump</b>(<i>pipeline *p</i>, <i>...</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Pump data among
+one or more pipelines connected using
+<b>pipeline_connect</b>() until all source pipelines have
+reached end-of-file and all data has been written to all
+sinks (or failed). All relevant pipelines must be supplied:
+that is, no pipeline that has been connected to a source
+pipeline may be supplied unless that source pipeline is also
+supplied. Automatically starts all pipelines if they are not
+already started, but does not wait for them. Terminate
+arguments with NULL.</p>
+
+<p style="margin-left:6%; margin-top: 1em"><b>Functions to
+read output from pipelines</b> <br>
+In general, output is returned as a pointer into a buffer
+owned by the pipeline, which is automatically freed when
+<b>pipeline_free</b>() is called. This saves the caller from
+having to explicitly free individual blocks of output
+data.</p>
+
+<p style="margin-top: 1em"><i>const char
+*</i><b>pipeline_read</b>(<i>pipeline *p</i>, <i>size_t
+*len</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Read <i>len</i>
+bytes of data from the pipeline, returning the data block.
+<i>len</i> is updated with the number of bytes read.</p>
+
+<p style="margin-top: 1em"><i>const char
+*</i><b>pipeline_peek</b>(<i>pipeline *p</i>, <i>size_t
+*len</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Look ahead in
+the pipeline&rsquo;s output for <i>len</i> bytes of data,
+returning the data block. <i>len</i> is updated with the
+number of bytes read. The starting position of the next read
+or peek is not affected by this call.</p>
+
+<p style="margin-top: 1em"><i>size_t</i>
+<b>pipeline_peek_size</b>(<i>pipeline *p</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Return the
+number of bytes of data that can be read using
+<b>pipeline_read</b>() or <b>pipeline_peek</b>() solely from
+the peek cache, without having to read from the pipeline
+itself (and thus potentially block).</p>
+
+<p style="margin-top: 1em"><i>void</i>
+<b>pipeline_peek_skip</b>(<i>pipeline *p</i>, <i>size_t
+len</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Skip over and
+discard <i>len</i> bytes of data from the peek cache.
+Asserts that enough data is available to skip, so you may
+want to check using <b>pipeline_peek_size</b>() first.</p>
+
+<p style="margin-top: 1em"><i>const char
+*</i><b>pipeline_readline</b>(<i>pipeline *p</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Read a line of
+data from the pipeline, returning it.</p>
+
+<p style="margin-top: 1em"><i>const char
+*</i><b>pipeline_peekline</b>(<i>pipeline *p</i>)</p>
+
+<p style="margin-left:14%; margin-top: 1em">Look ahead in
+the pipeline&rsquo;s output for a line of data, returning
+it. The starting position of the next read or peek is not
+affected by this call.</p>
+
+<p style="margin-left:6%; margin-top: 1em"><b>Signal
+handling <br>
+libpipeline</b> installs a signal handler for SIGCHLD, and
+collects the exit status of child processes in
+<b>pipeline_wait</b>(). Applications using this library must
+either refrain from changing the disposition of SIGCHLD (in
+other words, must rely on <b>libpipeline</b> for all child
+process handling) or else must make sure to restore
+<b>libpipeline</b>&rsquo;s SIGCHLD handler before calling
+any of its functions.</p>
+
+<p style="margin-left:6%; margin-top: 1em">If the
+<i>ignore_signals</i> flag is set in a pipeline (which is
+the default), then the SIGINT and SIGQUIT signals will be
+ignored in the parent process while child processes are
+running. This mirrors the behaviour of system(3).</p>
+
+
+<p style="margin-left:6%; margin-top: 1em"><b>libpipeline</b>
+leaves child processes with the default disposition of
+SIGPIPE, namely to terminate the process. It ignores SIGPIPE
+in the parent process while running
+<b>pipeline_pump</b>().</p>
+
+<p style="margin-left:6%; margin-top: 1em"><b>Reaping of
+child processes <br>
+libpipeline</b> installs a SIGCHLD handler that will attempt
+to reap child processes which have exited. This calls
+waitpid(2) with &minus;1, so it will reap any child process,
+not merely those created by way of this library. At present,
+this means that if the calling program forks other child
+processes which may exit while a pipeline is running, the
+program is not guaranteed to be able to collect exit
+statuses of those processes.</p>
+
+<p style="margin-left:6%; margin-top: 1em">You should not
+rely on this behaviour, and in future it may be modified
+either to reap only child processes created by this library
+or to provide a way to return foreign statuses to the
+application. Please contact the author if you have an
+example application and would like to help design such an
+interface.</p>
+
+<p style="margin-top: 1em"><b>ENVIRONMENT</b></p>
+
+<p style="margin-left:6%;">If the PIPELINE_DEBUG
+environment variable is set to &ldquo;1&rdquo;, then
+<b>libpipeline</b> will emit debugging messages on standard
+error.</p>
+
+<p style="margin-left:6%; margin-top: 1em">If the
+PIPELINE_QUIET environment variable is set to any value,
+then <b>libpipeline</b> will refrain from printing an error
+message when a subprocess is terminated by a signal. Added
+in <b>libpipeline</b> 1.4.0.</p>
+
+<p style="margin-top: 1em"><b>EXAMPLES</b></p>
+
+<p style="margin-left:6%;">In the following examples,
+function names starting with pipecmd_ or pipeline_ are real
+<b>libpipeline</b> functions, while any other function names
+are pseudocode.</p>
+
+<p style="margin-left:6%; margin-top: 1em">The simplest
+case is simple. To run a single command, such as <b>mv</b>
+<i>source dest</i>:</p>
+
+<p style="margin-left:14%; margin-top: 1em">pipeline *p =
+pipeline_new_command_args (&quot;mv&quot;, source, dest,
+NULL); <br>
+int status = pipeline_run (p);</p>
+
+
+<p style="margin-left:6%; margin-top: 1em"><b>libpipeline</b>
+is often used to mimic shell pipelines, such as the
+following example:</p>
+
+<p style="margin-left:14%; margin-top: 1em">zsoelim &lt;
+input-file | tbl | nroff -mandoc -Tutf8</p>
+
+<p style="margin-left:6%; margin-top: 1em">The code to
+construct this would be:</p>
+
+<p style="margin-left:14%; margin-top: 1em">pipeline *p;
+<br>
+int status;</p>
+
+<p style="margin-left:14%; margin-top: 1em">p =
+pipeline_new (); <br>
+pipeline_want_infile (p, &quot;input-file&quot;); <br>
+pipeline_command_args (p, &quot;zsoelim&quot;, NULL); <br>
+pipeline_command_args (p, &quot;tbl&quot;, NULL); <br>
+pipeline_command_args (p, &quot;nroff&quot;,
+&quot;-mandoc&quot;, &quot;-Tutf8&quot;, NULL); <br>
+status = pipeline_run (p);</p>
+
+<p style="margin-left:6%; margin-top: 1em">You might want
+to construct a command more dynamically:</p>
+
+<p style="margin-left:14%; margin-top: 1em">pipecmd
+*manconv = pipecmd_new_args (&quot;manconv&quot;,
+&quot;-f&quot;, from_code, <br>
+&quot;-t&quot;, &quot;UTF-8&quot;, NULL); <br>
+if (quiet) <br>
+pipecmd_arg (manconv, &quot;-q&quot;); <br>
+pipeline_command (p, manconv);</p>
+
+<p style="margin-left:6%; margin-top: 1em">Perhaps you want
+an environment variable set only while running a certain
+command:</p>
+
+<p style="margin-left:14%; margin-top: 1em">pipecmd *less =
+pipecmd_new (&quot;less&quot;); <br>
+pipecmd_setenv (less, &quot;LESSCHARSET&quot;,
+lesscharset);</p>
+
+<p style="margin-left:6%; margin-top: 1em">You might find
+yourself needing to pass the output of one pipeline to
+several other pipelines, in a &ldquo;tee&rdquo;
+arrangement:</p>
+
+<p style="margin-left:14%; margin-top: 1em">pipeline
+*source, *sink1, *sink2;</p>
+
+<p style="margin-left:14%; margin-top: 1em">source =
+make_source (); <br>
+sink1 = make_sink1 (); <br>
+sink2 = make_sink2 (); <br>
+pipeline_connect (source, sink1, sink2, NULL); <br>
+/* Pump data among these pipelines until there&rsquo;s
+nothing left. */ <br>
+pipeline_pump (source, sink1, sink2, NULL); <br>
+pipeline_free (sink2); <br>
+pipeline_free (sink1); <br>
+pipeline_free (source);</p>
+
+<p style="margin-left:6%; margin-top: 1em">Maybe one of
+your commands is actually an in-process function, rather
+than an external program:</p>
+
+<p style="margin-left:14%; margin-top: 1em">pipecmd *inproc
+= pipecmd_new_function (&quot;in-process&quot;, &amp;func,
+<br>
+NULL, NULL); <br>
+pipeline_command (p, inproc);</p>
+
+<p style="margin-left:6%; margin-top: 1em">Sometimes your
+program needs to consume the output of a pipeline, rather
+than sending it all to some other subprocess:</p>
+
+<p style="margin-left:14%; margin-top: 1em">pipeline *p =
+make_pipeline (); <br>
+const char *line;</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">pipeline_want_out
+(p, -1); <br>
+pipeline_start (p); <br>
+line = pipeline_peekline (p); <br>
+if (!strstr (line, &quot;coding: UTF-8&quot;)) <br>
+printf (&quot;Unicode text follows:0); <br>
+while (line = pipeline_readline (p)) <br>
+printf (&quot; %s&quot;, line); <br>
+pipeline_free (p);</p>
+
+<p style="margin-top: 1em"><b>SEE ALSO</b></p>
+
+<p style="margin-left:6%;">fork(2), execve(2), system(3),
+popen(3).</p>
+
+<p style="margin-top: 1em"><b>AUTHORS</b></p>
+
+<p style="margin-left:6%;">Most of <b>libpipeline</b> was
+written by Colin Watson &lt;cjwatson@debian.org&gt;,
+originally for use in man&minus;db. The initial version was
+based very loosely on the <b>run_pipeline</b>() function in
+GNU groff, written by James Clark &lt;jjc@jclark.com&gt;. It
+also contains library code by Markus Armbruster, and by
+various contributors to Gnulib.</p>
+
+
+<p style="margin-left:6%; margin-top: 1em"><b>libpipeline</b>
+is licensed under the GNU General Public License, version 3
+or later. See the README file for full details.</p>
+
+<p style="margin-top: 1em"><b>BUGS</b></p>
+
+<p style="margin-left:6%;">Using this library in a program
+which runs any other child processes and/or installs its own
+SIGCHLD handler is unlikely to work.</p>
+
+<p style="margin-left:6%; margin-top: 1em">GNU
+April&nbsp;28, 2022 GNU</p>
+<hr>
+</body>
+</html>

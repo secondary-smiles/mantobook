@@ -1,0 +1,267 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:01 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>NM&minus;OPENVSWITCH</title>
+
+</head>
+<body>
+<h1>nm-openvswitch</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">nm-openvswitch
+&minus; overview of NetworkManager Open vSwitch support</p>
+
+<h2>OVERVIEW
+<a name="OVERVIEW"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">NetworkManager
+includes basic Open vSwitch support, good enough to be
+capable of setting up simple Open vSwitch configurations. It
+is not extensive and does not expose all functionality of
+Open vSwitch provides. For large or complicated deployments
+users are advised to use native tools shipped with Open
+vSwitch. This document seeks to provide overview of
+functionality currently provided by NetworkManager, its
+capabilities and limitations.</p>
+
+<p style="margin-left:11%; margin-top: 1em">First and
+foremost: NetworkManager applies the configuration by
+modifying the OVSDB directly. Its configuration model
+follows the OVSDB database model closely and it does not
+provide the level of abstraction <b>ovs&minus;vsctl</b>
+provides.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In practical
+terms it means the following:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+NetworkManager only ever talks to a single OVSDB instance
+via an UNIX domain socket.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+configuration is made up of Bridges, Ports and Interfaces.
+Interfaces are always enslaved to Ports, and Ports are
+always enslaved to Bridges.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+NetworkManager only creates Bridges, Ports and Interfaces
+you ask it to. Unlike <b>ovs&minus;vsctl</b>, it doesn't
+create the local interface nor its port automatically.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; You
+can't enslave Interface directly to a Bridge. You always
+need a Port, even if it has just one interface.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; There
+are no VLANs. The VLAN tagging is enabled by setting a
+ovs&minus;port.tag property on a Port.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; There
+are no bonds either. The bonding is enabled by enslaving
+multiple Interfaces to a Port and configured by setting
+properties on a port.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Bridges</b>
+<br>
+Bridges are represented by connections of ovs&minus;bridge
+type. Due to the limitations of OVSDB, &quot;empty&quot;
+Bridges (with no Ports) can't exist. NetworkManager inserts
+the records for Bridges into OVSDB when a Port is
+enslaved.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Ports</b>
+<br>
+Ports are represented by connections of ovs&minus;port type.
+Due to the limitations of OVSDB, &quot;empty&quot; Ports
+(with no Interfaces) can't exist. Ports can also be
+configured to do VLAN tagging or Bonding. NetworkManager
+inserts the records for Ports into OVSDB when an Interface
+is enslaved. Ports must be enslaved to a Bridge.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Interfaces</b>
+<br>
+Interfaces are represented by a connections enslaved to a
+Port. The system interfaces (that have a corresponding Linux
+link) have a respective connection.type of the link (e.g.
+&quot;wired&quot;, &quot;bond&quot;, &quot;dummy&quot;,
+etc.). Other interfaces (&quot;internal&quot; or
+&quot;patch&quot; interfaces) are of ovs&minus;interface
+type. The OVSDB entries are inserted upon enslavement to a
+Port.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;1.&nbsp;Creating
+a Bridge with a single internal Interface</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">$ <b>nmcli conn
+add type ovs&minus;bridge conn.interface bridge0</b> <br>
+Connection 'ovs&minus;bridge&minus;bridge0'
+(d10fc64d&minus;1d48&minus;4394&minus;a1b8&minus;e1aea72f27d5)
+successfully added. <br>
+$ <b>nmcli conn add type ovs&minus;port conn.interface port0
+master bridge0</b> <br>
+Connection 'ovs&minus;port&minus;port0'
+(5ae22bae&minus;bba4&minus;4815&minus;9ade&minus;7e635633e1f0)
+successfully added. <br>
+$ <b>nmcli conn add type ovs&minus;interface
+slave&minus;type ovs&minus;port conn.interface iface0 \ <br>
+master port0 ipv4.method manual ipv4.address
+192.0.2.1/24</b> <br>
+Connection 'ovs&minus;interface&minus;iface0'
+(3640d2a1&minus;a2fd&minus;4718&minus;92f1&minus;cffadb5b6cdc)
+successfully added.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As said above,
+you need to create a Port even for a single interface. Also,
+before you add the Interface, the Bridge and Port devices
+appear active, but are not configured in OVSDB yet. You can
+inspect the results with <b>ovs&minus;vsctl show</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;2.&nbsp;Adding
+a Linux interface to a Bridge</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">$ <b>nmcli conn
+add type ovs&minus;port conn.interface port1 master
+bridge0</b> <br>
+Connection 'ovs&minus;port&minus;port1'
+(67d041eb&minus;8e7b&minus;4458&minus;afee&minus;a1d07c9c4552)
+successfully added. <br>
+$ <b>nmcli conn add type ethernet conn.interface eth0 master
+port1</b> <br>
+Connection 'ovs&minus;slave&minus;eth0'
+(d459c45c&minus;cf78&minus;4c1c&minus;b4b7&minus;505e71379624)
+successfully added.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Again, you need
+a port.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;3.&nbsp;Creating
+a VLAN</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">$ <b>nmcli conn
+add type ovs&minus;port conn.interface port2 master bridge0
+ovs&minus;port.tag 120</b> <br>
+Connection 'ovs&minus;port&minus;port2'
+(3994c093&minus;4ef7&minus;4549&minus;a4fd&minus;627b831c3cb8)
+successfully added. <br>
+$ <b>nmcli conn add type ethernet conn.interface eth1 master
+port2</b> <br>
+Connection 'ovs&minus;slave&minus;eth1'
+(099be06e&minus;71ad&minus;484d&minus;8d5a&minus;fcadc5f207f5)
+successfully added.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It's just a
+port with a tag.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;4.&nbsp;Creating
+a Bond</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">$ <b>nmcli conn
+add type ovs&minus;port conn.interface bond0 master
+bridge0</b> <br>
+Connection 'ovs&minus;port&minus;bond0'
+(d154ebf9&minus;e999&minus;4e1b&minus;a084&minus;a3de53d25d8a)
+successfully added. <br>
+$ <b>nmcli conn add type ethernet conn.interface eth2 master
+bond0</b> <br>
+Connection 'ovs&minus;slave&minus;eth2'
+(475ac1bf&minus;30b2&minus;4534&minus;a877&minus;27f33f58b082)
+successfully added. <br>
+$ <b>nmcli conn add type ethernet conn.interface eth3 master
+bond0</b> <br>
+Connection 'ovs&minus;slave&minus;eth3'
+(8dedeecb&minus;ed12&minus;482b&minus;b77a&minus;24a4fb835136)
+successfully added.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It's just a
+Port with multiple interfaces. See nm&minus;settings manual
+for Bonding options you can use with &quot;nmcli c add&quot;
+or &quot;nmcli c modify&quot;. You could even set a VLAN tag
+on the same Port to do VLAN tagging and bonding at the same
+time.</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em">&bull; Not all
+Open vSwitch capabilities are supported.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; Open
+vSwitch devices don't expose many useful properties on
+D&minus;Bus.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Probably many
+more.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><font color="#0000FF">RFC
+7047: The Open vSwitch Database Management
+Protocol</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">, <b>ovs-vsctl</b>(8),
+<b>ovs-vswitchd.conf.db</b>(5), <b>nm-settings</b>(5),
+<b>nmcli</b>(1)</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em"><font color="#000000">RFC 7047:
+The Open vSwitch Database Management Protocol</font></p></td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://www.rfc-editor.org/rfc/rfc7047.txt</font></p>
+<hr>
+</body>
+</html>

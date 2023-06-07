@@ -1,0 +1,362 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:33 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Module::Load::Conditional</title>
+
+</head>
+<body>
+<h1>Module::Load::Conditional</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Module::Load::Conditional
+&minus; Looking up module information / loading at
+runtime</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Module::Load::Conditional qw[can_load check_install
+requires]; <br>
+my $use_list = { <br>
+CPANPLUS =&gt; 0.05, <br>
+LWP =&gt; 5.60, <br>
+'Test::More' =&gt; undef, <br>
+}; <br>
+print can_load( modules =&gt; $use_list ) <br>
+? 'all modules loaded successfully' <br>
+: 'failed to load required modules'; <br>
+my $rv = check_install( module =&gt; 'LWP', version =&gt;
+5.60 ) <br>
+or print 'LWP is not installed!'; <br>
+print 'LWP up to date' if $rv&minus;&gt;{uptodate}; <br>
+print &quot;LWP version is $rv&minus;&gt;{version}\n&quot;;
+<br>
+print &quot;LWP is installed as file
+$rv&minus;&gt;{file}\n&quot;; <br>
+print &quot;LWP requires the following modules to be
+installed:\n&quot;; <br>
+print join &quot;\n&quot;, requires('LWP'); <br>
+### allow M::L::C to peek in your %INC rather than just <br>
+### scanning @INC <br>
+$Module::Load::Conditional::CHECK_INC_HASH = 1; <br>
+### reset the 'can_load' cache <br>
+undef $Module::Load::Conditional::CACHE; <br>
+### don't have Module::Load::Conditional issue warnings
+&minus;&minus; <br>
+### default is '1' <br>
+$Module::Load::Conditional::VERBOSE = 0; <br>
+### The last error that happened during a call to 'can_load'
+<br>
+my $err = $Module::Load::Conditional::ERROR;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Module::Load::Conditional
+provides simple ways to query and possibly load any of the
+modules you have installed on your system during
+runtime.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is able to
+load multiple modules at once or none at all if one of them
+was not able to load. It also takes care of any error
+checking and so forth.</p>
+
+<h2>Methods
+<a name="Methods"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$href =
+check_install( module =&gt; <small>NAME</small> [, version
+=&gt; <small>VERSION,</small> verbose =&gt;
+<small>BOOL</small> ] );</b> <br>
+&quot;check_install&quot; allows you to verify if a certain
+module is installed or not. You may call it with the
+following arguments: <br>
+module</p>
+
+<p style="margin-left:17%;">The name of the module you wish
+to verify -- this is a required key</p>
+
+<p style="margin-left:11%;">version</p>
+
+<p style="margin-left:17%;">The version this module needs
+to be -- this is optional</p>
+
+<p style="margin-left:11%;">verbose</p>
+
+<p style="margin-left:17%;">Whether or not to be verbose
+about what it is doing -- it will default to
+$Module::Load::Conditional::VERBOSE</p>
+
+<p style="margin-left:11%; margin-top: 1em">It will return
+undef if it was not able to find where the module was
+installed, or a hash reference with the following keys if it
+was able to find the file: <br>
+file</p>
+
+<p style="margin-left:17%;">Full path to the file that
+contains the module</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>dir</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Directory, or more exact the @INC entry, where the
+module was loaded from.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">version</p>
+
+<p style="margin-left:17%;">The version number of the
+installed module &minus; this will be &quot;undef&quot; if
+the module had no (or unparsable) version number, or if the
+variable $Module::Load::Conditional::FIND_VERSION was set to
+true. (See the &quot;GLOBAL VARIABLES&quot; section below
+for details)</p>
+
+<p style="margin-left:11%;">uptodate</p>
+
+<p style="margin-left:17%;">A boolean value indicating
+whether or not the module was found to be at least the
+version you specified. If you did not specify a version,
+uptodate will always be true if the module was found. If no
+parsable version was found in the module, uptodate will also
+be true, since &quot;check_install&quot; had no way to
+verify clearly.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See also
+$Module::Load::Conditional::DEPRECATED, which affects the
+outcome of this value.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>$bool =
+can_load( modules =&gt; { <small>NAME</small> =&gt;
+<small>VERSION</small> [,NAME =&gt; <small>VERSION</small> ]
+}, [verbose =&gt; <small>BOOL,</small> nocache =&gt;
+<small>BOOL,</small> autoload =&gt; <small>BOOL</small> ]
+)</b> <br>
+&quot;can_load&quot; will take a list of modules, optionally
+with version numbers and determine if it is able to load
+them. If it can load *ALL* of them, it will. If one or more
+are unloadable, none will be loaded.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is
+particularly useful if you have More Than One Way (tm) to
+solve a problem in a program, and only wish to continue down
+a path if all modules could be loaded, and not load them if
+they couldn&rsquo;t.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This function
+uses the &quot;load&quot; function or the
+&quot;autoload_remote&quot; function from Module::Load under
+the hood.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;can_load&quot;
+takes the following arguments: <br>
+modules</p>
+
+<p style="margin-left:17%;">This is a hashref of
+module/version pairs. The version indicates the minimum
+version to load. If no version is provided, any version is
+assumed to be good enough.</p>
+
+<p style="margin-left:11%;">verbose</p>
+
+<p style="margin-left:17%;">This controls whether warnings
+should be printed if a module failed to load. The default is
+to use the value of $Module::Load::Conditional::VERBOSE.</p>
+
+<p style="margin-left:11%;">nocache</p>
+
+<p style="margin-left:17%;">&quot;can_load&quot; keeps its
+results in a cache, so it will not load the same module
+twice, nor will it attempt to load a module that has already
+failed to load before. By default, &quot;can_load&quot; will
+check its cache, but you can override that by setting
+&quot;nocache&quot; to true.</p>
+
+<p style="margin-left:11%;">autoload</p>
+
+<p style="margin-left:17%;">This controls whether imports
+the functions of a loaded modules to the caller package. The
+default is no importing any functions.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See the
+&quot;autoload&quot; function and the
+&quot;autoload_remote&quot; function from Module::Load for
+details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>@list =
+requires( <small>MODULE</small> );</b> <br>
+&quot;requires&quot; can tell you what other modules a
+particular module requires. This is particularly useful when
+you&rsquo;re intending to write a module for public release
+and are listing its prerequisites.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;requires&quot;
+takes but one argument: the name of a module. It will then
+first check if it can actually load this module, and return
+undef if it can&rsquo;t. Otherwise, it will return a list of
+modules and pragmas that would have been loaded on the
+module&rsquo;s behalf.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: The list
+&quot;require&quot; returns has originated from your current
+perl and your current install.</p>
+
+<h2>Global Variables
+<a name="Global Variables"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The behaviour
+of Module::Load::Conditional can be altered by changing the
+following global variables:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$Module::Load::Conditional::VERBOSE</b>
+<br>
+This controls whether Module::Load::Conditional will issue
+warnings and explanations as to why certain things may have
+failed. If you set it to 0, Module::Load::Conditional will
+not output any warnings. The default is 0;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$Module::Load::Conditional::FIND_VERSION</b>
+<br>
+This controls whether Module::Load::Conditional will try to
+parse (and eval) the version from the module you&rsquo;re
+trying to load.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you
+don&rsquo;t wish to do this, set this variable to
+&quot;false&quot;. Understand then that version comparisons
+are not possible, and Module::Load::Conditional can not tell
+you what module version you have installed. This may be
+desirable from a security or performance point of view. Note
+that $FIND_VERSION code runs safely under &quot;taint
+mode&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default is
+1;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$Module::Load::Conditional::CHECK_INC_HASH</b>
+<br>
+This controls whether &quot;Module::Load::Conditional&quot;
+checks your %INC hash to see if a module is available. By
+default, only @INC is scanned to see if a module is
+physically on your filesystem, or available via an
+&quot;@INC&minus;hook&quot;. Setting this variable to
+&quot;true&quot; will trust any entries in %INC and return
+them for you.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default is
+0;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$Module::Load::Conditional::FORCE_SAFE_INC</b>
+<br>
+This controls whether &quot;Module::Load::Conditional&quot;
+sanitises @INC by removing &quot;&quot;.&quot;&quot;. The
+current default setting is 0, but this may change in a
+future release.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$Module::Load::Conditional::CACHE</b>
+<br>
+This holds the cache of the &quot;can_load&quot; function.
+If you explicitly want to remove the current cache, you can
+set this variable to &quot;undef&quot;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$Module::Load::Conditional::ERROR</b>
+<br>
+This holds a string of the last error that happened during a
+call to &quot;can_load&quot;. It is useful to inspect this
+when &quot;can_load&quot; returns &quot;undef&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>$Module::Load::Conditional::DEPRECATED</b>
+<br>
+This controls whether &quot;Module::Load::Conditional&quot;
+checks if a dual-life core module has been deprecated. If
+this is set to true &quot;check_install&quot; will return
+false to &quot;uptodate&quot;, if a dual-life module is
+found to be loaded from $Config{privlibexp}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default is
+0;</p>
+
+<h2>See Also
+<a name="See Also"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Module::Load&quot;</p>
+
+<h2>BUG REPORTS
+<a name="BUG REPORTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Please report
+bugs or other issues to
+&lt;bug&minus;module&minus;load&minus;conditional@rt.cpan.org&gt;.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module by
+Jos Boumans &lt;kane@cpan.org&gt;.</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This library is
+free software; you may redistribute and/or modify it under
+the same terms as Perl itself.</p>
+<hr>
+</body>
+</html>

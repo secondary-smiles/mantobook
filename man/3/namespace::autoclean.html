@@ -1,0 +1,470 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:37 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>namespace::autoclean</title>
+
+</head>
+<body>
+<h1>namespace::autoclean</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">namespace::autoclean
+&minus; Keep imports out of your namespace</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+0.29</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">package Foo;
+<br>
+use namespace::autoclean; <br>
+use Some::Package qw/imported_function/; <br>
+sub bar { imported_function('stuff') } <br>
+# later on: <br>
+Foo&minus;&gt;bar; # works <br>
+Foo&minus;&gt;imported_function; # will fail.
+imported_function got cleaned after compilation</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When you import
+a function into a Perl package, it will naturally also be
+available as a method.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;namespace::autoclean&quot; pragma will remove all
+imported symbols at the end of the current package&rsquo;s
+compile cycle. Functions called in the package itself will
+still be bound by their name, but they won&rsquo;t show up
+as methods on your class or instances.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This module is
+very similar to namespace::clean, except it will clean all
+imported functions, no matter if you imported them before or
+after you &quot;use&quot;d the pragma. It will also not
+touch anything that looks like a method.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;re
+writing an exporter and you want to clean up after yourself
+(and your peers), you can use the &quot;&minus;cleanee&quot;
+switch to specify what package to clean:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+My::MooseX::namespace::autoclean; <br>
+use strict; <br>
+use namespace::autoclean (); # no cleanup, just load <br>
+sub import { <br>
+namespace::autoclean&minus;&gt;import( <br>
+&minus;cleanee =&gt; scalar(caller), <br>
+); <br>
+}</p>
+
+<h2>WHAT IS AND ISN&rsquo;T CLEANED
+<a name="WHAT IS AND ISN&rsquo;T CLEANED"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;namespace::autoclean&quot;
+will leave behind anything that it deems a method. For Moose
+classes, this the based on the &quot;get_method_list&quot;
+method on from the Class::MOP::Class. For non-Moose classes,
+anything defined within the package will be identified as a
+method. This should match Moose&rsquo;s definition of a
+method. Additionally, the magic subs installed by overload
+will not be cleaned.</p>
+
+<h2>PARAMETERS
+<a name="PARAMETERS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;also
+=&gt; [ <small>ITEM</small> | <small>REGEX</small> |
+<small>SUB, ..</small> ] <br>
+&minus;also =&gt; <small>ITEM</small> <br>
+&minus;also =&gt; <small>REGEX</small> <br>
+&minus;also =&gt; <small>SUB</small></b> <br>
+Sometimes you don&rsquo;t want to clean imports only, but
+also helper functions you&rsquo;re using in your methods.
+The &quot;&minus;also&quot; switch can be used to declare a
+list of functions that should be removed additional to any
+imports:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+namespace::autoclean &minus;also =&gt; ['some_function',
+'another_function'];</p>
+
+<p style="margin-left:11%; margin-top: 1em">If only one
+function needs to be additionally cleaned the
+&quot;&minus;also&quot; switch also accepts a plain
+string:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+namespace::autoclean &minus;also =&gt; 'some_function';</p>
+
+<p style="margin-left:11%; margin-top: 1em">In some
+situations, you may wish for a more <i>powerful</i> cleaning
+solution.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;&minus;also&quot; switch can take a Regex or a CodeRef
+to match against local function names to clean.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+namespace::autoclean &minus;also =&gt; qr/^_/ <br>
+use namespace::autoclean &minus;also =&gt; sub { $_ =~ m{^_}
+}; <br>
+use namespace::autoclean &minus;also =&gt; [qr/^_/ ,
+qr/^hidden_/ ]; <br>
+use namespace::autoclean &minus;also =&gt; [sub { $_ =~
+m/^_/ or $_ =~ m/^hidden/ }, sub { uc($_) == $_ } ];</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;except
+=&gt; [ <small>ITEM</small> | <small>REGEX</small> |
+<small>SUB, ..</small> ] <br>
+&minus;except =&gt; <small>ITEM</small> <br>
+&minus;except =&gt; <small>REGEX</small> <br>
+&minus;except =&gt; <small>SUB</small></b> <br>
+This takes exactly the same options as
+&quot;&minus;also&quot; except that anything this matches
+will <i>not</i> be cleaned.</p>
+
+<h2>CAVEATS
+<a name="CAVEATS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When used with
+Moo classes, the heuristic used to check for methods
+won&rsquo;t work correctly for methods from roles consumed
+at compile time.</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+My::Class; <br>
+use Moo; <br>
+use namespace::autoclean; <br>
+# Bad, any consumed methods will be cleaned <br>
+BEGIN { with 'Some::Role' } <br>
+# Good, methods from role will be maintained <br>
+with 'Some::Role';</p>
+
+<p style="margin-left:11%; margin-top: 1em">Additionally,
+method detection may not work properly in Mouse classes in
+perls earlier than 5.10.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="65%">
+
+
+<p style="margin-top: 1em">namespace::clean</p></td>
+<td width="18%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="65%">
+
+
+<p>B::Hooks::EndOfScope</p></td>
+<td width="18%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="65%">
+
+
+<p>namespace::sweep</p></td>
+<td width="18%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="65%">
+
+
+<p>Sub::Exporter::ForMethods</p></td>
+<td width="18%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="65%">
+
+
+<p>Sub::Name</p></td>
+<td width="18%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="65%">
+
+
+<p>Sub::Install</p></td>
+<td width="18%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="65%">
+
+
+<p>Test::CleanNamespaces</p></td>
+<td width="18%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="65%">
+
+
+<p>Dist::Zilla::Plugin::Test::CleanNamespaces</p></td>
+<td width="18%">
+</td></tr>
+</table>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Bugs may be
+submitted through the <small>RT</small> bug tracker
+&lt;https://rt.cpan.org/Public/Dist/Display.html?Name=namespace-autoclean&gt;
+(or bug&minus;namespace&minus;autoclean@rt.cpan.org
+&lt;mailto:bug-namespace-autoclean@rt.cpan.org&gt;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">There is also a
+mailing list available for users of this distribution, at
+&lt;http://lists.perl.org/list/moose.html&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There is also
+an irc channel available for users of this distribution, at
+&quot;#moose&quot; on &quot;irc.perl.org&quot;
+&lt;irc://irc.perl.org/#moose&gt;.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Florian Ragwitz
+&lt;rafl@debian.org&gt;</p>
+
+<h2>CONTRIBUTORS
+<a name="CONTRIBUTORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="55%">
+
+
+<p style="margin-top: 1em">Karen Etheridge
+&lt;ether@cpan.org&gt;</p> </td>
+<td width="28%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="55%">
+
+
+<p>Graham Knop &lt;haarg@haarg.org&gt;</p></td>
+<td width="28%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="55%">
+
+
+<p>Dave Rolsky &lt;autarch@urth.org&gt;</p></td>
+<td width="28%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="55%">
+
+
+<p>Kent Fredric &lt;kentfredric@gmail.com&gt;</p></td>
+<td width="28%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="55%">
+
+
+<p>Tomas Doran &lt;bobtfish@bobtfish.net&gt;</p></td>
+<td width="28%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="55%">
+
+
+<p>Shawn M Moore &lt;cpan@sartak.org&gt;</p></td>
+<td width="28%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="55%">
+
+
+<p>Felix Ostmann &lt;sadrak@cpan.org&gt;</p></td>
+<td width="28%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="55%">
+
+
+<p>Chris Prather &lt;chris@prather.org&gt;</p></td>
+<td width="28%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="55%">
+
+
+<p>Andrew Rodland &lt;arodland@cpan.org&gt;</p></td>
+<td width="28%">
+</td></tr>
+</table>
+
+<h2>COPYRIGHT AND LICENCE
+<a name="COPYRIGHT AND LICENCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2009 by Florian Ragwitz.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:06 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SSL_CONNECT</title>
+
+</head>
+<body>
+<h1>SSL_connect</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">SSL_connect
+&minus; initiate the TLS/SSL handshake with an TLS/SSL
+server</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;openssl/ssl.h&gt; <br>
+int SSL_connect(SSL *ssl);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_connect()</b>
+initiates the <small>TLS/SSL</small> handshake with a
+server. The communication channel must already have been set
+and assigned to the <b>ssl</b> by setting an underlying
+<b><small>BIO</small></b> .</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The behaviour
+of <b>SSL_connect()</b> depends on the underlying
+<small>BIO.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+underlying <small>BIO</small> is <b>blocking</b>,
+<b>SSL_connect()</b> will only return once the handshake has
+been finished or an error occurred.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+underlying <small>BIO</small> is <b>nonblocking</b>,
+<b>SSL_connect()</b> will also return when the underlying
+<small>BIO</small> could not satisfy the needs of
+<b>SSL_connect()</b> to continue the handshake, indicating
+the problem by the return value &minus;1. In this case a
+call to <b>SSL_get_error()</b> with the return value of
+<b>SSL_connect()</b> will yield
+<b><small>SSL_ERROR_WANT_READ</small></b> or
+<b><small>SSL_ERROR_WANT_WRITE</small></b> . The calling
+process then must repeat the call after taking appropriate
+action to satisfy the needs of <b>SSL_connect()</b>. The
+action depends on the underlying <small>BIO.</small> When
+using a nonblocking socket, nothing is to be done, but
+<b>select()</b> can be used to check for the required
+condition. When using a buffering <small>BIO,</small> like a
+<small>BIO</small> pair, data must be written into or
+retrieved out of the <small>BIO</small> before being able to
+continue.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Many systems
+implement Nagle&rsquo;s algorithm by default which means
+that it will buffer outgoing <small>TCP</small> data if a
+<small>TCP</small> packet has already been sent for which no
+corresponding <small>ACK</small> has been received yet from
+the peer. This can have performance impacts after a
+successful TLSv1.3 handshake or a successful TLSv1.2 (or
+below) resumption handshake, because the last peer to
+communicate in the handshake is the client. If the client is
+also the first to send application data (as is typical for
+many protocols) then this data could be buffered until an
+<small>ACK</small> has been received for the final handshake
+message.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b><small>TCP_NODELAY</small></b> socket option is often
+available to disable Nagle&rsquo;s algorithm. If an
+application opts to disable Nagle&rsquo;s algorithm
+consideration should be given to turning it back on again
+later if appropriate. The helper function
+<b>BIO_set_tcp_ndelay()</b> can be used to turn on or off
+the <b><small>TCP_NODELAY</small></b> option.</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+return values can occur:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>0</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>The <small>TLS/SSL</small> handshake was not successful
+but was shut down controlled and by the specifications of
+the <small>TLS/SSL</small> protocol. Call
+<b>SSL_get_error()</b> with the return value <b>ret</b> to
+find out the reason.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>1</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>The <small>TLS/SSL</small> handshake was successfully
+completed, a <small>TLS/SSL</small> connection has been
+established.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>&lt;0</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>The <small>TLS/SSL</small> handshake was not successful,
+because a fatal error occurred either at the protocol level
+or a connection failure occurred. The shutdown was not
+clean. It can also occur if action is needed to continue the
+operation for nonblocking BIOs. Call <b>SSL_get_error()</b>
+with the return value <b>ret</b> to find out the reason.</p></td></tr>
+</table>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_get_error</b>(3),
+<b>SSL_accept</b>(3), <b>SSL_shutdown</b>(3), <b>ssl</b>(7),
+<b>bio</b>(7), <b>SSL_set_connect_state</b>(3),
+<b>SSL_do_handshake</b>(3), <b>SSL_CTX_new</b>(3)</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2000&minus;2020 The OpenSSL Project Authors. All Rights
+Reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Licensed under
+the Apache License 2.0 (the &quot;License&quot;). You may
+not use this file except in compliance with the License. You
+can obtain a copy in the file <small>LICENSE</small> in the
+source distribution or at
+&lt;https://www.openssl.org/source/license.html&gt;.</p>
+<hr>
+</body>
+</html>

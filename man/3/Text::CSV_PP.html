@@ -1,0 +1,4570 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:19 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Text::CSV_PP</title>
+
+</head>
+<body>
+<h1>Text::CSV_PP</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Text::CSV_PP
+&minus; Text::CSV_XS compatible pure&minus;Perl module</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This section is
+taken from Text::CSV_XS.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Functional
+interface <br>
+use Text::CSV_PP qw( csv ); <br>
+# Read whole file in memory <br>
+my $aoa = csv (in =&gt; &quot;data.csv&quot;); # as array of
+array <br>
+my $aoh = csv (in =&gt; &quot;data.csv&quot;, <br>
+headers =&gt; &quot;auto&quot;); # as array of hash <br>
+# Write array of arrays as csv file <br>
+csv (in =&gt; $aoa, out =&gt; &quot;file.csv&quot;,
+sep_char=&gt; &quot;;&quot;); <br>
+# Only show lines where &quot;code&quot; is odd <br>
+csv (in =&gt; &quot;data.csv&quot;, filter =&gt; { code
+=&gt; sub { $_ % 2 }}); <br>
+# Object interface <br>
+use Text::CSV_PP; <br>
+my @rows; <br>
+# Read/parse CSV <br>
+my $csv = Text::CSV_PP&minus;&gt;new ({ binary =&gt; 1,
+auto_diag =&gt; 1 }); <br>
+open my $fh, &quot;&lt;:encoding(utf8)&quot;,
+&quot;test.csv&quot; or die &quot;test.csv: $!&quot;; <br>
+while (my $row = $csv&minus;&gt;getline ($fh)) { <br>
+$row&minus;&gt;[2] =~ m/pattern/ or next; # 3rd field should
+match <br>
+push @rows, $row; <br>
+} <br>
+close $fh; <br>
+# and write as CSV <br>
+open $fh, &quot;&gt;:encoding(utf8)&quot;,
+&quot;new.csv&quot; or die &quot;new.csv: $!&quot;; <br>
+$csv&minus;&gt;say ($fh, $_) for @rows; <br>
+close $fh or die &quot;new.csv: $!&quot;;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Text::CSV_PP is
+a pure-perl module that provides facilities for the
+composition and decomposition of comma-separated values.
+This is (almost) compatible with much faster Text::CSV_XS,
+and mainly used as its fallback module when you use
+Text::CSV module without having installed Text::CSV_XS. If
+you don&rsquo;t have any reason to use this module directly,
+use Text::CSV for speed boost and portability (or maybe
+Text::CSV_XS when you write an one-off script and
+don&rsquo;t need to care about portability).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+caveats are taken from the doc of Text::CSV_XS.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Embedded
+newlines <br>
+Important Note</b>: The default behavior is to accept only
+<small>ASCII</small> characters in the range from 0x20
+(space) to 0x7E (tilde). This means that the fields can not
+contain newlines. If your data contains newlines embedded in
+fields, or characters above 0x7E (tilde), or binary data,
+you <b><i>must</i></b> set &quot;binary =&gt; 1&quot; in the
+call to &quot;new&quot;. To cover the widest range of
+parsing options, you will always want to set binary.</p>
+
+<p style="margin-left:11%; margin-top: 1em">But you still
+have the problem that you have to pass a correct line to the
+&quot;parse&quot; method, which is more complicated from the
+usual point of usage:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ binary =&gt; 1, eol =&gt; $/
+}); <br>
+while (&lt;&gt;) { # WRONG! <br>
+$csv&minus;&gt;parse ($_); <br>
+my @fields = $csv&minus;&gt;fields (); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">this will
+break, as the &quot;while&quot; might read broken lines: it
+does not care about the quoting. If you need to support
+embedded newlines, the way to go is to <b>not</b> pass
+&quot;eol&quot; in the parser (it accepts &quot;\n&quot;,
+&quot;\r&quot;, <b>and</b> &quot;\r\n&quot; by default) and
+then</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ binary =&gt; 1 }); <br>
+open my $fh, &quot;&lt;&quot;, $file or die &quot;$file:
+$!&quot;; <br>
+while (my $row = $csv&minus;&gt;getline ($fh)) { <br>
+my @fields = @$row; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The old(er) way
+of using global file handles is still supported</p>
+
+<p style="margin-left:11%; margin-top: 1em">while (my $row
+= $csv&minus;&gt;getline (*ARGV)) { ... }</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Unicode</b>
+<br>
+Unicode is only tested to work with perl&minus;5.8.2 and
+up.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also &quot;
+<small>BOM&quot;</small> .</p>
+
+<p style="margin-left:11%; margin-top: 1em">The simplest
+way to ensure the correct encoding is used for in&minus; and
+output is by either setting layers on the filehandles, or
+setting the &quot;encoding&quot; argument for
+&quot;csv&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">open my $fh,
+&quot;&lt;:encoding(UTF&minus;8)&quot;, &quot;in.csv&quot;
+or die &quot;in.csv: $!&quot;; <br>
+or <br>
+my $aoa = csv (in =&gt; &quot;in.csv&quot;, encoding =&gt;
+&quot;UTF&minus;8&quot;); <br>
+open my $fh, &quot;&gt;:encoding(UTF&minus;8)&quot;,
+&quot;out.csv&quot; or die &quot;out.csv: $!&quot;; <br>
+or <br>
+csv (in =&gt; $aoa, out =&gt; &quot;out.csv&quot;, encoding
+=&gt; &quot;UTF&minus;8&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">On parsing
+(both for &quot;getline&quot; and &quot;parse&quot;), if the
+source is marked being <small>UTF8,</small> then all fields
+that are marked binary will also be marked
+<small>UTF8.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">On combining
+(&quot;print&quot; and &quot;combine&quot;): if any of the
+combining fields was marked <small>UTF8,</small> the
+resulting string will be marked as <small>UTF8.</small> Note
+however that all fields <i>before</i> the first field marked
+<small>UTF8</small> and contained 8&minus;bit characters
+that were not upgraded to <small>UTF8,</small> these will be
+&quot;bytes&quot; in the resulting string too, possibly
+causing unexpected errors. If you pass data of different
+encoding, or you don&rsquo;t know if there is different
+encoding, force it to be upgraded before you pass them
+on:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;print
+($fh, [ map { utf8::upgrade (my $x = $_); $x } @data ]);</p>
+
+<p style="margin-left:11%; margin-top: 1em">For complete
+control over encoding, please use Text::CSV::Encoded:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Text::CSV::Encoded; <br>
+my $csv = Text::CSV::Encoded&minus;&gt;new ({ <br>
+encoding_in =&gt; &quot;iso&minus;8859&minus;1&quot;, # the
+encoding comes into Perl <br>
+encoding_out =&gt; &quot;cp1252&quot;, # the encoding comes
+out of Perl <br>
+}); <br>
+$csv = Text::CSV::Encoded&minus;&gt;new ({ encoding =&gt;
+&quot;utf8&quot; }); <br>
+# combine () and print () accept *literally* utf8 encoded
+data <br>
+# parse () and getline () return *literally* utf8 encoded
+data <br>
+$csv = Text::CSV::Encoded&minus;&gt;new ({ encoding =&gt;
+undef }); # default <br>
+# combine () and print () accept UTF8 marked data <br>
+# parse () and getline () return UTF8 marked data</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>BOM</small></b>
+<small><br>
+BOM</small> (or Byte Order Mark) handling is available only
+inside the &quot;header&quot; method. This method supports
+the following encodings: &quot;utf&minus;8&quot;,
+&quot;utf&minus;1&quot;, &quot;utf&minus;32be&quot;,
+&quot;utf&minus;32le&quot;, &quot;utf&minus;16be&quot;,
+&quot;utf&minus;16le&quot;, &quot;utf&minus;ebcdic&quot;,
+&quot;scsu&quot;, &quot;bocu&minus;1&quot;, and
+&quot;gb&minus;18030&quot;. See Wikipedia
+&lt;https://en.wikipedia.org/wiki/Byte_order_mark&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a file has a
+<small>BOM,</small> the easiest way to deal with that is</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $aoh = csv
+(in =&gt; $file, detect_bom =&gt; 1);</p>
+
+<p style="margin-left:11%; margin-top: 1em">All records
+will be encoded based on the detected
+<small>BOM.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">This implies a
+call to the &quot;header&quot; method, which defaults to
+also set the &quot;column_names&quot;. So this is <b>not</b>
+the same as</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $aoh = csv
+(in =&gt; $file, headers =&gt; &quot;auto&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">which only
+reads the first record to set &quot;column_names&quot; but
+ignores any meaning of possible present
+<small>BOM.</small></p>
+
+<h2>METHODS
+<a name="METHODS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This section is
+also taken from Text::CSV_XS.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>version</b>
+<br>
+(Class method) Returns the current module version.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>new</b> <br>
+(Class method) Returns a new instance of class Text::CSV_PP.
+The attributes are described by the (optional) hash ref
+&quot;\%attr&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ attributes ... });</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+attributes are available:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>eol</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ eol =&gt; $/ }); <br>
+$csv&minus;&gt;eol (undef); <br>
+my $eol = $csv&minus;&gt;eol;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The end-of-line
+string to add to rows for &quot;print&quot; or the record
+separator for &quot;getline&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When not passed
+in a <b>parser</b> instance, the default behavior is to
+accept &quot;\n&quot;, &quot;\r&quot;, and &quot;\r\n&quot;,
+so it is probably safer to not specify &quot;eol&quot; at
+all. Passing &quot;undef&quot; or the empty string behave
+the same.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When not passed
+in a <b>generating</b> instance, records are not terminated
+at all, so it is probably wise to pass something you expect.
+A safe choice for &quot;eol&quot; on output is either $/ or
+&quot;\r\n&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Common values
+for &quot;eol&quot; are &quot;\012&quot; (&quot;\n&quot; or
+Line Feed), &quot;\015\012&quot; (&quot;\r\n&quot; or
+Carriage Return, Line Feed), and &quot;\015&quot;
+(&quot;\r&quot; or Carriage Return). The &quot;eol&quot;
+attribute cannot exceed 7 ( <small>ASCII</small> )
+characters.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If both $/ and
+&quot;eol&quot; equal &quot;\015&quot;, parsing lines that
+end on only a Carriage Return without Line Feed, will be
+&quot;parse&quot;d correct.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>sep_char</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ sep_char =&gt; &quot;;&quot;
+}); <br>
+$csv&minus;&gt;sep_char (&quot;;&quot;); <br>
+my $c = $csv&minus;&gt;sep_char;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The char used
+to separate fields, by default a comma. (&quot;,&quot;).
+Limited to a single-byte character, usually in the range
+from 0x20 (space) to 0x7E (tilde). When longer sequences are
+required, use &quot;sep&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The separation
+character can not be equal to the quote character or to the
+escape character.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>sep</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ sep =&gt; &quot;\N{FULLWIDTH
+COMMA}&quot; }); <br>
+$csv&minus;&gt;sep (&quot;;&quot;); <br>
+my $sep = $csv&minus;&gt;sep;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The chars used
+to separate fields, by default undefined. Limited to 8
+bytes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When set,
+overrules &quot;sep_char&quot;. If its length is one byte it
+acts as an alias to &quot;sep_char&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>quote_char</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ quote_char =&gt; &quot;'&quot;
+}); <br>
+$csv&minus;&gt;quote_char (undef); <br>
+my $c = $csv&minus;&gt;quote_char;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The character
+to quote fields containing blanks or binary data, by default
+the double quote character (&quot;&quot;&quot;). A value of
+undef suppresses quote chars (for simple cases only).
+Limited to a single-byte character, usually in the range
+from 0x20 (space) to 0x7E (tilde). When longer sequences are
+required, use &quot;quote&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;quote_char&quot;
+can not be equal to &quot;sep_char&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>quote</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ quote =&gt; &quot;\N{FULLWIDTH
+QUOTATION MARK}&quot; }); <br>
+$csv&minus;&gt;quote (&quot;'&quot;); <br>
+my $quote = $csv&minus;&gt;quote;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The chars used
+to quote fields, by default undefined. Limited to 8
+bytes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When set,
+overrules &quot;quote_char&quot;. If its length is one byte
+it acts as an alias to &quot;quote_char&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+does not support &quot;undef&quot;. Use
+&quot;quote_char&quot; to disable quotation.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>escape_char</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ escape_char =&gt;
+&quot;\\&quot; }); <br>
+$csv&minus;&gt;escape_char (&quot;:&quot;); <br>
+my $c = $csv&minus;&gt;escape_char;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The character
+to escape certain characters inside quoted fields. This is
+limited to a single-byte character, usually in the range
+from 0x20 (space) to 0x7E (tilde).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;escape_char&quot; defaults to being the double-quote
+mark (&quot;&quot;&quot;). In other words the same as the
+default &quot;quote_char&quot;. This means that doubling the
+quote mark in a field escapes it:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;foo&quot;,&quot;bar&quot;,&quot;Escape
+&quot;&quot;quote mark&quot;&quot; with two
+&quot;&quot;quote
+marks&quot;&quot;&quot;,&quot;baz&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you change
+the &quot;quote_char&quot; without changing the
+&quot;escape_char&quot;, the &quot;escape_char&quot; will
+still be the double-quote (&quot;&quot;&quot;). If instead
+you want to escape the &quot;quote_char&quot; by doubling it
+you will need to also change the &quot;escape_char&quot; to
+be the same as what you have changed the
+&quot;quote_char&quot; to.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Setting
+&quot;escape_char&quot; to &quot;undef&quot; or &quot;&quot;
+will completely disable escapes and is greatly discouraged.
+This will also disable &quot;escape_null&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The escape
+character can not be equal to the separation character.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>binary</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ binary =&gt; 1 }); <br>
+$csv&minus;&gt;binary (0); <br>
+my $f = $csv&minus;&gt;binary;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If this
+attribute is 1, you may use binary characters in quoted
+fields, including line feeds, carriage returns and
+&quot;NULL&quot; bytes. (The latter could be escaped as
+&quot;&quot;0&quot;.) By default this feature is off.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a string is
+marked <small>UTF8,</small> &quot;binary&quot; will be
+turned on automatically when binary characters other than
+&quot;CR&quot; and &quot;NL&quot; are encountered. Note that
+a simple string like &quot;\x{00a0}&quot; might still be
+binary, but not marked <small>UTF8,</small> so setting
+&quot;{ binary =&gt; 1 }&quot; is still a wise option.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>strict</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ strict =&gt; 1 }); <br>
+$csv&minus;&gt;strict (0); <br>
+my $f = $csv&minus;&gt;strict;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If this
+attribute is set to 1, any row that parses to a different
+number of fields than the previous row will cause the parser
+to throw error 2014.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>skip_empty_rows</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ skip_empty_rows =&gt; 1 });
+<br>
+$csv&minus;&gt;skip_empty_rows (0); <br>
+my $f = $csv&minus;&gt;skip_empty_rows;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If this
+attribute is set to 1, any row that has an &quot;eol&quot;
+immediately following the start of line will be skipped.
+Default behavior is to return one single empty field.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This attribute
+is only used in parsing.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>formula_handling</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Alias for
+&quot;formula&quot;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>formula</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ formula =&gt; &quot;none&quot;
+}); <br>
+$csv&minus;&gt;formula (&quot;none&quot;); <br>
+my $f = $csv&minus;&gt;formula;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This defines
+the behavior of fields containing <i>formulas</i>. As
+formulas are considered dangerous in spreadsheets, this
+attribute can define an optional action to be taken if a
+field starts with an equal sign (&quot;=&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">For purpose of
+code-readability, this can also be written as</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ formula_handling =&gt;
+&quot;none&quot; }); <br>
+$csv&minus;&gt;formula_handling (&quot;none&quot;); <br>
+my $f = $csv&minus;&gt;formula_handling;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Possible values
+for this attribute are <br>
+none</p>
+
+<p style="margin-left:14%;">Take no specific action. This
+is the default.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">$csv&minus;&gt;formula
+(&quot;none&quot;);</p>
+
+<p style="margin-left:11%;">die</p>
+
+<p style="margin-left:14%;">Cause the process to
+&quot;die&quot; whenever a leading &quot;=&quot; is
+encountered.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">$csv&minus;&gt;formula
+(&quot;die&quot;);</p>
+
+<p style="margin-left:11%;">croak</p>
+
+<p style="margin-left:14%;">Cause the process to
+&quot;croak&quot; whenever a leading &quot;=&quot; is
+encountered. (See Carp)</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">$csv&minus;&gt;formula
+(&quot;croak&quot;);</p>
+
+<p style="margin-left:11%;">diag</p>
+
+<p style="margin-left:14%;">Report position and content of
+the field whenever a leading &quot;=&quot; is found. The
+value of the field is unchanged.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">$csv&minus;&gt;formula
+(&quot;diag&quot;);</p>
+
+<p style="margin-left:11%;">empty</p>
+
+<p style="margin-left:14%;">Replace the content of fields
+that start with a &quot;=&quot; with the empty string.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">$csv&minus;&gt;formula
+(&quot;empty&quot;); <br>
+$csv&minus;&gt;formula (&quot;&quot;);</p>
+
+<p style="margin-left:11%;">undef</p>
+
+<p style="margin-left:14%;">Replace the content of fields
+that start with a &quot;=&quot; with &quot;undef&quot;.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">$csv&minus;&gt;formula
+(&quot;undef&quot;); <br>
+$csv&minus;&gt;formula (undef);</p>
+
+<p style="margin-left:11%;">a callback</p>
+
+<p style="margin-left:14%;">Modify the content of fields
+that start with a &quot;=&quot; with the return-value of the
+callback. The original content of the field is available
+inside the callback as $_;</p>
+
+<p style="margin-left:14%; margin-top: 1em"># Replace all
+formula's with 42 <br>
+$csv&minus;&gt;formula (sub { 42; }); <br>
+# same as $csv&minus;&gt;formula (&quot;empty&quot;) but
+slower <br>
+$csv&minus;&gt;formula (sub { &quot;&quot; }); <br>
+# Allow =4+12 <br>
+$csv&minus;&gt;formula (sub { s/^=(\d+\+\d+)$/$1/eer });
+<br>
+# Allow more complex calculations <br>
+$csv&minus;&gt;formula (sub { eval {
+s{^=([&minus;+*/0&minus;9()]+)$}{$1}ee }; $_ });</p>
+
+<p style="margin-left:11%; margin-top: 1em">All other
+values will give a warning and then fallback to
+&quot;diag&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>decode_utf8</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ decode_utf8 =&gt; 1 }); <br>
+$csv&minus;&gt;decode_utf8 (0); <br>
+my $f = $csv&minus;&gt;decode_utf8;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This attributes
+defaults to <small>TRUE.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">While
+<i>parsing</i>, fields that are valid
+<small>UTF&minus;8,</small> are automatically set to be
+<small>UTF&minus;8,</small> so that</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;parse
+(&quot;\xC4\xA8\n&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">results in</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">PV(&quot;\304\250&quot;\0)
+[UTF8 &quot;\x{128}&quot;]</p>
+
+<p style="margin-left:11%; margin-top: 1em">Sometimes it
+might not be a desired action. To prevent those upgrades,
+set this attribute to false, and the result will be</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">PV(&quot;\304\250&quot;\0)</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>auto_diag</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ auto_diag =&gt; 1 }); <br>
+$csv&minus;&gt;auto_diag (2); <br>
+my $l = $csv&minus;&gt;auto_diag;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Set this
+attribute to a number between 1 and 9 causes
+&quot;error_diag&quot; to be automatically called in void
+context upon errors.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In case of
+error &quot;2012 &minus; EOF&quot;, this call will be
+void.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;auto_diag&quot; is set to a numeric value greater than
+1, it will &quot;die&quot; on errors instead of
+&quot;warn&quot;. If set to anything unrecognized, it will
+be silently ignored.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Future
+extensions to this feature will include more reliable
+auto-detection of &quot;autodie&quot; being active in the
+scope of which the error occurred which will increment the
+value of &quot;auto_diag&quot; with 1 the moment the error
+is detected.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>diag_verbose</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ diag_verbose =&gt; 1 }); <br>
+$csv&minus;&gt;diag_verbose (2); <br>
+my $l = $csv&minus;&gt;diag_verbose;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Set the
+verbosity of the output triggered by &quot;auto_diag&quot;.
+Currently only adds the current input-record-number (if
+known) to the diagnostic output with an indication of the
+position of the error.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>blank_is_undef</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ blank_is_undef =&gt; 1 });
+<br>
+$csv&minus;&gt;blank_is_undef (0); <br>
+my $f = $csv&minus;&gt;blank_is_undef;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Under normal
+circumstances, &quot;CSV&quot; data makes no distinction
+between quoted&minus; and unquoted empty fields. These both
+end up in an empty string field once read, thus</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">1,&quot;&quot;,,&quot;
+&quot;,2</p>
+
+<p style="margin-left:11%; margin-top: 1em">is read as</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">(&quot;1&quot;,
+&quot;&quot;, &quot;&quot;, &quot; &quot;,
+&quot;2&quot;)</p>
+
+<p style="margin-left:11%; margin-top: 1em">When
+<i>writing</i> &quot;CSV&quot; files with either
+&quot;always_quote&quot; or &quot;quote_empty&quot; set, the
+unquoted <i>empty</i> field is the result of an undefined
+value. To enable this distinction when <i>reading</i>
+&quot;CSV&quot; data, the &quot;blank_is_undef&quot;
+attribute will cause unquoted empty fields to be set to
+&quot;undef&quot;, causing the above to be parsed as</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">(&quot;1&quot;,
+&quot;&quot;, undef, &quot; &quot;, &quot;2&quot;)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+is specifically important when loading &quot;CSV&quot;
+fields into a database that allows &quot;NULL&quot; values,
+as the perl equivalent for &quot;NULL&quot; is
+&quot;undef&quot; in <small>DBI</small> land.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>empty_is_undef</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ empty_is_undef =&gt; 1 });
+<br>
+$csv&minus;&gt;empty_is_undef (0); <br>
+my $f = $csv&minus;&gt;empty_is_undef;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Going one step
+further than &quot;blank_is_undef&quot;, this attribute
+converts all empty fields to &quot;undef&quot;, so</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">1,&quot;&quot;,,&quot;
+&quot;,2</p>
+
+<p style="margin-left:11%; margin-top: 1em">is read as</p>
+
+<p style="margin-left:11%; margin-top: 1em">(1, undef,
+undef, &quot; &quot;, 2)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+affects only fields that are originally empty, not fields
+that are empty after stripping allowed whitespace.
+<small>YMMV.</small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>allow_whitespace</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ allow_whitespace =&gt; 1 });
+<br>
+$csv&minus;&gt;allow_whitespace (0); <br>
+my $f = $csv&minus;&gt;allow_whitespace;</p>
+
+<p style="margin-left:11%; margin-top: 1em">When this
+option is set to true, the whitespace
+(&quot;TAB&quot;&rsquo;s and &quot;SPACE&quot;&rsquo;s)
+surrounding the separation character is removed when
+parsing. If either &quot;TAB&quot; or &quot;SPACE&quot; is
+one of the three characters &quot;sep_char&quot;,
+&quot;quote_char&quot;, or &quot;escape_char&quot; it will
+not be considered whitespace.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now lines
+like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">1 ,
+&quot;foo&quot; , bar , 3 , zapp</p>
+
+<p style="margin-left:11%; margin-top: 1em">are parsed as
+valid &quot;CSV&quot;, even though it violates the
+&quot;CSV&quot; specs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+<b>all</b> whitespace is stripped from both start and end of
+each field. That would make it <i>more</i> than a
+<i>feature</i> to enable parsing bad &quot;CSV&quot; lines,
+as</p>
+
+<p style="margin-left:11%; margin-top: 1em">1, 2.0, 3, ape
+, monkey</p>
+
+<p style="margin-left:11%; margin-top: 1em">will now be
+parsed as</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">(&quot;1&quot;,
+&quot;2.0&quot;, &quot;3&quot;, &quot;ape&quot;,
+&quot;monkey&quot;)</p>
+
+<p style="margin-left:11%; margin-top: 1em">even if the
+original line was perfectly acceptable &quot;CSV&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>allow_loose_quotes</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ allow_loose_quotes =&gt; 1 });
+<br>
+$csv&minus;&gt;allow_loose_quotes (0); <br>
+my $f = $csv&minus;&gt;allow_loose_quotes;</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default,
+parsing unquoted fields containing &quot;quote_char&quot;
+characters like</p>
+
+<p style="margin-left:11%; margin-top: 1em">1,foo
+&quot;bar&quot; baz,42</p>
+
+<p style="margin-left:11%; margin-top: 1em">would result in
+parse error 2034. Though it is still bad practice to allow
+this format, we cannot help the fact that some vendors make
+their applications spit out lines styled this way.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If there is
+<b>really</b> bad &quot;CSV&quot; data, like</p>
+
+<p style="margin-left:11%; margin-top: 1em">1,&quot;foo
+&quot;bar&quot; baz&quot;,42</p>
+
+<p style="margin-left:11%; margin-top: 1em">or</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">1,&quot;&quot;foo
+bar baz&quot;&quot;,42</p>
+
+<p style="margin-left:11%; margin-top: 1em">there is a way
+to get this data-line parsed and leave the quotes inside the
+quoted field as-is. This can be achieved by setting
+&quot;allow_loose_quotes&quot; <b><small>AND</small></b>
+making sure that the &quot;escape_char&quot; is <i>not</i>
+equal to &quot;quote_char&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>allow_loose_escapes</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ allow_loose_escapes =&gt; 1
+}); <br>
+$csv&minus;&gt;allow_loose_escapes (0); <br>
+my $f = $csv&minus;&gt;allow_loose_escapes;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Parsing fields
+that have &quot;escape_char&quot; characters that escape
+characters that do not need to be escaped, like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ escape_char =&gt;
+&quot;\\&quot; }); <br>
+$csv&minus;&gt;parse (qq{1,&quot;my
+bar\'s&quot;,baz,42});</p>
+
+<p style="margin-left:11%; margin-top: 1em">would result in
+parse error 2025. Though it is bad practice to allow this
+format, this attribute enables you to treat all escape
+character sequences equal.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>allow_unquoted_escape</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ allow_unquoted_escape =&gt; 1
+}); <br>
+$csv&minus;&gt;allow_unquoted_escape (0); <br>
+my $f = $csv&minus;&gt;allow_unquoted_escape;</p>
+
+<p style="margin-left:11%; margin-top: 1em">A backward
+compatibility issue where &quot;escape_char&quot; differs
+from &quot;quote_char&quot; prevents &quot;escape_char&quot;
+to be in the first position of a field. If
+&quot;quote_char&quot; is equal to the default
+&quot;&quot;&quot; and &quot;escape_char&quot; is set to
+&quot;\&quot;, this would be illegal:</p>
+
+<p style="margin-left:11%; margin-top: 1em">1,\0,2</p>
+
+<p style="margin-left:11%; margin-top: 1em">Setting this
+attribute to 1 might help to overcome issues with backward
+compatibility and allow this style.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>always_quote</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ always_quote =&gt; 1 }); <br>
+$csv&minus;&gt;always_quote (0); <br>
+my $f = $csv&minus;&gt;always_quote;</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default the
+generated fields are quoted only if they <i>need</i> to be.
+For example, if they contain the separator character. If you
+set this attribute to 1 then <i>all</i> defined fields will
+be quoted. (&quot;undef&quot; fields are not quoted, see
+&quot;blank_is_undef&quot;). This makes it quite often
+easier to handle exported data in external applications.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>quote_space</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ quote_space =&gt; 1 }); <br>
+$csv&minus;&gt;quote_space (0); <br>
+my $f = $csv&minus;&gt;quote_space;</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default, a
+space in a field would trigger quotation. As no rule exists
+this to be forced in &quot;CSV&quot;, nor any for the
+opposite, the default is true for safety. You can exclude
+the space from this trigger by setting this attribute to
+0.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>quote_empty</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ quote_empty =&gt; 1 }); <br>
+$csv&minus;&gt;quote_empty (0); <br>
+my $f = $csv&minus;&gt;quote_empty;</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default the
+generated fields are quoted only if they <i>need</i> to be.
+An empty (defined) field does not need quotation. If you set
+this attribute to 1 then <i>empty</i> defined fields will be
+quoted. (&quot;undef&quot; fields are not quoted, see
+&quot;blank_is_undef&quot;). See also
+&quot;always_quote&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>quote_binary</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ quote_binary =&gt; 1 }); <br>
+$csv&minus;&gt;quote_binary (0); <br>
+my $f = $csv&minus;&gt;quote_binary;</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default, all
+&quot;unsafe&quot; bytes inside a string cause the combined
+field to be quoted. By setting this attribute to 0, you can
+disable that trigger for bytes &quot;&gt;= 0x7F&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>escape_null</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ escape_null =&gt; 1 }); <br>
+$csv&minus;&gt;escape_null (0); <br>
+my $f = $csv&minus;&gt;escape_null;</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default, a
+&quot;NULL&quot; byte in a field would be escaped. This
+option enables you to treat the &quot;NULL&quot; byte as a
+simple binary character in binary mode (the &quot;{ binary
+=&gt; 1 }&quot; is set). The default is true. You can
+prevent &quot;NULL&quot; escapes by setting this attribute
+to 0.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When the
+&quot;escape_char&quot; attribute is set to undefined, this
+attribute will be set to false.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default
+setting will encode &quot;=\x00=&quot; as</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;=&quot;0=&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">With
+&quot;escape_null&quot; set, this will result in</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;=\x00=&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default
+when using the &quot;csv&quot; function is
+&quot;false&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For backward
+compatibility reasons, the deprecated old name
+&quot;quote_null&quot; is still recognized.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>keep_meta_info</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ keep_meta_info =&gt; 1 });
+<br>
+$csv&minus;&gt;keep_meta_info (0); <br>
+my $f = $csv&minus;&gt;keep_meta_info;</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default, the
+parsing of input records is as simple and fast as possible.
+However, some parsing information &minus; like quotation of
+the original field &minus; is lost in that process. Setting
+this flag to true enables retrieving that information after
+parsing with the methods &quot;meta_info&quot;,
+&quot;is_quoted&quot;, and &quot;is_binary&quot; described
+below. Default is false for performance.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you set this
+attribute to a value greater than 9, then you can control
+output quotation style like it was used in the input of the
+the last parsed record (unless quotation was added because
+of other reasons).</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ <br>
+binary =&gt; 1, <br>
+keep_meta_info =&gt; 1, <br>
+quote_space =&gt; 0, <br>
+}); <br>
+my $row = $csv&minus;&gt;parse (q{1,,&quot;&quot;, ,&quot;
+&quot;,f,&quot;g&quot;,&quot;h&quot;&quot;h&quot;,help,&quot;help&quot;});
+<br>
+$csv&minus;&gt;print (*STDOUT, \@row); <br>
+# 1,,, , ,f,g,&quot;h&quot;&quot;h&quot;,help,help <br>
+$csv&minus;&gt;keep_meta_info (11); <br>
+$csv&minus;&gt;print (*STDOUT, \@row); <br>
+# 1,,&quot;&quot;, ,&quot;
+&quot;,f,&quot;g&quot;,&quot;h&quot;&quot;h&quot;,help,&quot;help&quot;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>undef_str</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ undef_str =&gt;
+&quot;\\N&quot; }); <br>
+$csv&minus;&gt;undef_str (undef); <br>
+my $s = $csv&minus;&gt;undef_str;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This attribute
+optionally defines the output of undefined fields. The value
+passed is not changed at all, so if it needs quotation, the
+quotation needs to be included in the value of the
+attribute. Use with caution, as passing a value like
+&quot;,&quot;,,,,&quot;&quot;&quot; will for sure mess up
+your output. The default for this attribute is
+&quot;undef&quot;, meaning no special treatment.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This attribute
+is useful when exporting <small>CSV</small> data to be
+imported in custom loaders, like for MySQL, that recognize
+special sequences for &quot;NULL&quot; data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This attribute
+has no meaning when parsing <small>CSV</small> data.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>comment_str</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ comment_str =&gt;
+&quot;#&quot; }); <br>
+$csv&minus;&gt;comment_str (undef); <br>
+my $s = $csv&minus;&gt;comment_str;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This attribute
+optionally defines a string to be recognized as comment. If
+this attribute is defined, all lines starting with this
+sequence will not be parsed as <small>CSV</small> but
+skipped as comment.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This attribute
+has no meaning when generating <small>CSV.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">Comment strings
+that start with any of the special characters/sequences are
+not supported (so it cannot start with any of
+&quot;sep_char&quot;, &quot;quote_char&quot;,
+&quot;escape_char&quot;, &quot;sep&quot;, &quot;quote&quot;,
+or &quot;eol&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+convenience, &quot;comment&quot; is an alias for
+&quot;comment_str&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>verbatim</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ verbatim =&gt; 1 }); <br>
+$csv&minus;&gt;verbatim (0); <br>
+my $f = $csv&minus;&gt;verbatim;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is a quite
+controversial attribute to set, but makes some hard things
+possible.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The rationale
+behind this attribute is to tell the parser that the
+normally special characters newline (&quot;NL&quot;) and
+Carriage Return (&quot;CR&quot;) will not be special when
+this flag is set, and be dealt with as being ordinary binary
+characters. This will ease working with data with embedded
+newlines.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When
+&quot;verbatim&quot; is used with &quot;getline&quot;,
+&quot;getline&quot; auto&minus;&quot;chomp&quot;&rsquo;s
+every line.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Imagine a file
+format like</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">M^^Hans^Janssen^Klas
+2\n2A^Ja^11&minus;06&minus;2007#\r\n</p>
+
+<p style="margin-left:11%; margin-top: 1em">where, the line
+ending is a very specific &quot;#\r\n&quot;, and the
+sep_char is a &quot;^&quot; (caret). None of the fields is
+quoted, but embedded binary data is likely to be present.
+With the specific line ending, this should not be too hard
+to detect.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default,
+Text::CSV_PP&rsquo; parse function is instructed to only
+know about &quot;\n&quot; and &quot;\r&quot; to be legal
+line endings, and so has to deal with the embedded newline
+as a real &quot;end&minus;of&minus;line&quot;, so it can
+scan the next line if binary is true, and the newline is
+inside a quoted field. With this option, we tell
+&quot;parse&quot; to parse the line as if &quot;\n&quot; is
+just nothing more than a binary character.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+&quot;parse&quot; this means that the parser has no more
+idea about line ending and &quot;getline&quot;
+&quot;chomp&quot;s line endings on reading.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>types</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">A set of column
+types; the attribute is immediately passed to the
+&quot;types&quot; method.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>callbacks</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">See the
+&quot;Callbacks&quot; section below.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>accessors</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">To sum it
+up,</p>
+
+<p style="margin-left:11%; margin-top: 1em">$csv =
+Text::CSV_PP&minus;&gt;new ();</p>
+
+<p style="margin-left:11%; margin-top: 1em">is equivalent
+to</p>
+
+<p style="margin-left:11%; margin-top: 1em">$csv =
+Text::CSV_PP&minus;&gt;new ({ <br>
+eol =&gt; undef, # \r, \n, or \r\n <br>
+sep_char =&gt; ',', <br>
+sep =&gt; undef, <br>
+quote_char =&gt; '&quot;', <br>
+quote =&gt; undef, <br>
+escape_char =&gt; '&quot;', <br>
+binary =&gt; 0, <br>
+decode_utf8 =&gt; 1, <br>
+auto_diag =&gt; 0, <br>
+diag_verbose =&gt; 0, <br>
+blank_is_undef =&gt; 0, <br>
+empty_is_undef =&gt; 0, <br>
+allow_whitespace =&gt; 0, <br>
+allow_loose_quotes =&gt; 0, <br>
+allow_loose_escapes =&gt; 0, <br>
+allow_unquoted_escape =&gt; 0, <br>
+always_quote =&gt; 0, <br>
+quote_empty =&gt; 0, <br>
+quote_space =&gt; 1, <br>
+escape_null =&gt; 1, <br>
+quote_binary =&gt; 1, <br>
+keep_meta_info =&gt; 0, <br>
+strict =&gt; 0, <br>
+skip_empty_rows =&gt; 0, <br>
+formula =&gt; 0, <br>
+verbatim =&gt; 0, <br>
+undef_str =&gt; undef, <br>
+comment_str =&gt; undef, <br>
+types =&gt; undef, <br>
+callbacks =&gt; undef, <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">For all of the
+above mentioned flags, an accessor method is available where
+you can inquire the current value, or change the value</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $quote =
+$csv&minus;&gt;quote_char; <br>
+$csv&minus;&gt;binary (1);</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is not wise
+to change these settings halfway through writing
+&quot;CSV&quot; data to a stream. If however you want to
+create a new stream using the available &quot;CSV&quot;
+object, there is no harm in changing them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+&quot;new&quot; constructor call fails, it returns
+&quot;undef&quot;, and makes the fail reason available
+through the &quot;error_diag&quot; method.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$csv =
+Text::CSV_PP&minus;&gt;new ({ ecs_char =&gt; 1 }) or <br>
+die &quot;&quot;.Text::CSV_PP&minus;&gt;error_diag ();</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;error_diag&quot;
+will return a string like</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;INI
+&minus; Unknown attribute 'ecs_char'&quot;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>known_attributes</b>
+<br>
+@attr = Text::CSV_PP&minus;&gt;known_attributes; <br>
+@attr = Text::CSV_PP::known_attributes; <br>
+@attr = $csv&minus;&gt;known_attributes;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+will return an ordered list of all the supported attributes
+as described above. This can be useful for knowing what
+attributes are valid in classes that use or extend
+Text::CSV_PP.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>print</b>
+<br>
+$status = $csv&minus;&gt;print ($fh, $colref);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Similar to
+&quot;combine&quot; + &quot;string&quot; +
+&quot;print&quot;, but much more efficient. It expects an
+array ref as input (not an array!) and the resulting string
+is not really created, but immediately written to the $fh
+object, typically an <small>IO</small> handle or any other
+object that offers a &quot;print&quot; method.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For performance
+reasons &quot;print&quot; does not create a result string,
+so all &quot;string&quot;, &quot;status&quot;,
+&quot;fields&quot;, and &quot;error_input&quot; methods will
+return undefined information after executing this
+method.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If $colref is
+&quot;undef&quot; (explicit, not through a variable
+argument) and &quot;bind_columns&quot; was used to specify
+fields to be printed, it is possible to make performance
+improvements, as otherwise data would have to be copied as
+arguments to the method call:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;bind_columns
+(\($foo, $bar)); <br>
+$status = $csv&minus;&gt;print ($fh, undef);</p>
+
+<p style="margin-left:11%; margin-top: 1em">A short
+benchmark</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @data =
+(&quot;aa&quot; .. &quot;zz&quot;); <br>
+$csv&minus;&gt;bind_columns (\(@data)); <br>
+$csv&minus;&gt;print ($fh, [ @data ]); # 11800 recs/sec <br>
+$csv&minus;&gt;print ($fh, \@data ); # 57600 recs/sec <br>
+$csv&minus;&gt;print ($fh, undef ); # 48500 recs/sec</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>say</b> <br>
+$status = $csv&minus;&gt;say ($fh, $colref);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Like
+&quot;print&quot;, but &quot;eol&quot; defaults to
+&quot;$\&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>print_hr</b>
+<br>
+$csv&minus;&gt;print_hr ($fh, $ref);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Provides an
+easy way to print a $ref (as fetched with
+&quot;getline_hr&quot;) provided the column names are set
+with &quot;column_names&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is just a
+wrapper method with basic parameter checks over</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;print
+($fh, [ map { $ref&minus;&gt;{$_} }
+$csv&minus;&gt;column_names ]);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>combine</b>
+<br>
+$status = $csv&minus;&gt;combine (@fields);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+constructs a &quot;CSV&quot; record from @fields, returning
+success or failure. Failure can result from lack of
+arguments or an argument that contains an invalid character.
+Upon success, &quot;string&quot; can be called to retrieve
+the resultant &quot;CSV&quot; string. Upon failure, the
+value returned by &quot;string&quot; is undefined and
+&quot;error_input&quot; could be called to retrieve the
+invalid argument.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>string</b>
+<br>
+$line = $csv&minus;&gt;string ();</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns the input to &quot;parse&quot; or the resultant
+&quot;CSV&quot; string of &quot;combine&quot;, whichever was
+called more recently.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>getline</b>
+<br>
+$colref = $csv&minus;&gt;getline ($fh);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is the
+counterpart to &quot;print&quot;, as &quot;parse&quot; is
+the counterpart to &quot;combine&quot;: it parses a row from
+the $fh handle using the &quot;getline&quot; method
+associated with $fh and parses this row into an array ref.
+This array ref is returned by the function or
+&quot;undef&quot; for failure. When $fh does not support
+&quot;getline&quot;, you are likely to hit errors.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When fields are
+bound with &quot;bind_columns&quot; the return value is a
+reference to an empty list.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;string&quot;, &quot;fields&quot;, and
+&quot;status&quot; methods are meaningless again.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>getline_all</b>
+<br>
+$arrayref = $csv&minus;&gt;getline_all ($fh); <br>
+$arrayref = $csv&minus;&gt;getline_all ($fh, $offset); <br>
+$arrayref = $csv&minus;&gt;getline_all ($fh, $offset,
+$length);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will
+return a reference to a list of getline ($fh) results. In
+this call, &quot;keep_meta_info&quot; is disabled. If
+$offset is negative, as with &quot;splice&quot;, only the
+last &quot;abs ($offset)&quot; records of $fh are taken into
+consideration.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Given a
+<small>CSV</small> file with 10 lines:</p>
+
+<p style="margin-left:11%; margin-top: 1em">lines call <br>
+&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+0..9 $csv&minus;&gt;getline_all ($fh) # all <br>
+0..9 $csv&minus;&gt;getline_all ($fh, 0) # all <br>
+8..9 $csv&minus;&gt;getline_all ($fh, 8) # start at 8 <br>
+&minus; $csv&minus;&gt;getline_all ($fh, 0, 0) # start at 0
+first 0 rows <br>
+0..4 $csv&minus;&gt;getline_all ($fh, 0, 5) # start at 0
+first 5 rows <br>
+4..5 $csv&minus;&gt;getline_all ($fh, 4, 2) # start at 4
+first 2 rows <br>
+8..9 $csv&minus;&gt;getline_all ($fh, &minus;2) # last 2
+rows <br>
+6..7 $csv&minus;&gt;getline_all ($fh, &minus;4, 2) # first 2
+of last 4 rows</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>getline_hr</b>
+<br>
+The &quot;getline_hr&quot; and &quot;column_names&quot;
+methods work together to allow you to have rows returned as
+hashrefs. You must call &quot;column_names&quot; first to
+declare your column names.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;column_names
+(qw( code name price description )); <br>
+$hr = $csv&minus;&gt;getline_hr ($fh); <br>
+print &quot;Price for $hr&minus;&gt;{name} is
+$hr&minus;&gt;{price} EUR\n&quot;;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;getline_hr&quot;
+will croak if called before &quot;column_names&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+&quot;getline_hr&quot; creates a hashref for every row and
+will be much slower than the combined use of
+&quot;bind_columns&quot; and &quot;getline&quot; but still
+offering the same easy to use hashref inside the loop:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @cols =
+@{$csv&minus;&gt;getline ($fh)}; <br>
+$csv&minus;&gt;column_names (@cols); <br>
+while (my $row = $csv&minus;&gt;getline_hr ($fh)) { <br>
+print $row&minus;&gt;{price}; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Could easily be
+rewritten to the much faster:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @cols =
+@{$csv&minus;&gt;getline ($fh)}; <br>
+my $row = {}; <br>
+$csv&minus;&gt;bind_columns (\@{$row}{@cols}); <br>
+while ($csv&minus;&gt;getline ($fh)) { <br>
+print $row&minus;&gt;{price}; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Your mileage
+may vary for the size of the data and the number of rows.
+With perl&minus;5.14.2 the comparison for a 100_000 line
+file with 14 columns:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Rate hashrefs
+getlines <br>
+hashrefs 1.00/s &minus;&minus; &minus;76% <br>
+getlines 4.15/s 313% &minus;&minus;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>getline_hr_all</b>
+<br>
+$arrayref = $csv&minus;&gt;getline_hr_all ($fh); <br>
+$arrayref = $csv&minus;&gt;getline_hr_all ($fh, $offset);
+<br>
+$arrayref = $csv&minus;&gt;getline_hr_all ($fh, $offset,
+$length);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will
+return a reference to a list of getline_hr ($fh) results. In
+this call, &quot;keep_meta_info&quot; is disabled.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>parse</b>
+<br>
+$status = $csv&minus;&gt;parse ($line);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+decomposes a &quot;CSV&quot; string into fields, returning
+success or failure. Failure can result from a lack of
+argument or the given &quot;CSV&quot; string is improperly
+formatted. Upon success, &quot;fields&quot; can be called to
+retrieve the decomposed fields. Upon failure calling
+&quot;fields&quot; will return undefined data and
+&quot;error_input&quot; can be called to retrieve the
+invalid argument.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You may use the
+&quot;types&quot; method for setting column types. See
+&quot;types&quot;&rsquo; description below.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The $line
+argument is supposed to be a simple scalar. Everything else
+is supposed to croak and set error 1500.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>fragment</b>
+<br>
+This function tries to implement <small>RFC7111</small> (
+<small>URI</small> Fragment Identifiers for the text/csv
+Media Type) &minus;
+https://datatracker.ietf.org/doc/html/rfc7111</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $AoA =
+$csv&minus;&gt;fragment ($fh, $spec);</p>
+
+<p style="margin-left:11%; margin-top: 1em">In
+specifications, &quot;*&quot; is used to specify the
+<i>last</i> item, a dash (&quot;&minus;&quot;) to indicate a
+range. All indices are 1&minus;based: the first row or
+column has index 1. Selections can be combined with the
+semi-colon (&quot;;&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">When using this
+method in combination with &quot;column_names&quot;, the
+returned reference will point to a list of hashes instead of
+a list of lists. A disjointed cell-based combined selection
+might return rows with different number of columns making
+the use of hashes unpredictable.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;column_names
+(&quot;Name&quot;, &quot;Age&quot;); <br>
+my $AoH = $csv&minus;&gt;fragment ($fh,
+&quot;col=3;8&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+&quot;after_parse&quot; callback is active, it is also
+called on every line parsed and skipped before the fragment.
+<br>
+row</p>
+
+<p style="margin-left:14%;">row=4 <br>
+row=5&minus;7 <br>
+row=6&minus;* <br>
+row=1&minus;2;4;6&minus;*</p>
+
+<p style="margin-left:11%;">col</p>
+
+<p style="margin-left:14%;">col=2 <br>
+col=1&minus;3 <br>
+col=4&minus;* <br>
+col=1&minus;2;4;7&minus;*</p>
+
+<p style="margin-left:11%;">cell</p>
+
+<p style="margin-left:14%;">In cell-based selection, the
+comma (&quot;,&quot;) is used to pair row and column</p>
+
+<p style="margin-left:14%; margin-top: 1em">cell=4,1</p>
+
+<p style="margin-left:14%; margin-top: 1em">The range
+operator (&quot;&minus;&quot;) using &quot;cell&quot;s can
+be used to define top-left and bottom-right &quot;cell&quot;
+location</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">cell=3,1&minus;4,6</p>
+
+<p style="margin-left:14%; margin-top: 1em">The
+&quot;*&quot; is only allowed in the second part of a
+pair</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">cell=3,2&minus;*,2
+# row 3 till end, only column 2 <br>
+cell=3,2&minus;3,* # column 2 till end, only row 3 <br>
+cell=3,2&minus;*,* # strip row 1 and 2, and column 1</p>
+
+<p style="margin-left:14%; margin-top: 1em">Cells and cell
+ranges may be combined with &quot;;&quot;, possibly
+resulting in rows with different numbers of columns</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">cell=1,1&minus;2,2;3,3&minus;4,4;1,4;4,1</p>
+
+<p style="margin-left:14%; margin-top: 1em">Disjointed
+selections will only return selected cells. The cells that
+are not specified will not be included in the returned set,
+not even as &quot;undef&quot;. As an example given a
+&quot;CSV&quot; like</p>
+
+<p style="margin-left:14%; margin-top: 1em">11,12,13,...19
+<br>
+21,22,...28,29 <br>
+: : <br>
+91,...97,98,99</p>
+
+<p style="margin-left:14%; margin-top: 1em">with
+&quot;cell=1,1&minus;2,2;3,3&minus;4,4;1,4;4,1&quot; will
+return:</p>
+
+<p style="margin-left:14%; margin-top: 1em">11,12,14 <br>
+21,22 <br>
+33,34 <br>
+41,43,44</p>
+
+<p style="margin-left:14%; margin-top: 1em">Overlapping
+cell-specs will return those cells only once, So
+&quot;cell=1,1&minus;3,3;2,2&minus;4,4;2,3;4,2&quot; will
+return:</p>
+
+<p style="margin-left:14%; margin-top: 1em">11,12,13 <br>
+21,22,23,24 <br>
+31,32,33,34 <br>
+42,43,44</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>RFC7111</small>
+&lt;https://datatracker.ietf.org/doc/html/rfc7111&gt; does
+<b>not</b> allow different types of specs to be combined
+(either &quot;row&quot; <i>or</i> &quot;col&quot; <i>or</i>
+&quot;cell&quot;). Passing an invalid fragment specification
+will croak and set error 2013.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>column_names</b>
+<br>
+Set the &quot;keys&quot; that will be used in the
+&quot;getline_hr&quot; calls. If no keys (column names) are
+passed, it will return the current setting as a list.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;column_names&quot;
+accepts a list of scalars (the column names) or a single
+array_ref, so you can pass the return value from
+&quot;getline&quot; too:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;column_names
+($csv&minus;&gt;getline ($fh));</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;column_names&quot;
+does <b>no</b> checking on duplicates at all, which might
+lead to unexpected results. Undefined entries will be
+replaced with the string &quot;\cAUNDEF\cA&quot;, so</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;column_names
+(undef, &quot;&quot;, &quot;name&quot;, &quot;name&quot;);
+<br>
+$hr = $csv&minus;&gt;getline_hr ($fh);</p>
+
+<p style="margin-left:11%; margin-top: 1em">will set
+&quot;$hr&minus;&gt;{&quot;\cAUNDEF\cA&quot;}&quot; to the
+1st field, &quot;$hr&minus;&gt;{&quot;&quot;}&quot; to the
+2nd field, and &quot;$hr&minus;&gt;{name}&quot; to the 4th
+field, discarding the 3rd field.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;column_names&quot;
+croaks on invalid arguments.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>header</b>
+<br>
+This method does <small>NOT</small> work in
+perl&minus;5.6.x</p>
+
+<p style="margin-left:11%; margin-top: 1em">Parse the
+<small>CSV</small> header and set &quot;sep&quot;,
+column_names and encoding.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @hdr =
+$csv&minus;&gt;header ($fh); <br>
+$csv&minus;&gt;header ($fh, { sep_set =&gt; [ &quot;;&quot;,
+&quot;,&quot;, &quot;|&quot;, &quot;\t&quot; ] }); <br>
+$csv&minus;&gt;header ($fh, { detect_bom =&gt; 1,
+munge_column_names =&gt; &quot;lc&quot; });</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first
+argument should be a file handle.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+resets some object properties, as it is supposed to be
+invoked only once per file or stream. It will leave
+attributes &quot;column_names&quot; and
+&quot;bound_columns&quot; alone if setting column names is
+disabled. Reading headers on previously process objects
+might fail on perl&minus;5.8.0 and older.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Assuming that
+the file opened for parsing has a header, and the header
+does not contain problematic characters like embedded
+newlines, read the first line from the open handle then
+auto-detect whether the header separates the column names
+with a character from the allowed separator list.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If any of the
+allowed separators matches, and none of the <i>other</i>
+allowed separators match, set &quot;sep&quot; to that
+separator for the current <small>CSV_PP</small> instance and
+use it to parse the first line, map those to lowercase, and
+use that to set the instance &quot;column_names&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ binary =&gt; 1, auto_diag
+=&gt; 1 }); <br>
+open my $fh, &quot;&lt;&quot;, &quot;file.csv&quot;; <br>
+binmode $fh; # for Windows <br>
+$csv&minus;&gt;header ($fh); <br>
+while (my $row = $csv&minus;&gt;getline_hr ($fh)) { <br>
+... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the header
+is empty, contains more than one unique separator out of the
+allowed set, contains empty fields, or contains identical
+fields (after folding), it will croak with error 1010, 1011,
+1012, or 1013 respectively.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the header
+contains embedded newlines or is not valid
+<small>CSV</small> in any other way, this method will croak
+and leave the parse error untouched.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A successful
+call to &quot;header&quot; will always set the
+&quot;sep&quot; of the $csv object. This behavior can not be
+disabled.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>return
+value</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">On error this
+method will croak.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In list
+context, the headers will be returned whether they are used
+to set &quot;column_names&quot; or not.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In scalar
+context, the instance itself is returned. <b>Note</b>: the
+values as found in the header will effectively be
+<b>lost</b> if &quot;set_column_names&quot; is false.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Options</i>
+<br>
+sep_set</p>
+
+<p style="margin-left:14%;">$csv&minus;&gt;header ($fh, {
+sep_set =&gt; [ &quot;;&quot;, &quot;,&quot;, &quot;|&quot;,
+&quot;\t&quot; ] });</p>
+
+<p style="margin-left:14%; margin-top: 1em">The list of
+legal separators defaults to &quot;[ &quot;;&quot;,
+&quot;,&quot; ]&quot; and can be changed by this option. As
+this is probably the most often used option, it can be
+passed on its own as an unnamed argument:</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">$csv&minus;&gt;header
+($fh, [ &quot;;&quot;, &quot;,&quot;, &quot;|&quot;,
+&quot;\t&quot;, &quot;::&quot;, &quot;\x{2063}&quot; ]);</p>
+
+<p style="margin-left:14%; margin-top: 1em">Multi-byte
+sequences are allowed, both multi-character and Unicode. See
+&quot;sep&quot;.</p>
+
+<p style="margin-left:11%;">detect_bom</p>
+
+<p style="margin-left:14%;">$csv&minus;&gt;header ($fh, {
+detect_bom =&gt; 1 });</p>
+
+<p style="margin-left:14%; margin-top: 1em">The default
+behavior is to detect if the header line starts with a
+<small>BOM.</small> If the header has a <small>BOM,</small>
+use that to set the encoding of $fh. This default behavior
+can be disabled by passing a false value to
+&quot;detect_bom&quot;.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Supported
+encodings from <small>BOM</small> are: <small>UTF&minus;8,
+UTF&minus;16BE, UTF&minus;16LE, UTF&minus;32BE,</small> and
+<small>UTF&minus;32LE. BOM</small> also supports
+<small>UTF&minus;1,</small> UTF-EBCDIC, <small>SCSU,
+BOCU&minus;1,</small> and <small>GB&minus;18030</small> but
+Encode does not (yet). <small>UTF&minus;7</small> is not
+supported.</p>
+
+<p style="margin-left:14%; margin-top: 1em">If a supported
+<small>BOM</small> was detected as start of the stream, it
+is stored in the object attribute &quot;ENCODING&quot;.</p>
+
+<p style="margin-left:14%; margin-top: 1em">my $enc =
+$csv&minus;&gt;{ENCODING};</p>
+
+<p style="margin-left:14%; margin-top: 1em">The encoding is
+used with &quot;binmode&quot; on $fh.</p>
+
+<p style="margin-left:14%; margin-top: 1em">If the handle
+was opened in a (correct) encoding, this method will
+<b>not</b> alter the encoding, as it checks the leading
+<b>bytes</b> of the first line. In case the stream starts
+with a decoded <small>BOM</small> (&quot;U+FEFF&quot;),
+&quot;{ENCODING}&quot; will be &quot;&quot; (empty) instead
+of the default &quot;undef&quot;.</p>
+
+<p style="margin-left:11%;">munge_column_names</p>
+
+<p style="margin-left:14%;">This option offers the means to
+modify the column names into something that is most useful
+to the application. The default is to map all column names
+to lower case.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">$csv&minus;&gt;header
+($fh, { munge_column_names =&gt; &quot;lc&quot; });</p>
+
+<p style="margin-left:14%; margin-top: 1em">The following
+values are available:</p>
+
+<p style="margin-left:14%; margin-top: 1em">lc &minus;
+lower case <br>
+uc &minus; upper case <br>
+db &minus; valid DB field names <br>
+none &minus; do not change <br>
+\%hash &minus; supply a mapping <br>
+\&amp;cb &minus; supply a callback <br>
+Lower case</p>
+
+<p style="margin-left:17%;">$csv&minus;&gt;header ($fh, {
+munge_column_names =&gt; &quot;lc&quot; });</p>
+
+<p style="margin-left:17%; margin-top: 1em">The header is
+changed to all lower-case</p>
+
+<p style="margin-left:17%; margin-top: 1em">$_ = lc;</p>
+
+<p style="margin-left:14%;">Upper case</p>
+
+<p style="margin-left:17%;">$csv&minus;&gt;header ($fh, {
+munge_column_names =&gt; &quot;uc&quot; });</p>
+
+<p style="margin-left:17%; margin-top: 1em">The header is
+changed to all upper-case</p>
+
+<p style="margin-left:17%; margin-top: 1em">$_ = uc;</p>
+
+<p style="margin-left:14%;">Literal</p>
+
+<p style="margin-left:17%;">$csv&minus;&gt;header ($fh, {
+munge_column_names =&gt; &quot;none&quot; });</p>
+
+<p style="margin-left:14%;">Hash</p>
+
+<p style="margin-left:17%;">$csv&minus;&gt;header ($fh, {
+munge_column_names =&gt; { foo =&gt; &quot;sombrero&quot;
+});</p>
+
+<p style="margin-left:17%; margin-top: 1em">if a value does
+not exist, the original value is used unchanged</p>
+
+<p style="margin-left:14%;">Database</p>
+
+<p style="margin-left:17%;">$csv&minus;&gt;header ($fh, {
+munge_column_names =&gt; &quot;db&quot; });</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&minus;</p></td>
+<td width="2%"></td>
+<td width="80%">
+
+
+<p>lower-case</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&minus;</p></td>
+<td width="2%"></td>
+<td width="80%">
+
+
+<p>all sequences of non-word characters are replaced with
+an underscore</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&minus;</p></td>
+<td width="2%"></td>
+<td width="80%">
+
+
+<p>all leading underscores are removed</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">$_ = lc
+(s/\W+/_/gr =~ s/^_+//r);</p>
+
+<p style="margin-left:14%;">Callback</p>
+
+<p style="margin-left:17%;">$csv&minus;&gt;header ($fh, {
+munge_column_names =&gt; sub { fc } }); <br>
+$csv&minus;&gt;header ($fh, { munge_column_names =&gt; sub {
+&quot;column_&quot;.$col++ } }); <br>
+$csv&minus;&gt;header ($fh, { munge_column_names =&gt; sub {
+lc (s/\W+/_/gr) } });</p>
+
+<p style="margin-left:17%; margin-top: 1em">As this
+callback is called in a &quot;map&quot;, you can use $_
+directly.</p>
+
+<p style="margin-left:11%;">set_column_names</p>
+
+<p style="margin-left:14%;">$csv&minus;&gt;header ($fh, {
+set_column_names =&gt; 1 });</p>
+
+<p style="margin-left:14%; margin-top: 1em">The default is
+to set the instances column names using
+&quot;column_names&quot; if the method is successful, so
+subsequent calls to &quot;getline_hr&quot; can return a
+hash. Disable setting the header can be forced by using a
+false value for this option.</p>
+
+<p style="margin-left:14%; margin-top: 1em">As described in
+&quot;return value&quot; above, content is lost in scalar
+context.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>Validation</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">When receiving
+<small>CSV</small> files from external sources, this method
+can be used to protect against changes in the layout by
+restricting to known headers (and typos in the header
+fields).</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %known = (
+<br>
+&quot;record key&quot; =&gt; &quot;c_rec&quot;, <br>
+&quot;rec id&quot; =&gt; &quot;c_rec&quot;, <br>
+&quot;id_rec&quot; =&gt; &quot;c_rec&quot;, <br>
+&quot;kode&quot; =&gt; &quot;code&quot;, <br>
+&quot;code&quot; =&gt; &quot;code&quot;, <br>
+&quot;vaule&quot; =&gt; &quot;value&quot;, <br>
+&quot;value&quot; =&gt; &quot;value&quot;, <br>
+); <br>
+my $csv = Text::CSV_PP&minus;&gt;new ({ binary =&gt; 1,
+auto_diag =&gt; 1 }); <br>
+open my $fh, &quot;&lt;&quot;, $source or die &quot;$source:
+$!&quot;; <br>
+$csv&minus;&gt;header ($fh, { munge_column_names =&gt; sub {
+<br>
+s/\s+$//; <br>
+s/^\s+//; <br>
+$known{lc $_} or die &quot;Unknown column '$_' in
+$source&quot;; <br>
+}}); <br>
+while (my $row = $csv&minus;&gt;getline_hr ($fh)) { <br>
+say join &quot;\t&quot;, $row&minus;&gt;{c_rec},
+$row&minus;&gt;{code}, $row&minus;&gt;{value}; <br>
+}</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>bind_columns</b>
+<br>
+Takes a list of scalar references to be used for output with
+&quot;print&quot; or to store in the fields fetched by
+&quot;getline&quot;. When you do not pass enough references
+to store the fetched fields in, &quot;getline&quot; will
+fail with error 3006. If you pass more than there are fields
+to return, the content of the remaining references is left
+untouched.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;bind_columns
+(\$code, \$name, \$price, \$description); <br>
+while ($csv&minus;&gt;getline ($fh)) { <br>
+print &quot;The price of a $name is \x{20ac} $price\n&quot;;
+<br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">To reset or
+clear all column binding, call &quot;bind_columns&quot; with
+the single argument &quot;undef&quot;. This will also clear
+column names.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;bind_columns
+(undef);</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no arguments
+are passed at all, &quot;bind_columns&quot; will return the
+list of current bindings or &quot;undef&quot; if no binds
+are active.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that in
+parsing with &quot;bind_columns&quot;, the fields are set on
+the fly. That implies that if the third field of a row
+causes an error (or this row has just two fields where the
+previous row had more), the first two fields already have
+been assigned the values of the current row, while the rest
+of the fields will still hold the values of the previous
+row. If you want the parser to fail in these cases, use the
+&quot;strict&quot; attribute.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>eof</b> <br>
+$eof = $csv&minus;&gt;eof ();</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;parse&quot; or &quot;getline&quot; was used with an
+<small>IO</small> stream, this method will return true (1)
+if the last call hit end of file, otherwise it will return
+false (&rsquo;&rsquo;). This is useful to see the difference
+between a failure and end of file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that if
+the parsing of the last line caused an error,
+&quot;eof&quot; is still true. That means that if you are
+<i>not</i> using &quot;auto_diag&quot;, an idiom like</p>
+
+<p style="margin-left:11%; margin-top: 1em">while (my $row
+= $csv&minus;&gt;getline ($fh)) { <br>
+# ... <br>
+} <br>
+$csv&minus;&gt;eof or $csv&minus;&gt;error_diag;</p>
+
+<p style="margin-left:11%; margin-top: 1em">will <i>not</i>
+report the error. You would have to change that to</p>
+
+<p style="margin-left:11%; margin-top: 1em">while (my $row
+= $csv&minus;&gt;getline ($fh)) { <br>
+# ... <br>
+} <br>
++$csv&minus;&gt;error_diag and
+$csv&minus;&gt;error_diag;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>types</b>
+<br>
+$csv&minus;&gt;types (\@tref);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method is
+used to force that (all) columns are of a given type. For
+example, if you have an integer column, two columns with
+doubles and a string column, then you might do a</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;types
+([Text::CSV_PP::IV (), <br>
+Text::CSV_PP::NV (), <br>
+Text::CSV_PP::NV (), <br>
+Text::CSV_PP::PV ()]);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Column types
+are used only for <i>decoding</i> columns while parsing, in
+other words by the &quot;parse&quot; and &quot;getline&quot;
+methods.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can unset
+column types by doing a</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;types
+(undef);</p>
+
+<p style="margin-left:11%; margin-top: 1em">or fetch the
+current type settings with</p>
+
+<p style="margin-left:11%; margin-top: 1em">$types =
+$csv&minus;&gt;types ();</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><small>IV</small></p></td>
+<td width="86%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>CSV_TYPE_IV</small></p>
+
+<p style="margin-left:17%;">Set field type to integer.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><small>NV</small></p></td>
+<td width="86%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>CSV_TYPE_NV</small></p>
+
+<p style="margin-left:17%;">Set field type to
+numeric/float.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><small>PV</small></p></td>
+<td width="86%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><small>CSV_TYPE_PV</small></p>
+
+<p style="margin-left:17%;">Set field type to string.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>fields</b>
+<br>
+@columns = $csv&minus;&gt;fields ();</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns the input to &quot;combine&quot; or the resultant
+decomposed fields of a successful &quot;parse&quot;,
+whichever was called more recently.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+return value is undefined after using &quot;getline&quot;,
+which does not fill the data structures returned by
+&quot;parse&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>meta_info</b>
+<br>
+@flags = $csv&minus;&gt;meta_info ();</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns the &quot;flags&quot; of the input to
+&quot;combine&quot; or the flags of the resultant decomposed
+fields of &quot;parse&quot;, whichever was called more
+recently.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For each field,
+a meta_info field will hold flags that inform something
+about the field returned by the &quot;fields&quot; method or
+passed to the &quot;combine&quot; method. The flags are
+bit&minus;wise&minus;&quot;or&quot;&rsquo;d like: <br>
+0x0001 <br>
+&quot;CSV_FLAGS_IS_QUOTED&quot;</p>
+
+<p style="margin-left:14%;">The field was quoted.</p>
+
+<p style="margin-left:11%;">0x0002 <br>
+&quot;CSV_FLAGS_IS_BINARY&quot;</p>
+
+<p style="margin-left:14%;">The field was binary.</p>
+
+<p style="margin-left:11%;">0x0004 <br>
+&quot;CSV_FLAGS_ERROR_IN_FIELD&quot;</p>
+
+<p style="margin-left:14%;">The field was invalid.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Currently only
+used when &quot;allow_loose_quotes&quot; is active.</p>
+
+<p style="margin-left:11%;">0x0010 <br>
+&quot;CSV_FLAGS_IS_MISSING&quot;</p>
+
+<p style="margin-left:14%;">The field was missing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See the
+&quot;is_***&quot; methods below.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>is_quoted</b>
+<br>
+my $quoted = $csv&minus;&gt;is_quoted ($column_idx);</p>
+
+<p style="margin-left:11%; margin-top: 1em">where
+$column_idx is the (zero-based) index of the column in the
+last result of &quot;parse&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns a
+true value if the data in the indicated column was enclosed
+in &quot;quote_char&quot; quotes. This might be important
+for fields where content &quot;,20070108,&quot; is to be
+treated as a numeric value, and where
+&quot;,&quot;20070108&quot;,&quot; is explicitly marked as
+character string data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method is
+only valid when &quot;keep_meta_info&quot; is set to a true
+value.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>is_binary</b>
+<br>
+my $binary = $csv&minus;&gt;is_binary ($column_idx);</p>
+
+<p style="margin-left:11%; margin-top: 1em">where
+$column_idx is the (zero-based) index of the column in the
+last result of &quot;parse&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns a
+true value if the data in the indicated column contained any
+byte in the range
+&quot;[\x00&minus;\x08,\x10&minus;\x1F,\x7F&minus;\xFF]&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method is
+only valid when &quot;keep_meta_info&quot; is set to a true
+value.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>is_missing</b>
+<br>
+my $missing = $csv&minus;&gt;is_missing ($column_idx);</p>
+
+<p style="margin-left:11%; margin-top: 1em">where
+$column_idx is the (zero-based) index of the column in the
+last result of &quot;getline_hr&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$csv&minus;&gt;keep_meta_info
+(1); <br>
+while (my $hr = $csv&minus;&gt;getline_hr ($fh)) { <br>
+$csv&minus;&gt;is_missing (0) and next; # This was an empty
+line <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">When using
+&quot;getline_hr&quot;, it is impossible to tell if the
+parsed fields are &quot;undef&quot; because they where not
+filled in the &quot;CSV&quot; stream or because they were
+not read at all, as <b>all</b> the fields defined by
+&quot;column_names&quot; are set in the hash-ref. If you
+still need to know if all fields in each row are provided,
+you should enable &quot;keep_meta_info&quot; so you can
+check the flags.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;keep_meta_info&quot; is &quot;false&quot;,
+&quot;is_missing&quot; will always return &quot;undef&quot;,
+regardless of $column_idx being valid or not. If this
+attribute is &quot;true&quot; it will return either 0 (the
+field is present) or 1 (the field is missing).</p>
+
+<p style="margin-left:11%; margin-top: 1em">A special case
+is the empty line. If the line is completely empty &minus;
+after dealing with the flags &minus; this is still a valid
+<small>CSV</small> line: it is a record of just one single
+empty field. However, if &quot;keep_meta_info&quot; is set,
+invoking &quot;is_missing&quot; with index 0 will now return
+true.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>status</b>
+<br>
+$status = $csv&minus;&gt;status ();</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns the status of the last invoked &quot;combine&quot;
+or &quot;parse&quot; call. Status is success (true: 1) or
+failure (false: &quot;undef&quot; or 0).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that as
+this only keeps track of the status of above mentioned
+methods, you are probably looking for &quot;error_diag&quot;
+instead.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>error_input</b>
+<br>
+$bad_argument = $csv&minus;&gt;error_input ();</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+returns the erroneous argument (if it exists) of
+&quot;combine&quot; or &quot;parse&quot;, whichever was
+called more recently. If the last invocation was successful,
+&quot;error_input&quot; will return &quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Depending on
+the type of error, it <i>might</i> also hold the data for
+the last error-input of &quot;getline&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>error_diag</b>
+<br>
+Text::CSV_PP&minus;&gt;error_diag (); <br>
+$csv&minus;&gt;error_diag (); <br>
+$error_code = 0 + $csv&minus;&gt;error_diag (); <br>
+$error_str = &quot;&quot; . $csv&minus;&gt;error_diag ();
+<br>
+($cde, $str, $pos, $rec, $fld) = $csv&minus;&gt;error_diag
+();</p>
+
+<p style="margin-left:11%; margin-top: 1em">If (and only
+if) an error occurred, this function returns the diagnostics
+of that error.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If called in
+void context, this will print the internal error code and
+the associated error message to <small>STDERR.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">If called in
+list context, this will return the error code and the error
+message in that order. If the last error was from parsing,
+the rest of the values returned are a best guess at the
+location within the line that was being parsed. Their values
+are 1&minus;based. The position currently is index of the
+byte at which the parsing failed in the current record. It
+might change to be the index of the current character in a
+later release. The records is the index of the record parsed
+by the csv instance. The field number is the index of the
+field the parser thinks it is currently trying to parse. See
+<i>examples/csv&minus;check</i> for how this can be
+used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If called in
+scalar context, it will return the diagnostics in a single
+scalar, a&minus;la $!. It will contain the error code in
+numeric context, and the diagnostics message in string
+context.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When called as
+a class method or a direct function call, the diagnostics
+are that of the last &quot;new&quot; call.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>record_number</b>
+<br>
+$recno = $csv&minus;&gt;record_number ();</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+records parsed by this csv instance. This value should be
+more accurate than $. when embedded newlines come in play.
+Records written by this instance are not counted.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>SetDiag</b>
+<br>
+$csv&minus;&gt;SetDiag (0);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Use to reset
+the diagnostics if you are dealing with errors.</p>
+
+<h2>FUNCTIONS
+<a name="FUNCTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This section is
+also taken from Text::CSV_XS.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>csv</b> <br>
+This function is not exported by default and should be
+explicitly requested:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Text::CSV_PP qw( csv );</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is a
+high-level function that aims at simple (user) interfaces.
+This can be used to read/parse a &quot;CSV&quot; file or
+stream (the default behavior) or to produce a file or write
+to a stream (define the &quot;out&quot; attribute). It
+returns an array&minus; or hash-reference on parsing (or
+&quot;undef&quot; on fail) or the numeric value of
+&quot;error_diag&quot; on writing. When this function fails
+you can get to the error using the class call to
+&quot;error_diag&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $aoa = csv
+(in =&gt; &quot;test.csv&quot;) or <br>
+die Text::CSV_PP&minus;&gt;error_diag;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This function
+takes the arguments as key-value pairs. This can be passed
+as a list or as an anonymous hash:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $aoa = csv (
+in =&gt; &quot;test.csv&quot;, sep_char =&gt;
+&quot;;&quot;); <br>
+my $aoh = csv ({ in =&gt; $fh, headers =&gt;
+&quot;auto&quot; });</p>
+
+<p style="margin-left:11%; margin-top: 1em">The arguments
+passed consist of two parts: the arguments to
+&quot;csv&quot; itself and the optional attributes to the
+&quot;CSV&quot; object used inside the function as
+enumerated and explained in &quot;new&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If not
+overridden, the default option used for <small>CSV</small>
+is</p>
+
+<p style="margin-left:11%; margin-top: 1em">auto_diag =&gt;
+1 <br>
+escape_null =&gt; 0</p>
+
+<p style="margin-left:11%; margin-top: 1em">The option that
+is always set and cannot be altered is</p>
+
+<p style="margin-left:11%; margin-top: 1em">binary =&gt;
+1</p>
+
+<p style="margin-left:11%; margin-top: 1em">As this
+function will likely be used in one-liners, it allows
+&quot;quote&quot; to be abbreviated as &quot;quo&quot;, and
+&quot;escape_char&quot; to be abbreviated as &quot;esc&quot;
+or &quot;escape&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternative
+invocations:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $aoa =
+Text::CSV_PP::csv (in =&gt; &quot;file.csv&quot;); <br>
+my $csv = Text::CSV_PP&minus;&gt;new (); <br>
+my $aoa = $csv&minus;&gt;csv (in =&gt;
+&quot;file.csv&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the latter
+case, the object attributes are used from the existing
+object and the attribute arguments in the function call are
+ignored:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ sep_char =&gt; &quot;;&quot;
+}); <br>
+my $aoh = $csv&minus;&gt;csv (in =&gt; &quot;file.csv&quot;,
+bom =&gt; 1);</p>
+
+<p style="margin-left:11%; margin-top: 1em">will parse
+using &quot;;&quot; as &quot;sep_char&quot;, not
+&quot;,&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>in</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Used to specify
+the source. &quot;in&quot; can be a file name (e.g.
+&quot;file.csv&quot;), which will be opened for reading and
+closed when finished, a file handle (e.g. $fh or
+&quot;FH&quot;), a reference to a glob (e.g.
+&quot;\*ARGV&quot;), the glob itself (e.g. *STDIN), or a
+reference to a scalar (e.g.
+&quot;\q{1,2,&quot;csv&quot;}&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">When used with
+&quot;out&quot;, &quot;in&quot; should be a reference to a
+<small>CSV</small> structure (AoA or AoH) or a CODE-ref that
+returns an array-reference or a hash-reference. The code-ref
+will be invoked with no arguments.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $aoa = csv
+(in =&gt; &quot;file.csv&quot;); <br>
+open my $fh, &quot;&lt;&quot;, &quot;file.csv&quot;; <br>
+my $aoa = csv (in =&gt; $fh); <br>
+my $csv = [ [qw( Foo Bar )], [ 1, 2 ], [ 2, 3 ]]; <br>
+my $err = csv (in =&gt; $csv, out =&gt;
+&quot;file.csv&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">If called in
+void context without the &quot;out&quot; attribute, the
+resulting ref will be used as input to a subsequent call to
+csv:</p>
+
+<p style="margin-left:11%; margin-top: 1em">csv (in =&gt;
+&quot;file.csv&quot;, filter =&gt; { 2 =&gt; sub { length
+&gt; 2 }})</p>
+
+<p style="margin-left:11%; margin-top: 1em">will be a
+shortcut to</p>
+
+<p style="margin-left:11%; margin-top: 1em">csv (in =&gt;
+csv (in =&gt; &quot;file.csv&quot;, filter =&gt; { 2 =&gt;
+sub { length &gt; 2 }}))</p>
+
+<p style="margin-left:11%; margin-top: 1em">where, in the
+absence of the &quot;out&quot; attribute, this is a shortcut
+to</p>
+
+<p style="margin-left:11%; margin-top: 1em">csv (in =&gt;
+csv (in =&gt; &quot;file.csv&quot;, filter =&gt; { 2 =&gt;
+sub { length &gt; 2 }}), <br>
+out =&gt; *STDOUT)</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>out</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">csv (in =&gt;
+$aoa, out =&gt; &quot;file.csv&quot;); <br>
+csv (in =&gt; $aoa, out =&gt; $fh); <br>
+csv (in =&gt; $aoa, out =&gt; STDOUT); <br>
+csv (in =&gt; $aoa, out =&gt; *STDOUT); <br>
+csv (in =&gt; $aoa, out =&gt; \*STDOUT); <br>
+csv (in =&gt; $aoa, out =&gt; \my $data); <br>
+csv (in =&gt; $aoa, out =&gt; undef); <br>
+csv (in =&gt; $aoa, out =&gt; \&quot;skip&quot;); <br>
+csv (in =&gt; $fh, out =&gt; \@aoa); <br>
+csv (in =&gt; $fh, out =&gt; \@aoh, bom =&gt; 1); <br>
+csv (in =&gt; $fh, out =&gt; \%hsh, key =&gt;
+&quot;key&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">In output mode,
+the default <small>CSV</small> options when producing
+<small>CSV</small> are</p>
+
+<p style="margin-left:11%; margin-top: 1em">eol =&gt;
+&quot;\r\n&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;fragment&quot; attribute is ignored in output
+mode.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;out&quot;
+can be a file name (e.g. &quot;file.csv&quot;), which will
+be opened for writing and closed when finished, a file
+handle (e.g. $fh or &quot;FH&quot;), a reference to a glob
+(e.g. &quot;\*STDOUT&quot;), the glob itself (e.g. *STDOUT),
+or a reference to a scalar (e.g. &quot;\my $data&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">csv (in =&gt;
+sub { $sth&minus;&gt;fetch }, out =&gt;
+&quot;dump.csv&quot;); <br>
+csv (in =&gt; sub { $sth&minus;&gt;fetchrow_hashref }, out
+=&gt; &quot;dump.csv&quot;, <br>
+headers =&gt; $sth&minus;&gt;{NAME_lc});</p>
+
+<p style="margin-left:11%; margin-top: 1em">When a code-ref
+is used for &quot;in&quot;, the output is generated per
+invocation, so no buffering is involved. This implies that
+there is no size restriction on the number of records. The
+&quot;csv&quot; function ends when the coderef returns a
+false value.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;out&quot; is set to a reference of the literal string
+&quot;skip&quot;, the output will be suppressed completely,
+which might be useful in combination with a filter for side
+effects only.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %cache; <br>
+csv (in =&gt; &quot;dump.csv&quot;, <br>
+out =&gt; \&quot;skip&quot;, <br>
+on_in =&gt; sub { $cache{$_[1][1]}++ });</p>
+
+<p style="margin-left:11%; margin-top: 1em">Currently,
+setting &quot;out&quot; to any false value
+(&quot;undef&quot;, &quot;&quot;, 0) will be equivalent to
+&quot;\&quot;skip&quot;&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+&quot;in&quot; argument point to something to parse, and the
+&quot;out&quot; is set to a reference to an
+&quot;ARRAY&quot; or a &quot;HASH&quot;, the output is
+appended to the data in the existing reference. The result
+of the parse should match what exists in the reference
+passed. This might come handy when you have to parse a set
+of files with similar content (like data stored per period)
+and you want to collect that into a single data
+structure:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %hash; <br>
+csv (in =&gt; $_, out =&gt; \%hash, key =&gt;
+&quot;id&quot;) for sort glob
+&quot;foo&minus;[0&minus;9]*.csv&quot;; <br>
+my @list; # List of arrays <br>
+csv (in =&gt; $_, out =&gt; \@list) for sort glob
+&quot;foo&minus;[0&minus;9]*.csv&quot;; <br>
+my @list; # List of hashes <br>
+csv (in =&gt; $_, out =&gt; \@list, bom =&gt; 1) for sort
+glob &quot;foo&minus;[0&minus;9]*.csv&quot;;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>encoding</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If passed, it
+should be an encoding accepted by the
+&quot;:encoding()&quot; option to &quot;open&quot;. There is
+no default value. This attribute does not work in perl
+5.6.x. &quot;encoding&quot; can be abbreviated to
+&quot;enc&quot; for ease of use in command line
+invocations.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;encoding&quot; is set to the literal value
+&quot;auto&quot;, the method &quot;header&quot; will be
+invoked on the opened stream to check if there is a
+<small>BOM</small> and set the encoding accordingly. This is
+equal to passing a true value in the option
+&quot;detect_bom&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Encodings can
+be stacked, as supported by &quot;binmode&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Using
+PerlIO::via::gzip <br>
+csv (in =&gt; \@csv, <br>
+out =&gt; &quot;test.csv:via.gz&quot;, <br>
+encoding =&gt; &quot;:via(gzip):encoding(utf&minus;8)&quot;,
+<br>
+); <br>
+$aoa = csv (in =&gt; &quot;test.csv:via.gz&quot;, encoding
+=&gt; &quot;:via(gzip)&quot;); <br>
+# Using PerlIO::gzip <br>
+csv (in =&gt; \@csv, <br>
+out =&gt; &quot;test.csv:via.gz&quot;, <br>
+encoding =&gt; &quot;:gzip:encoding(utf&minus;8)&quot;, <br>
+); <br>
+$aoa = csv (in =&gt; &quot;test.csv:gzip.gz&quot;, encoding
+=&gt; &quot;:gzip&quot;);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>detect_bom</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;detect_bom&quot; is given, the method
+&quot;header&quot; will be invoked on the opened stream to
+check if there is a <small>BOM</small> and set the encoding
+accordingly.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;detect_bom&quot;
+can be abbreviated to &quot;bom&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is the
+same as setting &quot;encoding&quot; to
+&quot;auto&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that as
+the method &quot;header&quot; is invoked, its default is to
+also set the headers.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>headers</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If this
+attribute is not given, the default behavior is to produce
+an array of arrays.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;headers&quot; is supplied, it should be an anonymous
+list of column names, an anonymous hashref, a coderef, or a
+literal flag: &quot;auto&quot;, &quot;lc&quot;,
+&quot;uc&quot;, or &quot;skip&quot;. <br>
+skip</p>
+
+<p style="margin-left:14%;">When &quot;skip&quot; is used,
+the header will not be included in the output.</p>
+
+<p style="margin-left:14%; margin-top: 1em">my $aoa = csv
+(in =&gt; $fh, headers =&gt; &quot;skip&quot;);</p>
+
+<p style="margin-left:11%;">auto</p>
+
+<p style="margin-left:14%;">If &quot;auto&quot; is used,
+the first line of the &quot;CSV&quot; source will be read as
+the list of field headers and used to produce an array of
+hashes.</p>
+
+<p style="margin-left:14%; margin-top: 1em">my $aoh = csv
+(in =&gt; $fh, headers =&gt; &quot;auto&quot;);</p>
+
+<p style="margin-left:11%;">lc</p>
+
+<p style="margin-left:14%;">If &quot;lc&quot; is used, the
+first line of the &quot;CSV&quot; source will be read as the
+list of field headers mapped to lower case and used to
+produce an array of hashes. This is a variation of
+&quot;auto&quot;.</p>
+
+<p style="margin-left:14%; margin-top: 1em">my $aoh = csv
+(in =&gt; $fh, headers =&gt; &quot;lc&quot;);</p>
+
+<p style="margin-left:11%;">uc</p>
+
+<p style="margin-left:14%;">If &quot;uc&quot; is used, the
+first line of the &quot;CSV&quot; source will be read as the
+list of field headers mapped to upper case and used to
+produce an array of hashes. This is a variation of
+&quot;auto&quot;.</p>
+
+<p style="margin-left:14%; margin-top: 1em">my $aoh = csv
+(in =&gt; $fh, headers =&gt; &quot;uc&quot;);</p>
+
+<p style="margin-left:11%;"><small>CODE</small></p>
+
+<p style="margin-left:14%;">If a coderef is used, the first
+line of the &quot;CSV&quot; source will be read as the list
+of mangled field headers in which each field is passed as
+the only argument to the coderef. This list is used to
+produce an array of hashes.</p>
+
+<p style="margin-left:14%; margin-top: 1em">my $aoh = csv
+(in =&gt; $fh, <br>
+headers =&gt; sub { lc ($_[0]) =~ s/kode/code/gr });</p>
+
+<p style="margin-left:14%; margin-top: 1em">this example is
+a variation of using &quot;lc&quot; where all occurrences of
+&quot;kode&quot; are replaced with &quot;code&quot;.</p>
+
+<p style="margin-left:11%;"><small>ARRAY</small></p>
+
+<p style="margin-left:14%;">If &quot;headers&quot; is an
+anonymous list, the entries in the list will be used as
+field names. The first line is considered data instead of
+headers.</p>
+
+<p style="margin-left:14%; margin-top: 1em">my $aoh = csv
+(in =&gt; $fh, headers =&gt; [qw( Foo Bar )]); <br>
+csv (in =&gt; $aoa, out =&gt; $fh, headers =&gt; [qw( code
+description price )]);</p>
+
+<p style="margin-left:11%;"><small>HASH</small></p>
+
+<p style="margin-left:14%;">If &quot;headers&quot; is a
+hash reference, this implies &quot;auto&quot;, but header
+fields that exist as key in the hashref will be replaced by
+the value for that key. Given a <small>CSV</small> file
+like</p>
+
+
+<p style="margin-left:14%; margin-top: 1em">post&minus;kode,city,name,id
+number,fubble <br>
+1234AA,Duckstad,Donald,13,&quot;X313DF&quot;</p>
+
+<p style="margin-left:14%; margin-top: 1em">using</p>
+
+<p style="margin-left:14%; margin-top: 1em">csv (headers
+=&gt; { &quot;post&minus;kode&quot; =&gt; &quot;pc&quot;,
+&quot;id number&quot; =&gt; &quot;ID&quot; }, ...</p>
+
+<p style="margin-left:14%; margin-top: 1em">will return an
+entry like</p>
+
+<p style="margin-left:14%; margin-top: 1em">{ pc =&gt;
+&quot;1234AA&quot;, <br>
+city =&gt; &quot;Duckstad&quot;, <br>
+name =&gt; &quot;Donald&quot;, <br>
+ID =&gt; &quot;13&quot;, <br>
+fubble =&gt; &quot;X313DF&quot;, <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">See also
+&quot;munge_column_names&quot; and
+&quot;set_column_names&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>munge_column_names</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;munge_column_names&quot; is set, the method
+&quot;header&quot; is invoked on the opened stream with all
+matching arguments to detect and set the headers.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;munge_column_names&quot;
+can be abbreviated to &quot;munge&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>key</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If passed, will
+default &quot;headers&quot; to &quot;auto&quot; and return a
+hashref instead of an array of hashes. Allowed values are
+simple scalars or array-references where the first element
+is the joiner and the rest are the fields to join to combine
+the key.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $ref = csv
+(in =&gt; &quot;test.csv&quot;, key =&gt; &quot;code&quot;);
+<br>
+my $ref = csv (in =&gt; &quot;test.csv&quot;, key =&gt; [
+&quot;:&quot; =&gt; &quot;code&quot;, &quot;color&quot;
+]);</p>
+
+<p style="margin-left:11%; margin-top: 1em">with test.csv
+like</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">code,product,price,color
+<br>
+1,pc,850,gray <br>
+2,keyboard,12,white <br>
+3,mouse,5,black</p>
+
+<p style="margin-left:11%; margin-top: 1em">the first
+example will return</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ 1 =&gt; {
+<br>
+code =&gt; 1, <br>
+color =&gt; 'gray', <br>
+price =&gt; 850, <br>
+product =&gt; 'pc' <br>
+}, <br>
+2 =&gt; { <br>
+code =&gt; 2, <br>
+color =&gt; 'white', <br>
+price =&gt; 12, <br>
+product =&gt; 'keyboard' <br>
+}, <br>
+3 =&gt; { <br>
+code =&gt; 3, <br>
+color =&gt; 'black', <br>
+price =&gt; 5, <br>
+product =&gt; 'mouse' <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">the second
+example will return</p>
+
+<p style="margin-left:11%; margin-top: 1em">{
+&quot;1:gray&quot; =&gt; { <br>
+code =&gt; 1, <br>
+color =&gt; 'gray', <br>
+price =&gt; 850, <br>
+product =&gt; 'pc' <br>
+}, <br>
+&quot;2:white&quot; =&gt; { <br>
+code =&gt; 2, <br>
+color =&gt; 'white', <br>
+price =&gt; 12, <br>
+product =&gt; 'keyboard' <br>
+}, <br>
+&quot;3:black&quot; =&gt; { <br>
+code =&gt; 3, <br>
+color =&gt; 'black', <br>
+price =&gt; 5, <br>
+product =&gt; 'mouse' <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;key&quot; attribute can be combined with
+&quot;headers&quot; for &quot;CSV&quot; date that has no
+header line, like</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $ref = csv (
+<br>
+in =&gt; &quot;foo.csv&quot;, <br>
+headers =&gt; [qw( c_foo foo bar description stock )], <br>
+key =&gt; &quot;c_foo&quot;, <br>
+);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>value</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Used to create
+key-value hashes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Only allowed
+when &quot;key&quot; is valid. A &quot;value&quot; can be
+either a single column label or an anonymous list of column
+labels. In the first case, the value will be a simple scalar
+value, in the latter case, it will be a hashref.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $ref = csv
+(in =&gt; &quot;test.csv&quot;, key =&gt; &quot;code&quot;,
+<br>
+value =&gt; &quot;price&quot;); <br>
+my $ref = csv (in =&gt; &quot;test.csv&quot;, key =&gt;
+&quot;code&quot;, <br>
+value =&gt; [ &quot;product&quot;, &quot;price&quot; ]);
+<br>
+my $ref = csv (in =&gt; &quot;test.csv&quot;, key =&gt; [
+&quot;:&quot; =&gt; &quot;code&quot;, &quot;color&quot; ],
+<br>
+value =&gt; &quot;price&quot;); <br>
+my $ref = csv (in =&gt; &quot;test.csv&quot;, key =&gt; [
+&quot;:&quot; =&gt; &quot;code&quot;, &quot;color&quot; ],
+<br>
+value =&gt; [ &quot;product&quot;, &quot;price&quot; ]);</p>
+
+<p style="margin-left:11%; margin-top: 1em">with test.csv
+like</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">code,product,price,color
+<br>
+1,pc,850,gray <br>
+2,keyboard,12,white <br>
+3,mouse,5,black</p>
+
+<p style="margin-left:11%; margin-top: 1em">the first
+example will return</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ 1 =&gt; 850,
+<br>
+2 =&gt; 12, <br>
+3 =&gt; 5, <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">the second
+example will return</p>
+
+<p style="margin-left:11%; margin-top: 1em">{ 1 =&gt; {
+<br>
+price =&gt; 850, <br>
+product =&gt; 'pc' <br>
+}, <br>
+2 =&gt; { <br>
+price =&gt; 12, <br>
+product =&gt; 'keyboard' <br>
+}, <br>
+3 =&gt; { <br>
+price =&gt; 5, <br>
+product =&gt; 'mouse' <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">the third
+example will return</p>
+
+<p style="margin-left:11%; margin-top: 1em">{
+&quot;1:gray&quot; =&gt; 850, <br>
+&quot;2:white&quot; =&gt; 12, <br>
+&quot;3:black&quot; =&gt; 5, <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">the fourth
+example will return</p>
+
+<p style="margin-left:11%; margin-top: 1em">{
+&quot;1:gray&quot; =&gt; { <br>
+price =&gt; 850, <br>
+product =&gt; 'pc' <br>
+}, <br>
+&quot;2:white&quot; =&gt; { <br>
+price =&gt; 12, <br>
+product =&gt; 'keyboard' <br>
+}, <br>
+&quot;3:black&quot; =&gt; { <br>
+price =&gt; 5, <br>
+product =&gt; 'mouse' <br>
+} <br>
+}</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>keep_headers</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">When using
+hashes, keep the column names into the arrayref passed, so
+all headers are available after the call in the original
+order.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $aoh = csv
+(in =&gt; &quot;file.csv&quot;, keep_headers =&gt; \my
+@hdr);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This attribute
+can be abbreviated to &quot;kh&quot; or passed as
+&quot;keep_column_names&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This attribute
+implies a default of &quot;auto&quot; for the
+&quot;headers&quot; attribute.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The headers can
+also be kept internally to keep stable header order:</p>
+
+<p style="margin-left:11%; margin-top: 1em">csv (in =&gt;
+csv (in =&gt; &quot;file.csv&quot;, kh =&gt;
+&quot;internal&quot;), <br>
+out =&gt; &quot;new.csv&quot;, <br>
+kh =&gt; &quot;internal&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">where
+&quot;internal&quot; can also be 1, &quot;yes&quot;, or
+&quot;true&quot;. This is similar to</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @h; <br>
+csv (in =&gt; csv (in =&gt; &quot;file.csv&quot;, kh =&gt;
+\@h), <br>
+out =&gt; &quot;new.csv&quot;, <br>
+headers =&gt; \@h);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>fragment</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Only output the
+fragment as defined in the &quot;fragment&quot; method. This
+option is ignored when <i>generating</i> &quot;CSV&quot;.
+See &quot;out&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Combining all
+of them could give something like</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Text::CSV_PP qw( csv ); <br>
+my $aoh = csv ( <br>
+in =&gt; &quot;test.txt&quot;, <br>
+encoding =&gt; &quot;utf&minus;8&quot;, <br>
+headers =&gt; &quot;auto&quot;, <br>
+sep_char =&gt; &quot;|&quot;, <br>
+fragment =&gt; &quot;row=3;6&minus;9;15&minus;*&quot;, <br>
+); <br>
+say $aoh&minus;&gt;[15]{Foo};</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>sep_set</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;sep_set&quot; is set, the method &quot;header&quot; is
+invoked on the opened stream to detect and set
+&quot;sep_char&quot; with the given set.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;sep_set&quot;
+can be abbreviated to &quot;seps&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that as
+the &quot;header&quot; method is invoked, its default is to
+also set the headers.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>set_column_names</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;set_column_names&quot; is passed, the method
+&quot;header&quot; is invoked on the opened stream with all
+arguments meant for &quot;header&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&quot;set_column_names&quot; is passed as a false value, the
+content of the first row is only preserved if the output is
+AoA:</p>
+
+<p style="margin-left:11%; margin-top: 1em">With an
+input-file like</p>
+
+<p style="margin-left:11%; margin-top: 1em">bAr,foo <br>
+1,2 <br>
+3,4,5</p>
+
+<p style="margin-left:11%; margin-top: 1em">This call</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $aoa = csv
+(in =&gt; $file, set_column_names =&gt; 0);</p>
+
+<p style="margin-left:11%; margin-top: 1em">will result
+in</p>
+
+<p style="margin-left:11%; margin-top: 1em">[[
+&quot;bar&quot;, &quot;foo&quot; ], <br>
+[ &quot;1&quot;, &quot;2&quot; ], <br>
+[ &quot;3&quot;, &quot;4&quot;, &quot;5&quot; ]]</p>
+
+<p style="margin-left:11%; margin-top: 1em">and</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $aoa = csv
+(in =&gt; $file, set_column_names =&gt; 0, munge =&gt;
+&quot;none&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">will result
+in</p>
+
+<p style="margin-left:11%; margin-top: 1em">[[
+&quot;bAr&quot;, &quot;foo&quot; ], <br>
+[ &quot;1&quot;, &quot;2&quot; ], <br>
+[ &quot;3&quot;, &quot;4&quot;, &quot;5&quot; ]]</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Callbacks</b>
+<br>
+Callbacks enable actions triggered from the <i>inside</i> of
+Text::CSV_PP.</p>
+
+<p style="margin-left:11%; margin-top: 1em">While most of
+what this enables can easily be done in an unrolled loop as
+described in the &quot; <small>SYNOPSIS&quot;</small>
+callbacks can be used to meet special demands or enhance the
+&quot;csv&quot; function. <br>
+error</p>
+
+<p style="margin-left:14%;">$csv&minus;&gt;callbacks (error
+=&gt; sub { $csv&minus;&gt;SetDiag (0) });</p>
+
+<p style="margin-left:14%; margin-top: 1em">the
+&quot;error&quot; callback is invoked when an error occurs,
+but <i>only</i> when &quot;auto_diag&quot; is set to a true
+value. A callback is invoked with the values returned by
+&quot;error_diag&quot;:</p>
+
+<p style="margin-left:14%; margin-top: 1em">my ($c, $s);
+<br>
+sub ignore3006 { <br>
+my ($err, $msg, $pos, $recno, $fldno) = @_; <br>
+if ($err == 3006) { <br>
+# ignore this error <br>
+($c, $s) = (undef, undef); <br>
+Text::CSV_PP&minus;&gt;SetDiag (0); <br>
+} <br>
+# Any other error <br>
+return; <br>
+} # ignore3006 <br>
+$csv&minus;&gt;callbacks (error =&gt; \&amp;ignore3006);
+<br>
+$csv&minus;&gt;bind_columns (\$c, \$s); <br>
+while ($csv&minus;&gt;getline ($fh)) { <br>
+# Error 3006 will not stop the loop <br>
+}</p>
+
+<p style="margin-left:11%;">after_parse</p>
+
+<p style="margin-left:14%;">$csv&minus;&gt;callbacks
+(after_parse =&gt; sub { push @{$_[1]}, &quot;NEW&quot; });
+<br>
+while (my $row = $csv&minus;&gt;getline ($fh)) { <br>
+$row&minus;&gt;[&minus;1] eq &quot;NEW&quot;; <br>
+}</p>
+
+<p style="margin-left:14%; margin-top: 1em">This callback
+is invoked after parsing with &quot;getline&quot; only if no
+error occurred. The callback is invoked with two arguments:
+the current &quot;CSV&quot; parser object and an array
+reference to the fields parsed.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The return code
+of the callback is ignored unless it is a reference to the
+string &quot;skip&quot;, in which case the record will be
+skipped in &quot;getline_all&quot;.</p>
+
+<p style="margin-left:14%; margin-top: 1em">sub add_from_db
+{ <br>
+my ($csv, $row) = @_; <br>
+$sth&minus;&gt;execute ($row&minus;&gt;[4]); <br>
+push @$row, $sth&minus;&gt;fetchrow_array; <br>
+} # add_from_db <br>
+my $aoa = csv (in =&gt; &quot;file.csv&quot;, callbacks
+=&gt; { <br>
+after_parse =&gt; \&amp;add_from_db });</p>
+
+<p style="margin-left:14%; margin-top: 1em">This hook can
+be used for validation: <small><br>
+FAIL</small></p>
+
+<p style="margin-left:17%;">Die if any of the records does
+not validate a rule:</p>
+
+<p style="margin-left:17%; margin-top: 1em">after_parse
+=&gt; sub { <br>
+$_[1][4] =~ m/^[0&minus;9]{4}\s?[A&minus;Z]{2}$/ or <br>
+die &quot;5th field does not have a valid Dutch
+zipcode&quot;; <br>
+}</p>
+
+<p style="margin-left:14%;"><small>DEFAULT</small></p>
+
+<p style="margin-left:17%;">Replace invalid fields with a
+default value:</p>
+
+<p style="margin-left:17%; margin-top: 1em">after_parse
+=&gt; sub { $_[1][2] =~ m/^\d+$/ or $_[1][2] = 0 }</p>
+
+<p style="margin-left:14%;"><small>SKIP</small></p>
+
+<p style="margin-left:17%;">Skip records that have invalid
+fields (only applies to &quot;getline_all&quot;):</p>
+
+<p style="margin-left:17%; margin-top: 1em">after_parse
+=&gt; sub { $_[1][0] =~ m/^\d+$/ or return
+\&quot;skip&quot;; }</p>
+
+<p style="margin-left:11%;">before_print</p>
+
+<p style="margin-left:14%;">my $idx = 1; <br>
+$csv&minus;&gt;callbacks (before_print =&gt; sub { $_[1][0]
+= $idx++ }); <br>
+$csv&minus;&gt;print (*STDOUT, [ 0, $_ ]) for @members;</p>
+
+<p style="margin-left:14%; margin-top: 1em">This callback
+is invoked before printing with &quot;print&quot; only if no
+error occurred. The callback is invoked with two arguments:
+the current &quot;CSV&quot; parser object and an array
+reference to the fields passed.</p>
+
+<p style="margin-left:14%; margin-top: 1em">The return code
+of the callback is ignored.</p>
+
+<p style="margin-left:14%; margin-top: 1em">sub
+max_4_fields { <br>
+my ($csv, $row) = @_; <br>
+@$row &gt; 4 and splice @$row, 4; <br>
+} # max_4_fields <br>
+csv (in =&gt; csv (in =&gt; &quot;file.csv&quot;), out =&gt;
+*STDOUT, <br>
+callbacks =&gt; { before_print =&gt; \&amp;max_4_fields
+});</p>
+
+<p style="margin-left:14%; margin-top: 1em">This callback
+is not active for &quot;combine&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Callbacks
+for csv ()</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;csv&quot; allows for some callbacks that do not
+integrate in <small>XS</small> internals but only feature
+the &quot;csv&quot; function.</p>
+
+<p style="margin-left:11%; margin-top: 1em">csv (in =&gt;
+&quot;file.csv&quot;, <br>
+callbacks =&gt; { <br>
+filter =&gt; { 6 =&gt; sub { $_ &gt; 15 } }, # first <br>
+after_parse =&gt; sub { say &quot;AFTER PARSE&quot;; }, #
+first <br>
+after_in =&gt; sub { say &quot;AFTER IN&quot;; }, # second
+<br>
+on_in =&gt; sub { say &quot;ON IN&quot;; }, # third <br>
+}, <br>
+); <br>
+csv (in =&gt; $aoh, <br>
+out =&gt; &quot;file.csv&quot;, <br>
+callbacks =&gt; { <br>
+on_in =&gt; sub { say &quot;ON IN&quot;; }, # first <br>
+before_out =&gt; sub { say &quot;BEFORE OUT&quot;; }, #
+second <br>
+before_print =&gt; sub { say &quot;BEFORE PRINT&quot;; }, #
+third <br>
+}, <br>
+); <br>
+filter</p>
+
+<p style="margin-left:14%;">This callback can be used to
+filter records. It is called just after a new record has
+been scanned. The callback accepts a: <br>
+hashref</p>
+
+<p style="margin-left:17%;">The keys are the index to the
+row (the field name or field number, 1&minus;based) and the
+values are subs to return a true or false value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">csv (in =&gt;
+&quot;file.csv&quot;, filter =&gt; { <br>
+3 =&gt; sub { m/a/ }, # third field should contain an
+&quot;a&quot; <br>
+5 =&gt; sub { length &gt; 4 }, # length of the 5th field
+minimal 5 <br>
+}); <br>
+csv (in =&gt; &quot;file.csv&quot;, filter =&gt; { foo =&gt;
+sub { $_ &gt; 4 }});</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the keys to
+the filter hash contain any character that is not a digit it
+will also implicitly set &quot;headers&quot; to
+&quot;auto&quot; unless &quot;headers&quot; was already
+passed as argument. When headers are active, returning an
+array of hashes, the filter is not applicable to the header
+itself.</p>
+
+<p style="margin-left:17%; margin-top: 1em">All sub results
+should match, as in <small>AND.</small></p>
+
+<p style="margin-left:17%; margin-top: 1em">The context of
+the callback sets $_ localized to the field indicated by the
+filter. The two arguments are as with all other callbacks,
+so the other fields in the current row can be seen:</p>
+
+<p style="margin-left:17%; margin-top: 1em">filter =&gt; {
+3 =&gt; sub { $_ &gt; 100 ? $_[1][1] =~ m/A/ : $_[1][6] =~
+m/B/ }}</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the context
+is set to return a list of hashes (&quot;headers&quot; is
+defined), the current record will also be available in the
+localized %_:</p>
+
+<p style="margin-left:17%; margin-top: 1em">filter =&gt; {
+3 =&gt; sub { $_ &gt; 100 &amp;&amp; $_{foo} =~ m/A/
+&amp;&amp; $_{bar} &lt; 1000 }}</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the filter
+is used to <i>alter</i> the content by changing $_, make
+sure that the sub returns true in order not to have that
+record skipped:</p>
+
+<p style="margin-left:17%; margin-top: 1em">filter =&gt; {
+2 =&gt; sub { $_ = uc }}</p>
+
+<p style="margin-left:17%; margin-top: 1em">will upper-case
+the second field, and then skip it if the resulting content
+evaluates to false. To always accept, end with truth:</p>
+
+<p style="margin-left:17%; margin-top: 1em">filter =&gt; {
+2 =&gt; sub { $_ = uc; 1 }}</p>
+
+<p style="margin-left:14%;">coderef</p>
+
+<p style="margin-left:17%;">csv (in =&gt;
+&quot;file.csv&quot;, filter =&gt; sub { $n++; 0; });</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the argument
+to &quot;filter&quot; is a coderef, it is an alias or
+shortcut to a filter on column 0:</p>
+
+<p style="margin-left:17%; margin-top: 1em">csv (filter
+=&gt; sub { $n++; 0 });</p>
+
+<p style="margin-left:17%; margin-top: 1em">is equal to</p>
+
+<p style="margin-left:17%; margin-top: 1em">csv (filter
+=&gt; { 0 =&gt; sub { $n++; 0 });</p>
+
+<p style="margin-left:14%;">filter-name</p>
+
+<p style="margin-left:17%;">csv (in =&gt;
+&quot;file.csv&quot;, filter =&gt; &quot;not_blank&quot;);
+<br>
+csv (in =&gt; &quot;file.csv&quot;, filter =&gt;
+&quot;not_empty&quot;); <br>
+csv (in =&gt; &quot;file.csv&quot;, filter =&gt;
+&quot;filled&quot;);</p>
+
+<p style="margin-left:17%; margin-top: 1em">These are
+predefined filters</p>
+
+<p style="margin-left:17%; margin-top: 1em">Given a file
+like (line numbers prefixed for doc purpose only):</p>
+
+<p style="margin-left:17%; margin-top: 1em">1:1,2,3 <br>
+2: <br>
+3:, <br>
+4:&quot;&quot; <br>
+5:,, <br>
+6:, , <br>
+7:&quot;&quot;, <br>
+8:&quot; &quot; <br>
+9:4,5,6 <br>
+not_blank</p>
+
+<p style="margin-left:20%;">Filter out the blank lines</p>
+
+<p style="margin-left:20%; margin-top: 1em">This filter is
+a shortcut for</p>
+
+<p style="margin-left:20%; margin-top: 1em">filter =&gt; {
+0 =&gt; sub { @{$_[1]} &gt; 1 or <br>
+defined $_[1][0] &amp;&amp; $_[1][0] ne &quot;&quot; } }</p>
+
+<p style="margin-left:20%; margin-top: 1em">Due to the
+implementation, it is currently impossible to also filter
+lines that consists only of a quoted empty field. These
+lines are also considered blank lines.</p>
+
+<p style="margin-left:20%; margin-top: 1em">With the given
+example, lines 2 and 4 will be skipped.</p>
+
+<p style="margin-left:17%;">not_empty</p>
+
+<p style="margin-left:20%;">Filter out lines where all the
+fields are empty.</p>
+
+<p style="margin-left:20%; margin-top: 1em">This filter is
+a shortcut for</p>
+
+<p style="margin-left:20%; margin-top: 1em">filter =&gt; {
+0 =&gt; sub { grep { defined &amp;&amp; $_ ne &quot;&quot; }
+@{$_[1]} } }</p>
+
+<p style="margin-left:20%; margin-top: 1em">A space is not
+regarded being empty, so given the example data, lines 2, 3,
+4, 5, and 7 are skipped.</p>
+
+<p style="margin-left:17%;">filled</p>
+
+<p style="margin-left:20%;">Filter out lines that have no
+visible data</p>
+
+<p style="margin-left:20%; margin-top: 1em">This filter is
+a shortcut for</p>
+
+<p style="margin-left:20%; margin-top: 1em">filter =&gt; {
+0 =&gt; sub { grep { defined &amp;&amp; m/\S/ } @{$_[1]} }
+}</p>
+
+<p style="margin-left:20%; margin-top: 1em">This filter
+rejects all lines that <i>not</i> have at least one field
+that does not evaluate to the empty string.</p>
+
+<p style="margin-left:20%; margin-top: 1em">With the given
+example data, this filter would skip lines 2 through 8.</p>
+
+<p style="margin-left:14%; margin-top: 1em">One could also
+use modules like Types::Standard:</p>
+
+<p style="margin-left:14%; margin-top: 1em">use
+Types::Standard &minus;types; <br>
+my $type = Tuple[Str, Str, Int, Bool, Optional[Num]]; <br>
+my $check = $type&minus;&gt;compiled_check; <br>
+# filter with compiled check and warnings <br>
+my $aoa = csv ( <br>
+in =&gt; \$data, <br>
+filter =&gt; { <br>
+0 =&gt; sub { <br>
+my $ok = $check&minus;&gt;($_[1]) or <br>
+warn $type&minus;&gt;get_message ($_[1]), &quot;\n&quot;;
+<br>
+return $ok; <br>
+}, <br>
+}, <br>
+);</p>
+
+<p style="margin-left:11%;">after_in</p>
+
+<p style="margin-left:14%;">This callback is invoked for
+each record after all records have been parsed but before
+returning the reference to the caller. The hook is invoked
+with two arguments: the current &quot;CSV&quot; parser
+object and a reference to the record. The reference can be a
+reference to a <small>HASH</small> or a reference to an
+<small>ARRAY</small> as determined by the arguments.</p>
+
+<p style="margin-left:14%; margin-top: 1em">This callback
+can also be passed as an attribute without the
+&quot;callbacks&quot; wrapper.</p>
+
+<p style="margin-left:11%;">before_out</p>
+
+<p style="margin-left:14%;">This callback is invoked for
+each record before the record is printed. The hook is
+invoked with two arguments: the current &quot;CSV&quot;
+parser object and a reference to the record. The reference
+can be a reference to a <small>HASH</small> or a reference
+to an <small>ARRAY</small> as determined by the
+arguments.</p>
+
+<p style="margin-left:14%; margin-top: 1em">This callback
+can also be passed as an attribute without the
+&quot;callbacks&quot; wrapper.</p>
+
+<p style="margin-left:14%; margin-top: 1em">This callback
+makes the row available in %_ if the row is a hashref. In
+this case %_ is writable and will change the original
+row.</p>
+
+<p style="margin-left:11%;">on_in</p>
+
+<p style="margin-left:14%;">This callback acts exactly as
+the &quot;after_in&quot; or the &quot;before_out&quot;
+hooks.</p>
+
+<p style="margin-left:14%; margin-top: 1em">This callback
+can also be passed as an attribute without the
+&quot;callbacks&quot; wrapper.</p>
+
+<p style="margin-left:14%; margin-top: 1em">This callback
+makes the row available in %_ if the row is a hashref. In
+this case %_ is writable and will change the original row.
+So e.g. with</p>
+
+<p style="margin-left:14%; margin-top: 1em">my $aoh = csv (
+<br>
+in =&gt; \&quot;foo\n1\n2\n&quot;, <br>
+headers =&gt; &quot;auto&quot;, <br>
+on_in =&gt; sub { $_{bar} = 2; }, <br>
+);</p>
+
+<p style="margin-left:14%; margin-top: 1em">$aoh will
+be:</p>
+
+<p style="margin-left:14%; margin-top: 1em">[ { foo =&gt;
+1, <br>
+bar =&gt; 2, <br>
+} <br>
+{ foo =&gt; 2, <br>
+bar =&gt; 2, <br>
+} <br>
+]</p>
+
+<p style="margin-left:11%;">csv</p>
+
+<p style="margin-left:14%;">The <i>function</i>
+&quot;csv&quot; can also be called as a method or with an
+existing Text::CSV_PP object. This could help if the
+function is to be invoked a lot of times and the overhead of
+creating the object internally over and over again would be
+prevented by passing an existing instance.</p>
+
+<p style="margin-left:14%; margin-top: 1em">my $csv =
+Text::CSV_PP&minus;&gt;new ({ binary =&gt; 1, auto_diag
+=&gt; 1 }); <br>
+my $aoa = $csv&minus;&gt;csv (in =&gt; $fh); <br>
+my $aoa = csv (in =&gt; $fh, csv =&gt; $csv);</p>
+
+<p style="margin-left:14%; margin-top: 1em">both act the
+same. Running this 20000 times on a 20 lines
+<small>CSV</small> file, showed a 53% speedup.</p>
+
+<h2>DIAGNOSTICS
+<a name="DIAGNOSTICS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This section is
+also taken from Text::CSV_XS.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Still under
+construction ...</p>
+
+<p style="margin-left:11%; margin-top: 1em">If an error
+occurs, &quot;$csv&minus;&gt;error_diag&quot; can be used to
+get information on the cause of the failure. Note that for
+speed reasons the internal value is never cleared on
+success, so using the value returned by
+&quot;error_diag&quot; in normal cases &minus; when no error
+occurred &minus; may cause unexpected results.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+constructor failed, the cause can be found using
+&quot;error_diag&quot; as a class method, like
+&quot;Text::CSV_PP&minus;&gt;error_diag&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;$csv&minus;&gt;error_diag&quot; method is
+automatically invoked upon error when the contractor was
+called with &quot;auto_diag&quot; set to 1 or 2, or when
+autodie is in effect. When set to 1, this will cause a
+&quot;warn&quot; with the error message, when set to 2, it
+will &quot;die&quot;. &quot;2012 &minus; EOF&quot; is
+excluded from &quot;auto_diag&quot; reports.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Errors can be
+(individually) caught using the &quot;error&quot;
+callback.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The errors as
+described below are available. I have tried to make the
+error itself explanatory enough, but more descriptions will
+be added. For most of these errors, the first three capitals
+describe the error category:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="4%">
+
+
+<p><small>INI</small></p></td>
+<td width="82%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Initialization
+error or option conflict.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em"><small>ECR</small></p></td>
+<td width="82%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:14%; margin-top: 1em">Carriage-Return
+related parse error.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em"><small>EOF</small></p></td>
+<td width="82%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">End-Of-File
+related parse error.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em"><small>EIQ</small></p></td>
+<td width="82%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Parse error
+inside quotation.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em"><small>EIF</small></p></td>
+<td width="82%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Parse error
+inside field.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em"><small>ECB</small></p></td>
+<td width="82%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Combine
+error.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em"><small>EHR</small></p></td>
+<td width="82%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">HashRef parse
+related error.</p>
+
+<p style="margin-left:11%; margin-top: 1em">And below
+should be the complete list of error codes that can be
+returned:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">1001 &quot; <small>INI</small>
+&minus; sep_char is equal to quote_char or
+escape_char&quot;</p> </td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The separation
+character cannot be equal to the quotation character or to
+the escape character, as this would invalidate all parsing
+rules.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">1002 &quot; <small>INI</small>
+&minus; allow_whitespace with escape_char or quote_char
+<small>SP</small> or <small>TAB&quot;</small></p></td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Using the
+&quot;allow_whitespace&quot; attribute when either
+&quot;quote_char&quot; or &quot;escape_char&quot; is equal
+to &quot;SPACE&quot; or &quot;TAB&quot; is too ambiguous to
+allow.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="71%">
+
+
+<p style="margin-top: 1em">1003 &quot; <small>INI</small>
+&minus; \r or \n in main attr not allowed&quot;</p></td>
+<td width="15%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Using default
+&quot;eol&quot; characters in either &quot;sep_char&quot;,
+&quot;quote_char&quot;, or &quot;escape_char&quot; is not
+allowed.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">1004 &quot; <small>INI</small>
+&minus; callbacks should be undef or a hashref&quot;</p></td>
+<td width="8%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The
+&quot;callbacks&quot; attribute only allows one to be
+&quot;undef&quot; or a hash reference.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="38%">
+
+
+<p style="margin-top: 1em">1005 &quot; <small>INI</small>
+&minus; <small>EOL</small> too long&quot;</p></td>
+<td width="48%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The value
+passed for <small>EOL</small> is exceeding its maximum
+length (16).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="38%">
+
+
+<p style="margin-top: 1em">1006 &quot; <small>INI</small>
+&minus; <small>SEP</small> too long&quot;</p></td>
+<td width="48%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The value
+passed for <small>SEP</small> is exceeding its maximum
+length (16).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="41%">
+
+
+<p style="margin-top: 1em">1007 &quot; <small>INI</small>
+&minus; <small>QUOTE</small> too long&quot;</p></td>
+<td width="45%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The value
+passed for <small>QUOTE</small> is exceeding its maximum
+length (16).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="40%">
+
+
+<p style="margin-top: 1em">1008 &quot; <small>INI</small>
+&minus; <small>SEP</small> undefined&quot;</p></td>
+<td width="46%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The value
+passed for <small>SEP</small> should be defined and not
+empty.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="49%">
+
+
+<p style="margin-top: 1em">1010 &quot; <small>INI</small>
+&minus; the header is empty&quot;</p></td>
+<td width="37%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The header line
+parsed in the &quot;header&quot; is empty.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">1011 &quot; <small>INI</small>
+&minus; the header contains more than one valid
+separator&quot;</p> </td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The header line
+parsed in the &quot;header&quot; contains more than one
+(unique) separator character out of the allowed set of
+separators.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="72%">
+
+
+<p style="margin-top: 1em">1012 &quot; <small>INI</small>
+&minus; the header contains an empty field&quot;</p></td>
+<td width="14%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The header line
+parsed in the &quot;header&quot; contains an empty
+field.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em">1013 &quot; <small>INI</small>
+&minus; the header contains nun-unique fields&quot;</p></td>
+<td width="9%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The header line
+parsed in the &quot;header&quot; contains at least two
+identical fields.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="71%">
+
+
+<p style="margin-top: 1em">1014 &quot; <small>INI</small>
+&minus; header called on undefined stream&quot;</p></td>
+<td width="15%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The header line
+cannot be parsed from an undefined source.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="68%">
+
+
+<p style="margin-top: 1em">1500 &quot; <small>PRM</small>
+&minus; Invalid/unsupported argument(s)&quot;</p></td>
+<td width="18%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Function or
+method called with invalid argument(s) or parameter(s).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">1501 &quot; <small>PRM</small>
+&minus; The key attribute is passed as an unsupported
+type&quot;</p> </td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The
+&quot;key&quot; attribute is of an unsupported type.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">1502 &quot; <small>PRM</small>
+&minus; The value attribute is passed without the key
+attribute&quot;</p> </td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The
+&quot;value&quot; attribute is only allowed when a valid key
+is given.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">1503 &quot; <small>PRM</small>
+&minus; The value attribute is passed as an unsupported
+type&quot;</p> </td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The
+&quot;value&quot; attribute is of an unsupported type.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">2010 &quot; <small>ECR</small>
+&minus; <small>QUO</small> char inside quotes followed by
+<small>CR</small> not part of <small>EOL&quot;</small></p></td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">When
+&quot;eol&quot; has been set to anything but the default,
+like &quot;\r\t\n&quot;, and the &quot;\r&quot; is following
+the <b>second</b> (closing) &quot;quote_char&quot;, where
+the characters following the &quot;\r&quot; do not make up
+the &quot;eol&quot; sequence, this is an error.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="75%">
+
+
+<p style="margin-top: 1em">2011 &quot; <small>ECR</small>
+&minus; Characters after end of quoted field&quot;</p></td>
+<td width="11%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Sequences like
+&quot;1,foo,&quot;bar&quot;baz,22,1&quot; are not allowed.
+&quot;bar&quot; is a quoted field and after the closing
+double-quote, there should be either a new-line sequence or
+a separation character.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="74%">
+
+
+<p style="margin-top: 1em">2012 &quot; <small>EOF</small>
+&minus; End of data in parsing input stream&quot;</p></td>
+<td width="12%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:14%; margin-top: 1em">Self-explaining.
+End-of-file while inside parsing a stream. Can happen only
+when reading from streams with &quot;getline&quot;, as using
+&quot;parse&quot; is done on strings that are not required
+to have a trailing &quot;eol&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">2013 &quot; <small>INI</small>
+&minus; Specification error for fragments
+<small>RFC7111&quot;</small></p> </td>
+<td width="3%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Invalid
+specification for <small>URI</small> &quot;fragment&quot;
+specification.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="64%">
+
+
+<p style="margin-top: 1em">2014 &quot; <small>ENF</small>
+&minus; Inconsistent number of fields&quot;</p></td>
+<td width="22%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Inconsistent
+number of fields under strict parsing.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="71%">
+
+
+<p style="margin-top: 1em">2021 &quot; <small>EIQ</small>
+&minus; <small>NL</small> char inside quotes, binary
+off&quot;</p> </td>
+<td width="15%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Sequences like
+&quot;1,&quot;foo\nbar&quot;,22,1&quot; are allowed only
+when the binary option has been selected with the
+constructor.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="71%">
+
+
+<p style="margin-top: 1em">2022 &quot; <small>EIQ</small>
+&minus; <small>CR</small> char inside quotes, binary
+off&quot;</p> </td>
+<td width="15%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Sequences like
+&quot;1,&quot;foo\rbar&quot;,22,1&quot; are allowed only
+when the binary option has been selected with the
+constructor.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="58%">
+
+
+<p style="margin-top: 1em">2023 &quot; <small>EIQ</small>
+&minus; <small>QUO</small> character not allowed&quot;</p></td>
+<td width="28%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Sequences like
+&quot;&quot;foo &quot;bar&quot; baz&quot;,qu&quot; and
+&quot;2023,&quot;,2008&minus;04&minus;05,&quot;Foo,
+Bar&quot;,\n&quot; will cause this error.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">2024 &quot; <small>EIQ</small>
+&minus; <small>EOF</small> cannot be escaped, not even
+inside quotes&quot;</p></td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">The escape
+character is not allowed as last character in an input
+stream.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="54%">
+
+
+<p style="margin-top: 1em">2025 &quot; <small>EIQ</small>
+&minus; Loose unescaped escape&quot;</p></td>
+<td width="32%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">An escape
+character should escape only characters that need
+escaping.</p>
+
+<p style="margin-left:14%; margin-top: 1em">Allowing the
+escape for other characters is possible with the attribute
+&quot;allow_loose_escapes&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">2026 &quot; <small>EIQ</small>
+&minus; Binary character inside quoted field, binary
+off&quot;</p> </td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">Binary
+characters are not allowed by default. Exceptions are fields
+that contain valid <small>UTF&minus;8,</small> that will
+automatically be upgraded if the content is valid
+<small>UTF&minus;8.</small> Set &quot;binary&quot; to 1 to
+accept binary data.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="61%">
+
+
+<p style="margin-top: 1em">2027 &quot; <small>EIQ</small>
+&minus; Quoted field not terminated&quot;</p></td>
+<td width="25%">
+</td></tr>
+</table>
+
+<p style="margin-left:14%; margin-top: 1em">When parsing a
+field that started with a quotation character, the field is
+expected to be closed with a quotation character. When the
+parsed line is exhausted before the quote is found, that
+field is not terminated.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">2030 &quot; <small>EIF</small>
+&minus; <small>NL</small> char inside unquoted verbatim,
+binary off&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>2031 &quot; <small>EIF</small> &minus; <small>CR</small>
+char is first char of field, not part of
+<small>EOL&quot;</small></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>2032 &quot; <small>EIF</small> &minus; <small>CR</small>
+char inside unquoted, not part of
+<small>EOL&quot;</small></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>2034 &quot; <small>EIF</small> &minus; Loose unescaped
+quote&quot;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>2035 &quot; <small>EIF</small> &minus; Escaped
+<small>EOF</small> in unquoted field&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>2036 &quot; <small>EIF</small> &minus;
+<small>ESC</small> error&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>2037 &quot; <small>EIF</small> &minus; Binary character
+in unquoted field, binary off&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>2110 &quot; <small>ECB</small> &minus; Binary character
+in Combine, binary off&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>2200 &quot; <small>EIO</small> &minus; print to
+<small>IO</small> failed. See errno&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>3001 &quot; <small>EHR</small> &minus; Unsupported
+syntax for column_names ()&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>3002 &quot; <small>EHR</small> &minus; getline_hr ()
+called before column_names ()&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>3003 &quot; <small>EHR</small> &minus; bind_columns ()
+and column_names () fields count mismatch&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>3004 &quot; <small>EHR</small> &minus; bind_columns ()
+only accepts refs to scalars&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>3006 &quot; <small>EHR</small> &minus; bind_columns ()
+did not pass enough refs for parsed fields&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>3007 &quot; <small>EHR</small> &minus; bind_columns
+needs refs to writable scalars&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>3008 &quot; <small>EHR</small> &minus; unexpected error
+in bound fields&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>3009 &quot; <small>EHR</small> &minus; print_hr ()
+called before column_names ()&quot;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>3010 &quot; <small>EHR</small> &minus; print_hr ()
+called with invalid arguments&quot;</p></td></tr>
+</table>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Text::CSV_XS,
+Text::CSV</p>
+
+<p style="margin-left:11%; margin-top: 1em">Older versions
+took many regexp from
+&lt;http://www.din.or.jp/~ohzaki/perl.htm&gt;</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Kenichi
+Ishigaki, &lt;ishigaki[at]cpan.org&gt; Makamaka
+Hannyaharamitu, &lt;makamaka[at]cpan.org&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Text::CSV_XS
+was written by &lt;joe[at]ispsoft.de&gt; and maintained by
+&lt;h.m.brand[at]xs4all.nl&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Text::CSV was
+written by &lt;alan[at]mfgrtl.com&gt;.</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2017&minus; by Kenichi Ishigaki,
+&lt;ishigaki[at]cpan.org&gt; Copyright 2005&minus;2015 by
+Makamaka Hannyaharamitu, &lt;makamaka[at]cpan.org&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Most of the
+code and doc is directly taken from the pure perl part of
+Text::CSV_XS.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (C)
+2007&minus;2016 H.Merijn Brand. All rights reserved.
+Copyright (C) 1998&minus;2001 Jochen Wiedmann. All rights
+reserved. Copyright (C) 1997 Alan Citterman. All rights
+reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This library is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+<hr>
+</body>
+</html>

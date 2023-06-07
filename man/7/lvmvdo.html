@@ -1,0 +1,607 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:01 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LVMVDO</title>
+
+</head>
+<body>
+<h1>lvmvdo</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">lvmvdo &mdash;
+Support for Virtual Data Optimizer in LVM</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">VDO is software
+that provides inline block-level deduplication, compression,
+and thin provisioning capabilities for primary storage.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Deduplication
+is a technique for reducing the consumption of storage
+resources by eliminating multiple copies of duplicate
+blocks. Compression takes the individual unique blocks and
+shrinks them. These reduced blocks are then efficiently
+packed together into physical blocks. Thin provisioning
+manages the mapping from logical blocks presented by VDO to
+where the data has actually been physically stored, and also
+eliminates any blocks of all zeroes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">With
+deduplication, instead of writing the same data more than
+once, VDO detects and records each duplicate block as a
+reference to the original block. VDO maintains a mapping
+from Logical Block Addresses (LBA) (used by the storage
+layer above VDO) to physical block addresses (used by the
+storage layer under VDO). After deduplication, multiple
+logical block addresses may be mapped to the same physical
+block address; these are called shared blocks and are
+reference-counted by the software.</p>
+
+<p style="margin-left:11%; margin-top: 1em">With
+compression, VDO compresses multiple blocks (or shared
+blocks) with the fast LZ4 algorithm, and bins them together
+where possible so that multiple compressed blocks fit within
+a 4 KB block on the underlying storage. Mapping from LBA is
+to a physical block address and index within it for the
+desired compressed data. All compressed blocks are
+individually reference counted for correctness.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Block sharing
+and block compression are invisible to applications using
+the storage, which read and write blocks as they would if
+VDO were not present. When a shared block is overwritten, a
+new physical block is allocated for storing the new block
+data to ensure that other logical block addresses that are
+mapped to the shared physical block are not modified.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To use VDO with
+<b>lvm</b>(8), you must install the standard VDO user-space
+tools <b>vdoformat</b>(8) and the currently non-standard
+kernel VDO module &quot;<i>kvdo</i>&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;<i>kvdo</i>&quot; module implements fine-grained
+storage virtualization, thin provisioning, block sharing,
+and compression. The &quot;<i>uds</i>&quot; module provides
+memory-efficient duplicate identification. The user-space
+tools include <b>vdostats</b>(8) for extracting statistics
+from VDO volumes.</p>
+
+<h2>VDO TERMS
+<a name="VDO TERMS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">VDODataLV</p>
+
+<p style="margin-left:22%;">VDO data LV <br>
+A large hidden LV with the _vdata suffix. It is created in a
+VG <br>
+used by the VDO kernel target to store all data and metadata
+blocks.</p>
+
+<p style="margin-left:11%;">VDOPoolLV</p>
+
+<p style="margin-left:22%;">VDO pool LV <br>
+A pool for virtual VDOLV(s), which are the size of used
+VDODataLV. <br>
+Only a single VDOLV is currently supported.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="7%">
+
+
+<p>VDOLV</p></td>
+<td width="4%"></td>
+<td width="9%">
+
+
+<p>VDO LV</p></td>
+<td width="69%">
+</td></tr>
+</table>
+
+<p style="margin-left:22%;">Created from VDOPoolLV. <br>
+Appears blank after creation.</p>
+
+<h2>VDO USAGE
+<a name="VDO USAGE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The primary
+methods for using VDO with lvm2:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>1. Create a
+VDOPoolLV and a VDOLV</b> <br>
+Create a VDOPoolLV that will hold VDO data, and a virtual
+size VDOLV that the user can use. If you do not specify the
+virtual size, then the VDOLV is created with the maximum
+size that always fits into data volume even if no
+deduplication or compression can happen (i.e. it can hold
+the incompressible content of /dev/urandom). If you do not
+specify the name of VDOPoolLV, it is taken from the sequence
+of vpool0, vpool1 ...</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: The
+performance of TRIM/Discard operations is slow for large
+volumes of VDO type. Please try to avoid sending discard
+requests unless necessary because it might take considerable
+amount of time to finish the discard operation.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvcreate
+&minus;&minus;type vdo &minus;n VDOLV &minus;L DataSize
+&minus;V LargeVirtualSize VG/VDOPoolLV <br>
+lvcreate &minus;&minus;vdo &minus;L DataSize VG</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# lvcreate &minus;&minus;type vdo &minus;n vdo0 &minus;L 10G
+&minus;V 100G vg/vdopool0 <br>
+# mkfs.ext4 &minus;E nodiscard /dev/vg/vdo0</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>2. Convert
+an existing LV into VDOPoolLV</b> <br>
+Convert an already created or existing LV into a VDOPoolLV,
+which is a volume that can hold data and metadata. You will
+be prompted to confirm such conversion because it
+<b>IRREVERSIBLY DESTROYS</b> the content of such volume and
+the volume is immediately formatted by <b>vdoformat</b>(8)
+as a VDO pool data volume. You can specify the virtual size
+of the VDOLV associated with this VDOPoolLV. If you do not
+specify the virtual size, it will be set to the maximum size
+that can keep 100% incompressible data there.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvconvert
+&minus;&minus;type vdo&minus;pool &minus;n VDOLV &minus;V
+VirtualSize VG/VDOPoolLV <br>
+lvconvert &minus;&minus;vdopool VG/VDOPoolLV</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# lvconvert &minus;&minus;type vdo&minus;pool &minus;n vdo0
+&minus;V10G vg/ExistingLV</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>3. Change
+the compression and deduplication of a VDOPoolLV</b> <br>
+Disable or enable the compression and deduplication for
+VDOPoolLV (the volume that maintains all VDO LV(s)
+associated with it).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvchange
+&minus;&minus;compression y|n &minus;&minus;deduplication
+y|n VG/VDOPoolLV</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# lvchange &minus;&minus;compression n vg/vdopool0 <br>
+# lvchange &minus;&minus;deduplication y vg/vdopool1</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>4. Change
+the default settings used for creating a VDOPoolLV</b> <br>
+VDO allows to set a large variety of options. Lots of these
+settings can be specified in lvm.conf or profile settings.
+You can prepare a number of different profiles in the
+<i>/etc/lvm/profile</i> directory and just specify the
+profile file name. Check the output of <b>lvmconfig
+&minus;&minus;type default &minus;&minus;withcomments</b>
+for a detailed description of all individual VDO
+settings.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# cat &lt;&lt;EOF &gt; /etc/lvm/profile/vdo_create.profile
+<br>
+allocation {</p>
+
+<p style="margin-left:22%;">vdo_use_compression=1 <br>
+vdo_use_deduplication=1 <br>
+vdo_use_metadata_hints=1 <br>
+vdo_minimum_io_size=4096 <br>
+vdo_block_map_cache_size_mb=128 <br>
+vdo_block_map_period=16380 <br>
+vdo_check_point_frequency=0 <br>
+vdo_use_sparse_index=0 <br>
+vdo_index_memory_size_mb=256 <br>
+vdo_slab_size_mb=2048 <br>
+vdo_ack_threads=1 <br>
+vdo_bio_threads=1 <br>
+vdo_bio_rotation=64 <br>
+vdo_cpu_threads=2 <br>
+vdo_hash_zone_threads=1 <br>
+vdo_logical_threads=1 <br>
+vdo_physical_threads=1 <br>
+vdo_write_policy=&quot;auto&quot; <br>
+vdo_max_discard=1</p>
+
+<p style="margin-left:11%;">} <br>
+EOF</p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;&minus;vdo &minus;L10G &minus;&minus;metadataprofile
+vdo_create vg/vdopool0 <br>
+# lvcreate &minus;&minus;vdo &minus;L10G
+&minus;&minus;config
+&rsquo;allocation/vdo_cpu_threads=4&rsquo; vg/vdopool1</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>5. Set or
+change VDO settings with option
+&minus;&minus;vdosettings</b> <br>
+Use the form &rsquo;option=value&rsquo; or
+&rsquo;option1=value option2=value&rsquo;, or repeat
+&minus;&minus;vdosettings for each option being set. Options
+are listed in the Example section above, for the full
+description see <b>lvm.conf</b>(5). Options can omit
+&rsquo;vdo_&rsquo; and &rsquo;vdo_use_&rsquo; prefixes and
+all its underscores. So i.e. vdo_use_metadata_hints=1 and
+metadatahints=1 are equivalent. To change the option for an
+already existing VDOPoolLV use <b>lvchange</b>(8) command.
+However not all option can be changed. Only compression and
+deduplication options can be also changed for an active VDO
+LV. Lowest priority options are specified with configuration
+file, then with &minus;&minus;vdosettings and highest are
+expliction option &minus;&minus;compression and
+&minus;&minus;deduplication.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i></p>
+
+<p style="margin-left:11%; margin-top: 1em"># lvcreate
+&minus;&minus;vdo &minus;L10G &minus;&minus;vdosettings
+&rsquo;ack_threads=1 hash_zone_threads=2&rsquo; vg/vdopool0
+<br>
+# lvchange &minus;&minus;vdosettings &rsquo;bio_threads=2
+deduplication=1&rsquo; vg/vdopool0</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>6. Checking
+the usage of VDOPoolLV</b> <br>
+To quickly check how much data on a VDOPoolLV is already
+consumed, use <b>lvs</b>(8). The Data% field reports how
+much data is occupied in the content of the virtual data for
+the VDOLV and how much space is already consumed with all
+the data and metadata blocks in the VDOPoolLV. For a
+detailed description, use the <b>vdostats</b>(8)
+command.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note:
+<b>vdostats</b>(8) currently understands only
+<i>/dev/mapper</i> device names.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# lvcreate &minus;&minus;type vdo &minus;L10G &minus;V20G
+&minus;n vdo0 vg/vdopool0 <br>
+# mkfs.ext4 &minus;E nodiscard /dev/vg/vdo0 <br>
+# lvs &minus;a vg</p>
+
+<p style="margin-left:11%; margin-top: 1em">LV VG Attr
+LSize Pool Origin Data% <br>
+vdo0 vg vwi&minus;a&minus;v&minus;&minus;&minus; 20.00g
+vdopool0 0.01 <br>
+vdopool0 vg dwi-ao&minus;&minus;&minus;&minus; 10.00g 30.16
+<br>
+[vdopool0_vdata] vg Dwi-ao&minus;&minus;&minus;&minus;
+10.00g</p>
+
+<p style="margin-left:11%; margin-top: 1em"># vdostats
+&minus;&minus;all /dev/mapper/vg-vdopool0&minus;vpool <br>
+/dev/mapper/vg-vdopool0 : <br>
+version : 30 <br>
+release version : 133524 <br>
+data blocks used : 79 <br>
+...</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>7. Extending
+the VDOPoolLV size</b> <br>
+You can add more space to hold VDO data and metadata by
+extending the VDODataLV using the commands
+<b>lvresize</b>(8) and <b>lvextend</b>(8). The extension
+needs to add at least one new VDO slab. You can configure
+the slab size with the <b>allocation/vdo_slab_size_mb</b>
+setting.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+enable automatic size extension of a monitored VDOPoolLV
+with the <b>activation/vdo_pool_autoextend_percent</b> and
+<b>activation/ vdo_pool_autoextend_threshold</b>
+settings.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: You
+cannot reduce the size of a VDOPoolLV.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvextend
+&minus;L+AddingSize VG/VDOPoolLV</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# lvextend &minus;L+50G vg/vdopool0 <br>
+# lvresize &minus;L300G vg/vdopool1</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>8. Extending
+or reducing the VDOLV size</b> <br>
+You can extend or reduce a virtual VDO LV as a standard LV
+with the <b>lvresize</b>(8), <b>lvextend</b>(8), and
+<b>lvreduce</b>(8) commands.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: The
+reduction needs to process TRIM for reduced disk area to
+unmap used data blocks from the VDOPoolLV, which might take
+a long time.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvextend
+&minus;L+AddingSize VG/VDOLV <br>
+lvreduce &minus;L&minus;ReducingSize VG/VDOLV</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# lvextend &minus;L+50G vg/vdo0 <br>
+# lvreduce &minus;L&minus;50G vg/vdo1 <br>
+# lvresize &minus;L200G vg/vdo2</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>9. Component
+activation of a VDODataLV</b> <br>
+You can activate a VDODataLV separately as a component LV
+for examination purposes. The activation of the VDODataLV
+activates the data LV in read-only mode, and the data LV
+cannot be modified. If the VDODataLV is active as a
+component, any upper LV using this volume CANNOT be
+activated. You have to deactivate the VDODataLV first to
+continue to use the VDOPoolLV.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# lvchange &minus;ay vg/vpool0_vdata <br>
+# lvchange &minus;an vg/vpool0_vdata</p>
+
+<h2>VDO TOPICS
+<a name="VDO TOPICS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>1. Stacking
+VDO</b> <br>
+You can convert or stack a VDOPooLV with these currently
+supported volume types: linear, stripe, raid, and cache with
+cachepool.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>2. VDOPoolLV
+on top of raid</b> <br>
+Using a raid type LV for a VDODataLV.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# lvcreate &minus;&minus;type raid1 &minus;L 5G &minus;n
+vdopool vg <br>
+# lvconvert &minus;&minus;type vdo&minus;pool &minus;V 10G
+vg/vdopool</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>3. Caching a
+VDOPoolLV</b> <br>
+VDOPoolLV (accepts also VDODataLV volume name) caching
+provides a mechanism to accelerate reads and writes of
+already compressed and deduplicated data blocks together
+with VDO metadata.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# lvcreate &minus;&minus;type vdo &minus;L 5G &minus;V 10G
+&minus;n vdo1 vg/vdopool <br>
+# lvcreate &minus;&minus;type cache&minus;pool &minus;L 1G
+&minus;n cachepool vg <br>
+# lvconvert &minus;&minus;cache &minus;&minus;cachepool
+vg/cachepool vg/vdopool <br>
+# lvconvert &minus;&minus;uncache vg/vdopool</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>4. Caching a
+VDOLV</b> <br>
+VDO LV cache allow you to &rsquo;cache&rsquo; a device for
+better performance before it hits the processing of the VDO
+Pool LV layer.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Example</i>
+<br>
+# lvcreate &minus;&minus;type vdo &minus;L 5G &minus;V 10G
+&minus;n vdo1 vg/vdopool <br>
+# lvcreate &minus;&minus;type cache&minus;pool &minus;L 1G
+&minus;n cachepool vg <br>
+# lvconvert &minus;&minus;cache &minus;&minus;cachepool
+vg/cachepool vg/vdo1 <br>
+# lvconvert &minus;&minus;uncache vg/vdo1</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>5. Usage of
+Discard/TRIM with a VDOLV</b> <br>
+You can discard data on a VDO LV and reduce used blocks on a
+VDOPoolLV. However, the current performance of discard
+operations is still not optimal and takes a considerable
+amount of time and CPU. Unless you really need it, you
+should avoid using discard.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When a block
+device is going to be rewritten, its blocks will be
+automatically reused for new data. Discard is useful in
+situations when user knows that the given portion of a VDO
+LV is not going to be used and the discarded space can be
+used for block provisioning in other regions of the VDO LV.
+For the same reason, you should avoid using mkfs with
+discard for a freshly created VDO LV to save a lot of time
+that this operation would take otherwise as device is
+already expected to be empty.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>6. Memory
+usage</b> <br>
+The VDO target requires 38&nbsp;MiB of RAM and several
+variable amounts:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">1.15&nbsp;MiB of RAM for each
+1&nbsp;MiB of configured block map cache size. The block map
+cache requires a minimum of 150&nbsp;MiB RAM.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>1.6&nbsp;MiB of RAM for each 1&nbsp;TiB of logical
+space.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>268&nbsp;MiB of RAM for each 1&nbsp;TiB of physical
+storage managed by the volume.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">UDS requires a
+minimum of 250&nbsp;MiB of RAM, which is also the default
+amount that deduplication uses.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The memory
+required for the UDS index is determined by the index type
+and the required size of the deduplication window and is
+controlled by the <b>allocation/vdo_use_sparse_index</b>
+setting.</p>
+
+<p style="margin-left:11%; margin-top: 1em">With enabled
+UDS sparse indexing, it relies on the temporal locality of
+data and attempts to retain only the most relevant index
+entries in memory and can maintain a deduplication window
+that is ten times larger than with dense while using the
+same amount of memory.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Although the
+sparse index provides the greatest coverage, the dense index
+provides more deduplication advice. For most workloads,
+given the same amount of memory, the difference in
+deduplication rates between dense and sparse indexes is
+negligible.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A dense index
+with 1&nbsp;GiB of RAM maintains a 1&nbsp;TiB deduplication
+window, while a sparse index with 1&nbsp;GiB of RAM
+maintains a 10&nbsp;TiB deduplication window. In general,
+1&nbsp;GiB is sufficient for 4&nbsp;TiB of physical space
+with a dense index and 40&nbsp;TiB with a sparse index.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>7. Storage
+space requirements</b> <br>
+You can configure a VDOPoolLV to use up to 256&nbsp;TiB of
+physical storage. Only a certain part of the physical
+storage is usable to store data. This section provides the
+calculations to determine the usable size of a VDO-managed
+volume.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The VDO target
+requires storage for two types of VDO metadata and for the
+UDS index:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p style="margin-top: 1em">The first type of VDO metadata
+uses approximately 1&nbsp;MiB for each 4&nbsp;GiB of
+physical storage plus an additional 1&nbsp;MiB per slab.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>The second type of VDO metadata consumes approximately
+1.25&nbsp;MiB for each 1&nbsp;GiB of logical storage,
+rounded up to the nearest slab.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>The amount of storage required for the UDS index depends
+on the type of index and the amount of RAM allocated to the
+index. For each 1&nbsp;GiB of RAM, a dense UDS index uses
+17&nbsp;GiB of storage and a sparse UDS index will use
+170&nbsp;GiB of storage.</p></td></tr>
+</table>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>lvm</b>(8),
+<b>lvm.conf</b>(5), <b>lvmconfig</b>(8), <b>lvcreate</b>(8),
+<b>lvconvert</b>(8), <b>lvchange</b>(8), <b>lvextend</b>(8),
+<b>lvreduce</b>(8), <b>lvresize</b>(8), <b>lvremove</b>(8),
+<b>lvs</b>(8),</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>vdo</b>(8),
+<b>vdoformat</b>(8), <b>vdostats</b>(8),</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>mkfs</b>(8)</p>
+<hr>
+</body>
+</html>

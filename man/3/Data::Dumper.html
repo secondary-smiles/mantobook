@@ -1,0 +1,1022 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:33 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Data::Dumper</title>
+
+</head>
+<body>
+<h1>Data::Dumper</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Data::Dumper
+&minus; stringified perl data structures, suitable for both
+printing and &quot;eval&quot;</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Data::Dumper; <br>
+# simple procedural interface <br>
+print Dumper($foo, $bar); <br>
+# extended usage with names <br>
+print Data::Dumper&minus;&gt;Dump([$foo, $bar], [qw(foo
+*ary)]); <br>
+# configuration variables <br>
+{ <br>
+local $Data::Dumper::Purity = 1; <br>
+eval Data::Dumper&minus;&gt;Dump([$foo, $bar], [qw(foo
+*ary)]); <br>
+} <br>
+# OO usage <br>
+$d = Data::Dumper&minus;&gt;new([$foo, $bar], [qw(foo
+*ary)]); <br>
+... <br>
+print $d&minus;&gt;Dump; <br>
+... <br>
+
+$d&minus;&gt;Purity(1)&minus;&gt;Terse(1)&minus;&gt;Deepcopy(1);
+<br>
+eval $d&minus;&gt;Dump;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Given a list of
+scalars or reference variables, writes out their contents in
+perl syntax. The references can also be objects. The content
+of each variable is output in a single Perl statement.
+Handles self-referential structures correctly.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The return
+value can be &quot;eval&quot;ed to get back an identical
+copy of the original reference structure. (Please do
+consider the security implications of eval&rsquo;ing code
+from untrusted sources!)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Any references
+that are the same as one of those passed in will be named
+$VAR<i>n</i> (where <i>n</i> is a numeric suffix), and other
+duplicate references to substructures within $VAR<i>n</i>
+will be appropriately labeled using arrow notation. You can
+specify names for individual values to be dumped if you use
+the &quot;Dump()&quot; method, or you can change the default
+$VAR prefix to something else. See $Data::Dumper::Varname
+and $Data::Dumper::Terse below.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default
+output of self-referential structures can be
+&quot;eval&quot;ed, but the nested references to
+$VAR<i>n</i> will be undefined, since a recursive structure
+cannot be constructed using one Perl statement. You should
+set the &quot;Purity&quot; flag to 1 to get additional
+statements that will correctly fill in these references.
+Moreover, if &quot;eval&quot;ed when strictures are in
+effect, you need to ensure that any variables it accesses
+are previously declared.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the extended
+usage form, the references to be dumped can be given
+user-specified names. If a name begins with a &quot;*&quot;,
+the output will describe the dereferenced type of the
+supplied reference for hashes and arrays, and coderefs.
+Output of names will be avoided where possible if the
+&quot;Terse&quot; flag is set.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In many cases,
+methods that are used to set the internal state of the
+object will return the object itself, so method calls can be
+conveniently chained together.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Several styles
+of output are possible, all controlled by setting the
+&quot;Indent&quot; flag. See &quot;Configuration Variables
+or Methods&quot; below for details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Methods</b>
+<i><small><br>
+PACKAGE</small></i> &minus;&gt;new(
+<i><small>ARRAYREF</small> [</i>, <i><small>ARRAYREF</small>
+]</i>)</p>
+
+<p style="margin-left:17%;">Returns a newly created
+&quot;Data::Dumper&quot; object. The first argument is an
+anonymous array of values to be dumped. The optional second
+argument is an anonymous array of names for the values. The
+names need not have a leading &quot;$&quot; sign, and must
+be comprised of alphanumeric characters. You can begin a
+name with a &quot;*&quot; to specify that the dereferenced
+type must be dumped instead of the reference itself, for
+<small>ARRAY</small> and <small>HASH</small> references.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The prefix
+specified by $Data::Dumper::Varname will be used with a
+numeric suffix if the name for a value is undefined.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Data::Dumper
+will catalog all references encountered while dumping the
+values. Cross-references (in the form of names of
+substructures in perl syntax) will be inserted at all
+possible points, preserving any structural interdependencies
+in the original set of values. Structure traversal is
+depth-first, and proceeds in order from the first supplied
+value to the last.</p>
+
+<p style="margin-left:11%;"><i>$OBJ</i>&minus;&gt;Dump
+<i>or <small>PACKAGE</small></i> &minus;&gt;Dump(
+<i><small>ARRAYREF</small> [</i>, <i><small>ARRAYREF</small>
+]</i>)</p>
+
+<p style="margin-left:17%;">Returns the stringified form of
+the values stored in the object (preserving the order in
+which they were supplied to &quot;new&quot;), subject to the
+configuration options below. In a list context, it returns a
+list of strings corresponding to the supplied values.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The second
+form, for convenience, simply calls the &quot;new&quot;
+method on its arguments before dumping the object
+immediately.</p>
+
+
+<p style="margin-left:11%;"><i>$OBJ</i>&minus;&gt;Seen(<i>[
+<small>HASHREF</small> ]</i>)</p>
+
+<p style="margin-left:17%;">Queries or adds to the internal
+table of already encountered references. You must use
+&quot;Reset&quot; to explicitly clear the table if needed.
+Such references are not dumped; instead, their names are
+inserted wherever they are encountered subsequently. This is
+useful especially for properly dumping subroutine
+references.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Expects an
+anonymous hash of name =&gt; value pairs. Same rules apply
+for names as in &quot;new&quot;. If no argument is supplied,
+will return the &quot;seen&quot; list of name =&gt; value
+pairs, in a list context. Otherwise, returns the object
+itself.</p>
+
+
+<p style="margin-left:11%;"><i>$OBJ</i>&minus;&gt;Values(<i>[
+<small>ARRAYREF</small> ]</i>)</p>
+
+<p style="margin-left:17%;">Queries or replaces the
+internal array of values that will be dumped. When called
+without arguments, returns the values as a list. When called
+with a reference to an array of replacement values, returns
+the object itself. When called with any other type of
+argument, dies.</p>
+
+
+<p style="margin-left:11%;"><i>$OBJ</i>&minus;&gt;Names(<i>[
+<small>ARRAYREF</small> ]</i>)</p>
+
+<p style="margin-left:17%;">Queries or replaces the
+internal array of user supplied names for the values that
+will be dumped. When called without arguments, returns the
+names. When called with an array of replacement names,
+returns the object itself. If the number of replacement
+names exceeds the number of values to be named, the excess
+names will not be used. If the number of replacement names
+falls short of the number of values to be named, the list of
+replacement names will be exhausted and remaining values
+will not be renamed. When called with any other type of
+argument, dies.</p>
+
+
+<p style="margin-left:11%;"><i>$OBJ</i>&minus;&gt;Reset</p>
+
+<p style="margin-left:17%;">Clears the internal table of
+&quot;seen&quot; references and returns the object
+itself.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Functions</b>
+<br>
+Dumper( <i><small>LIST</small></i> )</p>
+
+<p style="margin-left:17%;">Returns the stringified form of
+the values in the list, subject to the configuration options
+below. The values will be named $VAR<i>n</i> in the output,
+where <i>n</i> is a numeric suffix. Will return a list of
+strings in a list context.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Configuration
+Variables or Methods</b> <br>
+Several configuration variables can be used to control the
+kind of output generated when using the procedural
+interface. These variables are usually &quot;local&quot;ized
+in a block so that other parts of the code are not affected
+by the change.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These variables
+determine the default state of the object created by calling
+the &quot;new&quot; method, but cannot be used to alter the
+state of the object thereafter. The equivalent method names
+should be used instead to query or set the internal state of
+the object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The method
+forms return the object itself when called with arguments,
+so that they can be chained together nicely.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="75%">
+
+
+<p>$Data::Dumper::Indent <i>or
+$OBJ</i>&minus;&gt;Indent(<i>[ <small>NEWVAL</small>
+]</i>)</p> </td>
+<td width="8%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Controls the
+style of indentation. It can be set to 0, 1, 2 or 3. Style 0
+spews output without any newlines, indentation, or spaces
+between list items. It is the most compact format possible
+that can still be called valid perl. Style 1 outputs a
+readable form with newlines but no fancy indentation (each
+level in the structure is simply indented by a fixed amount
+of whitespace). Style 2 (the default) outputs a very
+readable form which lines up the hash keys. Style 3 is like
+style 2, but also annotates the elements of arrays with
+their index (but the comment is on its own line, so array
+output consumes twice the number of lines). Style 2 is the
+default.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Trailingcomma
+<i>or $OBJ</i>&minus;&gt;Trailingcomma(<i>[
+<small>NEWVAL</small> ]</i>)</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Controls
+whether a comma is added after the last element of an array
+or hash. Even when true, no comma is added between the last
+element of an array or hash and a closing bracket when they
+appear on the same line. The default is false.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="75%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Purity <i>or
+$OBJ</i>&minus;&gt;Purity(<i>[ <small>NEWVAL</small>
+]</i>)</p> </td>
+<td width="8%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Controls the
+degree to which the output can be &quot;eval&quot;ed to
+recreate the supplied reference structures. Setting it to 1
+will output additional perl statements that will correctly
+recreate nested references. The default is 0.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="66%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Pad <i>or
+$OBJ</i>&minus;&gt;Pad(<i>[ <small>NEWVAL</small> ]</i>)</p></td>
+<td width="17%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Specifies the
+string that will be prefixed to every line of the output.
+Empty string by default.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Varname <i>or
+$OBJ</i>&minus;&gt;Varname(<i>[ <small>NEWVAL</small>
+]</i>)</p> </td>
+<td width="5%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Contains the
+prefix to use for tagging variable names in the output. The
+default is &quot; <small>VAR&quot;.</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="72%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Useqq <i>or
+$OBJ</i>&minus;&gt;Useqq(<i>[ <small>NEWVAL</small>
+]</i>)</p> </td>
+<td width="11%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">When set,
+enables the use of double quotes for representing string
+values. Whitespace other than space will be represented as
+&quot;[\n\t\r]&quot;, &quot;unsafe&quot; characters will be
+backslashed, and unprintable characters will be output as
+quoted octal integers. The default is 0.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="72%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Terse <i>or
+$OBJ</i>&minus;&gt;Terse(<i>[ <small>NEWVAL</small>
+]</i>)</p> </td>
+<td width="11%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">When set,
+Data::Dumper will emit single, non-self-referential values
+as atoms/terms rather than statements. This means that the
+$VAR<i>n</i> names will be avoided where possible, but be
+advised that such output may not always be parseable by
+&quot;eval&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Freezer <i>or</i>
+$ <i><small>OBJ</small></i> &minus;&gt;Freezer(<i>[
+<small>NEWVAL</small> ]</i>)</p></td>
+<td width="5%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Can be set to a
+method name, or to an empty string to disable the feature.
+Data::Dumper will invoke that method via the object before
+attempting to stringify it. This method can alter the
+contents of the object (if, for instance, it contains data
+allocated from C), and even rebless it in a different
+package. The client is responsible for making sure the
+specified method can be called via the object, and that the
+object ends up containing only perl data types after the
+method has been called. Defaults to an empty string.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If an object
+does not support the method specified (determined using
+<b>UNIVERSAL::can()</b>) then the call will be skipped. If
+the method dies a warning will be generated.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Toaster <i>or</i>
+$ <i><small>OBJ</small></i> &minus;&gt;Toaster(<i>[
+<small>NEWVAL</small> ]</i>)</p></td>
+<td width="5%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Can be set to a
+method name, or to an empty string to disable the feature.
+Data::Dumper will emit a method call for any objects that
+are to be dumped using the syntax &quot;bless(DATA,
+CLASS)&minus;&gt;METHOD()&quot;. Note that this means that
+the method specified will have to perform any modifications
+required on the object (like creating new state within it,
+and/or reblessing it in a different package) and then return
+it. The client is responsible for making sure the method can
+be called via the object, and that it returns a valid
+object. Defaults to an empty string.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Deepcopy
+<i>or</i> $ <i><small>OBJ</small></i>
+&minus;&gt;Deepcopy(<i>[ <small>NEWVAL</small> ]</i>)</p></td>
+<td width="2%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Can be set to a
+boolean value to enable deep copies of structures.
+Cross-referencing will then only be done when absolutely
+essential (i.e., to break reference cycles). Default is
+0.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Quotekeys
+<i>or</i> $ <i><small>OBJ</small></i>
+&minus;&gt;Quotekeys(<i>[ <small>NEWVAL</small> ]</i>)</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Can be set to a
+boolean value to control whether hash keys are quoted. A
+defined false value will avoid quoting hash keys when it
+looks like a simple string. Default is 1, which will always
+enclose hash keys in quotes.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="72%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Bless <i>or</i> $
+<i><small>OBJ</small></i> &minus;&gt;Bless(<i>[
+<small>NEWVAL</small> ]</i>)</p></td>
+<td width="11%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Can be set to a
+string that specifies an alternative to the
+&quot;bless&quot; builtin operator used to create objects. A
+function with the specified name should exist, and should
+accept the same arguments as the builtin. Default is
+&quot;bless&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Pair <i>or</i> $
+<i><small>OBJ</small></i> &minus;&gt;Pair(<i>[
+<small>NEWVAL</small> ]</i>)</p></td>
+<td width="14%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Can be set to a
+string that specifies the separator between hash keys and
+values. To dump nested hash, array and scalar values to
+JavaScript, use: &quot;$Data::Dumper::Pair = ' : ';&quot;.
+Implementing &quot;bless&quot; in JavaScript is left as an
+exercise for the reader. A function with the specified name
+exists, and accepts the same arguments as the builtin.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Default is:
+&quot; =&gt; &quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Maxdepth
+<i>or</i> $ <i><small>OBJ</small></i>
+&minus;&gt;Maxdepth(<i>[ <small>NEWVAL</small> ]</i>)</p></td>
+<td width="2%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Can be set to a
+positive integer that specifies the depth beyond which we
+don&rsquo;t venture into a structure. Has no effect when
+&quot;Data::Dumper::Purity&quot; is set. (Useful in debugger
+when we often don&rsquo;t want to see more than enough).
+Default is 0, which means there is no maximum depth.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Maxrecurse
+<i>or</i> $ <i><small>OBJ</small></i>
+&minus;&gt;Maxrecurse(<i>[ <small>NEWVAL</small> ]</i>)</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Can be set to a
+positive integer that specifies the depth beyond which
+recursion into a structure will throw an exception. This is
+intended as a security measure to prevent perl running out
+of stack space when dumping an excessively deep structure.
+Can be set to 0 to remove the limit. Default is 1000.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Useperl <i>or</i>
+$ <i><small>OBJ</small></i> &minus;&gt;Useperl(<i>[
+<small>NEWVAL</small> ]</i>)</p></td>
+<td width="5%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Can be set to a
+boolean value which controls whether the pure Perl
+implementation of &quot;Data::Dumper&quot; is used. The
+&quot;Data::Dumper&quot; module is a dual implementation,
+with almost all functionality written in both pure Perl and
+also in <small>XS</small> (&rsquo;C&rsquo;). Since the
+<small>XS</small> version is much faster, it will always be
+used if possible. This option lets you override the default
+behavior, usually for testing purposes only. Default is 0,
+which means the <small>XS</small> implementation will be
+used if possible.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Sortkeys
+<i>or</i> $ <i><small>OBJ</small></i>
+&minus;&gt;Sortkeys(<i>[ <small>NEWVAL</small> ]</i>)</p></td>
+<td width="2%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Can be set to a
+boolean value to control whether hash keys are dumped in
+sorted order. A true value will cause the keys of all hashes
+to be dumped in Perl&rsquo;s default sort order. Can also be
+set to a subroutine reference which will be called for each
+hash that is dumped. In this case &quot;Data::Dumper&quot;
+will call the subroutine once for each hash, passing it the
+reference of the hash. The purpose of the subroutine is to
+return a reference to an array of the keys that will be
+dumped, in the order that they should be dumped. Using this
+feature, you can control both the order of the keys, and
+which keys are actually used. In other words, this
+subroutine acts as a filter by which you can exclude certain
+keys from being dumped. Default is 0, which means that hash
+keys are not sorted.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Deparse <i>or</i>
+$ <i><small>OBJ</small></i> &minus;&gt;Deparse(<i>[
+<small>NEWVAL</small> ]</i>)</p></td>
+<td width="5%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Can be set to a
+boolean value to control whether code references are turned
+into perl source code. If set to a true value,
+&quot;B::Deparse&quot; will be used to get the source of the
+code reference. In older versions, using this option imposed
+a significant performance penalty when dumping parts of a
+data structure other than code references, but that is no
+longer the case.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Caution : use
+this option only if you know that your coderefs will be
+properly reconstructed by &quot;B::Deparse&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">$Data::Dumper::Sparseseen
+<i>or</i> $ <i><small>OBJ</small></i>
+&minus;&gt;Sparseseen(<i>[ <small>NEWVAL</small> ]</i>)</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+Data::Dumper builds up the &quot;seen&quot; hash of scalars
+that it has encountered during serialization. This is very
+expensive. This seen hash is necessary to support and even
+just detect circular references. It is exposed to the user
+via the &quot;Seen()&quot; call both for writing and
+reading.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you, as a
+user, do not need explicit access to the &quot;seen&quot;
+hash, then you can set the &quot;Sparseseen&quot; option to
+allow Data::Dumper to eschew building the &quot;seen&quot;
+hash for scalars that are known not to possess more than one
+reference. This speeds up serialization considerably if you
+use the <small>XS</small> implementation.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note: If you
+turn on &quot;Sparseseen&quot;, then you must not rely on
+the content of the seen hash since its contents will be an
+implementation detail!</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Exports</b>
+<br>
+Dumper</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Run these code
+snippets to get a quick feel for the behavior of this
+module. When you are through with these examples, you may
+want to add or change the various configuration variables
+described above, to see their behavior. (See the testsuite
+in the Data::Dumper distribution for more examples.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Data::Dumper; <br>
+package Foo; <br>
+sub new {bless {'a' =&gt; 1, 'b' =&gt; sub { return
+&quot;foo&quot; }}, $_[0]}; <br>
+package Fuz; # a weird REF&minus;REF&minus;SCALAR object
+<br>
+sub new {bless \($_ = \ 'fu\'z'), $_[0]}; <br>
+package main; <br>
+$foo = Foo&minus;&gt;new; <br>
+$fuz = Fuz&minus;&gt;new; <br>
+$boo = [ 1, [], &quot;abcd&quot;, \*foo, <br>
+{1 =&gt; 'a', 023 =&gt; 'b', 0x45 =&gt; 'c'}, <br>
+\\&quot;p\q\'r&quot;, $foo, $fuz]; <br>
+######## <br>
+# simple usage <br>
+######## <br>
+$bar = eval(Dumper($boo)); <br>
+print($@) if $@; <br>
+print Dumper($boo), Dumper($bar); # pretty print (no array
+indices) <br>
+$Data::Dumper::Terse = 1; # don't output names where
+feasible <br>
+$Data::Dumper::Indent = 0; # turn off all pretty print <br>
+print Dumper($boo), &quot;\n&quot;; <br>
+$Data::Dumper::Indent = 1; # mild pretty print <br>
+print Dumper($boo); <br>
+$Data::Dumper::Indent = 3; # pretty print with array indices
+<br>
+print Dumper($boo); <br>
+$Data::Dumper::Useqq = 1; # print strings in double quotes
+<br>
+print Dumper($boo); <br>
+$Data::Dumper::Pair = &quot; : &quot;; # specify hash
+key/value separator <br>
+print Dumper($boo); <br>
+######## <br>
+# recursive structures <br>
+######## <br>
+@c = ('c'); <br>
+$c = \@c; <br>
+$b = {}; <br>
+$a = [1, $b, $c]; <br>
+$b&minus;&gt;{a} = $a; <br>
+$b&minus;&gt;{b} = $a&minus;&gt;[1]; <br>
+$b&minus;&gt;{c} = $a&minus;&gt;[2]; <br>
+print Data::Dumper&minus;&gt;Dump([$a,$b,$c], [qw(a b c)]);
+<br>
+$Data::Dumper::Purity = 1; # fill in the holes for eval <br>
+print Data::Dumper&minus;&gt;Dump([$a, $b], [qw(*a b)]); #
+print as @a <br>
+print Data::Dumper&minus;&gt;Dump([$b, $a], [qw(*b a)]); #
+print as %b <br>
+$Data::Dumper::Deepcopy = 1; # avoid cross&minus;refs <br>
+print Data::Dumper&minus;&gt;Dump([$b, $a], [qw(*b a)]);
+<br>
+$Data::Dumper::Purity = 0; # avoid cross&minus;refs <br>
+print Data::Dumper&minus;&gt;Dump([$b, $a], [qw(*b a)]);
+<br>
+######## <br>
+# deep structures <br>
+######## <br>
+$a = &quot;pearl&quot;; <br>
+$b = [ $a ]; <br>
+$c = { 'b' =&gt; $b }; <br>
+$d = [ $c ]; <br>
+$e = { 'd' =&gt; $d }; <br>
+$f = { 'e' =&gt; $e }; <br>
+print Data::Dumper&minus;&gt;Dump([$f], [qw(f)]); <br>
+$Data::Dumper::Maxdepth = 3; # no deeper than 3 refs down
+<br>
+print Data::Dumper&minus;&gt;Dump([$f], [qw(f)]); <br>
+######## <br>
+# object&minus;oriented usage <br>
+######## <br>
+$d = Data::Dumper&minus;&gt;new([$a,$b], [qw(a b)]); <br>
+$d&minus;&gt;Seen({'*c' =&gt; $c}); # stash a ref without
+printing it <br>
+$d&minus;&gt;Indent(3); <br>
+print $d&minus;&gt;Dump; <br>
+$d&minus;&gt;Reset&minus;&gt;Purity(0); # empty the seen
+cache <br>
+print join &quot;&minus;&minus;&minus;&minus;\n&quot;,
+$d&minus;&gt;Dump; <br>
+######## <br>
+# persistence <br>
+######## <br>
+package Foo; <br>
+sub new { bless { state =&gt; 'awake' }, shift } <br>
+sub Freeze { <br>
+my $s = shift; <br>
+print STDERR &quot;preparing to sleep\n&quot;; <br>
+$s&minus;&gt;{state} = 'asleep'; <br>
+return bless $s, 'Foo::ZZZ'; <br>
+} <br>
+package Foo::ZZZ; <br>
+sub Thaw { <br>
+my $s = shift; <br>
+print STDERR &quot;waking up\n&quot;; <br>
+$s&minus;&gt;{state} = 'awake'; <br>
+return bless $s, 'Foo'; <br>
+} <br>
+package main; <br>
+use Data::Dumper; <br>
+$a = Foo&minus;&gt;new; <br>
+$b = Data::Dumper&minus;&gt;new([$a], ['c']); <br>
+$b&minus;&gt;Freezer('Freeze'); <br>
+$b&minus;&gt;Toaster('Thaw'); <br>
+$c = $b&minus;&gt;Dump; <br>
+print $c; <br>
+$d = eval $c; <br>
+print Data::Dumper&minus;&gt;Dump([$d], ['d']); <br>
+######## <br>
+# symbol substitution (useful for recreating CODE refs) <br>
+######## <br>
+sub foo { print &quot;foo speaking\n&quot; } <br>
+*other = \&amp;foo; <br>
+$bar = [ \&amp;other ]; <br>
+$d =
+Data::Dumper&minus;&gt;new([\&amp;other,$bar],['*other','bar']);
+<br>
+$d&minus;&gt;Seen({ '*foo' =&gt; \&amp;foo }); <br>
+print $d&minus;&gt;Dump; <br>
+######## <br>
+# sorting and filtering hash keys <br>
+######## <br>
+$Data::Dumper::Sortkeys = \&amp;my_filter; <br>
+my $foo = { map { (ord, &quot;$_$_$_&quot;) } 'I'..'Q' };
+<br>
+my $bar = { %$foo }; <br>
+my $baz = { reverse %$foo }; <br>
+print Dumper [ $foo, $bar, $baz ]; <br>
+sub my_filter { <br>
+my ($hash) = @_; <br>
+# return an array ref containing the hash keys to dump <br>
+# in the order that you want them to be dumped <br>
+return [ <br>
+# Sort the keys of %$foo in reverse numeric order <br>
+$hash eq $foo ? (sort {$b &lt;=&gt; $a} keys %$hash) : <br>
+# Only dump the odd number keys of %$bar <br>
+$hash eq $bar ? (grep {$_ % 2} keys %$hash) : <br>
+# Sort keys in default order for all other hashes <br>
+(sort keys %$hash) <br>
+]; <br>
+}</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Due to
+limitations of Perl subroutine call semantics, you cannot
+pass an array or hash. Prepend it with a &quot;\&quot; to
+pass its reference instead. This will be remedied in time,
+now that Perl has subroutine prototypes. For now, you need
+to use the extended usage form, and prepend the name with a
+&quot;*&quot; to output it as a hash or array.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Data::Dumper&quot;
+cheats with <small>CODE</small> references. If a code
+reference is encountered in the structure being processed
+(and if you haven&rsquo;t set the &quot;Deparse&quot; flag),
+an anonymous subroutine that contains the string
+&rsquo;&quot; <small>DUMMY&quot;</small> &rsquo; will be
+inserted in its place, and a warning will be printed if
+&quot;Purity&quot; is set. You can &quot;eval&quot; the
+result, but bear in mind that the anonymous sub that gets
+created is just a placeholder. Even using the
+&quot;Deparse&quot; flag will in some cases produce results
+that behave differently after being passed to
+&quot;eval&quot;; see the documentation for B::Deparse.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>SCALAR</small>
+objects have the weirdest looking &quot;bless&quot;
+workaround.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>NOTE</small></b>
+<br>
+Different runs of Perl will have different ordering of hash
+keys. The change was done for greater security, see
+&quot;Algorithmic Complexity Attacks&quot; in perlsec. This
+means that different runs of Perl will have different
+Data::Dumper outputs if the data contains hashes. If you
+need to have identical Data::Dumper outputs from different
+runs of Perl, use the environment variable
+<small>PERL_HASH_SEED,</small> see &quot;
+<small>PERL_HASH_SEED&quot;</small> in perlrun. Using this
+restores the old (platform-specific) ordering: an even
+prettier solution might be to use the &quot;Sortkeys&quot;
+filter of Data::Dumper.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Gurusamy
+Sarathy gsar@activestate.com</p>
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (c)
+1996&minus;2019 Gurusamy Sarathy. All rights reserved. This
+program is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Version
+2.184</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>perl</b>(1)</p>
+<hr>
+</body>
+</html>

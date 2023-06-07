@@ -1,0 +1,746 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:07 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>IOCTL-XFS-BULKSTAT</title>
+
+</head>
+<body>
+<h1>ioctl_xfs_bulkstat</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">ioctl_xfs_bulkstat
+&minus; query information for a batch of XFS inodes</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;xfs/xfs_fs.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>int
+ioctl(int</b> <i>fd</i><b>, XFS_IOC_BULKSTAT, struct
+xfs_bulkstat_req *</b><i>arg</i><b>);</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Query stat
+information for a group of XFS inodes. This ioctl uses
+<b>struct xfs_bulkstat_req</b> to set up a bulk transfer
+from the kernel:</p>
+
+<p style="margin-left:17%; margin-top: 1em">struct
+xfs_bulkstat_req {</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>struct xfs_bulk_ireq hdr;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>struct xfs_bulkstat bulkstat[];</p></td></tr>
+</table>
+
+<p style="margin-left:17%;">};</p>
+
+<p style="margin-left:11%; margin-top: 1em">See below for
+the <b>xfs_bulkstat</b> structure definition.</p>
+
+<p style="margin-left:17%; margin-top: 1em">struct
+xfs_bulk_ireq {</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>uint64_t ino;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>uint32_t flags;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>uint32_t icount;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>uint32_t ocount;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>uint32_t agno;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>uint64_t reserved[5];</p></td></tr>
+</table>
+
+<p style="margin-left:17%;">};</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>hdr.ino</i>
+should be set to the number of the first inode for which the
+caller wants information; or zero to start with the first
+inode in the filesystem; or a special value if
+<b>XFS_BULK_IREQ_SPECIAL</b> is set in the flags field. Note
+that this is a different semantic than the <b>lastip</b> in
+the old <b>FSBULKSTAT</b> ioctl. After the call, this value
+will be set to the number of the next inode for which
+information could supplied. This sets up the next call for
+an iteration loop.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+<b>XFS_BULK_IREQ_SPECIAL</b> flag is set in the flags field,
+the <i>ino</i> field is interpreted according to the
+following special values:</p>
+
+
+<p style="margin-left:17%;"><b>XFS_BULK_IREQ_SPECIAL_ROOT</b></p>
+
+<p style="margin-left:28%;">Return stat information for the
+root directory inode.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>hdr.flags</i>
+is a bit set of operational flags:</p>
+
+<p style="margin-left:17%;"><b>XFS_BULK_IREQ_AGNO</b></p>
+
+<p style="margin-left:28%;">If this is set, the call will
+only return results for the allocation group (AG) set in
+<b>hdr.agno</b>. If <b>hdr.ino</b> is set to zero, results
+will be returned starting with the first inode in the AG.
+This flag may not be set at the same time as the
+<b>XFS_BULK_IREQ_SPECIAL</b> flag.</p>
+
+
+<p style="margin-left:17%;"><b>XFS_BULK_IREQ_SPECIAL</b></p>
+
+<p style="margin-left:28%;">If this is set, results will be
+returned for only the special inode specified in the
+<b>hdr.ino</b> field. This flag may not be set at the same
+time as the <b>XFS_BULK_IREQ_AGNO</b> flag.</p>
+
+
+<p style="margin-left:17%;"><b>XFS_BULK_IREQ_NREXT64</b></p>
+
+<p style="margin-left:28%;">If this is set, data fork
+extent count is returned via bs_extents64 field and 0 is
+assigned to bs_extents. Otherwise, data fork extent count is
+returned via bs_extents field and bs_extents64 is assigned a
+value of 0. In the second case, bs_extents is set to (2^31 -
+1) if data fork extent count is larger than 2^31. This flag
+may be set independently of whether other flags have been
+set.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>hdr.icount</i>
+is the maximum number of records to return. This should be
+the size of the array that comes after the header.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>hdr.ocount</i>
+will be set to the number of records actually returned.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>hdr.agno</i>
+is the number of the allocation group (AG) for which we want
+results. If the <b>XFS_BULK_IREQ_AGNO</b> flag is not set,
+this field is ignored.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>hdr.reserved</i>
+must be set to zero.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bulkstat</i>
+is an array of <b>struct xfs_bulkstat</b> which is described
+below. The array must have at least <i>icount</i>
+elements.</p>
+
+<p style="margin-left:17%; margin-top: 1em">struct
+xfs_bulkstat {</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint64_t bs_ino;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint64_t bs_size;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint64_t bs_blocks;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint64_t bs_xflags;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint64_t bs_atime;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint64_t bs_mtime;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint64_t bs_ctime;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint64_t bs_btime;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_gen;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_uid;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_gid;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_projectid;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_atime_nsec;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_mtime_nsec;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_ctime_nsec;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_btime_nsec;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_blksize;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_rdev;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_cowextsize_blks;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_extsize_blks;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_nlink;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_extents;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint32_t bs_aextents;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint16_t bs_version;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint16_t bs_forkoff;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint16_t bs_sick;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint16_t bs_checked;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint16_t bs_mode;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint16_t bs_pad2;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint64_t bs_extents64;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="85%">
+
+
+<p>uint64_t bs_pad[6];</p></td></tr>
+</table>
+
+<p style="margin-left:17%;">};</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_ino</i>
+is the inode number of this record.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_size</i>
+is the size of the file, in bytes.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_blocks</i>
+is the number of filesystem blocks allocated to this file,
+including metadata.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_xflags</i>
+tell us what extended flags are set this inode. These flags
+are the same values as those defined in the <b>XFS INODE
+FLAGS</b> section of the <b>ioctl_xfs_fsgetxattr</b>(2)
+manpage.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_atime</i>
+is the last time this file was accessed, in seconds.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_mtime</i>
+is the last time the contents of this file were modified, in
+seconds.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_ctime</i>
+is the last time this inode record was modified, in
+seconds.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_btime</i>
+is the time this inode record was created, in seconds.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_gen</i>
+is the generation number of the inode record.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_uid</i>
+is the user id.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_gid</i>
+is the group id.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_projectid</i>
+is the the project id.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_atime_nsec</i>
+is the nanoseconds component of the last time this file was
+accessed.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_mtime_nsec</i>
+is the nanoseconds component of the last time the contents
+of this file were modified.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_ctime_nsec</i>
+is the nanoseconds component of the last time this inode
+record was modified.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_btime_nsec</i>
+is the nanoseconds component of the time this inode record
+was created.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_blksize</i>
+is the size of a data block for this file, in units of
+bytes.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_rdev</i>
+is the encoded device id if this is a special file.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_cowextsize_blks</i>
+is the Copy on Write extent size hint for this file, in
+units of data blocks.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_extsize_blks</i>
+is the extent size hint for this file, in units of data
+blocks.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_nlink</i>
+is the number of hard links to this inode.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_extents</i>
+is the number of storage mappings associated with this
+file&rsquo;s data.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_aextents</i>
+is the number of storage mappings associated with this
+file&rsquo;s extended attributes.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_version</i>
+is the version of this data structure. This will be set to
+<i>XFS_BULKSTAT_VERSION_V5</i> by the kernel.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_forkoff</i>
+is the offset of the attribute fork in the inode record, in
+bytes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The fields
+<i>bs_sick</i> and <i>bs_checked</i> indicate the relative
+health of various allocation group metadata. Please see the
+section <b>XFS INODE METADATA HEALTH REPORTING</b> for more
+information.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_mode</i>
+is the file type and mode.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bs_pad[7]</i>
+is zeroed.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On error,
+&minus;1 is returned, and <i>errno</i> is set to indicate
+the error.</p>
+
+<h2>XFS INODE METADATA HEALTH REPORTING
+<a name="XFS INODE METADATA HEALTH REPORTING"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The online
+filesystem checking utility scans inode metadata and records
+what it finds in the kernel incore state. The following
+scheme is used for userspace to read the incore health
+status of an inode:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>If a given sick flag is set in <i>bs_sick</i>, then that
+piece of metadata has been observed to be damaged. The same
+bit should be set in <i>bs_checked</i>.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>If a given sick flag is set in <i>bs_checked</i> but is
+not set in <i>bs_sick</i>, then that piece of metadata has
+been checked and is not faulty.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="2%"></td>
+<td width="86%">
+
+
+<p>If a given sick flag is not set in <i>bs_checked</i>,
+then no conclusion can be made.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+flags apply to these fields:</p>
+
+<p style="margin-left:17%;"><b>XFS_BS_SICK_INODE</b></p>
+
+<p style="margin-left:28%;">The inode&rsquo;s record
+itself.</p>
+
+<p style="margin-left:17%;"><b>XFS_BS_SICK_BMBTD</b></p>
+
+<p style="margin-left:28%;">File data extent mappings.</p>
+
+<p style="margin-left:17%;"><b>XFS_BS_SICK_BMBTA</b></p>
+
+<p style="margin-left:28%;">Extended attribute extent
+mappings.</p>
+
+<p style="margin-left:17%;"><b>XFS_BS_SICK_BMBTC</b></p>
+
+<p style="margin-left:28%;">Copy on Write staging extent
+mappings.</p>
+
+<p style="margin-left:17%;"><b>XFS_BS_SICK_DIR</b></p>
+
+<p style="margin-left:28%;">Directory information.</p>
+
+<p style="margin-left:17%;"><b>XFS_BS_SICK_XATTR</b></p>
+
+<p style="margin-left:28%;">Extended attribute data.</p>
+
+<p style="margin-left:17%;"><b>XFS_BS_SICK_SYMLINK</b></p>
+
+<p style="margin-left:28%;">Symbolic link target.</p>
+
+<p style="margin-left:17%;"><b>XFS_BS_SICK_PARENT</b></p>
+
+<p style="margin-left:28%;">Parent pointers.</p>
+
+<h2>ERRORS
+<a name="ERRORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Error codes can
+be one of, but are not limited to, the following:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>EFAULT</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>The kernel was not able to copy into the userspace
+buffer.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>EFSBADCRC</b></p>
+
+<p style="margin-left:22%;">Metadata checksum validation
+failed while performing the query.</p>
+
+<p style="margin-left:11%;"><b>EFSCORRUPTED</b></p>
+
+<p style="margin-left:22%;">Metadata corruption was
+encountered while performing the query.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>EINVAL</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>One of the arguments was not valid.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>EIO</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>An I/O error was encountered while performing the
+query.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>ENOMEM</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>There was insufficient memory to perform the query.</p></td></tr>
+</table>
+
+<h2>CONFORMING TO
+<a name="CONFORMING TO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This API is
+specific to XFS filesystem on the Linux kernel.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ioctl</b>(2),
+<b>ioctl_xfs_fsgetxattr</b>(2)</p>
+<hr>
+</body>
+</html>

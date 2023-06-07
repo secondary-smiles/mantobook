@@ -1,0 +1,1757 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:51 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>HOMECTL</title>
+
+</head>
+<body>
+<h1>homectl</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">homectl &minus;
+Create, remove, change or inspect home directories</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="61%">
+
+
+<p style="margin-top: 1em"><b>homectl</b> [OPTIONS...]
+{COMMAND} [NAME...]</p></td>
+<td width="28%">
+</td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>homectl</b>
+may be used to create, remove, change or inspect a user's
+home directory. It's primarily a command interfacing with
+<b>systemd-homed.service</b>(8) which manages home
+directories of users.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Home
+directories managed by systemd&minus;homed.service are
+self&minus;contained, and thus include the user's full
+metadata record in the home's data storage itself, making
+them easy to migrate between machines. In particular, a home
+directory describes a matching user record, and every user
+record managed by systemd&minus;homed.service also implies
+existence and encapsulation of a home directory. The user
+account and home directory become the same concept.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+backing storage mechanisms are supported:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; An
+individual LUKS2 encrypted loopback file for a user, stored
+in /home/*.home. At login the file system contained in this
+files is mounted, after the LUKS2 encrypted volume has been
+attached. The user's password is identical to the encryption
+passphrase of the LUKS2 volume. Access to data without
+preceding user authentication is thus not possible, even for
+the system administrator. This storage mechanism provides
+the strongest data security and is thus recommended.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; Similar,
+but the LUKS2 encrypted file system is located on regular
+block device, such as an USB storage stick. In this mode
+home directories and all data they include are nicely
+migratable between machines, simply by plugging the USB
+stick into different systems at different times.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; An
+encrypted directory using &quot;fscrypt&quot; on file
+systems that support it (at the moment this is primarily
+&quot;ext4&quot;), located in /home/*.homedir. This
+mechanism also provides encryption, but substantially weaker
+than LUKS2, as most file system metadata is unprotected.
+Moreover it currently does not support changing user
+passwords once the home directory has been created.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+&quot;btrfs&quot; subvolume for each user, also located in
+/home/*.homedir. This provides no encryption, but good quota
+support.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+regular directory for each user, also located in
+/home/*.homedir. This provides no encryption, but is a
+suitable fallback available on all machines, even where
+LUKS2, &quot;fscrypt&quot; or &quot;btrfs&quot; support is
+not available.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; An
+individual Windows file share (CIFS) for each user.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+systemd&minus;homed.service and <b>homectl</b> will not
+manage &quot;classic&quot; UNIX user accounts as created
+with <b>useradd</b>(8) or similar tools. In particular, this
+functionality is not suitable for managing system users
+(i.e. users with a UID below 1000) but is exclusive to
+regular (&quot;human&quot;) users.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+users/home directories managed via
+<b>systemd&minus;homed.service</b> do not show up in
+/etc/passwd and similar files, they are synthesized via
+glibc NSS during runtime. They are thus resolvable and may
+be enumerated via the <b>getent</b>(1) tool.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This tool
+interfaces directly with systemd&minus;homed.service, and
+may execute specific commands on the home directories it
+manages. Since every home directory managed that way also
+defines a JSON user and group record these home directories
+may also be inspected and enumerated via
+<b>userdbctl</b>(1).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Home
+directories managed by systemd&minus;homed.service are
+usually in one of two states, or in a transition state
+between them: when &quot;active&quot; they are unlocked and
+mounted, and thus accessible to the system and its programs;
+when &quot;inactive&quot; they are not mounted and thus not
+accessible. Activation happens automatically at login of the
+user and usually can only complete after a password (or
+other authentication token) has been supplied. Deactivation
+happens after the user fully logged out. A home directory
+remains active as long as the user is logged in at least
+once, i.e. has at least one login session. When the user
+logs in a second time simultaneously the home directory
+remains active. It is deactivated only after the last of the
+user's sessions ends.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+general options are understood (further options that control
+the various properties of user records managed by
+systemd&minus;homed.service are documented further
+down):</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;identity=</b><i>FILE</i></p>
+
+<p style="margin-left:17%;">Read the user's JSON record
+from the specified file. If passed as &quot;&minus;&quot;
+read the user record from standard input. The supplied JSON
+object must follow the structure documented in
+<b><font color="#0000FF">JSON User Records</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">. This option may be used in
+conjunction with the <b>create</b> and <b>update</b>
+commands (see below), where it allows configuring the user
+record in JSON as&minus;is, instead of setting the
+individual user record properties (see below).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;json=</b><i>FORMAT</i>,
+<b>&minus;j</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Controls
+whether to output the user record in JSON format, if the
+<b>inspect</b> command (see below) is used. Takes one of
+&quot;pretty&quot;, &quot;short&quot; or &quot;off&quot;. If
+&quot;pretty&quot; human&minus;friendly whitespace and
+newlines are inserted in the output to make the JSON data
+more readable. If &quot;short&quot; all superfluous
+whitespace is suppressed. If &quot;off&quot; (the default)
+the user information is not shown in JSON format but in a
+friendly human readable formatting instead. The
+<b>&minus;j</b> option picks &quot;pretty&quot; when run
+interactively and &quot;short&quot; otherwise.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;export&minus;format=</b><i>FORMAT</i>,
+<b>&minus;E</b>, <b>&minus;EE</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">When used
+with the <b>inspect</b> verb in JSON mode (see above) may be
+used to suppress certain aspects of the JSON user record on
+output. Specifically, if &quot;stripped&quot; format is used
+the binding and runtime fields of the record are removed. If
+&quot;minimal&quot; format is used the cryptographic
+signature is removed too. If &quot;full&quot; format is used
+the full JSON record is shown (this is the default). This
+option is useful for copying an existing user record to a
+different system in order to create a similar user there
+with the same settings. Specifically: <b>homectl inspect
+&minus;EE | ssh root@othersystem homectl create
+&minus;i&minus;</b> may be used as simple command line for
+replicating a user on another host. <b>&minus;E</b> is
+equivalent to <b>&minus;j
+&minus;&minus;export&minus;format=stripped</b>,
+<b>&minus;EE</b> to <b>&minus;j
+&minus;&minus;export&minus;format=minimal</b>. Note that
+when replicating user accounts user records acquired in
+&quot;stripped&quot; mode will retain the original
+cryptographic signatures and thus may only be modified when
+the private key to update them is available on the
+destination machine. When replicating users in
+&quot;minimal&quot; mode, the signature is removed during
+the replication and thus the record will be implicitly
+signed with the key of the destination machine and may be
+updated there without any private key
+replication.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;H</b>,
+<b>&minus;&minus;host=</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Execute
+the operation remotely. Specify a hostname, or a username
+and hostname separated by &quot;@&quot;, to connect to. The
+hostname may optionally be suffixed by a port ssh is
+listening on, separated by &quot;:&quot;, and then a
+container name, separated by &quot;/&quot;, which connects
+directly to a specific container on the specified host. This
+will use SSH to talk to the remote machine manager instance.
+Container names may be enumerated with <b>machinectl
+&minus;H</b> <i>HOST</i>. Put IPv6 addresses in
+brackets.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;M</b>,
+<b>&minus;&minus;machine=</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Execute
+operation on a local container. Specify a container name to
+connect to, optionally prefixed by a user name to connect as
+and a separating &quot;@&quot; character. If the special
+string &quot;.host&quot; is used in place of the container
+name, a connection to the local system is made (which is
+useful to connect to a specific user's user bus:
+&quot;&minus;&minus;user
+&minus;&minus;machine=lennart@.host&quot;). If the
+&quot;@&quot; syntax is not used, the connection is made as
+root user. If the &quot;@&quot; syntax is used either the
+left hand side or the right hand side may be omitted (but
+not both) in which case the local user name and
+&quot;.host&quot; are implied.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;no&minus;pager</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Do not
+pipe output into a pager.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;no&minus;legend</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Do not
+print the legend, i.e. column headers and the footer with
+hints.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;no&minus;ask&minus;password</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Do not
+query the user for authentication for privileged
+operations.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;h</b>,
+<b>&minus;&minus;help</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Print a
+short help text and exit.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;version</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Print a
+short version string and exit.</font></p>
+
+<h2>USER RECORD PROPERTIES
+<a name="USER RECORD PROPERTIES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+following options control various properties of the user
+records/home directories that systemd&minus;homed.service
+manages. These switches may be used in conjunction with the
+<b>create</b> and <b>update</b> commands for configuring
+various aspects of the home directory and the user
+account:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;real&minus;name=</b><i>NAME</i>,
+<b>&minus;c</b> <i>NAME</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">The real
+name for the user. This corresponds with the GECOS field on
+classic UNIX NSS records.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;realm=</b><i>REALM</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">The realm
+for the user. The realm associates a user with a specific
+organization or installation, and allows distinguishing
+users of the same name defined in different contexts. The
+realm can be any string that also qualifies as valid DNS
+domain name, and it is recommended to use the organization's
+or installation's domain name for this purpose, but this is
+not enforced nor required. On each system only a single user
+of the same name may exist, and if a user with the same name
+and realm is seen it is assumed to refer to the same user
+while a user with the same name but different realm is
+considered a different user. Note that this means that two
+users sharing the same name but with distinct realms are not
+allowed on the same system. Assigning a realm to a user is
+optional.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;email&minus;address=</b><i>EMAIL</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes an
+electronic mail address to associate with the user. On
+log&minus;in the <i>$EMAIL</i> environment variable is
+initialized from this value.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;location=</b><i>TEXT</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes
+location specification for this user. This is
+free&minus;form text, which might or might not be usable by
+geo&minus;location applications. Example:
+<b>&minus;&minus;location=&quot;Berlin, Germany&quot;</b> or
+<b>&minus;&minus;location=&quot;Basement, Room
+3a&quot;</b></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;icon&minus;name=</b><i>ICON</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes an
+icon name to associate with the user, following the scheme
+defined by the</font> <b><font color="#0000FF">Icon Naming
+Specification</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;home&minus;dir=</b><i>PATH</i>,
+<b>&minus;d</b><i>PATH</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+path to use as home directory for the user. Note that this
+is the directory the user's home directory is mounted to
+while the user is logged in. This is not where the user's
+data is actually stored, see
+<b>&minus;&minus;image&minus;path=</b> for that. If not
+specified defaults to /home/$USER.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;uid=</b><i>UID</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+preferred numeric UNIX UID to assign this user. If a user is
+to be created with the specified UID and it is already taken
+by a different user on the local system then creation of the
+home directory is refused. Note though, if after creating
+the home directory it is used on a different system and the
+configured UID is taken by another user there, then
+<b>systemd&minus;homed</b> may assign the user a different
+UID on that system. The specified UID must be outside of the
+system user range. It is recommended to use the
+60001...60513 UID range for this purpose. If not specified,
+the UID is automatically picked. If the home directory is
+found to be owned by a different UID when logging in, the
+home directory and everything underneath it will have its
+ownership changed automatically before login
+completes.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that users managed by <b>systemd&minus;homed</b> always have
+a matching group associated with the same name as well as a
+GID matching the UID of the user. Thus, configuring the GID
+separately is not permitted.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;member&minus;of=</b><i>GROUP</i>,
+<b>&minus;G</b> <i>GROUP</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+comma&minus;separated list of auxiliary UNIX groups this
+user shall belong to. Example:
+<b>&minus;&minus;member&minus;of=wheel</b> to provide the
+user with administrator privileges. Note that
+<b>systemd&minus;homed</b> does not manage any groups
+besides a group matching the user in name and numeric
+UID/GID. Thus any groups listed here must be registered
+independently, for example with <b>groupadd</b>(8). Any
+non&minus;existent groups are ignored. This option may be
+used more than once, in which case all specified group lists
+are combined. If the user is currently a member of a group
+which is not listed, the user will be removed from the
+group.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;skel=</b><i>PATH</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+file system path to a directory. Specifies the skeleton
+directory to initialize the home directory with. All files
+and directories in the specified path are copied into any
+newly create home directory. If not specified defaults to
+/etc/skel/.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;shell=</b><i>SHELL</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+file system path. Specifies the shell binary to execute on
+terminal logins. If not specified defaults to
+/bin/bash.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;setenv=</b><i>VARIABLE</i>[=<i>VALUE</i>]</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes an
+environment variable assignment to set for all user
+processes. May be used multiple times to set multiple
+environment variables. When &quot;=&quot; and <i>VALUE</i>
+are omitted, the value of the variable with the same name in
+the program environment will be used.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that a number of other settings also result in environment
+variables to be set for the user, including
+<b>&minus;&minus;email=</b>, <b>&minus;&minus;timezone=</b>
+and <b>&minus;&minus;language=</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;timezone=</b><i>TIMEZONE</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+time zone location name that sets the timezone for the
+specified user. When the user logs in the <i>$TZ</i>
+environment variable is initialized from this setting.
+Example: <b>&minus;&minus;timezone=Europe/Amsterdam</b> will
+result in the environment variable
+&quot;TZ=:Europe/Amsterdam&quot;. (&quot;:&quot; is used
+intentionally as part of the timezone specification, see
+<b>tzset</b>(3).)</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;language=</b><i>LANG</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+specifier indicating the preferred language of the user. The
+<i>$LANG</i> environment variable is initialized from this
+value on login, and thus a value suitable for this
+environment variable is accepted here, for example
+<b>&minus;&minus;language=de_DE.UTF8</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;ssh&minus;authorized&minus;keys=</b><i>KEYS</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Either
+takes a SSH authorized key line to associate with the user
+record or a &quot;@&quot; character followed by a path to a
+file to read one or more such lines from. SSH keys
+configured this way are made available to SSH to permit
+access to this home directory and user record. This option
+may be used more than once to configure multiple SSH
+keys.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;pkcs11&minus;token&minus;uri=</b><i>URI</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes an
+RFC 7512 PKCS#11 URI referencing a security token (e.g.
+YubiKey or PIV smartcard) that shall be able to unlock the
+user account. The security token URI should reference a
+security token with exactly one pair of X.509 certificate
+and private key. A random secret key is then generated,
+encrypted with the public key of the X.509 certificate, and
+stored as part of the user record. At login time it is
+decrypted with the PKCS#11 module and then used to unlock
+the account and associated resources. See below for an
+example how to set up authentication with a security
+token.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Instead
+of a valid PKCS#11 URI, the special strings &quot;list&quot;
+and &quot;auto&quot; may be specified. If &quot;list&quot;
+is passed, a brief table of suitable, currently plugged in
+PKCS#11 hardware tokens is shown, along with their URIs. If
+&quot;auto&quot; is passed, a suitable PKCS#11 hardware
+token is automatically selected (this operation will fail if
+there isn't exactly one suitable token discovered). The
+latter is a useful shortcut for the most common case where a
+single PKCS#11 hardware token is plugged in.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that many hardware security tokens implement both
+PKCS#11/PIV and FIDO2 with the &quot;hmac&minus;secret&quot;
+extension (for example: the YubiKey 5 series), as supported
+with the <b>&minus;&minus;fido2&minus;device=</b> option
+below. Both mechanisms are similarly powerful, though FIDO2
+is the more modern technology. PKCS#11/PIV tokens have the
+benefit of being recognizable before authentication and
+hence can be used for implying the user identity to use for
+logging in, which FIDO2 does not allow. PKCS#11/PIV devices
+generally require initialization (i.e. storing a
+private/public key pair on them, see example below) before
+they can be used; FIDO2 security tokens generally do not
+required that, and work out of the box.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;fido2&minus;credential&minus;algorithm=</b><i>STRING</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Specify
+COSE algorithm used in credential generation. The default
+value is &quot;es256&quot;. Supported values are
+&quot;es256&quot;, &quot;rs256&quot; and
+&quot;eddsa&quot;.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&quot;es256&quot;
+denotes ECDSA over NIST P&minus;256 with SHA&minus;256.
+&quot;rs256&quot; denotes 2048&minus;bit RSA with PKCS#1.5
+padding and SHA&minus;256. &quot;eddsa&quot; denotes EDDSA
+over Curve25519 with SHA&minus;512.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that your authenticator may not support some
+algorithms.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;fido2&minus;device=</b><i>PATH</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+path to a Linux &quot;hidraw&quot; device (e.g.
+/dev/hidraw1), referring to a FIDO2 security token
+implementing the &quot;hmac&minus;secret&quot; extension
+that shall be able to unlock the user account. A random salt
+value is generated on the host and passed to the FIDO2
+device, which calculates a HMAC hash of the salt using an
+internal secret key. The result is then used as the key to
+unlock the user account. The random salt is included in the
+user record, so that whenever authentication is needed it
+can be passed to the FIDO2 token again.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Instead
+of a valid path to a FIDO2 &quot;hidraw&quot; device the
+special strings &quot;list&quot; and &quot;auto&quot; may be
+specified. If &quot;list&quot; is passed, a brief table of
+suitable discovered FIDO2 devices is shown. If
+&quot;auto&quot; is passed, a suitable FIDO2 token is
+automatically selected, if exactly one is discovered. The
+latter is a useful shortcut for the most common case where a
+single FIDO2 hardware token is plugged in.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that FIDO2 devices suitable for this option must implement
+the &quot;hmac&minus;secret&quot; extension. Most current
+devices (such as the YubiKey 5 series) do. If the extension
+is not implemented the device cannot be used for unlocking
+home directories.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">The
+FIDO2 device may be subsequently removed by setting the
+device path to an empty string (e.g. <b>homectl update $USER
+&minus;&minus;fido2&minus;device=&quot;&quot;</b>).</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that many hardware security tokens implement both FIDO2 and
+PKCS#11/PIV (and thus may be used with either
+<b>&minus;&minus;fido2&minus;device=</b> or
+<b>&minus;&minus;pkcs11&minus;token&minus;uri=</b>), for a
+discussion see above.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;fido2&minus;with&minus;client&minus;pin=</b><i>BOOL</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">When
+enrolling a FIDO2 security token, controls whether to
+require the user to enter a PIN when unlocking the account
+(the FIDO2 &quot;clientPin&quot; feature). Defaults to
+&quot;yes&quot;. (Note: this setting is without effect if
+the security token does not support the
+&quot;clientPin&quot; feature at all, or does not allow
+enabling or disabling it.)</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;fido2&minus;with&minus;user&minus;presence=</b><i>BOOL</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">When
+enrolling a FIDO2 security token, controls whether to
+require the user to verify presence (tap the token, the
+FIDO2 &quot;up&quot; feature) when unlocking the account.
+Defaults to &quot;yes&quot;. (Note: this setting is without
+effect if the security token does not support the
+&quot;up&quot; feature at all, or does not allow enabling or
+disabling it.)</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;fido2&minus;with&minus;user&minus;verification=</b><i>BOOL</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">When
+enrolling a FIDO2 security token, controls whether to
+require user verification when unlocking the account (the
+FIDO2 &quot;uv&quot; feature). Defaults to &quot;no&quot;.
+(Note: this setting is without effect if the security token
+does not support the &quot;uv&quot; feature at all, or does
+not allow enabling or disabling it.)</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;recovery&minus;key=</b><i>BOOL</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Accepts a
+boolean argument. If enabled a recovery key is configured
+for the account. A recovery key is a computer generated
+access key that may be used to regain access to an account
+if the password has been forgotten or the authentication
+token lost. The key is generated and shown on screen, and
+should be printed or otherwise transferred to a secure
+location. A recovery key may be entered instead of a regular
+password to unlock the account.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;locked=</b><i>BOOLEAN</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+boolean argument. Specifies whether this user account shall
+be locked. If true logins into this account are prohibited,
+if false (the default) they are permitted (of course, only
+if authorization otherwise succeeds).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;not&minus;before=</b><i>TIMESTAMP</i>,
+<b>&minus;&minus;not&minus;after=</b><i>TIMESTAMP</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">These
+options take a timestamp string, in the format documented in
+<b>systemd.time</b>(7) and configures points in time before
+and after logins into this account are not
+permitted.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;rate&minus;limit&minus;interval=</b><i>SECS</i>,
+<b>&minus;&minus;rate&minus;limit&minus;burst=</b><i>NUMBER</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configures
+a rate limit on authentication attempts for this user. If
+the user attempts to authenticate more often than the
+specified number, on a specific system, within the specified
+time interval authentication is refused until the time
+interval passes. Defaults to 10 times per 1min.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;password&minus;hint=</b><i>TEXT</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+password hint to store alongside the user record. This
+string is stored accessible only to privileged users and the
+user itself and may not be queried by other users. Example:
+<b>&minus;&minus;password&minus;hint=&quot;My first pet's
+name&quot;</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;enforce&minus;password&minus;policy=</b><i>BOOL</i>,
+<b>&minus;P</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+boolean argument. Configures whether to enforce the system's
+password policy for this user, regarding quality and
+strength of selected passwords. Defaults to on.
+<b>&minus;P</b> is short for
+<b>&minus;&minus;&minus;enforce&minus;password&minus;policy=no</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;password&minus;change&minus;now=</b><i>BOOL</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+boolean argument. If true the user is asked to change their
+password on next login.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;password&minus;change&minus;min=</b><i>TIME</i>,
+<b>&minus;&minus;password&minus;change&minus;max=</b><i>TIME</i>,
+<b>&minus;&minus;password&minus;change&minus;warn=</b><i>TIME</i>,
+<b>&minus;&minus;password&minus;change&minus;inactive=</b><i>TIME</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Each of
+these options takes a time span specification as argument
+(in the syntax documented in <b>systemd.time</b>(7)) and
+configures various aspects of the user's password expiration
+policy. Specifically,
+<b>&minus;&minus;password&minus;change&minus;min=</b>
+configures how much time has to pass after changing the
+password of the user until the password may be changed
+again. If the user tries to change their password before
+this time passes the attempt is refused.
+<b>&minus;&minus;password&minus;change&minus;max=</b>
+configures how soon after it has been changed the password
+expires and needs to be changed again. After this time
+passes logging in may only proceed after the password is
+changed.
+<b>&minus;&minus;password&minus;change&minus;warn=</b>
+specifies how much earlier than then the time configured
+with <b>&minus;&minus;password&minus;change&minus;max=</b>
+the user is warned at login to change their password as it
+will expire soon. Finally
+<b>&minus;&minus;password&minus;change&minus;inactive=</b>
+configures the time which has to pass after the password as
+expired until the user is not permitted to log in or change
+the password anymore. Note that these options only apply to
+password authentication, and do not apply to other forms of
+authentication, for example PKCS#11&minus;based security
+token authentication.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;disk&minus;size=</b><i>BYTES</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Either
+takes a size in bytes as argument (possibly using the usual
+K, M, G, ... suffixes for 1024 base values), a percentage
+value, or the special strings &quot;min&quot; or
+&quot;max&quot;, and configures the disk space to assign to
+the user. If a percentage value is specified (i.e. the
+argument suffixed with &quot;%&quot;) it is taken relative
+to the available disk space of the backing file system. If
+specified as &quot;min&quot; assigns the minimal disk space
+permitted by the constraints of the backing file system and
+other limits, when specified as &quot;max&quot; assigns the
+maximum disk space available. If the LUKS2 backend is used
+this configures the size of the loopback file and file
+system contained therein. For the other storage backends
+configures disk quota using the filesystem's native quota
+logic, if available. If not specified, defaults to 85% of
+the available disk space for the LUKS2 backend and to no
+quota for the others.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;access&minus;mode=</b><i>MODE</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+UNIX file access mode written in octal. Configures the
+access mode of the home directory itself. Note that this is
+only used when the directory is first created, and the user
+may change this any time afterwards. Example:
+<b>&minus;&minus;access&minus;mode=0700</b></font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;umask=</b><i>MASK</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes the
+access mode mask (in octal syntax) to apply to newly created
+files and directories of the user (&quot;umask&quot;). If
+set this controls the initial umask set for all login
+sessions of the user, possibly overriding the system's
+defaults.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;nice=</b><i>NICE</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes the
+numeric scheduling priority (&quot;nice level&quot;) to
+apply to the processes of the user at login time. Takes a
+numeric value in the range &minus;20 (highest priority) to
+19 (lowest priority).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;rlimit=</b><i>LIMIT</i>=<i>VALUE</i>[:<i>VALUE</i>]</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Allows
+configuration of resource limits for processes of this user,
+see <b>getrlimit</b>(2) for details. Takes a resource limit
+name (e.g. &quot;LIMIT_NOFILE&quot;) followed by an equal
+sign, followed by a numeric limit. Optionally, separated by
+colon a second numeric limit may be specified. If two are
+specified this refers to the soft and hard limits,
+respectively. If only one limit is specified the setting
+sets both limits in one.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;tasks&minus;max=</b><i>TASKS</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+non&minus;zero unsigned integer as argument. Configures the
+maximum number of tasks (i.e. threads, where each process is
+at least one thread) the user may have at any given time.
+This limit applies to all tasks forked off the user's
+sessions, even if they change user identity via <b>su</b>(1)
+or a similar tool. Use
+<b>&minus;&minus;rlimit=LIMIT_NPROC=</b> to place a limit on
+the tasks actually running under the UID of the user, thus
+excluding any child processes that might have changed user
+identity. This controls the <i>TasksMax=</i> setting of the
+per&minus;user systemd slice unit user&minus;$UID.slice. See
+<b>systemd.resource-control</b>(5) for further
+details.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;memory&minus;high=</b><i>BYTES</i>,
+<b>&minus;&minus;memory&minus;max=</b><i>BYTES</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Set a
+limit on the memory a user may take up on a system at any
+given time in bytes (the usual K, M, G, ... suffixes are
+supported, to the base of 1024). This includes all memory
+used by the user itself and all processes they forked off
+that changed user credentials. This controls the
+<i>MemoryHigh=</i> and <i>MemoryMax=</i> settings of the
+per&minus;user systemd slice unit user&minus;$UID.slice. See
+<b>systemd.resource-control</b>(5) for further
+details.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;cpu&minus;weight=</b><i>WEIGHT</i>,
+<b>&minus;&minus;io&minus;weight=</b><i>WEIGHT</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Set CPU
+and IO scheduling weights of the processes of the user,
+including those of processes forked off by the user that
+changed user credentials. Takes a numeric value in the range
+1...10000. This controls the <i>CPUWeight=</i> and
+<i>IOWeight=</i> settings of the per&minus;user systemd
+slice unit user&minus;$UID.slice. See
+<b>systemd.resource-control</b>(5) for further
+details.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;storage=</b><i>STORAGE</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Selects
+the storage mechanism to use for this home directory. Takes
+one of &quot;luks&quot;, &quot;fscrypt&quot;,
+&quot;directory&quot;, &quot;subvolume&quot;,
+&quot;cifs&quot;. For details about these mechanisms, see
+above. If a new home directory is created and the storage
+type is not specifically specified, <b>homed.conf</b>(5)
+defines which default storage to use.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;image&minus;path=</b><i>PATH</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+file system path. Configures where to place the user's home
+directory. When LUKS2 storage is used refers to the path to
+the loopback file, otherwise to the path to the home
+directory (which may be in /home/ or any other accessible
+filesystem). When unspecified defaults to /home/$USER.home
+when LUKS storage is used and /home/$USER.homedir for the
+other storage mechanisms. Not defined for the
+&quot;cifs&quot; storage mechanism. To use LUKS2 storage on
+a regular block device (for example a USB stick) pass the
+path to the block device here. Specifying the path to a
+directory here when using LUKS2 storage is not allowed.
+Similar, specifying the path to a regular file or device
+node is not allowed if any of the other storage backends are
+used.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;drop&minus;caches=</b><i>BOOL</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Automatically
+flush OS file system caches on logout. This is useful in
+combination with the fscrypt storage backend to ensure the
+OS does not keep decrypted versions of the files and
+directories in memory (and accessible) after logout. This
+option is also supported on other backends, but should not
+bring any benefit there. Defaults to off, except if the
+selected storage backend is fscrypt, where it defaults to
+on. Note that flushing OS caches will negatively influence
+performance of the OS shortly after logout.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;fs&minus;type=</b><i>TYPE</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">When
+LUKS2 storage is used configures the file system type to use
+inside the home directory LUKS2 container. One of
+&quot;btrfs&quot;, &quot;ext4&quot;, &quot;xfs&quot;. If not
+specified <b>homed.conf</b>(5) defines which default file
+system type to use. Note that &quot;xfs&quot; is not
+recommended as its support for file system resizing is too
+limited.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;luks&minus;discard=</b><i>BOOL</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">When
+LUKS2 storage is used configures whether to enable the
+&quot;discard&quot; feature of the file system. If enabled
+the file system on top of the LUKS2 volume will report empty
+block information to LUKS2 and the loopback file below,
+ensuring that empty space in the home directory is returned
+to the backing file system below the LUKS2 volume, resulting
+in a &quot;sparse&quot; loopback file. This option mostly
+defaults to off, since this permits over&minus;committing
+home directories which results in I/O errors if the
+underlying file system runs full while the upper file system
+wants to allocate a block. Such I/O errors are generally not
+handled well by file systems nor applications. When LUKS2
+storage is used on top of regular block devices (instead of
+on top a loopback file) the discard logic defaults to
+on.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;luks&minus;offline&minus;discard=</b><i>BOOL</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Similar
+to <b>&minus;&minus;luks&minus;discard=</b>, controls the
+trimming of the file system. However, while
+<b>&minus;&minus;luks&minus;discard=</b> controls what
+happens when the home directory is active,
+<b>&minus;&minus;luks&minus;offline&minus;discard=</b>
+controls what happens when it becomes inactive, i.e. whether
+to trim/allocate the storage when deactivating the home
+directory. This option defaults to on, to ensure disk space
+is minimized while a user is not logged in.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;luks&minus;extra&minus;mount&minus;options=</b><i>OPTIONS</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+string containing additional mount options to use when
+mounting the LUKS volume. If specified, this string will be
+appended to the default, built&minus;in mount
+options.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;luks&minus;cipher=</b><i>CIPHER</i>,
+<b>&minus;&minus;luks&minus;cipher&minus;mode=</b><i>MODE</i>,
+<b>&minus;&minus;luks&minus;volume&minus;key&minus;size=</b><i>BYTES</i>,
+<b>&minus;&minus;luks&minus;pbkdf&minus;type=</b><i>TYPE</i>,
+<b>&minus;&minus;luks&minus;pbkdf&minus;hash&minus;algorithm=</b><i>ALGORITHM</i>,
+<b>&minus;&minus;luks&minus;pbkdf&minus;force&minus;iterations=</b><i>ITERATIONS</i>,
+<b>&minus;&minus;luks&minus;pbkdf&minus;time&minus;cost=</b><i>SECONDS</i>,
+<b>&minus;&minus;luks&minus;pbkdf&minus;memory&minus;cost=</b><i>BYTES</i>,
+<b>&minus;&minus;luks&minus;pbkdf&minus;parallel&minus;threads=</b><i>THREADS</i>,
+<b>&minus;&minus;luks&minus;sector&minus;size=</b><i>BYTES</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configures
+various cryptographic parameters for the LUKS2 storage
+mechanism. See <b>cryptsetup</b>(8) for details on the
+specific attributes.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that <b>homectl</b> uses bytes for key size, like
+/proc/crypto, but <b>cryptsetup</b>(8) uses bits.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;auto&minus;resize&minus;mode=</b></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configures
+whether to automatically grow and/or shrink the backing file
+system on login and logout. Takes one of the strings
+&quot;off&quot;, &quot;grow&quot;,
+&quot;shrink&minus;and&minus;grow&quot;. Only applies to the
+LUKS2 backend currently, and if the btrfs file system is
+used inside it (since only then online growing/shrinking of
+the file system is supported). Defaults to
+&quot;shrink&minus;and&minus;grow&quot;, if LUKS2/btrfs is
+used, otherwise is off. If set to &quot;off&quot; no
+automatic shrinking/growing during login or logout is done.
+If set to &quot;grow&quot; the home area is grown to the
+size configured via <b>&minus;&minus;disk&minus;size=</b>
+should it currently be smaller. If it already matches the
+configured size or is larger no operation is executed. If
+set to &quot;shrink&minus;and&minus;grow&quot; the home area
+is also resized during logout to the minimal size the used
+disk space and file system constraints permit. This mode
+thus ensures that while a home area is activated it is sized
+to the configured size, but while deactivated it is
+compacted taking up only the minimal space possible. Note
+that if the system is powered off abnormally or if the user
+otherwise not logged out cleanly the shrinking operation
+will not take place, and the user has to
+re&minus;login/logout again before it is executed
+again.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;rebalance&minus;weight=</b></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configures
+the weight parameter for the free disk space rebalancing
+logic. Only applies to the LUKS2 backend (since for the
+LUKS2 backend disk space is allocated from a per&minus;user
+loopback file system instead of immediately from a common
+pool like the other backends do it). In regular intervals
+free disk space in the active home areas and their backing
+storage is redistributed among them, taking the weight value
+configured here into account. Expects an integer in the
+range 1...10000, or the special string &quot;off&quot;. If
+not specified defaults to 100. The weight is used to scale
+free space made available to the home areas: a home area
+with a weight of 200 will get twice the free space as one
+with a weight of 100; a home area with a weight of 50 will
+get half of that. The backing file system will be assigned
+space for a weight of 20. If set to &quot;off&quot; no
+automatic free space distribution is done for this home
+area. Note that resizing the home area explicitly (with
+<b>homectl resize</b> see below) will implicitly turn off
+the automatic rebalancing. To reenable the automatic
+rebalancing use <b>&minus;&minus;rebalance&minus;weight=</b>
+with an empty parameter.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;nosuid=</b><i>BOOL</i>,
+<b>&minus;&minus;nodev=</b><i>BOOL</i>,
+<b>&minus;&minus;noexec=</b><i>BOOL</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configures
+the &quot;nosuid&quot;, &quot;nodev&quot; and
+&quot;noexec&quot; mount options for the home directories.
+By default &quot;nodev&quot; and &quot;nosuid&quot; are on,
+while &quot;noexec&quot; is off. For details about these
+mount options see <b>mount</b>(8).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;cifs&minus;domain=</b><i>DOMAIN</i>,
+<b>&minus;&minus;cifs&minus;user&minus;name=</b><i>USER</i>,
+<b>&minus;&minus;cifs&minus;service=</b><i>SERVICE</i>,
+<b>&minus;&minus;cifs&minus;extra&minus;mount&minus;options=</b><i>OPTIONS</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configures
+the Windows File Sharing (CIFS) domain and user to associate
+with the home directory/user account, as well as the file
+share (&quot;service&quot;) to mount as directory. The
+latter is used when &quot;cifs&quot; storage is selected.
+The file share should be specified in format
+&quot;//<i>host</i>/<i>share</i>/<i>directory/...</i>&quot;.
+The directory part is optional &mdash; if not specified the
+home directory will be placed in the top&minus;level
+directory of the share. The
+<b>&minus;&minus;cifs&minus;extra&minus;mount&minus;options=</b>
+setting allows specifying additional mount options when
+mounting the share, see <b>mount.cifs</b>(8) for
+details.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;stop&minus;delay=</b><i>SECS</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configures
+the time the per&minus;user service manager shall continue
+to run after the all sessions of the user ended. The default
+is configured in <b>logind.conf</b>(5) (for home directories
+of LUKS2 storage located on removable media this defaults to
+0 though). A longer time makes sure quick, repetitive logins
+are more efficient as the user's service manager doesn't
+have to be started every time.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;kill&minus;processes=</b><i>BOOL</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configures
+whether to kill all processes of the user on logout. The
+default is configured in <b>logind.conf</b>(5).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;auto&minus;login=</b><i>BOOL</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+boolean argument. Configures whether the graphical UI of the
+system should automatically log this user in if possible.
+Defaults to off. If less or more than one user is marked
+this way automatic login is disabled.</font></p>
+
+<h2>COMMANDS
+<a name="COMMANDS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+following commands are understood:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>list</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">List all
+home directories (along with brief details) currently
+managed by systemd&minus;homed.service. This command is also
+executed if none is specified on the command line. (Note
+that the list of users shown by this command does not
+include users managed by other subsystems, such as system
+users or any traditional users listed in
+/etc/passwd.)</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>activate</b>
+<i>USER</i> [<i>USER...</i>]</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Activate
+one or more home directories. The home directories of each
+listed user will be activated and made available under their
+mount points (typically in /home/$USER). Note that any home
+activated this way stays active indefinitely, until it is
+explicitly deactivated again (with <b>deactivate</b>, see
+below), or the user logs in and out again and it thus is
+deactivated due to the automatic
+deactivation&minus;on&minus;logout logic.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Activation
+of a home directory involves various operations that depend
+on the selected storage mechanism. If the LUKS2 mechanism is
+used, this generally involves: inquiring the user for a
+password, setting up a loopback device, validating and
+activating the LUKS2 volume, checking the file system,
+mounting the file system, and potentially changing the
+ownership of all included files to the correct
+UID/GID.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>deactivate</b>
+<i>USER</i> [<i>USER...</i>]</font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Deactivate
+one or more home directories. This undoes the effect of
+<b>activate</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>inspect</b>
+<i>USER</i> [<i>USER...</i>]</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Show
+various details about the specified home directories. This
+shows various information about the home directory and its
+user account, including runtime data such as current state,
+disk use and similar. Combine with
+<b>&minus;&minus;json=</b> to show the detailed JSON user
+record instead, possibly combined with
+<b>&minus;&minus;export&minus;format=</b> to suppress
+certain aspects of the output.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>authenticate</b>
+<i>USER</i> [<i>USER...</i>]</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Validate
+authentication credentials of a home directory. This queries
+the caller for a password (or similar) and checks that it
+correctly unlocks the home directory. This leaves the home
+directory in the state it is in, i.e. it leaves the home
+directory in inactive state if it was inactive before, and
+in active state if it was active before.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>create</b>
+<i>USER</i>, <b>create
+&minus;&minus;identity=</b><i>PATH</i>
+[<i>USER</i>]</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Create a
+new home directory/user account of the specified name. Use
+the various user record property options (as documented
+above) to control various aspects of the home directory and
+its user accounts.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">The
+specified user name should follow the strict syntax
+described on</font> <b><font color="#0000FF">User/Group Name
+Syntax</font></b>
+<small><font color="#000000">[3]</font></small>
+<font color="#000000">.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>remove</b>
+<i>USER</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Remove a
+home directory/user account. This will remove both the home
+directory's user record and the home directory itself, and
+thus delete all files and directories owned by the
+user.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>update</b>
+<i>USER</i>, <b>update
+&minus;&minus;identity=</b><i>PATH</i>
+[<i>USER</i>]</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Update a
+home directory/user account. Use the various user record
+property options (as documented above) to make changes to
+the account, or alternatively provide a full, updated JSON
+user record via the <b>&minus;&minus;identity=</b>
+option.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that changes to user records not signed by a cryptographic
+private key available locally are not permitted, unless
+<b>&minus;&minus;identity=</b> is used with a user record
+that is already correctly signed by a recognized private
+key.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>passwd</b>
+<i>USER</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Change
+the password of the specified home directory/user
+account.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>resize</b>
+<i>USER BYTES</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Change
+the disk space assigned to the specified home directory. If
+the LUKS2 storage mechanism is used this will automatically
+resize the loopback file and the file system contained
+within. Note that if &quot;ext4&quot; is used inside of the
+LUKS2 volume, it is necessary to deactivate the home
+directory before shrinking it (i.e the user has to log out).
+Growing can be done while the home directory is active. If
+&quot;xfs&quot; is used inside of the LUKS2 volume the home
+directory may not be shrunk whatsoever. On all three of
+&quot;ext4&quot;, &quot;xfs&quot; and &quot;btrfs&quot; the
+home directory may be grown while the user is logged in, and
+on the latter also shrunk while the user is logged in. If
+the &quot;subvolume&quot;, &quot;directory&quot;,
+&quot;fscrypt&quot; storage mechanisms are used, resizing
+will change file system quota. The size parameter may make
+use of the usual suffixes B, K, M, G, T (to the base of
+1024). The special strings &quot;min&quot; and
+&quot;max&quot; may be specified in place of a numeric size
+value, for minimizing or maximizing disk space assigned to
+the home area, taking constraints of the file system, disk
+usage inside the home area and on the backing storage into
+account.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>lock</b>
+<i>USER</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Temporarily
+suspend access to the user's home directory and remove any
+associated cryptographic keys from memory. Any attempts to
+access the user's home directory will stall until the home
+directory is unlocked again (i.e. re&minus;authenticated).
+This functionality is primarily intended to be used during
+system suspend to make sure the user's data cannot be
+accessed until the user re&minus;authenticates on resume.
+This operation is only defined for home directories that use
+the LUKS2 storage mechanism.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>unlock</b>
+<i>USER</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Resume
+access to the user's home directory again, undoing the
+effect of <b>lock</b> above. This requires authentication of
+the user, as the cryptographic keys required for access to
+the home directory need to be reacquired.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>lock&minus;all</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Execute
+the <b>lock</b> command on all suitable home directories at
+once. This operation is generally executed on system suspend
+(i.e. by <b>systemctl suspend</b> and related commands), to
+ensure all active user's cryptographic keys for accessing
+their home directories are removed from memory.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>deactivate&minus;all</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Execute
+the <b>deactivate</b> command on all active home directories
+at once. This operation is generally executed on system shut
+down (i.e. by <b>systemctl poweroff</b> and related
+commands), to ensure all active user's home directories are
+fully deactivated before /home/ and related file systems are
+unmounted.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>with</b>
+<i>USER COMMAND...</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Activate
+the specified user's home directory, run the specified
+command (under the caller's identity, not the specified
+user's) and deactivate the home directory afterwards again
+(unless the user is logged in otherwise). This command is
+useful for running privileged backup scripts and such, but
+requires authentication with the user's credentials in order
+to be able to unlock the user's home directory.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>rebalance</b></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Rebalance
+free disk space between active home areas and the backing
+storage. See <b>&minus;&minus;rebalance&minus;weight=</b>
+above. This executes no operation unless there's at least
+one active LUKS2 home area that has disk space rebalancing
+enabled. This operation is synchronous: it will only
+complete once disk space is rebalanced according to the
+rebalancing weights. Note that rebalancing also takes place
+automatically in the background in regular intervals. Use
+this command to synchronously ensure disk space is properly
+redistributed before initiating an operation requiring large
+amounts of disk space.</font></p>
+
+<h2>EXIT STATUS
+<a name="EXIT STATUS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">On
+success, 0 is returned, a non&minus;zero failure code
+otherwise.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">When
+a command is invoked with <b>with</b>, the exit status of
+the child is propagated. Effectively, <b>homectl</b> will
+exit without error if the command is successfully invoked
+<i>and</i> finishes successfully.</font></p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_LOG_LEVEL</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">The
+maximum log level of emitted messages (messages with a
+higher log level, i.e. less important ones, will be
+suppressed). Either one of (in order of decreasing
+importance) <b>emerg</b>, <b>alert</b>, <b>crit</b>,
+<b>err</b>, <b>warning</b>, <b>notice</b>, <b>info</b>,
+<b>debug</b>, or an integer in the range 0...7. See
+<b>syslog</b>(3) for more information.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_LOG_COLOR</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">A
+boolean. If true, messages written to the tty will be
+colored according to priority.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">This
+setting is only useful when messages are written directly to
+the terminal, because <b>journalctl</b>(1) and other tools
+that display logs will color messages based on the log level
+on their own.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_LOG_TIME</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">A
+boolean. If true, console log messages will be prefixed with
+a timestamp.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">This
+setting is only useful when messages are written directly to
+the terminal or a file, because <b>journalctl</b>(1) and
+other tools that display logs will attach timestamps based
+on the entry metadata on their own.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_LOG_LOCATION</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">A
+boolean. If true, messages will be prefixed with a filename
+and line number in the source code where the message
+originates.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that the log location is often attached as metadata to
+journal entries anyway. Including it directly in the message
+text can nevertheless be convenient when debugging
+programs.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_LOG_TID</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">A
+boolean. If true, messages will be prefixed with the current
+numerical thread ID (TID).</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that the this information is attached as metadata to journal
+entries anyway. Including it directly in the message text
+can nevertheless be convenient when debugging
+programs.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_LOG_TARGET</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">The
+destination for log messages. One of <b>console</b> (log to
+the attached tty), <b>console&minus;prefixed</b> (log to the
+attached tty but with prefixes encoding the log level and
+&quot;facility&quot;, see <b>syslog</b>(3), <b>kmsg</b> (log
+to the kernel circular log buffer), <b>journal</b> (log to
+the journal), <b>journal&minus;or&minus;kmsg</b> (log to the
+journal if available, and to kmsg otherwise), <b>auto</b>
+(determine the appropriate log target automatically, the
+default), <b>null</b> (disable log output).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_PAGER</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Pager to
+use when <b>&minus;&minus;no&minus;pager</b> is not given;
+overrides <i>$PAGER</i>. If neither <i>$SYSTEMD_PAGER</i>
+nor <i>$PAGER</i> are set, a set of well&minus;known pager
+implementations are tried in turn, including <b>less</b>(1)
+and <b>more</b>(1), until one is found. If no pager
+implementation is discovered no pager is invoked. Setting
+this environment variable to an empty string or the value
+&quot;cat&quot; is equivalent to passing
+<b>&minus;&minus;no&minus;pager</b>.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note:
+if <i>$SYSTEMD_PAGERSECURE</i> is not set,
+<i>$SYSTEMD_PAGER</i> (as well as <i>$PAGER</i>) will be
+silently ignored.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_LESS</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Override
+the options passed to <b>less</b> (by default
+&quot;FRSXMK&quot;).</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Users
+might want to change two options in particular:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><b>K</b></font></p>
+
+<p style="margin-left:23%;"><font color="#000000">This
+option instructs the pager to exit immediately when Ctrl+C
+is pressed. To allow <b>less</b> to handle Ctrl+C itself to
+switch back to the pager command prompt, unset this
+option.</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">If
+the value of <i>$SYSTEMD_LESS</i> does not include
+&quot;K&quot;, and the pager that is invoked is <b>less</b>,
+Ctrl+C will be ignored by the executable, and needs to be
+handled by the pager.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><b>X</b></font></p>
+
+<p style="margin-left:23%;"><font color="#000000">This
+option instructs the pager to not send termcap
+initialization and deinitialization strings to the terminal.
+It is set by default to allow command output to remain
+visible in the terminal even after the pager exits.
+Nevertheless, this prevents some pager functionality from
+working, in particular paged output cannot be scrolled with
+the mouse.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">See
+<b>less</b>(1) for more discussion.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_LESSCHARSET</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Override
+the charset passed to <b>less</b> (by default
+&quot;utf&minus;8&quot;, if the invoking terminal is
+determined to be UTF&minus;8 compatible).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_PAGERSECURE</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+boolean argument. When true, the &quot;secure&quot; mode of
+the pager is enabled; if false, disabled. If
+<i>$SYSTEMD_PAGERSECURE</i> is not set at all, secure mode
+is enabled if the effective UID is not the same as the owner
+of the login session, see <b>geteuid</b>(2) and
+<b>sd_pid_get_owner_uid</b>(3). In secure mode,
+<b>LESSSECURE=1</b> will be set when invoking the pager, and
+the pager shall disable commands that open or create new
+files or start new subprocesses. When
+<i>$SYSTEMD_PAGERSECURE</i> is not set at all, pagers which
+are not known to implement secure mode will not be used.
+(Currently only <b>less</b>(1) implements secure
+mode.)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note:
+when commands are invoked with elevated privileges, for
+example under <b>sudo</b>(8) or <b>pkexec</b>(1), care must
+be taken to ensure that unintended interactive features are
+not enabled. &quot;Secure&quot; mode for the pager may be
+enabled automatically as describe above. Setting
+<i>SYSTEMD_PAGERSECURE=0</i> or not removing it from the
+inherited environment allows the user to invoke arbitrary
+commands. Note that if the <i>$SYSTEMD_PAGER</i> or
+<i>$PAGER</i> variables are to be honoured,
+<i>$SYSTEMD_PAGERSECURE</i> must be set too. It might be
+reasonable to completely disable the pager using
+<b>&minus;&minus;no&minus;pager</b> instead.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_COLORS</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+boolean argument. When true, <b>systemd</b> and related
+utilities will use colors in their output, otherwise the
+output will be monochrome. Additionally, the variable can
+take one of the following special values: &quot;16&quot;,
+&quot;256&quot; to restrict the use of colors to the base 16
+or 256 ANSI colors, respectively. This can be specified to
+override the automatic decision based on <i>$TERM</i> and
+what the console is connected to.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_URLIFY</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">The value
+must be a boolean. Controls whether clickable links should
+be generated in the output for terminal emulators supporting
+this. This can be specified to override the decision that
+<b>systemd</b> makes based on <i>$TERM</i> and other
+conditions.</font></p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Example&nbsp;1.&nbsp;Create
+a user &quot;waldo&quot; in the administrator group
+&quot;wheel&quot;, and assign 500 MiB disk space to
+them.</b></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">homectl
+create waldo &minus;&minus;real&minus;name=&quot;Waldo
+McWaldo&quot; &minus;G wheel
+&minus;&minus;disk&minus;size=500M</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Example&nbsp;2.&nbsp;Create
+a user &quot;wally&quot; on a USB stick, and assign a
+maximum of 500 concurrent tasks to them.</b></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">homectl
+create wally &minus;&minus;real&minus;name=&quot;Wally
+McWally&quot;
+&minus;&minus;image&minus;path=/dev/disk/by&minus;id/usb&minus;SanDisk_Ultra_Fit_476fff954b2b5c44&minus;0:0
+&minus;&minus;tasks&minus;max=500</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Example&nbsp;3.&nbsp;Change
+nice level of user &quot;odlaw&quot; to +5 and make sure the
+environment variable</b> <i>$SOME</i> is set to the string
+&quot;THING&quot; for them on login.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">homectl
+update odlaw &minus;&minus;nice=5
+&minus;&minus;setenv=SOME=THING</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Example&nbsp;4.&nbsp;Set
+up authentication with a YubiKey security token using
+PKCS#11/PIV:</b></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">#
+Clear the Yubikey from any old keys (careful!) <br>
+ykman piv reset</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">#
+Generate a new private/public key pair on the device, store
+the public key in 'pubkey.pem'. <br>
+ykman piv generate&minus;key &minus;a RSA2048 9d
+pubkey.pem</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">#
+Create a self&minus;signed certificate from this public key,
+and store it on the device. <br>
+ykman piv generate&minus;certificate &minus;&minus;subject
+&quot;Knobelei&quot; 9d pubkey.pem</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">#
+We don't need the public key on disk anymore <br>
+rm pubkey.pem</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">#
+Allow the security token to unlock the account of user
+'lafcadio'. <br>
+homectl update lafcadio
+&minus;&minus;pkcs11&minus;token&minus;uri=auto</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Example&nbsp;5.&nbsp;Set
+up authentication with a FIDO2 security
+token:</b></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">#
+Allow a FIDO2 security token to unlock the account of user
+'nihilbaxter'. <br>
+homectl update nihilbaxter
+&minus;&minus;fido2&minus;device=auto</font></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>systemd</b>(1),
+<b>systemd-homed.service</b>(8), <b>homed.conf</b>(5),
+<b>userdbctl</b>(1), <b>useradd</b>(8),
+<b>cryptsetup</b>(8)</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="26%">
+
+
+<p style="margin-top: 1em"><font color="#000000">JSON User
+Records</font></p> </td>
+<td width="57%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://systemd.io/USER_RECORD</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">2.</font></p> </td>
+<td width="2%"></td>
+<td width="38%">
+
+
+<p style="margin-top: 1em"><font color="#000000">Icon
+Naming Specification</font></p></td>
+<td width="45%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://standards.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">3.</font></p> </td>
+<td width="2%"></td>
+<td width="34%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">User/Group
+Name Syntax</font></p></td>
+<td width="49%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://systemd.io/USER_NAMES</font></p>
+<hr>
+</body>
+</html>

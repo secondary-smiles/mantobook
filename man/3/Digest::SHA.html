@@ -1,0 +1,729 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:44 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Digest::SHA</title>
+
+</head>
+<body>
+<h1>Digest::SHA</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Digest::SHA
+&minus; Perl extension for SHA&minus;1/224/256/384/512</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">In
+programs:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Functional
+interface <br>
+use Digest::SHA qw(sha1 sha1_hex sha1_base64 ...); <br>
+$digest = sha1($data); <br>
+$digest = sha1_hex($data); <br>
+$digest = sha1_base64($data); <br>
+$digest = sha256($data); <br>
+$digest = sha384_hex($data); <br>
+$digest = sha512_base64($data); <br>
+# Object&minus;oriented <br>
+use Digest::SHA; <br>
+$sha = Digest::SHA&minus;&gt;new($alg); <br>
+$sha&minus;&gt;add($data); # feed data into stream <br>
+$sha&minus;&gt;addfile(*F); <br>
+$sha&minus;&gt;addfile($filename); <br>
+$sha&minus;&gt;add_bits($bits); <br>
+$sha&minus;&gt;add_bits($data, $nbits); <br>
+$sha_copy = $sha&minus;&gt;clone; # make copy of digest
+object <br>
+$state = $sha&minus;&gt;getstate; # save current state to
+string <br>
+$sha&minus;&gt;putstate($state); # restore previous $state
+<br>
+$digest = $sha&minus;&gt;digest; # compute digest <br>
+$digest = $sha&minus;&gt;hexdigest; <br>
+$digest = $sha&minus;&gt;b64digest;</p>
+
+<p style="margin-left:11%; margin-top: 1em">From the
+command line:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ shasum files
+<br>
+$ shasum &minus;&minus;help</p>
+
+<h2>SYNOPSIS (HMAC-SHA)
+<a name="SYNOPSIS (HMAC-SHA)"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"># Functional
+interface only <br>
+use Digest::SHA qw(hmac_sha1 hmac_sha1_hex ...); <br>
+$digest = hmac_sha1($data, $key); <br>
+$digest = hmac_sha224_hex($data, $key); <br>
+$digest = hmac_sha256_base64($data, $key);</p>
+
+<h2>ABSTRACT
+<a name="ABSTRACT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Digest::SHA is
+a complete implementation of the <small>NIST</small> Secure
+Hash Standard. It gives Perl programmers a convenient way to
+calculate <small>SHA&minus;1, SHA&minus;224, SHA&minus;256,
+SHA&minus;384, SHA&minus;512, SHA&minus;512/224,</small> and
+<small>SHA&minus;512/256</small> message digests. The module
+can handle all types of input, including partial-byte
+data.</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Digest::SHA is
+written in C for speed. If your platform lacks a C compiler,
+you can install the functionally equivalent (but much
+slower) Digest::SHA::PurePerl module.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The programming
+interface is easy to use: it&rsquo;s the same one found in
+<small>CPAN</small> &rsquo;s Digest module. So, if your
+applications currently use Digest::MD5 and you&rsquo;d
+prefer the stronger security of <small>SHA,</small>
+it&rsquo;s a simple matter to convert them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The interface
+provides two ways to calculate digests: all-at-once, or in
+stages. To illustrate, the following short program computes
+the <small>SHA&minus;256</small> digest of &quot;hello
+world&quot; using each approach:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use Digest::SHA
+qw(sha256_hex); <br>
+$data = &quot;hello world&quot;; <br>
+@frags = split(//, $data); <br>
+# all&minus;at&minus;once (Functional style) <br>
+$digest1 = sha256_hex($data); <br>
+# in&minus;stages (OOP style) <br>
+$state = Digest::SHA&minus;&gt;new(256); <br>
+for (@frags) { $state&minus;&gt;add($_) } <br>
+$digest2 = $state&minus;&gt;hexdigest; <br>
+print $digest1 eq $digest2 ? <br>
+&quot;whew!\n&quot; : &quot;oops!\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">To calculate
+the digest of an n&minus;bit message where <i>n</i> is not a
+multiple of 8, use the <b><i>add_bits()</i></b> method. For
+example, consider the 446&minus;bit message consisting of
+the bit-string &quot;110&quot; repeated 148 times, followed
+by &quot;11&quot;. Here&rsquo;s how to display its
+<small>SHA&minus;1</small> digest:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Digest::SHA; <br>
+$bits = &quot;110&quot; x 148 . &quot;11&quot;; <br>
+$sha =
+Digest::SHA&minus;&gt;new(1)&minus;&gt;add_bits($bits); <br>
+print $sha&minus;&gt;hexdigest, &quot;\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that for
+larger bit-strings, it&rsquo;s more efficient to use the
+two-argument version <i>add_bits($data, $nbits)</i>, where
+<i>$data</i> is in the customary packed binary format used
+for Perl strings.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The module also
+lets you save intermediate <small>SHA</small> states to a
+string. The <b><i>getstate()</i></b> method generates
+portable, human-readable text describing the current state
+of computation. You can subsequently restore that state with
+<b><i>putstate()</i></b> to resume where the calculation
+left off.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To see what a
+state description looks like, just run the following:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Digest::SHA; <br>
+print
+Digest::SHA&minus;&gt;new&minus;&gt;add(&quot;Shaw&quot; x
+1962)&minus;&gt;getstate;</p>
+
+<p style="margin-left:11%; margin-top: 1em">As an added
+convenience, the Digest::SHA module offers routines to
+calculate keyed hashes using the
+<small>HMAC&minus;SHA&minus;1/224/256/384/512</small>
+algorithms. These services exist in functional form only,
+and mimic the style and behavior of the <b><i>sha()</i></b>,
+<b><i>sha_hex()</i></b>, and <b><i>sha_base64()</i></b>
+functions.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Test vector
+from
+draft&minus;ietf&minus;ipsec&minus;ciph&minus;sha&minus;256&minus;01.txt
+<br>
+use Digest::SHA qw(hmac_sha256_hex); <br>
+print hmac_sha256_hex(&quot;Hi There&quot;, chr(0x0b) x 32),
+&quot;\n&quot;;</p>
+
+<h2>UNICODE AND SIDE EFFECTS
+<a name="UNICODE AND SIDE EFFECTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Perl supports
+Unicode strings as of version 5.6. Such strings may contain
+wide characters, namely, characters whose ordinal values are
+greater than 255. This can cause problems for digest
+algorithms such as <small>SHA</small> that are specified to
+operate on sequences of bytes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The rule by
+which Digest::SHA handles a Unicode string is easy to state,
+but potentially confusing to grasp: the string is
+interpreted as a sequence of byte values, where each byte
+value is equal to the ordinal value (viz. code point) of its
+corresponding Unicode character. That way, the Unicode
+string &rsquo;abc&rsquo; has exactly the same digest value
+as the ordinary string &rsquo;abc&rsquo;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since a wide
+character does not fit into a byte, the Digest::SHA routines
+croak if they encounter one. Whereas if a Unicode string
+contains no wide characters, the module accepts it quite
+happily. The following code illustrates the two cases:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$str1 =
+pack('U*', (0..255)); <br>
+print sha1_hex($str1); # ok <br>
+$str2 = pack('U*', (0..256)); <br>
+print sha1_hex($str2); # croaks</p>
+
+<p style="margin-left:11%; margin-top: 1em">Be aware that
+the digest routines silently convert
+<small>UTF&minus;8</small> input into its equivalent byte
+sequence in the native encoding (cf. utf8::downgrade). This
+side effect influences only the way Perl stores the data
+internally, but otherwise leaves the actual value of the
+data intact.</p>
+
+<h2>NIST STATEMENT ON SHA&minus;1
+<a name="NIST STATEMENT ON SHA&minus;1"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>NIST</small>
+acknowledges that the work of Prof. Xiaoyun Wang constitutes
+a practical collision attack on <small>SHA&minus;1.</small>
+Therefore, <small>NIST</small> encourages the rapid adoption
+of the <small>SHA&minus;2</small> hash functions (e.g.
+<small>SHA&minus;256</small> ) for applications requiring
+strong collision resistance, such as digital signatures.</p>
+
+<p style="margin-left:11%; margin-top: 1em">ref.
+&lt;http://csrc.nist.gov/groups/ST/hash/statement.html&gt;</p>
+
+<h2>PADDING OF BASE64 DIGESTS
+<a name="PADDING OF BASE64 DIGESTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">By convention,
+<small>CPAN</small> Digest modules do <b>not</b> pad their
+Base64 output. Problems can occur when feeding such digests
+to other software that expects properly padded Base64
+encodings.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For the time
+being, any necessary padding must be done by the user.
+Fortunately, this is a simple operation: if the length of a
+Base64&minus;encoded digest isn&rsquo;t a multiple of 4,
+simply append &quot;=&quot; characters to the end of the
+digest until it is:</p>
+
+<p style="margin-left:11%; margin-top: 1em">while
+(length($b64_digest) % 4) { <br>
+$b64_digest .= '='; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">To illustrate,
+<i>sha256_base64(&quot;abc&quot;)</i> is computed to be</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0</p>
+
+<p style="margin-left:11%; margin-top: 1em">which has a
+length of 43. So, the properly padded version is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=</p>
+
+<h2>EXPORT
+<a name="EXPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">None by
+default.</p>
+
+<h2>EXPORTABLE FUNCTIONS
+<a name="EXPORTABLE FUNCTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Provided your C
+compiler supports a 64&minus;bit type (e.g. the <i>long
+long</i> of C99, or <i>__int64</i> used by Microsoft C/C
+<small>++</small> ), all of these functions will be
+available for use. Otherwise, you won&rsquo;t be able to
+perform the <small>SHA&minus;384</small> and
+<small>SHA&minus;512</small> transforms, both of which
+require 64&minus;bit operations.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Functional
+style</i> <b><br>
+sha1($data, ...) <br>
+sha224($data, ...) <br>
+sha256($data, ...) <br>
+sha384($data, ...) <br>
+sha512($data, ...) <br>
+sha512224($data, ...) <br>
+sha512256($data, ...)</b></p>
+
+<p style="margin-left:17%;">Logically joins the arguments
+into a single string, and returns its
+<small>SHA&minus;1/224/256/384/512</small> digest encoded as
+a binary string.</p>
+
+<p style="margin-left:11%;"><b>sha1_hex($data, ...) <br>
+sha224_hex($data, ...) <br>
+sha256_hex($data, ...) <br>
+sha384_hex($data, ...) <br>
+sha512_hex($data, ...) <br>
+sha512224_hex($data, ...) <br>
+sha512256_hex($data, ...)</b></p>
+
+<p style="margin-left:17%;">Logically joins the arguments
+into a single string, and returns its
+<small>SHA&minus;1/224/256/384/512</small> digest encoded as
+a hexadecimal string.</p>
+
+<p style="margin-left:11%;"><b>sha1_base64($data, ...) <br>
+sha224_base64($data, ...) <br>
+sha256_base64($data, ...) <br>
+sha384_base64($data, ...) <br>
+sha512_base64($data, ...) <br>
+sha512224_base64($data, ...) <br>
+sha512256_base64($data, ...)</b></p>
+
+<p style="margin-left:17%;">Logically joins the arguments
+into a single string, and returns its
+<small>SHA&minus;1/224/256/384/512</small> digest encoded as
+a Base64 string.</p>
+
+<p style="margin-left:17%; margin-top: 1em">It&rsquo;s
+important to note that the resulting string does <b>not</b>
+contain the padding characters typical of Base64 encodings.
+This omission is deliberate, and is done to maintain
+compatibility with the family of <small>CPAN</small> Digest
+modules. See &quot; <small>PADDING OF BASE64
+DIGESTS&quot;</small> for details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i><small>OOP</small>
+style</i> <b><br>
+new($alg)</b></p>
+
+<p style="margin-left:17%;">Returns a new Digest::SHA
+object. Allowed values for <i>$alg</i> are 1, 224, 256, 384,
+512, 512224, or 512256. It&rsquo;s also possible to use
+common string representations of the algorithm (e.g.
+&quot;sha256&quot;, &quot;
+<small>SHA&minus;384&quot;</small> ). If the argument is
+missing, <small>SHA&minus;1</small> will be used by
+default.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Invoking
+<i>new</i> as an instance method will reset the object to
+the initial state associated with <i>$alg</i>. If the
+argument is missing, the object will continue using the same
+algorithm that was selected at creation.</p>
+
+<p style="margin-left:11%;"><b>reset($alg)</b></p>
+
+<p style="margin-left:17%;">This method has exactly the
+same effect as <i>new($alg)</i>. In fact, <i>reset</i> is
+just an alias for <i>new</i>.</p>
+
+<p style="margin-left:11%;"><b>hashsize</b></p>
+
+<p style="margin-left:17%;">Returns the number of digest
+bits for this object. The values are 160, 224, 256, 384,
+512, 224, and 256 for <small>SHA&minus;1, SHA&minus;224,
+SHA&minus;256, SHA&minus;384, SHA&minus;512,
+SHA&minus;512/224</small> and
+<small>SHA&minus;512/256,</small> respectively.</p>
+
+<p style="margin-left:11%;"><b>algorithm</b></p>
+
+<p style="margin-left:17%;">Returns the digest algorithm
+for this object. The values are 1, 224, 256, 384, 512,
+512224, and 512256 for <small>SHA&minus;1, SHA&minus;224,
+SHA&minus;256, SHA&minus;384, SHA&minus;512,
+SHA&minus;512/224,</small> and
+<small>SHA&minus;512/256,</small> respectively.</p>
+
+<p style="margin-left:11%;"><b>clone</b></p>
+
+<p style="margin-left:17%;">Returns a duplicate copy of the
+object.</p>
+
+<p style="margin-left:11%;"><b>add($data, ...)</b></p>
+
+<p style="margin-left:17%;">Logically joins the arguments
+into a single string, and uses it to update the current
+digest state. In other words, the following statements have
+the same effect:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$sha&minus;&gt;add(&quot;a&quot;);
+$sha&minus;&gt;add(&quot;b&quot;);
+$sha&minus;&gt;add(&quot;c&quot;); <br>
+
+$sha&minus;&gt;add(&quot;a&quot;)&minus;&gt;add(&quot;b&quot;)&minus;&gt;add(&quot;c&quot;);
+<br>
+$sha&minus;&gt;add(&quot;a&quot;, &quot;b&quot;,
+&quot;c&quot;); <br>
+$sha&minus;&gt;add(&quot;abc&quot;);</p>
+
+<p style="margin-left:17%; margin-top: 1em">The return
+value is the updated object itself.</p>
+
+<p style="margin-left:11%;"><b>add_bits($data, $nbits) <br>
+add_bits($bits)</b></p>
+
+<p style="margin-left:17%;">Updates the current digest
+state by appending bits to it. The return value is the
+updated object itself.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The first form
+causes the most-significant <i>$nbits</i> of <i>$data</i> to
+be appended to the stream. The <i>$data</i> argument is in
+the customary binary format used for Perl strings.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The second form
+takes an <small>ASCII</small> string of &quot;0&quot; and
+&quot;1&quot; characters as its argument. It&rsquo;s
+equivalent to</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$sha&minus;&gt;add_bits(pack(&quot;B*&quot;,
+$bits), length($bits));</p>
+
+<p style="margin-left:17%; margin-top: 1em">So, the
+following two statements do the same thing:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$sha&minus;&gt;add_bits(&quot;111100001010&quot;);
+<br>
+$sha&minus;&gt;add_bits(&quot;\xF0\xA0&quot;, 12);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+<small>SHA&minus;1</small> and <small>SHA&minus;2</small>
+use <i>most-significant-bit ordering</i> for their internal
+state. This means that</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$sha3&minus;&gt;add_bits(&quot;110&quot;);</p>
+
+<p style="margin-left:17%; margin-top: 1em">is equivalent
+to</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">$sha3&minus;&gt;add_bits(&quot;1&quot;)&minus;&gt;add_bits(&quot;1&quot;)&minus;&gt;add_bits(&quot;0&quot;);</p>
+
+<p style="margin-left:11%;"><b>addfile(*FILE)</b></p>
+
+<p style="margin-left:17%;">Reads from
+<i><small>FILE</small></i> until <small>EOF,</small> and
+appends that data to the current state. The return value is
+the updated object itself.</p>
+
+<p style="margin-left:11%;"><b>addfile($filename [,
+$mode])</b></p>
+
+<p style="margin-left:17%;">Reads the contents of
+<i>$filename</i>, and appends that data to the current
+state. The return value is the updated object itself.</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+<i>$filename</i> is simply opened and read; no special modes
+or I/O disciplines are used. To change this, set the
+optional <i>$mode</i> argument to one of the following
+values:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&quot;b&quot;
+read file in binary mode <br>
+&quot;U&quot; use universal newlines <br>
+&quot;0&quot; use BITS mode</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;U&quot; mode is modeled on Python&rsquo;s
+&quot;Universal Newlines&quot; concept, whereby
+<small>DOS</small> and Mac <small>OS</small> line
+terminators are converted internally to <small>UNIX</small>
+newlines before processing. This ensures consistent digest
+values when working simultaneously across multiple file
+systems. <b>The &quot;U&quot; mode influences only text
+files</b>, namely those passing Perl&rsquo;s <i>&minus;T</i>
+test; binary files are processed with no translation
+whatsoever.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+<small>BITS</small> mode (&quot;0&quot;) interprets the
+contents of <i>$filename</i> as a logical stream of bits,
+where each <small>ASCII</small> &rsquo;0&rsquo; or
+&rsquo;1&rsquo; character represents a 0 or 1 bit,
+respectively. All other characters are ignored. This
+provides a convenient way to calculate the digest values of
+partial-byte data by using files, rather than having to
+write separate programs employing the <i>add_bits</i>
+method.</p>
+
+<p style="margin-left:11%;"><b>getstate</b></p>
+
+<p style="margin-left:17%;">Returns a string containing a
+portable, human-readable representation of the current
+<small>SHA</small> state.</p>
+
+<p style="margin-left:11%;"><b>putstate($str)</b></p>
+
+<p style="margin-left:17%;">Returns a Digest::SHA object
+representing the <small>SHA</small> state contained in
+<i>$str</i>. The format of <i>$str</i> matches the format of
+the output produced by method <i>getstate</i>. If called as
+a class method, a new object is created; if called as an
+instance method, the object is reset to the state contained
+in <i>$str</i>.</p>
+
+<p style="margin-left:11%;"><b>dump($filename)</b></p>
+
+<p style="margin-left:17%;">Writes the output of
+<i>getstate</i> to <i>$filename</i>. If the argument is
+missing, or equal to the empty string, the state information
+will be written to <small>STDOUT.</small></p>
+
+<p style="margin-left:11%;"><b>load($filename)</b></p>
+
+<p style="margin-left:17%;">Returns a Digest::SHA object
+that results from calling <i>putstate</i> on the contents of
+<i>$filename</i>. If the argument is missing, or equal to
+the empty string, the state information will be read from
+<small>STDIN.</small></p>
+
+<p style="margin-left:11%;"><b>digest</b></p>
+
+<p style="margin-left:17%;">Returns the digest encoded as a
+binary string.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that the
+<i>digest</i> method is a read-once operation. Once it has
+been performed, the Digest::SHA object is automatically
+reset in preparation for calculating another digest value.
+Call <i>$sha&minus;&gt;clone&minus;&gt;digest</i> if
+it&rsquo;s necessary to preserve the original digest
+state.</p>
+
+<p style="margin-left:11%;"><b>hexdigest</b></p>
+
+<p style="margin-left:17%;">Returns the digest encoded as a
+hexadecimal string.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Like
+<i>digest</i>, this method is a read-once operation. Call
+<i>$sha&minus;&gt;clone&minus;&gt;hexdigest</i> if
+it&rsquo;s necessary to preserve the original digest
+state.</p>
+
+<p style="margin-left:11%;"><b>b64digest</b></p>
+
+<p style="margin-left:17%;">Returns the digest encoded as a
+Base64 string.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Like
+<i>digest</i>, this method is a read-once operation. Call
+<i>$sha&minus;&gt;clone&minus;&gt;b64digest</i> if
+it&rsquo;s necessary to preserve the original digest
+state.</p>
+
+<p style="margin-left:17%; margin-top: 1em">It&rsquo;s
+important to note that the resulting string does <b>not</b>
+contain the padding characters typical of Base64 encodings.
+This omission is deliberate, and is done to maintain
+compatibility with the family of <small>CPAN</small> Digest
+modules. See &quot; <small>PADDING OF BASE64
+DIGESTS&quot;</small> for details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i><small>HMAC&minus;SHA&minus;1/224/256/384/512</small></i>
+<b><br>
+hmac_sha1($data, $key) <br>
+hmac_sha224($data, $key) <br>
+hmac_sha256($data, $key) <br>
+hmac_sha384($data, $key) <br>
+hmac_sha512($data, $key) <br>
+hmac_sha512224($data, $key) <br>
+hmac_sha512256($data, $key)</b></p>
+
+<p style="margin-left:17%;">Returns the
+<small>HMAC&minus;SHA&minus;1/224/256/384/512</small> digest
+of <i>$data</i>/<i>$key</i>, with the result encoded as a
+binary string. Multiple <i>$data</i> arguments are allowed,
+provided that <i>$key</i> is the last argument in the
+list.</p>
+
+<p style="margin-left:11%;"><b>hmac_sha1_hex($data, $key)
+<br>
+hmac_sha224_hex($data, $key) <br>
+hmac_sha256_hex($data, $key) <br>
+hmac_sha384_hex($data, $key) <br>
+hmac_sha512_hex($data, $key) <br>
+hmac_sha512224_hex($data, $key) <br>
+hmac_sha512256_hex($data, $key)</b></p>
+
+<p style="margin-left:17%;">Returns the
+<small>HMAC&minus;SHA&minus;1/224/256/384/512</small> digest
+of <i>$data</i>/<i>$key</i>, with the result encoded as a
+hexadecimal string. Multiple <i>$data</i> arguments are
+allowed, provided that <i>$key</i> is the last argument in
+the list.</p>
+
+<p style="margin-left:11%;"><b>hmac_sha1_base64($data,
+$key) <br>
+hmac_sha224_base64($data, $key) <br>
+hmac_sha256_base64($data, $key) <br>
+hmac_sha384_base64($data, $key) <br>
+hmac_sha512_base64($data, $key) <br>
+hmac_sha512224_base64($data, $key) <br>
+hmac_sha512256_base64($data, $key)</b></p>
+
+<p style="margin-left:17%;">Returns the
+<small>HMAC&minus;SHA&minus;1/224/256/384/512</small> digest
+of <i>$data</i>/<i>$key</i>, with the result encoded as a
+Base64 string. Multiple <i>$data</i> arguments are allowed,
+provided that <i>$key</i> is the last argument in the
+list.</p>
+
+<p style="margin-left:17%; margin-top: 1em">It&rsquo;s
+important to note that the resulting string does <b>not</b>
+contain the padding characters typical of Base64 encodings.
+This omission is deliberate, and is done to maintain
+compatibility with the family of <small>CPAN</small> Digest
+modules. See &quot; <small>PADDING OF BASE64
+DIGESTS&quot;</small> for details.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Digest,
+Digest::SHA::PurePerl</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Secure Hash
+Standard (Draft <small>FIPS PUB 180&minus;4</small> ) can be
+found at:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;http://csrc.nist.gov/publications/drafts/fips180&minus;4/Draft&minus;FIPS180&minus;4_Feb2011.pdf&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Keyed-Hash
+Message Authentication Code ( <small>HMAC</small> ):</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;http://csrc.nist.gov/publications/fips/fips198/fips&minus;198a.pdf&gt;</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Mark Shelor
+&lt;mshelor@cpan.org&gt;</p>
+
+<h2>ACKNOWLEDGMENTS
+<a name="ACKNOWLEDGMENTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The author is
+particularly grateful to</p>
+
+<p style="margin-left:11%; margin-top: 1em">Gisle Aas <br>
+H. Merijn Brand <br>
+Sean Burke <br>
+Chris Carey <br>
+Alexandr Ciornii <br>
+Chris David <br>
+Jim Doble <br>
+Thomas Drugeon <br>
+Julius Duque <br>
+Jeffrey Friedl <br>
+Robert Gilmour <br>
+Brian Gladman <br>
+Jarkko Hietaniemi <br>
+Adam Kennedy <br>
+Mark Lawrence <br>
+Andy Lester <br>
+Alex Muntada <br>
+Steve Peters <br>
+Chris Skiscim <br>
+Martin Thurn <br>
+Gunnar Wolf <br>
+Adam Woodbury</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;who by
+trained skill rescued life from such great billows and such
+thick darkness and moored it in so perfect a calm and in so
+brilliant a light&quot; &minus; Lucretius</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (C)
+2003&minus;2018 Mark Shelor</p>
+
+<p style="margin-left:11%; margin-top: 1em">This library is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">perlartistic</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:58 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SD_BUS_MESSAGE_READ</title>
+
+</head>
+<body>
+<h1>sd_bus_message_readv</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">sd_bus_message_read,
+sd_bus_message_readv, sd_bus_message_peek_type &minus; Read
+a sequence of values from a message</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;systemd/sd&minus;bus.h&gt;</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_bus_message_read(sd_bus_message&nbsp;*</b><i>m</i><b>,
+const&nbsp;char&nbsp;*</b><i>types</i><b>, ...);</b></p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_bus_message_readv(sd_bus_message&nbsp;*</b><i>m</i><b>,
+const&nbsp;char&nbsp;*</b><i>types</i><b>,
+va_list&nbsp;</b><i>ap</i><b>);</b></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_bus_message_peek_type(sd_bus_message&nbsp;*</b><i>m</i><b>,
+char&nbsp;*</b><i>type</i><b>,
+const&nbsp;char&nbsp;**</b><i>contents</i><b>);</b></p> </td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_bus_message_read()</b>
+reads a sequence of fields from the D&minus;Bus message
+object <i>m</i> and advances the read position in the
+message. The type string <i>types</i> describes the types of
+items expected in the message and the field arguments that
+follow. The type string may be <b>NULL</b> or empty, in
+which case nothing is read.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The type string
+is composed of the elements described in
+<b>sd_bus_message_append</b>(3), i.e. basic and container
+types. It must contain zero or more single &quot;complete
+types&quot;. The type string is
+<b>NUL</b>&minus;terminated.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For each type
+specified in the type string, one or more arguments need to
+be specified after the <i>types</i> parameter, in the same
+order. The arguments must be pointers to appropriate types
+(a pointer to <b>int8_t</b> for a &quot;y&quot; in the type
+string, a pointer to <b>int32_t</b> for an &quot;i&quot;, a
+pointer to <b>const char*</b> for an &quot;s&quot;, ...)
+which are set based on the values in the message. As an
+exception, in case of array and variant types, the first
+argument is an &quot;input&quot; argument that further
+specifies how the message should be read. See the table
+below for a complete list of allowed arguments and their
+types. Note that, if the basic type is a pointer (e.g.,
+<b>const char *</b> in the case of a string), the argument
+is a pointer to a pointer, and also the pointer value that
+is written is only borrowed and the contents must be copied
+if they are to be used after the end of the message's
+lifetime. If the type is &quot;h&quot; (UNIX file
+descriptor), the descriptor is not duplicated by this call
+and the returned descriptor remains in possession of the
+message object, and needs to be duplicated by the caller in
+order to keep an open reference to it after the message
+object is freed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each argument
+may also be <b>NULL</b>, in which case the value is read and
+ignored.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Table&nbsp;1.&nbsp;Item
+type specifiers <br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</b></p></table>
+
+
+<p align="center"><b><img src="grohtml-34200451.png" alt="Image grohtml-34200451.png"></b></p>
+
+<p style="margin-left:11%;">If objects of the specified
+types are not present at the current position in the
+message, an error is returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>sd_bus_message_readv()</b> is equivalent to the
+<b>sd_bus_message_read()</b>, except that it is called with
+a &quot;va_list&quot; instead of a variable number of
+arguments. This function does not call the <b>va_end()</b>
+macro. Because it invokes the <b>va_arg()</b> macro, the
+value of <i>ap</i> is undefined after the call.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_bus_message_peek_type()</b>
+determines the type of the next element in <i>m</i> to be
+read by <b>sd_bus_message_read()</b> or similar functions.
+On success, the type is stored in <i>type</i>, if it is not
+<b>NULL</b>. If the type is a container type, the type of
+its elements is stored in <i>contents</i>, if it is not
+<b>NULL</b>. If this function successfully determines the
+type of the next element in <i>m</i>, it returns a positive
+integer. If there are no more elements to be read, it
+returns zero.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On success,
+these functions return a non&minus;negative integer. On
+failure, they return a negative errno&minus;style error
+code.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Errors</b>
+<br>
+Returned errors may indicate the following problems:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;EINVAL</b></p>
+
+<p style="margin-left:17%;">Specified type string is
+invalid or the message parameter is <b>NULL</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ENXIO</b></p>
+
+<p style="margin-left:17%;">The message does not contain
+the specified type at current position.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;EBADMSG</b></p>
+
+<p style="margin-left:17%;">The message cannot be
+parsed.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;EBUSY</b></p>
+
+<p style="margin-left:17%;">When reading from a container,
+this error will be returned if unread elements are left in
+the container.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These APIs are
+implemented as a shared library, which can be compiled and
+linked to with the <b>libsystemd&nbsp;pkg-config</b>(1)
+file.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Read a single
+basic type (a 64&minus;bit integer):</p>
+
+<p style="margin-left:17%; margin-top: 1em">sd_bus_message
+*m; <br>
+int64_t x;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">sd_bus_message_read(m,
+&quot;x&quot;, &amp;x);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Read a boolean
+value:</p>
+
+<p style="margin-left:17%; margin-top: 1em">sd_bus_message
+*m; <br>
+int x; /* Do not use C99 'bool' type here, it's typically
+smaller <br>
+in memory and would cause memory corruption */</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">sd_bus_message_read(m,
+&quot;b&quot;, &amp;x);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Read all types
+of integers:</p>
+
+<p style="margin-left:17%; margin-top: 1em">uint8_t y; <br>
+int16_t n; <br>
+uint16_t q; <br>
+int32_t i; <br>
+uint32_t u; <br>
+int32_t x; <br>
+uint32_t t; <br>
+double d;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">sd_bus_message_read(m,
+&quot;ynqiuxtd&quot;, &amp;y, &amp;n, &amp;q, &amp;i,
+&amp;u, &amp;x, &amp;t, &amp;d);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Read a
+structure composed of a string and a D&minus;Bus path:</p>
+
+<p style="margin-left:17%; margin-top: 1em">const char *s,
+*p;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">sd_bus_message_read(m,
+&quot;(so)&quot;, &amp;s, &amp;p);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Read a variant,
+with the real type &quot;gt&quot; (signature, unsigned
+integer):</p>
+
+<p style="margin-left:17%; margin-top: 1em">const char *s;
+<br>
+uint64_t *v;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">sd_bus_message_read(m,
+&quot;v&quot;, &quot;gt&quot;, &amp;s, &amp;v);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Read a
+dictionary containing three pairs of type
+{integer=&gt;string}:</p>
+
+<p style="margin-left:17%; margin-top: 1em">int i, j, k;
+<br>
+const char *s, *t, *u;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">sd_bus_message_read(m,
+&quot;a{is}&quot;, 3, &amp;i, &amp;s, &amp;j, &amp;t,
+&amp;k, &amp;u);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Read a single
+file descriptor, and duplicate it in order to keep it open
+after the message is freed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">sd_bus_message
+*m; <br>
+int fd, fd_copy;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">sd_bus_message_read(m,
+&quot;h&quot;, &amp;fd); <br>
+fd_copy = fcntl(fd, FD_DUPFD_CLOEXEC, 3);</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>sd-bus</b>(3), <b>sd_bus_message_read_basic</b>(3),
+<b>sd_bus_message_skip</b>(3),
+<b>sd_bus_message_append</b>(3),
+<b>sd_bus_message_enter_container</b>(3)</p>
+<hr>
+</body>
+</html>

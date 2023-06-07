@@ -1,0 +1,311 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:32 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LTTNG&minus;UST&minus;CYG&minus;PRO</title>
+
+</head>
+<body>
+<h1>lttng-ust-cyg-profile</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">lttng-ust-cyg-profile
+&minus; Function tracing (LTTng&minus;UST helper)</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Compile your
+application with compiler option
+<b>-finstrument-functions</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Launch your
+application by preloading
+<b>liblttng-ust-cyg-profile-fast.so</b> for fast function
+tracing:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$
+<b>LD_PRELOAD=liblttng&minus;ust&minus;cyg&minus;profile&minus;fast.so</b>
+my&minus;app</p>
+
+<p style="margin-left:11%; margin-top: 1em">Launch your
+application by preloading <b>liblttng-ust-cyg-profile.so</b>
+for slower, more verbose function tracing:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$
+<b>LD_PRELOAD=liblttng&minus;ust&minus;cyg&minus;profile.so</b>
+my&minus;app</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When the
+<b>liblttng-ust-cyg-profile.so</b> or the
+<b>liblttng-ust-cyg-profile-fast.so</b> library is preloaded
+before a given application starts, all function entry and
+return points are traced by LTTng&minus;UST (see
+<b>lttng-ust</b>(3)), provided said application was compiled
+with the <b>-finstrument-functions</b> compiler option.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+<b>lttng</b>(1) to learn more about how to control LTTng
+tracing sessions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Function
+tracing with LTTng&minus;UST comes in two flavors, each one
+providing a different trade&minus;off between performance
+and robustness:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>liblttng-ust-cyg-profile-fast.so</b></p>
+
+<p style="margin-left:17%;">This is a lightweight variant
+that should only be used where it can be <i>guaranteed</i>
+that the complete event stream is recorded without any
+missing events. Any kind of duplicate information is left
+out.</p>
+
+<p style="margin-left:17%; margin-top: 1em">At each
+function entry, the address of the called function is
+recorded in an LTTng&minus;UST event. Function exits are
+recorded as another, empty LTTng&minus;UST event.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See the <i>Fast
+function tracing</i> section below for the complete list of
+emitted events and their fields.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>liblttng-ust-cyg-profile.so</b></p>
+
+<p style="margin-left:17%;">This is a more robust variant
+which also works for use cases where events might get
+discarded, or not recorded from application startup. In
+these cases, the trace analyzer needs extra information to
+be able to reconstruct the program flow.</p>
+
+<p style="margin-left:17%; margin-top: 1em">At each
+function entry <i>and</i> exit, the address of the called
+function <i>and</i> the call site address are recorded in an
+LTTng&minus;UST event.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See the
+<i>Verbose function tracing</i> section below for the
+complete list of emitted events and their fields.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Usage</b>
+<br>
+To use LTTng&minus;UST function tracing, you need to make
+sure the sources of your application are compiled with the
+<b>-finstrument-functions</b> compiler option.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It might be
+necessary to limit the number of source files where this
+option is used to prevent excessive amount of trace data to
+be generated at run time. Usually, there are additional
+compiler flags that allow you to specify a more
+fine&minus;grained selection of function
+instrumentation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For each
+instrumented function, the executable will contain calls to
+profiling function hooks (after function entry, named
+<b>__cyg_profile_func_enter()</b>, and just before function
+exit, named <b>__cyg_profile_func_exit()</b>).</p>
+
+<p style="margin-left:11%; margin-top: 1em">By preloading
+(using the <b>LD_PRELOAD</b> environment variable) one of
+the provided shared libraries, these profiling hooks get
+defined to emit LTTng events (as described below).</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><big>Note</big></b>
+<br>
+Using this feature can result in a <b>massive amount</b> of
+trace data to be generated by the instrumented application.
+Application run time is also considerably affected. Be
+careful on systems with limited resources.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Fast
+function tracing</big></b> <big><br>
+The following LTTng&minus;UST events are available when
+using <b>liblttng-ust-cyg-profile-fast.so</b>. Their log
+level is set to
+<b>LTTNG_UST_TRACEPOINT_LOGLEVEL_DEBUG_FUNCTION</b>.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>lttng_ust_cyg_profile_fast:func_entry</b></big></p>
+
+<p style="margin-left:17%;"><big>Emitted when an
+application function is entered, or more specifically, when
+<b>__cyg_profile_func_enter()</b> is called.</big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big>Fields:</big></p>
+
+
+<p align="center" style="margin-top: 1em"><big><img src="grohtml-33392301.png" alt="Image grohtml-33392301.png"></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>lttng_ust_cyg_profile_fast:func_exit</b></big></p>
+
+<p style="margin-left:17%;"><big>Emitted when an
+application function returns, or more specifically, when
+<b>__cyg_profile_func_exit()</b> is called.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>This event
+has no fields. Since the
+<b>liblttng-ust-cyg-profile-fast.so</b> library should only
+be used when it can be guaranteed that the complete event
+stream is recorded without any missing events, a
+per&minus;thread, stack&minus;based approach can be used on
+the trace analyzer side to match function entry and return
+events.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>Verbose
+function tracing</b> <br>
+The following LTTng&minus;UST events are available when
+using <b>liblttng-ust-cyg-profile.so</b>. Their log level is
+set to
+<b>LTTNG_UST_TRACEPOINT_LOGLEVEL_DEBUG_FUNCTION</b>.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>lttng_ust_cyg_profile:func_entry</b></big></p>
+
+<p style="margin-left:17%;"><big>Emitted when an
+application function is entered, or more specifically, when
+<b>__cyg_profile_func_enter()</b> is called.</big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big>Fields:</big></p>
+
+
+<p align="center" style="margin-top: 1em"><big><img src="grohtml-33392302.png" alt="Image grohtml-33392302.png"></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>lttng_ust_cyg_profile:func_exit</b></big></p>
+
+<p style="margin-left:17%;"><big>Emitted when an
+application function returns, or more specifically, when
+<b>__cyg_profile_func_exit()</b> is called.</big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big>Fields:</big></p>
+
+
+<p align="center" style="margin-top: 1em"><big><img src="grohtml-33392303.png" alt="Image grohtml-33392303.png"></big></p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>If you
+encounter any issue or usability problem, please report it
+on the LTTng bug tracker
+&lt;https://bugs.lttng.org/projects/lttng-ust&gt;.</big></p>
+
+<h2>RESOURCES
+<a name="RESOURCES"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull;
+LTTng project website &lt;http://lttng.org&gt;</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull;
+LTTng documentation &lt;http://lttng.org/docs&gt;</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull; Git
+repositories &lt;http://git.lttng.org&gt;</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull;
+GitHub organization
+&lt;http://github.com/lttng&gt;</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull;
+Continuous integration
+&lt;http://ci.lttng.org/&gt;</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull;
+Mailing list &lt;http://lists.lttng.org&gt; for support and
+development: <b>lttng-dev@lists.lttng.org</b></big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull; IRC
+channel &lt;irc://irc.oftc.net/lttng&gt;: <b>#lttng</b> on
+<b>irc.oftc.net</b></big></p>
+
+<h2>COPYRIGHTS
+<a name="COPYRIGHTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>This
+library is part of the LTTng&minus;UST project.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>This
+library is distributed under the GNU Lesser General Public
+License, version 2.1
+&lt;http://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html&gt;.
+See the for more details.</big></p>
+
+<h2>THANKS
+<a name="THANKS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>Thanks to
+Ericsson for funding this work, providing real&minus;life
+use cases, and testing.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>Special
+thanks to Michel Dagenais and the DORSAL laboratory
+&lt;http://www.dorsal.polymtl.ca/&gt; at &Eacute;cole
+Polytechnique de Montr&eacute;al for the LTTng
+journey.</big></p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>LTTng&minus;UST
+was originally written by Mathieu Desnoyers, with additional
+contributions from various other people. It is currently
+maintained by Mathieu Desnoyers
+&lt;mailto:mathieu.desnoyers@efficios.com&gt;.</big></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><b>lttng-ust</b>(3),
+<b>lttng</b>(1), <b>gcc</b>(1), <b>ld.so</b>(8)</big></p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:38 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Net::Cmd</title>
+
+</head>
+<body>
+<h1>Net::Cmd</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Net::Cmd
+&minus; Network Command class (as used by FTP, SMTP etc)</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use Net::Cmd;
+<br>
+@ISA = qw(Net::Cmd);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Net::Cmd&quot;
+is a collection of methods that can be inherited by a
+sub-class of &quot;IO::Socket::INET&quot;. These methods
+implement the functionality required for a command based
+protocol, for example <small>FTP</small> and
+<small>SMTP.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">If your
+sub-class does not also derive from
+&quot;IO::Socket::INET&quot; or similar (e.g.
+&quot;IO::Socket::IP&quot;, &quot;IO::Socket::INET6&quot; or
+&quot;IO::Socket::SSL&quot;) then you must provide the
+following methods by other means yourself:
+&quot;close()&quot; and &quot;timeout()&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Public
+Methods</b> <br>
+These methods provide a user interface to the
+&quot;Net::Cmd&quot; object. <br>
+&quot;debug($level)&quot;</p>
+
+<p style="margin-left:17%;">Set the level of debug
+information for this object. If $level is not given then the
+current state is returned. Otherwise the state is changed to
+$level and the previous state returned.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Different
+packages may implement different levels of debug but a
+non-zero value results in copies of all commands and
+responses also being sent to <small>STDERR.</small></p>
+
+<p style="margin-left:17%; margin-top: 1em">If $level is
+&quot;undef&quot; then the debug level will be set to the
+default debug level for the class.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This method can
+also be called as a <i>static</i> method to set/get the
+default debug level for a given class.</p>
+
+<p style="margin-left:11%;">&quot;message()&quot;</p>
+
+<p style="margin-left:17%;">Returns the text message
+returned from the last command. In a scalar context it
+returns a single string, in a list context it will return
+each line as a separate element. (See &quot; <small>PSEUDO
+RESPONSES&quot;</small> below.)</p>
+
+<p style="margin-left:11%;">&quot;code()&quot;</p>
+
+<p style="margin-left:17%;">Returns the 3&minus;digit code
+from the last command. If a command is pending then the
+value 0 is returned. (See &quot; <small>PSEUDO
+RESPONSES&quot;</small> below.)</p>
+
+<p style="margin-left:11%;">&quot;ok()&quot;</p>
+
+<p style="margin-left:17%;">Returns non-zero if the last
+code value was greater than zero and less than 400. This
+holds true for most command servers. Servers where this does
+not hold may override this method.</p>
+
+<p style="margin-left:11%;">&quot;status()&quot;</p>
+
+<p style="margin-left:17%;">Returns the most significant
+digit of the current status code. If a command is pending
+then &quot;CMD_PENDING&quot; is returned.</p>
+
+
+<p style="margin-left:11%;">&quot;datasend($data)&quot;</p>
+
+<p style="margin-left:17%;">Send data to the remote server,
+converting <small>LF</small> to <small>CRLF.</small> Any
+line starting with a &rsquo;.&rsquo; will be prefixed with
+another &rsquo;.&rsquo;. $data may be an array or a
+reference to an array. The $data passed in must be encoded
+by the caller to octets of whatever encoding is required,
+e.g. by using the Encode module&rsquo;s &quot;encode()&quot;
+function.</p>
+
+<p style="margin-left:11%;">&quot;dataend()&quot;</p>
+
+<p style="margin-left:17%;">End the sending of data to the
+remote server. This is done by ensuring that the data
+already sent ends with <small>CRLF</small> then sending
+&rsquo;.CRLF&rsquo; to end the transmission. Once this data
+has been sent &quot;dataend&quot; calls &quot;response&quot;
+and returns true if &quot;response&quot; returns
+<small>CMD_OK.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Protected
+Methods</b> <br>
+These methods are not intended to be called by the user, but
+used or over-ridden by a sub-class of &quot;Net::Cmd&quot;
+<br>
+&quot;debug_print($dir, $text)&quot;</p>
+
+<p style="margin-left:17%;">Print debugging information.
+$dir denotes the direction <i>true</i> being data being sent
+to the server. Calls &quot;debug_text&quot; before printing
+to <small>STDERR.</small></p>
+
+<p style="margin-left:11%;">&quot;debug_text($dir,
+$text)&quot;</p>
+
+<p style="margin-left:17%;">This method is called to print
+debugging information. $text is the text being sent. The
+method should return the text to be printed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is
+primarily meant for the use of modules such as
+<small>FTP</small> where passwords are sent, but we do not
+want to display them in the debugging information.</p>
+
+<p style="margin-left:11%;">&quot;command($cmd[, $args, ...
+])&quot;</p>
+
+<p style="margin-left:17%;">Send a command to the command
+server. All arguments are first joined with a space
+character and <small>CRLF</small> is appended, this string
+is then sent to the command server.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns undef
+upon failure.</p>
+
+<p style="margin-left:11%;">&quot;unsupported()&quot;</p>
+
+<p style="margin-left:17%;">Sets the status code to 580 and
+the response text to &rsquo;Unsupported command&rsquo;.
+Returns zero.</p>
+
+<p style="margin-left:11%;">&quot;response()&quot;</p>
+
+<p style="margin-left:17%;">Obtain a response from the
+server. Upon success the most significant digit of the
+status code is returned. Upon failure, timeout etc.,
+<i><small>CMD_ERROR</small></i> is returned.</p>
+
+
+<p style="margin-left:11%;">&quot;parse_response($text)&quot;</p>
+
+<p style="margin-left:17%;">This method is called by
+&quot;response&quot; as a method with one argument. It
+should return an array of 2 values, the 3&minus;digit status
+code and a flag which is true when this is part of a
+multi-line response and this line is not the last.</p>
+
+<p style="margin-left:11%;">&quot;getline()&quot;</p>
+
+<p style="margin-left:17%;">Retrieve one line, delimited by
+<small>CRLF,</small> from the remote server. Returns
+<i>undef</i> upon failure.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>NOTE</small></b>
+: If you do use this method for any reason, please remember
+to add some &quot;debug_print&quot; calls into your
+method.</p>
+
+
+<p style="margin-left:11%;">&quot;ungetline($text)&quot;</p>
+
+<p style="margin-left:17%;">Unget a line of text from the
+server.</p>
+
+
+<p style="margin-left:11%;">&quot;rawdatasend($data)&quot;</p>
+
+<p style="margin-left:17%;">Send data to the remote server
+without performing any conversions. $data is a scalar. As
+with &quot;datasend()&quot;, the $data passed in must be
+encoded by the caller to octets of whatever encoding is
+required, e.g. by using the Encode module&rsquo;s
+&quot;encode()&quot; function.</p>
+
+
+<p style="margin-left:11%;">&quot;read_until_dot()&quot;</p>
+
+<p style="margin-left:17%;">Read data from the remote
+server until a line consisting of a single &rsquo;.&rsquo;.
+Any lines starting with &rsquo;..&rsquo; will have one of
+the &rsquo;.&rsquo;s removed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns a
+reference to a list containing the lines, or <i>undef</i>
+upon failure.</p>
+
+<p style="margin-left:11%;">&quot;tied_fh()&quot;</p>
+
+<p style="margin-left:17%;">Returns a filehandle tied to
+the Net::Cmd object. After issuing a command, you may read
+from this filehandle using <b>read()</b> or &lt;&gt;. The
+filehandle will return <small>EOF</small> when the final dot
+is encountered. Similarly, you may write to the filehandle
+in order to send data to the server after issuing a command
+that expects data to be written.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See the
+Net::POP3 and Net::SMTP modules for examples of this.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Pseudo
+Responses</b> <br>
+Normally the values returned by &quot;message()&quot; and
+&quot;code()&quot; are obtained from the remote server, but
+in a few circumstances, as detailed below,
+&quot;Net::Cmd&quot; will return values that it sets. You
+can alter this behavior by overriding
+<b><small>DEF_REPLY_CODE</small> ()</b> to specify a
+different default reply code, or overriding one of the
+specific error handling methods below. <br>
+Initial value</p>
+
+<p style="margin-left:17%;">Before any command has executed
+or if an unexpected error occurs &quot;code()&quot; will
+return &quot;421&quot; (temporary connection failure) and
+&quot;message()&quot; will return undef.</p>
+
+<p style="margin-left:11%;">Connection closed</p>
+
+<p style="margin-left:17%;">If the underlying
+&quot;IO::Handle&quot; is closed, or if there are any read
+or write failures, the file handle will be forced closed,
+and &quot;code()&quot; will return &quot;421&quot;
+(temporary connection failure) and &quot;message()&quot;
+will return &quot;[$pkg] Connection closed&quot; (where $pkg
+is the name of the class that subclassed
+&quot;Net::Cmd&quot;). The <b>_set_status_closed()</b>
+method can be overridden to set a different message (by
+calling <b>set_status()</b>) or otherwise trap this
+error.</p>
+
+<p style="margin-left:11%;">Timeout</p>
+
+<p style="margin-left:17%;">If there is a read or write
+timeout &quot;code()&quot; will return &quot;421&quot;
+(temporary connection failure) and &quot;message()&quot;
+will return &quot;[$pkg] Timeout&quot; (where $pkg is the
+name of the class that subclassed &quot;Net::Cmd&quot;). The
+<b>_set_status_timeout()</b> method can be overridden to set
+a different message (by calling <b>set_status()</b>) or
+otherwise trap this error.</p>
+
+<h2>EXPORTS
+<a name="EXPORTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+symbols are, or can be, exported by this module: <br>
+Default Exports</p>
+
+<p style="margin-left:17%;">&quot;CMD_INFO&quot;,
+&quot;CMD_OK&quot;, &quot;CMD_MORE&quot;,
+&quot;CMD_REJECT&quot;, &quot;CMD_ERROR&quot;,
+&quot;CMD_PENDING&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">(These
+correspond to possible results of &quot;response()&quot; and
+&quot;status()&quot;.)</p>
+
+<p style="margin-left:11%;">Optional Exports</p>
+
+<p style="margin-left:17%;"><i>None</i>.</p>
+
+<p style="margin-left:11%;">Export Tags</p>
+
+<p style="margin-left:17%;"><i>None</i>.</p>
+
+<h2>KNOWN BUGS
+<a name="KNOWN BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">See
+&lt;https://rt.cpan.org/Dist/Display.html?Status=Active&amp;Queue=libnet&gt;.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Graham Barr
+&lt;gbarr@pobox.com &lt;mailto:gbarr@pobox.com&gt;&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Steve Hay
+&lt;shay@cpan.org &lt;mailto:shay@cpan.org&gt;&gt; is now
+maintaining libnet as of version 1.22_02.</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (C)
+1995&minus;2006 Graham Barr. All rights reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (C)
+2013&minus;2016, 2020 Steve Hay. All rights reserved.</p>
+
+<h2>LICENCE
+<a name="LICENCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself, i.e. under the terms of
+either the <small>GNU</small> General Public License or the
+Artistic License, as specified in the
+<i><small>LICENCE</small></i> file.</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Version
+3.14</p>
+
+<h2>DATE
+<a name="DATE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">23 Dec 2020</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">See the
+<i>Changes</i> file.</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,898 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:04 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Specio</title>
+
+</head>
+<body>
+<h1>Specio</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Specio &minus;
+Type constraints and coercions for Perl</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+0.48</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">package
+MyApp::Type::Library; <br>
+use Specio::Declare; <br>
+use Specio::Library::Builtins; <br>
+declare( <br>
+'PositiveInt', <br>
+parent =&gt; t('Int'), <br>
+inline =&gt; sub { <br>
+$_[0]&minus;&gt;parent&minus;&gt;inline_check( $_[1] ) <br>
+. ' &amp;&amp; ( ' <br>
+. $_[1] <br>
+. ' &gt; 0 )'; <br>
+}, <br>
+); <br>
+# or ... <br>
+declare( <br>
+'PositiveInt', <br>
+parent =&gt; t('Int'), <br>
+where =&gt; sub { $_[0] &gt; 0 }, <br>
+); <br>
+declare( <br>
+'ArrayRefOfPositiveInt', <br>
+parent =&gt; t( <br>
+'ArrayRef', <br>
+of =&gt; t('PositiveInt'), <br>
+), <br>
+); <br>
+coerce( <br>
+'ArrayRefOfPositiveInt', <br>
+from =&gt; t('PositiveInt'), <br>
+using =&gt; sub { [ $_[0] ] }, <br>
+); <br>
+any_can_type( <br>
+'Duck', <br>
+methods =&gt; [ 'duck_walk', 'quack' ], <br>
+); <br>
+object_isa_type('MyApp::Person');</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Specio&quot; distribution provides classes for
+representing type constraints and coercion, along with
+syntax sugar for declaring them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+is not a proper type system for Perl. Nothing in this
+distribution will magically make the Perl interpreter start
+checking a value&rsquo;s type on assignment to a variable.
+In fact, there&rsquo;s no built-in way to apply a type to a
+variable at all.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instead, you
+can explicitly check a value against a type, and optionally
+coerce values to that type.</p>
+
+<p style="margin-left:11%; margin-top: 1em">My long-term
+goal is to replace Moose&rsquo;s built-in types and
+MooseX::Types with this module.</p>
+
+<h2>WHAT IS A TYPE?
+<a name="WHAT IS A TYPE?"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">At it&rsquo;s
+core, a type is simply a constraint. A constraint is code
+that checks a value and returns true or false. Most
+constraints are represented by Specio::Constraint::Simple
+objects. However, there are other type constraint classes
+for specialized kinds of constraints.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Types can be
+named or anonymous, and each type can have a parent type. A
+type&rsquo;s constraint is optional because sometimes you
+may want to create a named subtype of some existing type
+without adding additional constraints.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Constraints can
+be expressed either in terms of a simple subroutine
+reference or in terms of an inline generator subroutine
+reference. The former is easier to write but the latter is
+preferred because it allow for better optimization.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A type can also
+have an optional message generator subroutine reference. You
+can use this to provide a more intelligent error message
+when a value does not pass the constraint, though the
+default message should suffice for most cases.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Finally, you
+can associate a set of coercions with a type. A coercion is
+a subroutine reference (or inline generator, like
+constraints), that takes a value of one type and turns it
+into a value that matches the type the coercion belongs
+to.</p>
+
+<h2>BUILTIN TYPES
+<a name="BUILTIN TYPES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This
+distribution ships with a set of builtin types representing
+the types provided by the Perl interpreter itself. They are
+arranged in a hierarchy as follows:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Item <br>
+Bool <br>
+Maybe (of `a) <br>
+Undef <br>
+Defined <br>
+Value <br>
+Str <br>
+Num <br>
+Int <br>
+ClassName <br>
+Ref <br>
+ScalarRef (of `a) <br>
+ArrayRef (of `a) <br>
+HashRef (of `a) <br>
+CodeRef <br>
+RegexpRef <br>
+GlobRef <br>
+FileHandle <br>
+Object</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Item&quot; type accepts anything and everything.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Bool&quot; type only accepts &quot;undef&quot;, 0, or
+1.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Undef&quot; type only accepts &quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Defined&quot; type accepts anything <i>except</i>
+&quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Num&quot; and &quot;Int&quot; types are stricter about
+numbers than Perl is. Specifically, they do not allow any
+sort of space in the number, nor do they accept
+&quot;Nan&quot;, &quot;Inf&quot;, or
+&quot;Infinity&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;ClassName&quot; type constraint checks that the name
+is valid <i>and</i> that the class is loaded.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;FileHandle&quot; type accepts either a glob, a scalar
+filehandle, or anything that isa IO::Handle.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All types
+accept overloaded objects that support the required
+operation. See below for details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Overloading</b>
+<br>
+Perl&rsquo;s overloading is horribly broken and
+doesn&rsquo;t make much sense at all.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, unlike
+Moose, all type constraints allow overloaded objects where
+they make sense.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For types where
+overloading makes sense, we explicitly check that the object
+provides the type overloading we expect. We <i>do not</i>
+simply try to use the object as the type in question and
+hope it works. This means that these checks effectively
+ignore the &quot;fallback&quot; setting for the overloaded
+object. In other words, an object that overloads
+stringification will not pass the &quot;Bool&quot; type
+check unless it <i>also</i> overloads boolification.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Most types do
+not check that the overloaded method actually returns
+something that matches the constraint. This may change in
+the future.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Bool&quot; type accepts an object that implements
+&quot;bool&quot; overloading.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Str&quot; type accepts an object that implements
+string (&quot;q{&quot;&quot;}&quot;) overloading.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Num&quot; type accepts an object that implements
+numeric (&quot;'0+'}&quot;) overloading. The &quot;Int&quot;
+type does as well, but it will check that the overloading
+returns an actual integer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;ClassName&quot; type will accept an object with string
+overloading that returns a class name.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To make this
+all more confusing, the &quot;Value&quot; type will
+<i>never</i> accept an object, even though some of its
+subtypes will.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The various
+reference types all accept objects which provide the
+appropriate overloading. The &quot;FileHandle&quot; type
+accepts an object which overloads globification as long as
+the returned glob is an open filehandle.</p>
+
+<h2>PARAMETERIZABLE TYPES
+<a name="PARAMETERIZABLE TYPES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Any type
+followed by a type parameter &quot;of `a&quot; in the
+hierarchy above can be parameterized. The parameter is
+itself a type, so you can say you want an &quot;ArrayRef of
+Int&quot;, or even an &quot;ArrayRef of HashRef of ScalarRef
+of ClassName&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When they are
+parameterized, the &quot;ScalarRef&quot; and
+&quot;ArrayRef&quot; types check that the value(s) they
+refer to match the type parameter. For the
+&quot;HashRef&quot; type, the parameter applies to the
+values (keys are never checked).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Maybe</b>
+<br>
+The &quot;Maybe&quot; type is a special parameterized type.
+It allows for either &quot;undef&quot; or a value. All by
+itself, it is meaningless, since it is equivalent to
+&quot;Maybe of Item&quot;, which is equivalent to Item. When
+parameterized, it accepts either an &quot;undef&quot; or the
+type of its parameter.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is useful
+for optional attributes or parameters. However, you&rsquo;re
+probably better off making your code simply not pass the
+parameter at all This usually makes for a simpler
+<small>API.</small></p>
+
+<h2>REGISTRIES AND IMPORTING
+<a name="REGISTRIES AND IMPORTING"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Types are local
+to each package where they are used. When you
+&quot;import&quot; types from some other library, you are
+actually making a copy of that type.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This means that
+a type named &quot;Foo&quot; in one package may not be the
+same as &quot;Foo&quot; in another package. This has
+potential for confusion, but it also avoids the magic action
+at a distance pollution that comes with a global type naming
+system.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The registry is
+managed internally by the Specio distribution&rsquo;s
+modules, and is not exposed to your code. To access a type,
+you always call &quot;t('TypeName')&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This returns
+the named type or dies if no such type exists.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because types
+are always copied on import, it&rsquo;s safe to create
+coercions on any type. Your coercion from &quot;Str&quot; to
+&quot;Int&quot; will not be seen by any other package,
+unless that package explicitly imports your &quot;Int&quot;
+type.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When you import
+types, you import every type defined in the package you
+import from. However, you <i>can</i> overwrite an imported
+type with your own type definition. You <i>cannot</i> define
+the same type twice internally.</p>
+
+<h2>CREATING A TYPE LIBRARY
+<a name="CREATING A TYPE LIBRARY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">By default, all
+types created inside a package are invisible to other
+packages. If you want to create a type library, you need to
+inherit from Specio::Exporter package:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+MyApp::Type::Library; <br>
+use parent 'Specio::Exporter'; <br>
+use Specio::Declare; <br>
+use Specio::Library::Builtins; <br>
+declare( <br>
+'Foo', <br>
+parent =&gt; t('Str'), <br>
+where =&gt; sub { $_[0] =~ /foo/i }, <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now the
+MyApp::Type::Library package will export a single type named
+&quot;Foo&quot;. It <i>does not</i> re-export the types
+provided by Specio::Library::Builtins.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+make your library re-export some other libraries types, you
+can ask for this explicitly:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+MyApp::Type::Library; <br>
+use parent 'Specio::Exporter'; <br>
+use Specio::Declare; <br>
+use Specio::Library::Builtins &minus;reexport; <br>
+declare( 'Foo, ... );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now
+MyApp::Types::Library exports any types it defines, as well
+as all the types defined in Specio::Library::Builtins.</p>
+
+<h2>DECLARING TYPES
+<a name="DECLARING TYPES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Use the
+Specio::Declare module to declare types. It exports a set of
+helpers for declaring types. See that module&rsquo;s
+documentation for more details on these helpers.</p>
+
+<h2>USING SPECIO WITH Moose
+<a name="USING SPECIO WITH Moose"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This should
+just work. Use a Specio type anywhere you&rsquo;d specify a
+type.</p>
+
+<h2>USING SPECIO WITH Moo
+<a name="USING SPECIO WITH Moo"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Using Specio
+with Moo is easy. You can pass Specio constraint objects as
+&quot;isa&quot; parameters for attributes. For coercions,
+simply call &quot;$type&minus;&gt;coercion_sub&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">package Foo;
+<br>
+use Specio::Declare; <br>
+use Specio::Library::Builtins; <br>
+use Moo; <br>
+my $str_type = t('Str'); <br>
+has string =&gt; ( <br>
+is =&gt; 'ro', <br>
+isa =&gt; $str_type, <br>
+); <br>
+my $ucstr = declare( <br>
+'UCStr', <br>
+parent =&gt; t('Str'), <br>
+where =&gt; sub { $_[0] =~ /^[A&minus;Z]+$/ }, <br>
+); <br>
+coerce( <br>
+$ucstr, <br>
+from =&gt; t('Str'), <br>
+using =&gt; sub { return uc $_[0] }, <br>
+); <br>
+has ucstr =&gt; ( <br>
+is =&gt; 'ro', <br>
+isa =&gt; $ucstr, <br>
+coerce =&gt; $ucstr&minus;&gt;coercion_sub, <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The subs
+returned by Specio use Sub::Quote internally and are
+suitable for inlining.</p>
+
+<h2>USING SPECIO WITH OTHER THINGS
+<a name="USING SPECIO WITH OTHER THINGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">See
+Specio::Constraint::Simple for the <small>API</small> that
+all constraint objects share.</p>
+
+<h2>Moose, MooseX::Types, and Specio
+<a name="Moose, MooseX::Types, and Specio"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+aims to supplant both Moose&rsquo;s built-in type system
+(see Moose::Util::TypeConstraints aka <small>MUTC</small> )
+and MooseX::Types, which attempts to patch some of the holes
+in the Moose built-in type design.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here are some
+of the salient differences:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="72%">
+
+
+<p>Types names are strings, but they&rsquo;re not
+global</p> </td>
+<td width="11%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Unlike Moose
+and MooseX::Types, type names are always local to the
+current package. There is no possibility of name collision
+between different modules, so you can safely use short type
+names.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Unlike
+MooseX::Types, types are strings, so there is no possibility
+of colliding with existing class or subroutine names.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p style="margin-top: 1em">No type auto-creation</p></td>
+<td width="51%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Types are
+always retrieved using the &quot;t()&quot; subroutine. If
+you pass an unknown name to this subroutine it dies. This is
+different from Moose and MooseX::Types, which assume that
+unknown names are class names.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="35%">
+
+
+<p style="margin-top: 1em">Anon types are explicit</p></td>
+<td width="48%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">With Moose and
+MooseX::Types, you use the same subroutine,
+&quot;subtype()&quot;, to declare both named and anonymous
+types. With Specio, you use &quot;declare()&quot; for named
+types and &quot;anon()&quot; for anonymous types.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="54%">
+
+
+<p style="margin-top: 1em">Class and object types are
+separate</p> </td>
+<td width="29%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Moose and
+MooseX::Types have &quot;class_type&quot; and
+&quot;duck_type&quot;. The former type requires an object,
+while the latter accepts a class name or object.</p>
+
+<p style="margin-left:17%; margin-top: 1em">With Specio,
+the distinction between accepting an object versus object or
+class is explicit. There are six declaration helpers,
+&quot;object_can_type&quot;, &quot;object_does_type&quot;,
+&quot;object_isa_type&quot;, &quot;any_can_type&quot;,
+&quot;any_does_type&quot;, and &quot;any_isa_type&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="48%">
+
+
+<p style="margin-top: 1em">Overloading support is baked
+in</p> </td>
+<td width="35%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Perl&rsquo;s
+overloading is quite broken but ignoring it makes
+Moose&rsquo;s type system frustrating to use in many
+cases.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Types can either have a
+constraint or inline generator, not both</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Moose and
+MooseX::Types types can be defined with a subroutine
+reference as the constraint, an inline generator subroutine,
+or both. This is purely for backwards compatibility, and it
+makes the internals more complicated than they need to
+be.</p>
+
+<p style="margin-left:17%; margin-top: 1em">With Specio, a
+constraint can have <i>either</i> a subroutine reference or
+an inline generator, not both.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="37%">
+
+
+<p style="margin-top: 1em">Coercions can be inlined</p></td>
+<td width="46%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">I simply never
+got around to implementing this in Moose.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="40%">
+
+
+<p style="margin-top: 1em">No crazy coercion features</p></td>
+<td width="43%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Moose has some
+bizarre (and mostly) undocumented features relating to
+coercions and parameterizable types. This is a
+misfeature.</p>
+
+<h2>OPTIONAL PREREQS
+<a name="OPTIONAL PREREQS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">There are
+several optional prereqs that if installed will make this
+distribution better in some way.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="14%">
+
+
+<p style="margin-top: 1em">Ref::Util</p></td>
+<td width="69%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Installing this
+will speed up a number of type checks for built-in
+types.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="11%">
+
+
+<p style="margin-top: 1em">XString</p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If this is
+installed it will be loaded instead of the B module if you
+have Perl 5.10 or greater. This module is much more memory
+efficient than loading all of B.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="34%">
+
+
+<p style="margin-top: 1em">Sub::Util or Sub::Name</p></td>
+<td width="49%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If one of these
+is installed then stack traces that end up in Specio code
+will have much better subroutine names for any frames.</p>
+
+<h2>WHY THE NAME?
+<a name="WHY THE NAME?"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This distro was
+originally called &quot;Type&quot;, but that&rsquo;s an
+awfully generic top level namespace. Specio is Latin for for
+&quot;look at&quot; and &quot;spec&quot; is the root for the
+word &quot;species&quot;. It&rsquo;s short, relatively easy
+to type, and not used by any other distro.</p>
+
+<h2>LONG-TERM PLANS
+<a name="LONG-TERM PLANS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Eventually
+I&rsquo;d like to see this distro replace Moose&rsquo;s
+internal type system, which would also make MooseX::Types
+obsolete.</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Bugs may be
+submitted at
+&lt;https://github.com/houseabsolute/Specio/issues&gt;.</p>
+
+<h2>SOURCE
+<a name="SOURCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The source code
+repository for Specio can be found at
+&lt;https://github.com/houseabsolute/Specio&gt;.</p>
+
+<h2>DONATIONS
+<a name="DONATIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;d
+like to thank me for the work I&rsquo;ve done on this
+module, please consider making a &quot;donation&quot; to me
+via PayPal. I spend a lot of free time creating free
+software, and would appreciate any support you&rsquo;d care
+to offer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Please note
+that <b>I am not suggesting that you must do this</b> in
+order for me to continue working on this particular
+software. I will continue to do so, inasmuch as I have in
+the past, for as long as it interests me.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Similarly, a
+donation made in this way will probably not make me work on
+this software much more, unless I get so many donations that
+I can consider working on free software full time
+(let&rsquo;s all have a chuckle at that together).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To donate, log
+into PayPal and send money to autarch@urth.org, or use the
+button at
+&lt;https://www.urth.org/fs&minus;donation.html&gt;.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Dave Rolsky
+&lt;autarch@urth.org&gt;</p>
+
+<h2>CONTRIBUTORS
+<a name="CONTRIBUTORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="51%">
+
+
+<p style="margin-top: 1em">Chris White
+&lt;chrisw@leehayes.com&gt;</p> </td>
+<td width="32%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="51%">
+
+
+<p>cpansprout &lt;cpansprout@gmail.com&gt;</p></td>
+<td width="32%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="51%">
+
+
+<p>Graham Knop &lt;haarg@haarg.org&gt;</p></td>
+<td width="32%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="51%">
+
+
+<p>Karen Etheridge &lt;ether@cpan.org&gt;</p></td>
+<td width="32%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="51%">
+
+
+<p>Vitaly Lipatov &lt;lav@altlinux.ru&gt;</p></td>
+<td width="32%">
+</td></tr>
+</table>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is Copyright (c) 2012 &minus; 2022 by Dave Rolsky.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software, licensed under:</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Artistic
+License 2.0 (GPL Compatible)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The full text
+of the license can be found in the
+<i><small>LICENSE</small></i> file included with this
+distribution.</p>
+<hr>
+</body>
+</html>

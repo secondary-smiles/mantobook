@@ -1,0 +1,668 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:15 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>alienfile</title>
+
+</head>
+<body>
+<h1>alienfile</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">alienfile
+&minus; Specification for defining an external dependency
+for CPAN</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+2.80</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Do-it-yourself
+approach:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use alienfile;
+<br>
+probe [ 'pkg&minus;config &minus;&minus;exists libarchive'
+]; <br>
+share { <br>
+start_url
+'http://libarchive.org/downloads/libarchive&minus;3.2.2.tar.gz';
+<br>
+# the first one which succeeds will be used <br>
+download [ 'wget %{.meta.start_url}' ]; <br>
+download [ 'curl &minus;o %{.meta.start_url}' ]; <br>
+extract [ 'tar xf %{.install.download}' ]; <br>
+build [ <br>
+# Note: will not work on Windows, better to use
+Build::Autoconf plugin <br>
+# if you need windows support <br>
+'./configure &minus;&minus;prefix=%{.install.prefix}
+&minus;&minus;disable&minus;shared', <br>
+'%{make}', <br>
+'%{make} install', <br>
+]; <br>
+} <br>
+gather [ <br>
+[ 'pkg&minus;config', '&minus;&minus;modversion',
+'libarchive', \'%{.runtime.version}' ], <br>
+[ 'pkg&minus;config', '&minus;&minus;cflags', 'libarchive',
+\'%{.runtime.cflags}' ], <br>
+[ 'pkg&minus;config', '&minus;&minus;libs', 'libarchive',
+\'%{.runtime.libs}' ], <br>
+];</p>
+
+<p style="margin-left:11%; margin-top: 1em">With plugins
+(better):</p>
+
+<p style="margin-left:11%; margin-top: 1em">use alienfile;
+<br>
+plugin 'PkgConfig' =&gt; 'libarchive'; <br>
+share { <br>
+start_url 'http://libarchive.org/downloads/'; <br>
+plugin Download =&gt; ( <br>
+filter =&gt; qr/^libarchive&minus;.*\.tar\.gz$/, <br>
+version =&gt; qr/([0&minus;9\.]+)/, <br>
+); <br>
+plugin Extract =&gt; 'tar.gz'; <br>
+plugin 'Build::Autoconf'; <br>
+plugin 'Gather::IsolateDynamic'; <br>
+build [ <br>
+'%{configure}', <br>
+'%{make}', <br>
+'%{make} install', <br>
+]; <br>
+};</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">An alienfile is
+a recipe used by Alien::Build to, probe for system libraries
+or download from the internet, and build source for those
+libraries. This document acts as reference for the alienfile
+system, but if you are starting out writing your own Alien
+you should read Alien::Build::Manual::AlienAuthor, which
+will teach you how to write your own complete Alien using
+alienfile + Alien::Build + ExtUtils::MakeMaker. Special
+attention should be taken to the section &quot;a note about
+dynamic vs. static libraries&quot;.</p>
+
+<h2>DIRECTIVES
+<a name="DIRECTIVES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>requires</b>
+<br>
+&quot;any&quot; requirement (either share or system):</p>
+
+<p style="margin-left:11%; margin-top: 1em">requires
+$module; <br>
+requires $module =&gt; $version;</p>
+
+<p style="margin-left:11%; margin-top: 1em">configure time
+requirement:</p>
+
+<p style="margin-left:11%; margin-top: 1em">configure {
+<br>
+requires $module; <br>
+requires $module =&gt; $version; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">system
+requirement:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sys { <br>
+requires $module; <br>
+requires $module =&gt; $version; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">share
+requirement:</p>
+
+<p style="margin-left:11%; margin-top: 1em">share { <br>
+requires $module; <br>
+requires $module =&gt; $version; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">specifies a
+requirement. Alien::Build takes advantage of dynamic
+requirements, so only modules that are needed for the
+specific type of install need to be loaded. Here are the
+different types of requirements: <br>
+configure</p>
+
+<p style="margin-left:17%;">Configure requirements should
+already be installed before the alienfile is loaded.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>any</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>&quot;Any&quot; requirements are those that are needed
+either for the probe stage, or in either the system or share
+installs.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%;">share</p>
+
+<p style="margin-left:17%;">Share requirements are those
+modules needed when downloading and building from
+source.</p>
+
+<p style="margin-left:11%;">system</p>
+
+<p style="margin-left:17%;">System requirements are those
+modules needed when the system provides the library or
+tool.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>plugin</b>
+<br>
+plugin $name =&gt; (%args); <br>
+plugin $name =&gt; $arg;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Load the given
+plugin. If you prefix the plugin name with an &quot;=&quot;
+sign, then it will be assumed to be a fully qualified path
+name. Otherwise the plugin will be assumed to live in the
+&quot;Alien::Build::Plugin&quot; namespace. If there is an
+appropriate negotiate plugin, that one will be loaded.
+Examples:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># Loads
+Alien::Build::Plugin::Fetch::Negotiate <br>
+# which will pick the best Alien::Build::Plugin::Fetch <br>
+# plugin based on the URL, and system configuration <br>
+plugin 'Fetch' =&gt; 'http://ftp.gnu.org/gnu/gcc'; <br>
+# loads the plugin with the badly named class! <br>
+plugin
+'=Badly::Named::Plugin::Not::In::Alien::Build::Namespace';
+<br>
+# explicitly loads
+Alien::Build::Plugin::Prefer::SortVersions <br>
+plugin 'Prefer::SortVersions' =&gt; ( <br>
+filter =&gt; qr/^gcc&minus;.*\.tar\.gz$/, <br>
+version =&gt; qr/([0&minus;9\.]+)/, <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>probe</b>
+<br>
+probe \&amp;code; <br>
+probe \@commandlist;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instructions
+for the probe stage. May be either a code reference, or a
+command list. Multiple probes and probe plugins can be
+given. These will be used in sequence, stopping at the first
+that detects a system installation. Alien::Build will use a
+share install if no system installation is detected by the
+probes.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>configure</b>
+<br>
+configure { <br>
+... <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Configure
+block. The only directive allowed in a configure block is
+requires.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>sys</b> <br>
+sys { <br>
+... <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">System block.
+Allowed directives are: requires and gather.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>share</b>
+<br>
+share { <br>
+... <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">System block.
+Allowed directives are: download, fetch, decode, prefer,
+extract, build, gather.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>start_url</b>
+<br>
+share { <br>
+start_url $url; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Set the start
+<small>URL</small> for download. This should be the
+<small>URL</small> to an index page, or the actual tarball
+of the source.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>digest</b>
+<br>
+[experimental]</p>
+
+<p style="margin-left:11%; margin-top: 1em">share { <br>
+digest $algorithm, $digest; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Check fetched
+and downloaded files against the given algorithm and digest.
+Typically you will want to use <small>SHA256</small> as the
+algorithm.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>download</b>
+<br>
+share { <br>
+download \&amp;code; <br>
+download \@commandlist; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instructions
+for the download stage. May be either a code reference, or a
+command list.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>fetch</b>
+<br>
+share { <br>
+fetch \&amp;code; <br>
+fetch \@commandlist; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instructions
+for the fetch stage. May be either a code reference, or a
+command list.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>decode</b>
+<br>
+share { <br>
+decode \&amp;code; <br>
+decode \@commandlist; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instructions
+for the decode stage. May be either a code reference, or a
+command list.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>prefer</b>
+<br>
+share { <br>
+prefer \&amp;code; <br>
+prefer \@commandlist; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instructions
+for the prefer stage. May be either a code reference, or a
+command list.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>extract</b>
+<br>
+share { <br>
+extract \&amp;code; <br>
+extract \@commandlist; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instructions
+for the extract stage. May be either a code reference, or a
+command list.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>patch</b>
+<br>
+share { <br>
+patch \&amp;code; <br>
+patch \@commandlist; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instructions
+for the patch stage. May be either a code reference, or a
+command list.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>patch_ffi</b>
+<br>
+share { <br>
+patch_ffi \&amp;code; <br>
+patch_ffi \@commandlist; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">[
+<small>DEPRECATED</small> ]</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instructions
+for the patch_ffi stage. May be either a code reference, or
+a command list.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>build</b>
+<br>
+share { <br>
+build \&amp;code; <br>
+build \@commandlist; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instructions
+for the build stage. May be either a code reference, or a
+command list.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>build_ffi</b>
+<br>
+share { <br>
+build \&amp;code; <br>
+build \@commandlist; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">[
+<small>DEPRECATED</small> ]</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instructions
+for the build <small>FFI</small> stage. Builds shared
+libraries instead of static. This is optional, and is only
+necessary if a fresh and separate build needs to be done for
+<small>FFI.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>gather</b>
+<br>
+gather \&amp;code; <br>
+gather \@commandlist; <br>
+share { <br>
+gather \&amp;code; <br>
+gather \@commandlist; <br>
+}; <br>
+sys { <br>
+gather \&amp;code; <br>
+gather \@commandlist; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instructions
+for the gather stage. May be either a code reference, or a
+command list. In the root block of the alienfile it will
+trigger in both share and system build. In the share or sys
+block it will only trigger in the corresponding build.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>gather_ffi</b>
+<br>
+share { <br>
+gather_ffi \&amp;code; <br>
+gather_ffi \@commandlist; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">[
+<small>DEPRECATED</small> ]</p>
+
+<p style="margin-left:11%; margin-top: 1em">Gather specific
+to &quot;build_ffi&quot;. Not usually necessary.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>ffi</b> <br>
+share { <br>
+ffi { <br>
+patch \&amp;code; <br>
+patch \@commandlist; <br>
+build \&amp;code; <br>
+build \@commandlist; <br>
+gather \&amp;code; <br>
+gather \@commandlist; <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Specify patch,
+build or gather stages related to <small>FFI.</small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>meta_prop</b>
+<br>
+my $hash = meta_prop;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Get the
+meta_prop hash reference.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>meta</b>
+<br>
+my $meta = meta;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+meta object for your alienfile. For methods that can be used
+on the meta object, see &quot; <small>META
+METHODS&quot;</small> in Alien::Build.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>log</b> <br>
+log($message);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Prints the
+given log to stdout.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>test</b>
+<br>
+share { <br>
+test \&amp;code; <br>
+test \@commandlist; <br>
+}; <br>
+sys { <br>
+test \&amp;code; <br>
+test \@commandlist; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Run the
+tests</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>before</b>
+<br>
+before $stage =&gt; \&amp;code;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Execute the
+given code before the given stage. Stage should be one of
+&quot;probe&quot;, &quot;download&quot;, &quot;fetch&quot;,
+&quot;decode&quot;, &quot;prefer&quot;, &quot;extract&quot;,
+&quot;patch&quot;, &quot;build&quot;, &quot;test&quot;, and
+&quot;gather&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The before
+directive is only legal in the same blocks as the stage
+would normally be legal in. For example, you can&rsquo;t do
+this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use alienfile;
+<br>
+sys { <br>
+before 'build' =&gt; sub { <br>
+... <br>
+}; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because a
+&quot;build&quot; wouldn&rsquo;t be legal inside a
+&quot;sys&quot; block.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>after</b>
+<br>
+after $stage =&gt; \&amp;code;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Execute the
+given code after the given stage. Stage should be one of
+&quot;probe&quot;, &quot;download&quot;, &quot;fetch&quot;,
+&quot;decode&quot;, &quot;prefer&quot;, &quot;extract&quot;,
+&quot;patch&quot;, &quot;build&quot;, &quot;test&quot;, and
+&quot;gather&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The after
+directive is only legal in the same blocks as the stage
+would normally be legal in. For example, you can&rsquo;t do
+this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use alienfile;
+<br>
+sys { <br>
+after 'build' =&gt; sub { <br>
+... <br>
+}; <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because a
+&quot;build&quot; wouldn&rsquo;t be legal inside a
+&quot;sys&quot; block.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Alien <br>
+Alien::Build <br>
+Alien::Build::MM <br>
+Alien::Base</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Author: Graham
+Ollis &lt;plicease@cpan.org&gt;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Contributors:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Diab Jerius (
+<small>DJERIUS</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Roy Storey (
+<small>KIWIROY</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ilya Pavlov</p>
+
+<p style="margin-left:11%; margin-top: 1em">David Mertens
+(run4flat)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Mark Nunberg
+(mordy, mnunberg)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Christian Walde
+(Mithaldu)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Brian Wightman
+(MidLifeXis)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Zaki Mughal
+(zmughal)</p>
+
+<p style="margin-left:11%; margin-top: 1em">mohawk
+(mohawk2, <small>ETJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Vikas N Kumar
+(vikasnkumar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Flavio Poletti
+(polettix)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Salvador
+Fandi&Atilde;&plusmn;o (salva)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Gianni
+Ceccarelli (dakkar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Pavel Shaydo
+(zwon, trinitum)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Kang-min Liu
+(&aring;&aring;&ordm;&middot;&aelig;&deg;, gugod)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Nicholas Shipp
+(nshp)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Juan
+Juli&Atilde;&iexcl;n Merelo Guerv&Atilde;&sup3;s (
+<small>JJ</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Joel Berger (
+<small>JBERGER</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Petr
+P&Atilde;sa&Aring; (ppisar)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Lance Wicks (
+<small>LANCEW</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ahmad Fatoum
+(a3f, <small>ATHREEF</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Jos&Atilde;&copy;
+Joaqu&Atilde;n Atria ( <small>JJATRIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Duke Leto (
+<small>LETO</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shoichi Kaji (
+<small>SKAJI</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shawn Laffan (
+<small>SLAFFAN</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Paul Evans
+(leonerd, <small>PEVANS</small> )</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">H&Atilde;&yen;kon
+H&Atilde;&brvbar;gland (hakonhagland, <small>HAKONH</small>
+)</p>
+
+<p style="margin-left:11%; margin-top: 1em">nick
+nauwelaerts ( <small>INPHOBIA</small> )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Florian
+Weimer</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2011&minus;2022 by Graham Ollis.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+<hr>
+</body>
+</html>

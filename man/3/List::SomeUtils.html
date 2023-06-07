@@ -1,0 +1,1602 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:30 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>List::SomeUtils</title>
+
+</head>
+<body>
+<h1>List::SomeUtils</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">List::SomeUtils
+&minus; Provide the stuff missing in List::Util</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+0.59</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"># import
+specific functions <br>
+use List::SomeUtils qw( any uniq ); <br>
+if ( any {/foo/} uniq @has_duplicates ) { <br>
+# do stuff <br>
+} <br>
+# import everything <br>
+use List::SomeUtils ':all';</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>List::SomeUtils</b>
+provides some trivial but commonly needed functionality on
+lists which is not going to go into List::Util.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All of the
+below functions are implementable in only a couple of lines
+of Perl code. Using the functions from this module however
+should give slightly better performance as everything is
+implemented in C. The pure-Perl implementation of these
+functions only serves as a fallback in case the C portions
+of this module couldn&rsquo;t be compiled on this
+machine.</p>
+
+<h2>WHY DOES THIS MODULE EXIST?
+<a name="WHY DOES THIS MODULE EXIST?"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">You might
+wonder why this module exists when we already have
+List::MoreUtils. In fact, this module is (nearly) the same
+code as is found in <small>LMU</small> with no significant
+changes. However, the <small>LMU</small> distribution
+depends on several modules for configuration (to run the
+Makefile.PL) that some folks in the Perl community
+don&rsquo;t think are appropriate for a module high upstream
+in the <small>CPAN</small> river.</p>
+
+<p style="margin-left:11%; margin-top: 1em">I (Dave Rolsky)
+don&rsquo;t have a strong opinion on this, but I <i>do</i>
+like the functions provided by <small>LMU,</small> and
+I&rsquo;m tired of getting patches and PRs to remove
+<small>LMU</small> from my code.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+distribution exists to let me use the functionality I like
+without having to get into tiring arguments about issues I
+don&rsquo;t really care about.</p>
+
+<h2>EXPORTS
+<a name="EXPORTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Default
+behavior</b> <br>
+Nothing by default. To import all of this module&rsquo;s
+symbols use the &quot;:all&quot; tag. Otherwise functions
+can be imported by name as usual:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+List::SomeUtils ':all'; <br>
+use List::SomeUtils qw{ any firstidx };</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because
+historical changes to the <small>API</small> might make
+upgrading List::SomeUtils difficult for some projects, the
+legacy <small>API</small> is available via special import
+tags.</p>
+
+<h2>FUNCTIONS
+<a name="FUNCTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Junctions</b>
+<i><br>
+Treatment of an empty list</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">There are two
+schools of thought for how to evaluate a junction on an
+empty list:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="52%">
+
+
+<p>Reduction to an identity (boolean)</p></td>
+<td width="31%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="52%">
+
+
+<p>Result is undefined (three-valued)</p></td>
+<td width="31%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">In the first
+case, the result of the junction applied to the empty list
+is determined by a mathematical reduction to an identity
+depending on whether the underlying comparison is
+&quot;or&quot; or &quot;and&quot;. Conceptually:</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;any are
+true&quot; &quot;all are true&quot; <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+2 elements: A || B || 0 A &amp;&amp; B &amp;&amp; 1 <br>
+1 element: A || 0 A &amp;&amp; 1 <br>
+0 elements: 0 1</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the second
+case, three-value logic is desired, in which a junction
+applied to an empty list returns &quot;undef&quot; rather
+than true or false</p>
+
+<p style="margin-left:11%; margin-top: 1em">Junctions with
+a &quot;_u&quot; suffix implement three-valued logic. Those
+without are boolean.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>all
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>all_u
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a true
+value if all items in <small>LIST</small> meet the criterion
+given through <small>BLOCK.</small> Sets $_ for each item in
+<small>LIST</small> in turn:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print &quot;All
+values are non&minus;negative&quot; <br>
+if all { $_ &gt;= 0 } ($x, $y, $z);</p>
+
+<p style="margin-left:11%; margin-top: 1em">For an empty
+<small>LIST,</small> &quot;all&quot; returns true (i.e. no
+values failed the condition) and &quot;all_u&quot; returns
+&quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Thus,
+&quot;all_u(@list)&quot; is equivalent to &quot;@list ?
+all(@list) : undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>:
+because Perl treats &quot;undef&quot; as false, you must
+check the return value of &quot;all_u&quot; with
+&quot;defined&quot; or you will get the opposite result of
+what you expect.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>any
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>any_u
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a true
+value if any item in <small>LIST</small> meets the criterion
+given through <small>BLOCK.</small> Sets $_ for each item in
+<small>LIST</small> in turn:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print &quot;At
+least one non&minus;negative value&quot; <br>
+if any { $_ &gt;= 0 } ($x, $y, $z);</p>
+
+<p style="margin-left:11%; margin-top: 1em">For an empty
+<small>LIST,</small> &quot;any&quot; returns false and
+&quot;any_u&quot; returns &quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Thus,
+&quot;any_u(@list)&quot; is equivalent to &quot;@list ?
+any(@list) : undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>none
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>none_u
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Logically the
+negation of &quot;any&quot;. Returns a true value if no item
+in <small>LIST</small> meets the criterion given through
+<small>BLOCK.</small> Sets $_ for each item in
+<small>LIST</small> in turn:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print &quot;No
+non&minus;negative values&quot; <br>
+if none { $_ &gt;= 0 } ($x, $y, $z);</p>
+
+<p style="margin-left:11%; margin-top: 1em">For an empty
+<small>LIST,</small> &quot;none&quot; returns true (i.e. no
+values failed the condition) and &quot;none_u&quot; returns
+&quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Thus,
+&quot;none_u(@list)&quot; is equivalent to &quot;@list ?
+none(@list) : undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>:
+because Perl treats &quot;undef&quot; as false, you must
+check the return value of &quot;none_u&quot; with
+&quot;defined&quot; or you will get the opposite result of
+what you expect.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>notall
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>notall_u
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Logically the
+negation of &quot;all&quot;. Returns a true value if not all
+items in <small>LIST</small> meet the criterion given
+through <small>BLOCK.</small> Sets $_ for each item in
+<small>LIST</small> in turn:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print &quot;Not
+all values are non&minus;negative&quot; <br>
+if notall { $_ &gt;= 0 } ($x, $y, $z);</p>
+
+<p style="margin-left:11%; margin-top: 1em">For an empty
+<small>LIST,</small> &quot;notall&quot; returns false and
+&quot;notall_u&quot; returns &quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Thus,
+&quot;notall_u(@list)&quot; is equivalent to &quot;@list ?
+notall(@list) : undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>one
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>one_u
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a true
+value if precisely one item in <small>LIST</small> meets the
+criterion given through <small>BLOCK.</small> Sets $_ for
+each item in <small>LIST</small> in turn:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print
+&quot;Precisely one value defined&quot; <br>
+if one { defined($_) } @list;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns false
+otherwise.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For an empty
+<small>LIST,</small> &quot;one&quot; returns false and
+&quot;one_u&quot; returns &quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The expression
+&quot;one BLOCK LIST&quot; is almost equivalent to &quot;1
+== true BLOCK LIST&quot;, except for short-cutting.
+Evaluation of <small>BLOCK</small> will immediately stop at
+the second true value.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Transformation</b>
+<i><br>
+apply <small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Makes a copy of
+the list and then passes each element <i>from the copy</i>
+to the <small>BLOCK.</small> Any changes or assignments to
+$_ in the <small>BLOCK</small> will only affect the elements
+of the new list. However, if $_ is a reference then changes
+to the referenced value will be seen in both the original
+and new list.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This function
+is similar to &quot;map&quot; but will not modify the
+elements of the input list:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @list = (1
+.. 4); <br>
+my @mult = apply { $_ *= 2 } @list; <br>
+print &quot;\@list = @list\n&quot;; <br>
+print &quot;\@mult = @mult\n&quot;; <br>
+__END__ <br>
+@list = 1 2 3 4 <br>
+@mult = 2 4 6 8</p>
+
+<p style="margin-left:11%; margin-top: 1em">Think of it as
+syntactic sugar for</p>
+
+<p style="margin-left:11%; margin-top: 1em">for (my @mult =
+@list) { $_ *= 2 }</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that you
+must alter $_ directly inside <small>BLOCK</small> in order
+for changes to make effect. New value returned from the
+<small>BLOCK</small> are ignored:</p>
+
+<p style="margin-left:11%; margin-top: 1em"># @new is
+identical to @list. <br>
+my @new = apply { $_ * 2 } @list; <br>
+# @new is different from @list <br>
+my @new = apply { $_ =* 2 } @list;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>insert_after
+<small>BLOCK VALUE LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Inserts
+<small>VALUE</small> after the first item in
+<small>LIST</small> for which the criterion in
+<small>BLOCK</small> is true. Sets $_ for each item in
+<small>LIST</small> in turn.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @list =
+qw/This is a list/; <br>
+insert_after { $_ eq &quot;a&quot; } &quot;longer&quot;
+=&gt; @list; <br>
+print &quot;@list&quot;; <br>
+__END__ <br>
+This is a longer list</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>insert_after_string
+<small>STRING VALUE LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Inserts
+<small>VALUE</small> after the first item in
+<small>LIST</small> which is equal to
+<small>STRING.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">my @list =
+qw/This is a list/; <br>
+insert_after_string &quot;a&quot;, &quot;longer&quot; =&gt;
+@list; <br>
+print &quot;@list&quot;; <br>
+__END__ <br>
+This is a longer list</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>pairwise
+<small>BLOCK ARRAY1 ARRAY2</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Evaluates
+<small>BLOCK</small> for each pair of elements in
+<small>ARRAY1</small> and <small>ARRAY2</small> and returns
+a new list consisting of <small>BLOCK</small> &rsquo;s
+return values. The two elements are set to $a and $b. Note
+that those two are aliases to the original value so changing
+them will modify the input arrays.</p>
+
+<p style="margin-left:11%; margin-top: 1em">@a = (1 .. 5);
+<br>
+@b = (11 .. 15); <br>
+@x = pairwise { $a + $b } @a, @b; # returns 12, 14, 16, 18,
+20 <br>
+# mesh with pairwise <br>
+@a = qw/a b c/; <br>
+@b = qw/1 2 3/; <br>
+@x = pairwise { ($a, $b) } @a, @b; # returns a, 1, b, 2, c,
+3</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>mesh
+<small>ARRAY1 ARRAY2</small> [ <small>ARRAY3 ...</small>
+]</i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>zip
+<small>ARRAY1 ARRAY2</small> [ <small>ARRAY3 ...</small>
+]</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a list
+consisting of the first elements of each array, then the
+second, then the third, etc, until all arrays are
+exhausted.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Examples:</p>
+
+<p style="margin-left:11%; margin-top: 1em">@x = qw/a b c
+d/; <br>
+@y = qw/1 2 3 4/; <br>
+@z = mesh @x, @y; # returns a, 1, b, 2, c, 3, d, 4 <br>
+@a = ('x'); <br>
+@b = ('1', '2'); <br>
+@c = qw/zip zap zot/; <br>
+@d = mesh @a, @b, @c; # x, 1, zip, undef, 2, zap, undef,
+undef, zot</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;zip&quot;
+is an alias for &quot;mesh&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>uniq
+<small>LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>distinct
+<small>LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a new
+list by stripping duplicate values in <small>LIST</small> by
+comparing the values as hash keys, except that undef is
+considered separate from &rsquo;&rsquo;. The order of
+elements in the returned list is the same as in
+<small>LIST.</small> In scalar context, returns the number
+of unique elements in <small>LIST.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">my @x = uniq 1,
+1, 2, 2, 3, 5, 3, 4; # returns 1 2 3 5 4 <br>
+my $x = uniq 1, 1, 2, 2, 3, 5, 3, 4; # returns 5 <br>
+# returns &quot;Mike&quot;, &quot;Michael&quot;,
+&quot;Richard&quot;, &quot;Rick&quot; <br>
+my @n = distinct &quot;Mike&quot;, &quot;Michael&quot;,
+&quot;Richard&quot;, &quot;Rick&quot;, &quot;Michael&quot;,
+&quot;Rick&quot; <br>
+# returns '', undef, 'S1', A5' <br>
+my @s = distinct '', undef, 'S1', 'A5' <br>
+# returns '', undef, 'S1', A5' <br>
+my @w = uniq undef, '', 'S1', 'A5'</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;distinct&quot;
+is an alias for &quot;uniq&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>RT#49800</b>
+can be used to give feedback about this behavior.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>singleton</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a new
+list by stripping values in <small>LIST</small> occurring
+more than once by comparing the values as hash keys, except
+that undef is considered separate from &rsquo;&rsquo;. The
+order of elements in the returned list is the same as in
+<small>LIST.</small> In scalar context, returns the number
+of elements occurring only once in <small>LIST.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">my @x =
+singleton 1,1,2,2,3,4,5 # returns 3 4 5</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Partitioning</b>
+<i><br>
+after <small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a list
+of the values of <small>LIST</small> after (and not
+including) the point where <small>BLOCK</small> returns a
+true value. Sets $_ for each element in <small>LIST</small>
+in turn.</p>
+
+<p style="margin-left:11%; margin-top: 1em">@x = after { $_
+% 5 == 0 } (1..9); # returns 6, 7, 8, 9</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>after_incl
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Same as
+&quot;after&quot; but also includes the element for which
+<small>BLOCK</small> is true.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>before
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a list
+of values of <small>LIST</small> up to (and not including)
+the point where <small>BLOCK</small> returns a true value.
+Sets $_ for each element in <small>LIST</small> in turn.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>before_incl
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Same as
+&quot;before&quot; but also includes the element for which
+<small>BLOCK</small> is true.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>part
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Partitions
+<small>LIST</small> based on the return value of
+<small>BLOCK</small> which denotes into which partition the
+current value is put.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a list
+of the partitions thusly created. Each partition created is
+a reference to an array.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $i = 0; <br>
+my @part = part { $i++ % 2 } 1 .. 8; # returns [1, 3, 5, 7],
+[2, 4, 6, 8]</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can have a
+sparse list of partitions as well where non-set partitions
+will be undef:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @part = part
+{ 2 } 1 .. 10; # returns undef, undef, [ 1 .. 10 ]</p>
+
+<p style="margin-left:11%; margin-top: 1em">Be careful with
+negative values, though:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @part = part
+{ &minus;1 } 1 .. 10; <br>
+__END__ <br>
+Modification of non&minus;creatable array value attempted,
+subscript &minus;1 ...</p>
+
+<p style="margin-left:11%; margin-top: 1em">Negative values
+are only ok when they refer to a partition previously
+created:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @idx = ( 0,
+1, &minus;1 ); <br>
+my $i = 0; <br>
+my @part = part { $idx[$i++ % 3] } 1 .. 8; # [1, 4, 7], [2,
+3, 5, 6, 8]</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Iteration</b>
+<i><br>
+each_array <small>ARRAY1 ARRAY2 ...</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Creates an
+array iterator to return the elements of the list of arrays
+<small>ARRAY1, ARRAY2</small> throughout ARRAYn in turn.
+That is, the first time it is called, it returns the first
+element of each array. The next time, it returns the second
+elements. And so on, until all elements are exhausted.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is useful
+for looping over more than one array at once:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $ea =
+each_array(@a, @b, @c); <br>
+while ( my ($a, $b, $c) = $ea&minus;&gt;() ) { .... }</p>
+
+<p style="margin-left:11%; margin-top: 1em">The iterator
+returns the empty list when it reached the end of all
+arrays.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the iterator
+is passed an argument of &rsquo;&quot;index&quot;&rsquo;,
+then it returns the index of the last fetched set of values,
+as a scalar.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>each_arrayref
+<small>LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Like
+each_array, but the arguments are references to arrays, not
+the plain arrays.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>natatime
+<small>EXPR, LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Creates an
+array iterator, for looping over an array in chunks of $n
+items at a time. (n at a time, get it?). An example is
+probably a better explanation than I could give in
+words.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @x = ('a' ..
+'g'); <br>
+my $it = natatime 3, @x; <br>
+while (my @vals = $it&minus;&gt;()) <br>
+{ <br>
+print &quot;@vals\n&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This prints</p>
+
+<p style="margin-left:11%; margin-top: 1em">a b c <br>
+d e f <br>
+g</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Searching</b>
+<i><br>
+bsearch <small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Performs a
+binary search on <small>LIST</small> which must be a sorted
+list of values. <small>BLOCK</small> must return a negative
+value if the current element (stored in $_) is smaller, a
+positive value if it is bigger and zero if it matches.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns a
+boolean value in scalar context. In list context, it returns
+the element if it was found, otherwise the empty list.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>bsearchidx
+<small>BLOCK LIST</small></i></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bsearch_index
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Performs a
+binary search on <small>LIST</small> which must be a sorted
+list of values. <small>BLOCK</small> must return a negative
+value if the current element (stored in $_) is smaller, a
+positive value if it is bigger and zero if it matches.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+index of found element, otherwise &quot;&minus;1&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;bsearch_index&quot;
+is an alias for &quot;bsearchidx&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>firstval
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>first_value
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+first element in <small>LIST</small> for which
+<small>BLOCK</small> evaluates to true. Each element of
+<small>LIST</small> is set to $_ in turn. Returns
+&quot;undef&quot; if no such element has been found.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;first_value&quot;
+is an alias for &quot;firstval&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>onlyval
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>only_value
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+only element in <small>LIST</small> for which
+<small>BLOCK</small> evaluates to true. Sets $_ for each
+item in <small>LIST</small> in turn. Returns
+&quot;undef&quot; if no such element has been found.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;only_value&quot;
+is an alias for &quot;onlyval&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>lastval
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>last_value
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+last value in <small>LIST</small> for which
+<small>BLOCK</small> evaluates to true. Each element of
+<small>LIST</small> is set to $_ in turn. Returns
+&quot;undef&quot; if no such element has been found.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;last_value&quot;
+is an alias for &quot;lastval&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>firstres
+<small>BLOCK LIST</small></i></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>first_result
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+result of <small>BLOCK</small> for the first element in
+<small>LIST</small> for which <small>BLOCK</small> evaluates
+to true. Each element of <small>LIST</small> is set to $_ in
+turn. Returns &quot;undef&quot; if no such element has been
+found.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;first_result&quot;
+is an alias for &quot;firstres&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>onlyres
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>only_result
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+result of <small>BLOCK</small> for the first element in
+<small>LIST</small> for which <small>BLOCK</small> evaluates
+to true. Sets $_ for each item in <small>LIST</small> in
+turn. Returns &quot;undef&quot; if no such element has been
+found.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;only_result&quot;
+is an alias for &quot;onlyres&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>lastres
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>last_result
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+result of <small>BLOCK</small> for the last element in
+<small>LIST</small> for which <small>BLOCK</small> evaluates
+to true. Each element of <small>LIST</small> is set to $_ in
+turn. Returns &quot;undef&quot; if no such element has been
+found.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;last_result&quot;
+is an alias for &quot;lastres&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>indexes
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Evaluates
+<small>BLOCK</small> for each element in <small>LIST</small>
+(assigned to $_) and returns a list of the indices of those
+elements for which <small>BLOCK</small> returned a true
+value. This is just like &quot;grep&quot; only that it
+returns indices instead of values:</p>
+
+<p style="margin-left:11%; margin-top: 1em">@x = indexes {
+$_ % 2 == 0 } (1..10); # returns 1, 3, 5, 7, 9</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>firstidx
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>first_index
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+index of the first element in <small>LIST</small> for which
+the criterion in <small>BLOCK</small> is true. Sets $_ for
+each item in <small>LIST</small> in turn:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @list = (1,
+4, 3, 2, 4, 6); <br>
+printf &quot;item with index %i in list is 4&quot;, firstidx
+{ $_ == 4 } @list; <br>
+__END__ <br>
+item with index 1 in list is 4</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns
+&quot;&minus;1&quot; if no such item could be found.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;first_index&quot;
+is an alias for &quot;firstidx&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>onlyidx
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>only_index
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+index of the only element in <small>LIST</small> for which
+the criterion in <small>BLOCK</small> is true. Sets $_ for
+each item in <small>LIST</small> in turn:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @list = (1,
+3, 4, 3, 2, 4); <br>
+printf &quot;unique index of item 2 in list is %i&quot;,
+onlyidx { $_ == 2 } @list; <br>
+__END__ <br>
+unique index of item 2 in list is 4</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns
+&quot;&minus;1&quot; if either no such item or more than one
+of these has been found.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;only_index&quot;
+is an alias for &quot;onlyidx&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>lastidx
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>last_index
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+index of the last element in <small>LIST</small> for which
+the criterion in <small>BLOCK</small> is true. Sets $_ for
+each item in <small>LIST</small> in turn:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @list = (1,
+4, 3, 2, 4, 6); <br>
+printf &quot;item with index %i in list is 4&quot;, lastidx
+{ $_ == 4 } @list; <br>
+__END__ <br>
+item with index 4 in list is 4</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns
+&quot;&minus;1&quot; if no such item could be found.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;last_index&quot;
+is an alias for &quot;lastidx&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Sorting</b>
+<i><br>
+sort_by <small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+list of values sorted according to the string values
+returned by the <small>KEYFUNC</small> block or function. A
+typical use of this may be to sort objects according to the
+string value of some accessor, such as</p>
+
+<p style="margin-left:11%; margin-top: 1em">sort_by {
+$_&minus;&gt;name } @people</p>
+
+<p style="margin-left:11%; margin-top: 1em">The key
+function is called in scalar context, being passed each
+value in turn as both $_ and the only argument in the
+parameters, @_. The values are then sorted according to
+string comparisons on the values returned. This is
+equivalent to</p>
+
+<p style="margin-left:11%; margin-top: 1em">sort {
+$a&minus;&gt;name cmp $b&minus;&gt;name } @people</p>
+
+<p style="margin-left:11%; margin-top: 1em">except that it
+guarantees the name accessor will be executed only once per
+value. One interesting use-case is to sort strings which may
+have numbers embedded in them &quot;naturally&quot;, rather
+than lexically.</p>
+
+<p style="margin-left:11%; margin-top: 1em">sort_by {
+s/(\d+)/sprintf &quot;%09d&quot;, $1/eg; $_ } @strings</p>
+
+<p style="margin-left:11%; margin-top: 1em">This sorts
+strings by generating sort keys which zero-pad the embedded
+numbers to some level (9 digits in this case), helping to
+ensure the lexical sort puts them in the correct order.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>nsort_by
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Similar to
+sort_by but compares its key values numerically.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Counting and
+calculation</b> <i><br>
+true <small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Counts the
+number of elements in <small>LIST</small> for which the
+criterion in <small>BLOCK</small> is true. Sets $_ for each
+item in <small>LIST</small> in turn:</p>
+
+<p style="margin-left:11%; margin-top: 1em">printf &quot;%i
+item(s) are defined&quot;, true { defined($_) } @list;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>false
+<small>BLOCK LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Counts the
+number of elements in <small>LIST</small> for which the
+criterion in <small>BLOCK</small> is false. Sets $_ for each
+item in <small>LIST</small> in turn:</p>
+
+<p style="margin-left:11%; margin-top: 1em">printf &quot;%i
+item(s) are not defined&quot;, false { defined($_) }
+@list;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>minmax
+<small>LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Calculates the
+minimum and maximum of <small>LIST</small> and returns a two
+element list with the first element being the minimum and
+the second the maximum. Returns the empty list if
+<small>LIST</small> was empty.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;minmax&quot; algorithm differs from a naive iteration
+over the list where each element is compared to two values
+being the so far calculated min and max value in that it
+only requires 3n/2 &minus; 2 comparisons. Thus it is the
+most efficient possible algorithm.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, the
+Perl implementation of it has some overhead simply due to
+the fact that there are more lines of Perl code involved.
+Therefore, <small>LIST</small> needs to be fairly big in
+order for &quot;minmax&quot; to win over a naive
+implementation. This limitation does not apply to the
+<small>XS</small> version.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>mode
+<small>LIST</small></i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Calculates the
+most common items in the list and returns them as a list.
+This is effectively done by string comparisons, so
+references will be stringified. If they implement string
+overloading, this will be used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If more than
+one item appears the same number of times in the list, all
+such items will be returned. For example, the mode of a
+unique list is the list itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This function
+returns a list in list context. In scalar context it returns
+a count indicating the number of modes in the list.</p>
+
+<h2>MAINTENANCE
+<a name="MAINTENANCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The maintenance
+goal is to preserve the documented semantics of the
+<small>API</small> ; bug fixes that bring actual behavior in
+line with semantics are allowed. New <small>API</small>
+functions may be added over time. If a backwards
+incompatible change is unavoidable, we will attempt to
+provide support for the legacy <small>API</small> using the
+same export tag mechanism currently in place.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This module
+attempts to use few non-core dependencies. Non-core
+configuration and testing modules will be bundled when
+reasonable; run-time dependencies will be added only if they
+deliver substantial benefit.</p>
+
+<h2>KNOWN ISSUES
+<a name="KNOWN ISSUES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">There is a
+problem with a bug in 5.6.x perls. It is a syntax error to
+write things like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @x = apply {
+s/foo/bar/ } qw{ foo bar baz };</p>
+
+<p style="margin-left:11%; margin-top: 1em">It has to be
+written as either</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @x = apply {
+s/foo/bar/ } 'foo', 'bar', 'baz';</p>
+
+<p style="margin-left:11%; margin-top: 1em">or</p>
+
+<p style="margin-left:11%; margin-top: 1em">my @x = apply {
+s/foo/bar/ } my @dummy = qw/foo bar baz/;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl 5.5.x and
+Perl 5.8.x don&rsquo;t suffer from this limitation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you have a
+functionality that you could imagine being in this module,
+please drop me a line. This module&rsquo;s policy will be
+less strict than List::Util&rsquo;s when it comes to
+additions as it isn&rsquo;t a core module.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When you report
+bugs, it would be nice if you could additionally give me the
+output of your program with the environment variable
+&quot;LIST_MOREUTILS_PP&quot; set to a true value. That way
+I know where to look for the problem (in <small>XS,</small>
+pure-Perl or possibly both).</p>
+
+<h2>THANKS
+<a name="THANKS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Tassilo von
+Parseval</b> <br>
+Credits go to a number of people: Steve Purkis for giving me
+namespace advice and James Keenan and Terrence Branno for
+their effort of keeping the <small>CPAN</small> tidier by
+making List::Util obsolete.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Brian McCauley
+suggested the inclusion of <b>apply()</b> and provided the
+pure-Perl implementation for it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Eric J. Roode
+asked me to add all functions from his module
+&quot;List::SomeUtil&quot; into this one. With minor
+modifications, the pure-Perl implementations of those are by
+him.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The bunch of
+people who almost immediately pointed out the many problems
+with the glitchy 0.07 release (Slaven Rezic, Ron Savage,
+<small>CPAN</small> testers).</p>
+
+<p style="margin-left:11%; margin-top: 1em">A particularly
+nasty memory leak was spotted by Thomas A. Lowery.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Lars Thegler
+made me aware of problems with older Perl versions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Anno Siegel
+de-orphaned <b>each_arrayref()</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">David Filmer
+made me aware of a problem in each_arrayref that could
+ultimately lead to a segfault.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ricardo Signes
+suggested the inclusion of <b>part()</b> and provided the
+Perl-implementation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Robin Huston
+kindly fixed a bug in perl&rsquo;s <small>MULTICALL
+API</small> to make the XS-implementation of <b>part()</b>
+work.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Jens
+Rehsack</b> <br>
+Credits goes to all people contributing feedback during the
+v0.400 development releases.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Special thanks
+goes to David Golden who spent a lot of effort to develop a
+design to support current state of <small>CPAN</small> as
+well as ancient software somewhere in the dark. He also
+contributed a lot of patches to refactor the
+<small>API</small> frontend to welcome any user of
+List::SomeUtils &minus; from ancient past to recently last
+used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Toby Inkster
+provided a lot of useful feedback for sane importer code and
+was a nice sounding board for <small>API</small>
+discussions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Peter Rabbitson
+provided a sane git repository setup containing entire
+package history.</p>
+
+<h2>TODO
+<a name="TODO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A pile of
+requests from other people is still pending further
+processing in my mailbox. This includes:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="46%">
+
+
+<p style="margin-top: 1em">List::Util export
+pass-through</p> </td>
+<td width="37%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Allow
+<b>List::SomeUtils</b> to pass-through the regular
+List::Util functions to end users only need to
+&quot;use&quot; the one module.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="17%">
+
+
+<p style="margin-top: 1em">uniq_by(&amp;@)</p></td>
+<td width="66%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Use
+code-reference to extract a key based on which the
+uniqueness is determined. Suggested by Aaron Crane.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="37%">
+
+
+<p style="margin-top: 1em">delete_index</p></td>
+<td width="46%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="37%">
+
+
+<p>random_item</p></td>
+<td width="46%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="37%">
+
+
+<p>random_item_delete_index</p></td>
+<td width="46%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="37%">
+
+
+<p>list_diff_hash</p></td>
+<td width="46%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="37%">
+
+
+<p>list_diff_inboth</p></td>
+<td width="46%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="37%">
+
+
+<p>list_diff_infirst</p></td>
+<td width="46%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="37%">
+
+
+<p>list_diff_insecond</p></td>
+<td width="46%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">These were all
+suggested by Dan Muey.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="11%">
+
+
+<p style="margin-top: 1em">listify</p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Always return a
+flat list when either a simple scalar value was passed or an
+array-reference. Suggested by Mark Summersault.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">List::Util,
+List::AllUtils, List::UtilsBy</p>
+
+<h2>HISTORICAL COPYRIGHT
+<a name="HISTORICAL COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Some parts
+copyright 2011 Aaron Crane.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Copyright 2004
+&minus; 2010 by Tassilo von Parseval</p>
+
+<p style="margin-left:11%; margin-top: 1em">Copyright 2013
+&minus; 2015 by Jens Rehsack</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Bugs may be
+submitted at
+&lt;https://github.com/houseabsolute/List&minus;SomeUtils/issues&gt;.</p>
+
+<h2>SOURCE
+<a name="SOURCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The source code
+repository for List-SomeUtils can be found at
+&lt;https://github.com/houseabsolute/List&minus;SomeUtils&gt;.</p>
+
+<h2>DONATIONS
+<a name="DONATIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;d
+like to thank me for the work I&rsquo;ve done on this
+module, please consider making a &quot;donation&quot; to me
+via PayPal. I spend a lot of free time creating free
+software, and would appreciate any support you&rsquo;d care
+to offer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Please note
+that <b>I am not suggesting that you must do this</b> in
+order for me to continue working on this particular
+software. I will continue to do so, inasmuch as I have in
+the past, for as long as it interests me.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Similarly, a
+donation made in this way will probably not make me work on
+this software much more, unless I get so many donations that
+I can consider working on free software full time
+(let&rsquo;s all have a chuckle at that together).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To donate, log
+into PayPal and send money to autarch@urth.org, or use the
+button at
+&lt;https://houseabsolute.com/foss&minus;donations/&gt;.</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Tassilo von Parseval
+&lt;tassilo.von.parseval@rwth&minus;aachen.de&gt;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Adam Kennedy &lt;adamk@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Jens Rehsack &lt;rehsack@cpan.org&gt;</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Dave Rolsky &lt;autarch@urth.org&gt;</p></td></tr>
+</table>
+
+<h2>CONTRIBUTORS
+<a name="CONTRIBUTORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p style="margin-top: 1em">Aaron Crane
+&lt;arc@cpan.org&gt;</p> </td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>BackPan &lt;BackPan&gt;</p></td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>bay&minus;max1
+&lt;34803732+bay&minus;max1@users.noreply.github.com&gt;</p> </td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>Brad Forschinger &lt;bnjf@bnjf.id.au&gt;</p></td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>David Golden &lt;dagolden@cpan.org&gt;</p></td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>jddurand &lt;jeandamiendurand@free.fr&gt;</p></td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>Jens Rehsack &lt;sno@netbsd.org&gt;</p></td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>J.R. Mash &lt;jrmash@cpan.org&gt;</p></td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>Karen Etheridge &lt;ether@cpan.org&gt;</p></td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>Ricardo Signes &lt;rjbs@cpan.org&gt;</p></td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>Toby Inkster &lt;mail@tobyinkster.co.uk&gt;</p></td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>Tokuhiro Matsuno &lt;tokuhirom@cpan.org&gt;</p></td>
+<td width="2%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p>Tom Wyant &lt;wyant@cpan.org&gt;</p></td>
+<td width="2%">
+</td></tr>
+</table>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2022 by Dave Rolsky
+&lt;autarch@urth.org&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The full text
+of the license can be found in the
+<i><small>LICENSE</small></i> file included with this
+distribution.</p>
+<hr>
+</body>
+</html>

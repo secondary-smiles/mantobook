@@ -1,0 +1,245 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:01 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SD_LISTEN_FDS</title>
+
+</head>
+<body>
+<h1>sd_listen_fds</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">sd_listen_fds,
+sd_listen_fds_with_names, SD_LISTEN_FDS_START &minus; Check
+for file descriptors passed by the system manager</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;systemd/sd&minus;daemon.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>#define
+SD_LISTEN_FDS_START 3</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_listen_fds(int&nbsp;</b><i>unset_environment</i><b>);</b></p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_listen_fds_with_names(int&nbsp;</b><i>unset_environment</i><b>,
+char***&nbsp;</b><i>names</i><b>);</b></p> </td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_listen_fds()</b>
+may be invoked by a daemon to check for file descriptors
+passed by the service manager as part of the
+socket&minus;based activation logic. It returns the number
+of received file descriptors. If no file descriptors have
+been received, zero is returned. The first file descriptor
+may be found at file descriptor number 3 (i.e.
+<b>SD_LISTEN_FDS_START</b>), the remaining descriptors
+follow at 4, 5, 6, ..., if any.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The file
+descriptors passed this way may be closed at will by the
+processes receiving them: it's up to the processes
+themselves to close them after use or whether to leave them
+open until the process exits (in which case the kernel
+closes them automatically). Note that the file descriptors
+received by daemons are duplicates of the file descriptors
+the service manager originally allocated and bound and of
+which it continuously keeps a copy (except if
+<i>Accept=yes</i> is used). This means any socket option
+changes and other changes made to the sockets will be
+visible to the service manager too. Most importantly this
+means it's generally not a good idea to invoke
+<b>shutdown</b>(2) on such sockets, since it will shut down
+communication on the file descriptor the service manager
+holds for the same socket too. Also note that if a daemon is
+restarted (and its associated sockets are not) it will
+receive file descriptors to the very same sockets as the
+earlier invocations, thus all socket options applied then
+will still apply.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a daemon
+receives more than one file descriptor, they will be passed
+in the same order as configured in the systemd socket unit
+file (see <b>systemd.socket</b>(5) for details) &mdash; if
+there's only one such file (see below). Nonetheless, it is
+recommended to verify the correct socket types before using
+them. To simplify this checking, the functions
+<b>sd_is_fifo</b>(3), <b>sd_is_socket</b>(3),
+<b>sd_is_socket_inet</b>(3), <b>sd_is_socket_unix</b>(3) are
+provided. In order to maximize flexibility, it is
+recommended to make these checks as loose as possible
+without allowing incorrect setups. i.e. often, the actual
+port number a socket is bound to matters little for the
+service to work, hence it should not be verified. On the
+other hand, whether a socket is a datagram or stream socket
+matters a lot for the most common program logics and should
+be checked.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This function
+call will set the FD_CLOEXEC flag for all passed file
+descriptors to avoid further inheritance to children of the
+calling process.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If multiple
+socket units activate the same service, the order of the
+file descriptors passed to its main process is undefined. If
+additional file descriptors have been passed to the service
+manager using <b>sd_pid_notify_with_fds</b>(3)'s
+&quot;FDSTORE=1&quot; messages, these file descriptors are
+passed last, in arbitrary order, and with duplicates
+removed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+<i>unset_environment</i> parameter is non&minus;zero,
+<b>sd_listen_fds()</b> will unset the <i>$LISTEN_FDS</i>,
+<i>$LISTEN_PID</i> and <i>$LISTEN_FDNAMES</i> environment
+variables before returning (regardless of whether the
+function call itself succeeded or not). Further calls to
+<b>sd_listen_fds()</b> will then return zero, but the
+variables are no longer inherited by child processes.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_listen_fds_with_names()</b>
+is like <b>sd_listen_fds()</b>, but optionally also returns
+an array of strings with identification names for the passed
+file descriptors, if that is available and the <i>names</i>
+parameter is non&minus;<b>NULL</b>. This information is read
+from the <i>$LISTEN_FDNAMES</i> variable, which may contain
+a colon&minus;separated list of names. For
+socket&minus;activated services, these names may be
+configured with the <i>FileDescriptorName=</i> setting in
+socket unit files, see <b>systemd.socket</b>(5) for details.
+For file descriptors pushed into the file descriptor store
+(see above), the name is set via the <i>FDNAME=</i> field
+transmitted via <b>sd_pid_notify_with_fds()</b>. The primary
+usecase for these names are services which accept a variety
+of file descriptors which are not recognizable with
+functions like <b>sd_is_socket()</b> alone, and thus require
+identification via a name. It is recommended to rely on
+named file descriptors only if identification via
+<b>sd_is_socket()</b> and related calls is not sufficient.
+Note that the names used are not unique in any way. The
+returned array of strings has as many entries as file
+descriptors have been received, plus a final <b>NULL</b>
+pointer terminating the array. The caller needs to free the
+array itself and each of its elements with libc's
+<b>free()</b> call after use. If the <i>names</i> parameter
+is <b>NULL</b>, the call is entirely equivalent to
+<b>sd_listen_fds()</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Under specific
+conditions, the following automatic file descriptor names
+are returned:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Table&nbsp;1.&nbsp;
+Special names</b></p></table>
+
+
+<p align="center"><b><img src="grohtml-34288361.png" alt="Image grohtml-34288361.png"></b></p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On failure,
+these calls returns a negative errno&minus;style error code.
+If <i>$LISTEN_FDS</i>/<i>$LISTEN_PID</i> was not set or was
+not correctly set for this daemon and hence no file
+descriptors were received, 0 is returned. Otherwise, the
+number of file descriptors passed is returned. The
+application may find them starting with file descriptor
+SD_LISTEN_FDS_START, i.e. file descriptor 3.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These APIs are
+implemented as a shared library, which can be compiled and
+linked to with the <b>libsystemd&nbsp;pkg-config</b>(1)
+file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Internally,
+<b>sd_listen_fds()</b> checks whether the <i>$LISTEN_PID</i>
+environment variable equals the daemon PID. If not, it
+returns immediately. Otherwise, it parses the number passed
+in the <i>$LISTEN_FDS</i> environment variable, then sets
+the FD_CLOEXEC flag for the parsed number of file
+descriptors starting from SD_LISTEN_FDS_START. Finally, it
+returns the parsed number. <b>sd_listen_fds_with_names()</b>
+does the same but also parses <i>$LISTEN_FDNAMES</i> if
+set.</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$LISTEN_PID</i>,
+<i>$LISTEN_FDS</i>, <i>$LISTEN_FDNAMES</i></p>
+
+<p style="margin-left:17%;">Set by the service manager for
+supervised processes that use socket&minus;based activation.
+This environment variable specifies the data
+<b>sd_listen_fds()</b> and <b>sd_listen_fds_with_names()</b>
+parses. See above for details.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>sd-daemon</b>(3), <b>sd_is_fifo</b>(3),
+<b>sd_is_socket</b>(3), <b>sd_is_socket_inet</b>(3),
+<b>sd_is_socket_unix</b>(3),
+<b>sd_pid_notify_with_fds</b>(3), <b>daemon</b>(7),
+<b>systemd.service</b>(5), <b>systemd.socket</b>(5)</p>
+<hr>
+</body>
+</html>

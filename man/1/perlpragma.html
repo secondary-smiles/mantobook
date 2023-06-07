@@ -1,0 +1,230 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:59 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERLPRAGMA</title>
+
+</head>
+<body>
+<h1>perlpragma</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perlpragma
+&minus; how to write a user pragma</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A pragma is a
+module which influences some aspect of the compile time or
+run time behaviour of Perl, such as &quot;strict&quot; or
+&quot;warnings&quot;. With Perl 5.10 you are no longer
+limited to the built in pragmata; you can now create user
+pragmata that modify the behaviour of user functions within
+a lexical scope.</p>
+
+<h2>A basic example
+<a name="A basic example"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">For example,
+say you need to create a class implementing overloaded
+mathematical operators, and would like to provide your own
+pragma that functions much like &quot;use integer;&quot;
+You&rsquo;d like this code</p>
+
+<p style="margin-left:11%; margin-top: 1em">use MyMaths;
+<br>
+my $l = MyMaths&minus;&gt;new(1.2); <br>
+my $r = MyMaths&minus;&gt;new(3.4); <br>
+print &quot;A: &quot;, $l + $r, &quot;\n&quot;; <br>
+use myint; <br>
+print &quot;B: &quot;, $l + $r, &quot;\n&quot;; <br>
+{ <br>
+no myint; <br>
+print &quot;C: &quot;, $l + $r, &quot;\n&quot;; <br>
+} <br>
+print &quot;D: &quot;, $l + $r, &quot;\n&quot;; <br>
+no myint; <br>
+print &quot;E: &quot;, $l + $r, &quot;\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">to give the
+output</p>
+
+<p style="margin-left:11%; margin-top: 1em">A: 4.6 <br>
+B: 4 <br>
+C: 4.6 <br>
+D: 4 <br>
+E: 4.6</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>i.e.</i>,
+where &quot;use myint;&quot; is in effect, addition
+operations are forced to integer, whereas by default they
+are not, with the default behaviour being restored via
+&quot;no myint;&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The minimal
+implementation of the package &quot;MyMaths&quot; would be
+something like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+MyMaths; <br>
+use v5.36; <br>
+use myint(); <br>
+use overload '+' =&gt; sub { <br>
+my ($l, $r) = @_; <br>
+# Pass 1 to check up one call level from here <br>
+if (myint::in_effect(1)) { <br>
+int($$l) + int($$r); <br>
+} else { <br>
+$$l + $$r; <br>
+} <br>
+}; <br>
+sub new { <br>
+my ($class, $value) = @_; <br>
+bless \$value, $class; <br>
+} <br>
+1;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note how we
+load the user pragma &quot;myint&quot; with an empty list
+&quot;()&quot; to prevent its &quot;import&quot; being
+called.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The interaction
+with the Perl compilation happens inside package
+&quot;myint&quot;:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package myint;
+<br>
+use v5.36; <br>
+sub import { <br>
+$^H{&quot;myint/in_effect&quot;} = 1; <br>
+} <br>
+sub unimport { <br>
+$^H{&quot;myint/in_effect&quot;} = 0; <br>
+} <br>
+sub in_effect { <br>
+my $level = shift // 0; <br>
+my $hinthash = (caller($level))[10]; <br>
+return $hinthash&minus;&gt;{&quot;myint/in_effect&quot;};
+<br>
+} <br>
+1;</p>
+
+<p style="margin-left:11%; margin-top: 1em">As pragmata are
+implemented as modules, like any other module, &quot;use
+myint;&quot; becomes</p>
+
+<p style="margin-left:11%; margin-top: 1em">BEGIN { <br>
+require myint; <br>
+myint&minus;&gt;import(); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">and &quot;no
+myint;&quot; is</p>
+
+<p style="margin-left:11%; margin-top: 1em">BEGIN { <br>
+require myint; <br>
+myint&minus;&gt;unimport(); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Hence the
+&quot;import&quot; and &quot;unimport&quot; routines are
+called at <b>compile time</b> for the user&rsquo;s code.</p>
+
+<p style="margin-left:11%; margin-top: 1em">User pragmata
+store their state by writing to the magical hash
+&quot;%^H&quot;, hence these two routines manipulate it. The
+state information in &quot;%^H&quot; is stored in the
+optree, and can be retrieved read-only at runtime with
+&quot;caller()&quot;, at index 10 of the list of returned
+results. In the example pragma, retrieval is encapsulated
+into the routine &quot;in_effect()&quot;, which takes as
+parameter the number of call frames to go up to find the
+value of the pragma in the user&rsquo;s script. This uses
+&quot;caller()&quot; to determine the value of
+$^H{&quot;myint/in_effect&quot;} when each line of the
+user&rsquo;s script was called, and therefore provide the
+correct semantics in the subroutine implementing the
+overloaded addition.</p>
+
+<h2>Key naming
+<a name="Key naming"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">There is only a
+single &quot;%^H&quot;, but arbitrarily many modules that
+want to use its scoping semantics. To avoid stepping on each
+other&rsquo;s toes, they need to be sure to use different
+keys in the hash. It is therefore conventional for a module
+to use only keys that begin with the module&rsquo;s name
+(the name of its main package) and a &quot;/&quot;
+character. After this module-identifying prefix, the rest of
+the key is entirely up to the module: it may include any
+characters whatsoever. For example, a module
+&quot;Foo::Bar&quot; should use keys such as
+&quot;Foo::Bar/baz&quot; and &quot;Foo::Bar/$%/_!&quot;.
+Modules following this convention all play nicely with each
+other.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Perl core
+uses a handful of keys in &quot;%^H&quot; which do not
+follow this convention, because they predate it. Keys that
+follow the convention won&rsquo;t conflict with the
+core&rsquo;s historical keys.</p>
+
+<h2>Implementation details
+<a name="Implementation details"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The optree is
+shared between threads. This means there is a possibility
+that the optree will outlive the particular thread (and
+therefore the interpreter instance) that created it, so true
+Perl scalars cannot be stored in the optree. Instead a
+compact form is used, which can only store values that are
+integers (signed and unsigned), strings or &quot;undef&quot;
+&minus; references and floating point values are
+stringified. If you need to store multiple values or complex
+structures, you should serialise them, for example with
+&quot;pack&quot;. The deletion of a hash key from
+&quot;%^H&quot; is recorded, and as ever can be
+distinguished from the existence of a key with value
+&quot;undef&quot; with &quot;exists&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Don&rsquo;t</b>
+attempt to store references to data structures as integers
+which are retrieved via &quot;caller&quot; and converted
+back, as this will not be threadsafe. Accesses would be to
+the structure without locking (which is not safe for
+Perl&rsquo;s scalars), and either the structure has to leak,
+or it has to be freed when its creating thread terminates,
+which may be before the optree referencing it is deleted, if
+other threads outlive it.</p>
+<hr>
+</body>
+</html>

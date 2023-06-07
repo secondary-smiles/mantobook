@@ -1,0 +1,669 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:00 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PKFIX-HELPER</title>
+
+</head>
+<body>
+<h1>pkfix-helper</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">pkfix&minus;helper
+&minus; preprocess dvips&minus;produced PostScript documents
+before passing them to pkfix</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">pkfix-helper
+[<b>&minus;&minus;help</b>] [<b>&minus;&minus;verbose</b>]
+[<b>&minus;&minus;force</b>=<i>name</i>=<i>fontspec</i>]
+[<b>&minus;&minus;ps</b>=<i>filename.ps</i>]
+[<b>&minus;&minus;tex</b>=<i>filename.tex</i>]
+[<b>&minus;&minus;cache</b>=<i>filename</i>]
+[<b>&minus;&minus;include</b>=<i>fontspec</i>]
+[<b>&minus;&minus;exclude</b>=<i>regexp</i>]
+[<b>&minus;&minus;keep</b>=<i>fontspec</i>]
+[<b>&minus;&minus;quiet</b>]
+[<b>&minus;&minus;no&minus;repeats</b>]
+[<b>&minus;&minus;spp</b>=<i>number</i>] [<i>input.ps</i>
+[<i>output.ps</i>]]</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Motivation</b>
+<br>
+PostScript documents created with old versions of
+<b>dvips</b> almost invariably utilize bitmapped (PostScript
+Type&nbsp;3) fonts. The problem with bitmapped fonts is that
+they target a specific device resolution; a PostScript file
+produced using 300&nbsp; <small>DPI</small> fonts will look
+grainy on a 600&nbsp; <small>DPI</small> printer. Even
+worse, <i>all</i> bitmapped fonts look grainy when zoomed in
+on screen. The solution is to use vector (PostScript
+Type&nbsp;1) fonts, which are resolution-independent and
+appear crisp at any size or scale.</p>
+
+<p style="margin-left:11%; margin-top: 1em">While it is no
+longer difficult to configure <b>dvips</b> to use vector
+fonts, it is not always possible to rerun <b>dvips</b> on an
+old <i>.dvi</i> file. The <i>.dvi</i> file and document
+source may have been lost; or, the source may no longer
+compile because packages it depends upon may no longer be
+available.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Heiko
+Oberdiek&rsquo;s <b>pkfix</b> script replaces bitmapped
+fonts in <b>dvips</b>&minus;produced PostScript files with
+the corresponding vector fonts. It works by parsing the
+PostScript comments with which <b>dvips</b> surrounds
+bitmapped-font definitions. For example, a font definition
+beginning with the comment &quot;%DVIPSBitmapFont: Fi cmss10
+11 28&quot; and ending with a matching %EndDVIPSBitmapFont
+is known to define font &quot;Fi&quot; as &quot;cmss10&quot;
+(Computer Modern Sans Serif at a design size of
+10&nbsp;points) scaled to 11&nbsp;points. Only the 28
+characters actually used by the document are defined.
+<b>pkfix</b> then replaces the font definition with one that
+defines &quot;Fi&quot; using the same set of characters but
+taken from the <i>cmss10.pfb</i> vector font file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unfortunately,
+<b>pkfix</b> works only with versions of <b>dvips</b> newer
+than v5.58 (ca.&nbsp;1996). Naturally, the older a
+PostScript document, the less likely its sources still exist
+and can still be recompiled. Older versions of <b>dvips</b>
+lack %DVIPSBitmapFont comments and various other PostScript
+comments on which <b>pkfix</b> relies. Without PostScript
+comments to guide it, <b>pkfix</b> is unable to determine
+which vector fonts correspond with which bitmapped
+fonts.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Overview</b>
+<br>
+The <b>pkfix-helper</b> script is a preprocessor for
+<b>pkfix</b> that attempts to determine the association
+between each document-font name (e.g.,&nbsp;&quot;Fi&quot;)
+in a PostScript file and the original font
+(e.g.,&nbsp;&quot;cmss10&quot;) and fonts size (e.g.,
+11&nbsp;points). It then fabricates the PostScript comments
+that <b>pkfix</b> expects to see so that <b>pkfix</b> can do
+its job.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pkfix-helper</b>
+works by comparing every document font against every
+<i>.tfm</i> font file it knows about (assuming that each
+such font has a corresponding <i>.pfb</i> vector version)
+and selecting the best matching <i>.tfm</i> file for every
+document font. <b>pkfix-helper</b> has access only to the
+widths of characters and only to those characters actually
+used in the document. Also, the program recognizes only a
+limited set of the most popular <i>.tfm</i> files and
+scaling factors. Consequently, the comparison is imperfect
+and <b>pkfix-helper</b> may attribute an incorrect font to a
+given name. Fonts comprising only one or two characters
+actually used in a document are particularly problematic for
+<b>pkfix-helper</b> because many fonts may be near-enough
+matches to fool the problem.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pkfix-helper</b>
+is designed so that a user can guide the font-selection
+process by manually designating matching fonts. With a
+modicum of diligence and patience a user can correct any
+mismatched fonts and help the program provide proper input
+to <b>pkfix</b>.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pkfix-helper</b>
+accepts on the command line the filename of a PostScript
+document to process (with the default being the standard
+input device) and the filename of a modified PostScript
+document to create (with the default being the standard
+output device). The program also accepts the following
+command-line options:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Frequently
+Used Options <br>
+&minus;h</b>, <b>&minus;&minus;help</b></p>
+
+<p style="margin-left:17%;">Display usage information and
+exit. The <b>&minus;&minus;verbose</b> and
+<b>&minus;&minus;quiet</b> options can be used to increase
+and decrease the amount of information presented.</p>
+
+<p style="margin-left:11%;"><b>&minus;v</b>,
+<b>&minus;&minus;verbose</b></p>
+
+<p style="margin-left:17%;">Increase the amount of status
+information that <b>pkfix-helper</b> displays as it runs.
+Additional instances of <b>&minus;&minus;verbose</b> on the
+command line further increase the program&rsquo;s verbosity.
+By default, only major operations are displayed. A single
+<b>&minus;&minus;verbose</b> additionally displays
+information about individual font comparisons. A second
+<b>&minus;&minus;verbose</b> additionally displays details
+about some of the program&rsquo;s internal operations.</p>
+
+<p style="margin-left:11%;"><b>&minus;f</b>
+<i>name</i>=<i>fontspec</i>,
+<b>&minus;&minus;force</b>=<i>name</i>=<i>fontspec</i></p>
+
+<p style="margin-left:17%;">Force <b>pkfix-helper</b> to
+associate a specific font with a given font name appearing
+the document. <i>name</i> is a (usually) two-character
+<b>dvips</b> font name such as &quot;Fa&quot;.
+<i>fontspec</i> is a font specification that comprises a
+font name and an optional scale: &quot;<i>font</i>
+[&quot;@&quot;&nbsp;<i>scale</i>]&quot;. Some examples of
+<i>fontspec</i>s are &quot;cmmi8&quot; and
+&quot;cmsy10&nbsp;@&nbsp;1.1X&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">An asterisk
+used in the name of the font (e.g.,&nbsp;&quot;cmti*&quot;)
+will be replaced by all integers from 5 to 17
+(&quot;cmti5&quot;, &quot;cmti6&quot;,&nbsp;...,
+&quot;cmti17&quot;). The scale can be written as a multiple
+of the design size (&quot;X&quot;) or as an absolute size in
+either TeX points (&quot;pt&quot;) or PostScript
+&quot;big&quot; points (&quot;bp&quot;). Hence,
+&quot;cmsy8&nbsp;@&nbsp;1.5X&quot;,
+&quot;cmsy8&nbsp;@&nbsp;12pt&quot;, and
+&quot;cmsy8&nbsp;@&nbsp;11.96bp&quot; all represent the
+<i>Computer Modern Math Symbols 8 Point</i> font scaled to
+12 TeX points/11.96 PostScript points. Instead of specifying
+an explicit scale, an asterisk can be used (as in
+&quot;cmsy8&nbsp;@&nbsp;*&quot;) to request that
+<b>pkfix-helper</b> find the scale that best matches the
+original font&rsquo;s metrics.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+<b>&minus;&minus;force</b> option can be specified
+repeatedly on the command line.</p>
+
+<p style="margin-left:11%;"><b>&minus;p</b>
+<i>filename.ps</i>,
+<b>&minus;&minus;ps</b>=<i>filename.ps</i></p>
+
+<p style="margin-left:17%;">Create a PostScript file called
+<i>filename.ps</i> that shows the <b>dvips</b> name and a
+font sample of every font used by the input document.</p>
+
+<p style="margin-left:11%;"><b>&minus;t</b>
+<i>filename.tex</i>,
+<b>&minus;&minus;tex</b>=<i>filename.tex</i></p>
+
+<p style="margin-left:17%;">Create a Plain TeX file called
+<i>filename.tex</i> that shows the <b>dvips</b> name and a
+font sample of every font that <b>pkfix-helper</b> used in
+the output document.</p>
+
+<p style="margin-left:11%;"><b>&minus;k</b>
+<i>fontspec</i>,
+<b>&minus;&minus;keep</b>=<i>fontspec</i></p>
+
+<p style="margin-left:17%;">Do not substitute a vector font
+for bitmapped font <i>fontspec</i> (&quot;Fa&quot;,
+&quot;Fb&quot;, etc.). This is useful when converting
+documents that use obscure bitmapped fonts for which there
+is no vector equivalent. For example, it was somewhat common
+in the past to include graphics such as university or
+corporate logos into a document by converting the bitmapped
+image into a single-character font and using that font in
+LaTeX. <b>&minus;&minus;keep</b> prevents such fonts from
+being replaced. The <b>&minus;&minus;keep</b> option can be
+specified repeatedly on the command line.</p>
+
+<p style="margin-left:11%;"><b>&minus;1</b>,
+<b>&minus;&minus;no&minus;repeats</b></p>
+
+<p style="margin-left:17%;">Prevent <b>pkfix-helper</b>
+from associating the same <i>fontspec</i> with more than one
+<b>dvips</b> font name.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Less-frequently
+Used Options <br>
+&minus;q</b>, <b>&minus;&minus;quiet</b></p>
+
+<p style="margin-left:17%;">Instruct <b>pkfix-helper</b> to
+produce no output during its run except for error and
+warning messages.</p>
+
+<p style="margin-left:11%;"><b>&minus;C</b>
+<i>filename</i>,
+<b>&minus;&minus;cache</b>=<i>filename</i></p>
+
+<p style="margin-left:17%;">Speed up <small>TFM</small>
+file processing by caching character metrics into file
+<i>filename</i>. On some systems it takes a long time to
+read a <small>TFM</small> file, spawn <i>tftopl</i> to
+convert it to <small>PL</small> format, and extract from the
+<small>PL</small> data the metrics for each character. The
+first time <b>&minus;&minus;cache</b> is specified,
+<b>pkfix-helper</b> proceeds as normal then writes all of
+the extracted character metrics to <i>filename</i>. On
+subsequent runs in which
+<b>&minus;&minus;cache</b>=<i>filename</i> is specified,
+<b>pkfix-helper</b> reads the previously extracted metrics
+from <i>filename</i>, going through the
+<i>tftopl</i>&minus;based process only for
+<small>TFM</small> files that were not previously
+encountered.</p>
+
+<p style="margin-left:11%;"><b>&minus;i</b>
+<i>fontspec</i>,
+<b>&minus;&minus;include</b>=<i>fontspec</i></p>
+
+<p style="margin-left:17%;">Add <i>fontspec</i> to the list
+of font specifications against which <b>pkfix-helper</b>
+compares <i>every</i> document font. (In contrast,
+<b>&minus;&minus;force</b> designates a font specification
+to use only for a <i>specific</i> document font.) The
+<b>&minus;&minus;include</b> option can be specified
+repeatedly on the command line.</p>
+
+<p style="margin-left:11%;"><b>&minus;x</b> <i>regexp</i>,
+<b>&minus;&minus;exclude</b>=<i>regexp</i></p>
+
+<p style="margin-left:17%;">Remove all font specifications
+matching regular expression <i>regexp</i> from
+<b>pkfix-helper</b>&rsquo;s list of known fonts. The
+<b>&minus;&minus;exclude</b> option can be specified
+repeatedly on the command line.</p>
+
+<p style="margin-left:11%;"><b>&minus;s</b>,
+<b>&minus;&minus;spp</b></p>
+
+<p style="margin-left:17%;">Specify the number of font
+samples per page to print to the files indicated using the
+<b>&minus;&minus;ps</b> and <b>&minus;&minus;tex</b>
+options. The default value,&nbsp;25, should work well in
+most circumstances.</p>
+
+<h2>DIAGNOSTICS
+<a name="DIAGNOSTICS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Best
+match for <i>name</i> is rather poor&quot;</p>
+
+<p style="margin-left:17%;">The best font
+<b>pkfix-helper</b> found for <b>dvips</b> font name
+<i>name</i> has a mismatch value greater than or equal
+to&nbsp;1.0. (The mismatch value is the sum of the squares
+of the difference between the character widths of a document
+font and a potential replacement font.) Use the
+<b>&minus;&minus;force</b> option to designate an
+alternative replacement font or scaling amount.</p>
+
+<p style="margin-left:11%;">&quot;<i>name</i> uses
+characters that don't appear in any candidate font&quot;</p>
+
+<p style="margin-left:17%;">None of the fonts considered
+for a match include all of the characters in font
+<i>name</i>. The user should use the
+<b>&minus;&minus;force</b> option to inform
+<b>pkfix-helper</b> which font to use or the
+<b>&minus;&minus;keep</b> option to retain the original,
+bitmapped font.</p>
+
+<p style="margin-left:11%;">&quot;Processing <i>name</i>
+... done (<i>font</i> with mismatch=<i>number</i>, tied with
+<i><br>
+font</i>...)&quot;</p>
+
+<p style="margin-left:17%;">The best match for <i>name</i>
+is font <i>font</i>. A perfect match has a <i>number</i> of
+0.00000. Worse matches observe larger values. If a tie is
+reported, this means one or more fonts matched <i>name</i>
+equally well (i.e., they see the same <i>number</i>). In
+this case, <b>pkfix-helper</b> selects the qualitatively
+most likely font as the winner.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">For the purpose
+of the following examples, assume that <i>oldfile.ps</i> is
+the name of a PostScript file produced by an old version of
+<b>dvips</b> and utilizing at least one bitmapped font.
+It&rsquo;s always worth verifying that <b>pkfix</b>
+can&rsquo;t convert the file on its own:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ pkfix
+oldfile.ps newfile.ps <br>
+PKFIX 1.3, 2005/02/25 &minus; Copyright (c) 2001, 2005 by
+Heiko Oberdiek. <br>
+==&gt; no fonts converted</p>
+
+<p style="margin-left:11%; margin-top: 1em">(Alternatively
+<b>pkfix</b> may issue an error message such as &quot;!!!
+Error: Parse error (@start parameters)!&quot;.) Only when
+<b>pkfix</b> can&rsquo;t replace bitmapped fonts with vector
+fonts is <b>pkfix-helper</b> needed. In its simplest form,
+<b>pkfix-helper</b> takes the name of an input file
+(<i>oldfile.ps</i> in this example) and the name of an
+output file (<i>pkfix&minus;oldfile.ps</i>), which will have
+the same contents as the input file but serve as suitable
+input for <b>pkfix</b>:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$
+pkfix&minus;helper oldfile.ps pkfix&minus;oldfile.ps <br>
+Reading oldfile.ps ... done. <br>
+Number of Type 3 fonts encountered: 10 <br>
+Bitmapped fonts are typeset at 600 DPI. <br>
+Finding character widths ... done. <br>
+Reading TFM files ... done (103 TFMs in 193 scaling
+variations). <br>
+Matching fonts: <br>
+Processing Fi ... done (cmr10 @ 1X, mismatch=0.11683). <br>
+Processing Fa ... done (cmti10 @ 1X, mismatch=0.08892). <br>
+Processing Fb ... done (cmr8 @ 1X, mismatch=0.07133). <br>
+Processing Ff ... done (cmbx12 @ 1.2X, mismatch=0.02948).
+<br>
+Processing Fh ... done (cmtt10 @ 1X, mismatch=0.06895). <br>
+Processing Fd ... done (cmmi10 @ 1X, mismatch=0.03966). <br>
+Processing Fj ... done (cmbx12 @ 1X, mismatch=0.03972). <br>
+Processing Fe ... done (cmbx10 @ 1X, mismatch=0.00762). <br>
+Processing Fg ... done (cmsy10 @ 1X, mismatch=0.00875). <br>
+Processing Fc ... done (cmr6 @ 1X, mismatch=0.00284). <br>
+$ pkfix pkfix&minus;oldfile.ps newfile.ps <br>
+PKFIX 1.3, 2005/02/25 &minus; Copyright (c) 2001, 2005 by
+Heiko Oberdiek. <br>
+*** Font conversion: `cmti10' &minus;&gt; `CMTI10'. <br>
+*** Font conversion: `cmr8' &minus;&gt; `CMR8'. <br>
+*** Font conversion: `cmr6' &minus;&gt; `CMR6'. <br>
+*** Font conversion: `cmmi10' &minus;&gt; `CMMI10'. <br>
+*** Font conversion: `cmbx10' &minus;&gt; `CMBX10'. <br>
+*** Font conversion: `cmbx12' &minus;&gt; `CMBX12'. <br>
+*** Font conversion: `cmsy10' &minus;&gt; `CMSY10'. <br>
+*** Font conversion: `cmtt10' &minus;&gt; `CMTT10'. <br>
+*** Font conversion: `cmr10' &minus;&gt; `CMR10'. <br>
+*** Font conversion: `cmbx12' &minus;&gt; `CMBX12'. <br>
+*** Merging font `CMBX12' (2). <br>
+==&gt; 10 converted fonts. <br>
+==&gt; 1 merged font.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Although
+<b>pkfix-helper</b> tries to automate as much as possible
+the font-detection process, some fonts will invariably be
+incorrectly identified. The program outputs a warning
+message if it <i>knows</i> a match is bad but the lack of a
+warning message does not necessarily indicate that
+<b>pkfix-helper</b> did a good job. It is therefore strongly
+recommended that the user produce &quot;before&quot; and
+&quot;after&quot; font sheets:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$
+pkfix&minus;helper &minus;q oldfile.ps
+pkfix&minus;oldfile.ps \ <br>
+&minus;&minus;ps=oldfonts.ps &minus;&minus;tex=newfonts.tex
+<br>
+$ tex newfonts.tex <br>
+This is TeX, Version 3.14159 (Web2C 7.4.5) <br>
+(./newfonts.tex [1] ) <br>
+Output written on newfonts.dvi (1 page, 1292 bytes). <br>
+Transcript written on newfonts.log. <br>
+$ dvips newfonts.dvi &minus;o newfonts.ps <br>
+This is dvips(k) 5.92b Copyright 2002 Radical Eye Software
+(www.radicaleye.com) <br>
+' TeX output 2006.06.11:1636' &minus;&gt; newfonts.ps <br>
+&lt;texc.pro&gt;&lt;8r.enc&gt;&lt;texps.pro&gt;.
+&lt;cmr6.pfb&gt;&lt;cmsy10.pfb&gt;&lt;cmbx10.pfb&gt;&lt;cmbx12.pfb&gt;
+<br>
+
+&lt;cmmi10.pfb&gt;&lt;cmtt10.pfb&gt;&lt;cmr8.pfb&gt;&lt;cmti10.pfb&gt;&lt;cmr10.pfb&gt;[1]</p>
+
+<p style="margin-left:11%; margin-top: 1em">After running
+the preceding commands, <i>oldfonts.ps</i> shows samples of
+the fonts in <i>oldfile.ps</i> and <i>newfonts.ps</i> shows
+samples of the replacement fonts that <b>pkfix-helper</b>
+used to produce <i>pkfix&minus;oldfile.ps</i>. Print
+<i>oldfonts.ps</i> and <i>newfonts.ps</i> and compare them
+carefully for incorrect fonts and sizes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Suppose that
+the choice of &quot;cmbx12 @ 1.2X&quot; for font
+&quot;Ff&quot; looks wrong; say the characters look taller
+in <i>oldfonts.ps</i> than in <i>newfonts.ps</i>. This is
+where the trial-and-error stage begins. Let&rsquo;s
+hypothesize that &quot;cmb12&quot; is a better match than
+&quot;cmbx12&quot; but we don&rsquo;t know how much to scale
+the font. Fortunately, <b>pkfix-helper</b> allows
+&quot;*&quot; to be used as a scaling factor to tell the
+program to automatically detect an optimal scaling factor,
+even if doing so means choosing a nonstandard font size:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$
+pkfix&minus;helper oldfile.ps pkfix&minus;oldfile.ps
+&minus;&minus;force=&quot;Ff=cmb12 @ *&quot; <br>
+Reading oldfile.ps ... done. <br>
+Number of Type 3 fonts encountered: 10 <br>
+Bitmapped fonts are typeset at 600 DPI. <br>
+Finding character widths ... done. <br>
+Reading TFM files ... failed. <br>
+pkfix&minus;helper: Unable to process user&minus;specified
+TFM file &quot;cmb12&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Oops, it looks
+like we don&rsquo;t have a <i>cmb12.tfm</i> file on our
+system. Let&rsquo;s try scaling up <i>cmb10.tfm</i>
+instead:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$
+pkfix&minus;helper oldfile.ps pkfix&minus;oldfile.ps
+&minus;&minus;force=&quot;Ff=cmb10 @ *&quot; <br>
+Reading oldfile.ps ... done. <br>
+Number of Type 3 fonts encountered: 10 <br>
+Bitmapped fonts are typeset at 600 DPI. <br>
+Finding character widths ... done. <br>
+Reading TFM files ... done (103 TFMs in 193 scaling
+variations). <br>
+Matching fonts: <br>
+Processing Fi ... done (cmr10 @ 1X, mismatch=0.11683). <br>
+Processing Fa ... done (cmti10 @ 1X, mismatch=0.08892). <br>
+Processing Fb ... done (cmr8 @ 1X, mismatch=0.07133). <br>
+Processing Ff ... done (cmb10 @ 1.5X, mismatch=0.00035).
+<br>
+Processing Fh ... done (cmtt10 @ 1X, mismatch=0.06895). <br>
+Processing Fd ... done (cmmi10 @ 1X, mismatch=0.03966). <br>
+Processing Fj ... done (cmbx12 @ 1X, mismatch=0.03972). <br>
+Processing Fe ... done (cmbx10 @ 1X, mismatch=0.00762). <br>
+Processing Fg ... done (cmsy10 @ 1X, mismatch=0.00875). <br>
+Processing Fc ... done (cmr6 @ 1X, mismatch=0.00284).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The match has
+definitely improved, although 15&nbsp;pt. is certainly an
+odd size for a font. Then again, many documents <i>do</i>
+use nonstandard sizes so this may in fact be correct. The
+best way to verify is once again to produce, print, and
+compare a pair of font samples and iterate until all of the
+fonts look correct. Use one instance of
+<b>&minus;&minus;force</b> for each font you want to
+alter.</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pkfix-helper</b>
+honors the following environment variables:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><small>GS</small></p></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p>The name of the Ghostscript interpreter (default:
+<i>gs</i>)</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><small>TFTOPL</small></p></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p>The name of a utility for converting <i>.tfm</i> files
+to <i>.pl</i> files (default: <i>tftopl</i>)</p></td></tr>
+</table>
+
+<h2>RESTRICTIONS
+<a name="RESTRICTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pkfix-helper</b>
+works only with PostScript files produced by <b>dvips</b>,
+not with arbitrary PostScript files. Only bitmapped fonts
+loaded by <b>dvips</b> can be analyzed, not bitmapped fonts
+loaded by embedded graphics.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pkfix-helper</b>
+works by comparing character widths, not the actual glyphs.
+Consequently, it is misled by sets of fonts with similar
+character widths (at least for those characters used by a
+given document). As an extreme example, all Computer Modern
+Teletype fonts of a given design size (e.g.,
+&quot;cmtt10&quot;, &quot;cmsltt10&quot;, and
+&quot;cmitt10&quot;) use exactly the same widths for all
+characters. Human assistance is generally needed to guide
+<b>pkfix-helper</b>&rsquo;s font-matching procedures,
+especially for fonts for which relatively few characters
+appear in the document.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There is an
+astonishing variety of <b>dvips</b> output. Different
+versions of the program and different command-line options
+can result in PostScript files with a completely different
+structure. <b>pkfix-helper</b> works hard to find font
+information buried in numerous output-file variants, but it
+is not uncommon for a PostScript file produced by a
+sufficiently old version of <b>dvips</b> or with
+sufficiently obscure command-line options to utterly confuse
+<b>pkfix-helper</b>. In this case, please send your
+problematic PostScript files to the author of
+<b>pkfix-helper</b> (see &quot; <small>AUTHOR&quot;</small>
+below), who may be able to enhance <b>pkfix-helper</b> to
+handle them.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Files produced
+using the <b>&minus;&minus;tex</b> option are Plain TeX
+files and therefore must be compiled with <b>tex</b> (or a
+variant such as <b>pdftex</b>, <b>luatex</b>, <b>xetex</b>,
+etc.), <i>not</i> with <b>latex</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>dvips</b>&minus;produced
+PostScript files can be structured in sections, demarcated
+by %DVIPSBeginSection and %DVIPSEndSection. Font names are
+local to a section. Hence, a font named &quot;Fa&quot; may
+map to &quot;cmex10&quot; in one section and to
+&quot;cmmi7&quot; in another. <b>pkfix-helper</b> assigns
+every font in a multi-section document a unique name by
+appending a section-number suffix: &quot;Fa_S01&quot;,
+&quot;Fa_S02&quot;, etc.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Font names are
+processed in decreasing order of the number of characters
+they have represented in the document. That is, if the
+document includes 10 characters from &quot;Fa&quot; and 23
+characters from &quot;Fb&quot;, <b>pkfix-helper</b> will
+process &quot;Fb&quot; before &quot;Fa&quot;.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pkfix</b>(1),
+<b>dvips</b>(1), <b>tex</b>(1), <b>gs</b>(1)</p>
+
+<p style="margin-left:11%; margin-top: 1em">PostScript
+Language Reference, Third Edition. Published by
+Addison-Wesley, <small>ISBN
+0&minus;201&minus;37922&minus;8,</small>
+&lt;http://www.adobe.com/products/postscript/pdfs/PLRM.pdf&gt;.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Scott Pakin,
+<i>scott+pkfh@pakin.org</i></p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (C)
+2009&minus;2020, Scott Pakin</p>
+
+<p style="margin-left:11%; margin-top: 1em">This file may
+be distributed and/or modified under the conditions of the
+LaTeX Project Public License, either version 1.3c of this
+license or (at your option) any later version. The latest
+version of this license is in
+&lt;http://www.latex&minus;project.org/lppl.txt&gt; and
+version 1.3c or later is part of all distributions of LaTeX
+version 2006/05/20 or later.</p>
+<hr>
+</body>
+</html>

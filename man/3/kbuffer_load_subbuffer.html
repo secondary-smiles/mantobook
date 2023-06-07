@@ -1,0 +1,383 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:23 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LIBTRACEEVENT</title>
+
+</head>
+<body>
+<h1>kbuffer_load_subbuffer</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">kbuffer_alloc,
+kbuffer_free, kbuffer_load_subbuffer,
+kbuffer_subbuffer_size, kbuffer_start_of_data &minus;
+Creating of kbuffer element to parse the Linux kernel
+tracing ring buffer</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;kbuffer.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">enum
+kbuffer_endian { <br>
+KBUFFER_ENDIAN_BIG, <br>
+KBUFFER_ENDIAN_LITTLE, <br>
+KBUFFER_ENDIAN_SAME_AS_HOST, <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">enum
+kbuffer_long_size { <br>
+KBUFFER_LSIZE_4, <br>
+KBUFFER_LSIZE_8, <br>
+KBUFFER_LSIZE_SAME_AS_HOST, <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">struct kbuffer;
+<br>
+struct tep_handle;</p>
+
+<p style="margin-left:11%; margin-top: 1em">struct kbuffer
+*<b>kbuffer_alloc</b>(enum kbuffer_long_size <i>size</i>,
+enum kbuffer_endian <i>endian</i>); <br>
+void <b>kbuffer_free</b>(struct kbuffer *<i>kbuf</i>); <br>
+int <b>kbuffer_load_subbuffer</b>(struct kbuffer
+*<i>kbuf</i>, void *<i>subbuffer</i>); <br>
+int <b>kbuffer_subbuffer_size</b>(struct kbuffer *<i>kbuf);
+<br>
+int</i> <b>kbuffer_start_of_data</b><i>(struct kbuffer
+*_kbuf</i>);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These functions
+create a <i>kbuffer</i> handle that can be used to parse the
+raw sub buffers of the Linux kernel tracing ring buffer. The
+ring buffer is found in the tracefs directory, and can be
+retrieved by <b>tracefs_instance_get_file(3)</b> at
+<b>per_cpu/cpuX/trace_pipe_raw</b> where <b>X</b> is
+replaced by the per CPU number of the specified ring buffer.
+The ring buffer inside the kernel is split up per CPU, such
+that the raw ring buffer must be retrieved per CPU as
+well.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>kbuffer_alloc()</b> will create a descriptor that can be
+used to manage a sub buffer read by the ring buffer. The
+<i>size</i> parameter denotes what the word size is for the
+given buffer (note, this works from reading raw data from
+machines other than the machine that is calling this
+function). The <i>endian</i> denotes the endian for the
+machine.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<i>endian</i> is set to <i>KBUFFER_ENDIAN_SAME_AS_HOST</i>
+the endian will be set to the same as the host endianess,
+which is useful when the application is reading the ring
+buffer data directly from the same machine it is running
+on.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If <i>size</i>
+is set to <i>KBUFFER_LSIZE_SAME_AS_HOST</i>, if the word
+size is 8, it will set the kbuffer descriptor to long size
+of 8. But if the size is 4, then it will then perform a
+<b>uname(2)</b> call, and if the <i>machine</i> field has
+the string &quot;64&quot; in it, it will be set to 8 byte
+long size and not 4 byte. This is because the ring buffer
+long size is dependent on the kernel and not user space.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>kbuffer_free()</b> function will free the resources
+created by <b>kbuffer_alloc()</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>kbuffer_load_subbuffer()</b> will take a <i>subbuffer</i>
+which is a raw data blob from the tracefs
+<b>trace_pipe_raw</b> file. The Linux tracing ring buffer is
+broken up into sub buffers. Each sub buffer is as stand
+alone data segment that has all the information to split out
+the individual events and time stamps. This sub buffer is
+what kbuffer uses to walk the events.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>kbuffer_subbuffer_size()</b> returns the location of the
+end of the last event on the sub&minus;buffer. It does not
+return the size of the sub&minus;buffer itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>kbuffer_start_of_data()</b> function returns the offset
+of where the actual data load of the sub&minus;buffer
+begins.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>kbuffer_alloc()</b>
+returns an allocated kbuffer descriptor or NULL on error.
+The returned descriptor must be freed with
+<b>kbuffer_free()</b></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>kbuffer_load_subbuffer()</b>
+returns 0 on success and &minus;1 on error.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>kbuffer_subbuffer_size()</b>
+returns the index on the subbuffer where the end of the last
+event is located.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>kbuffer_start_of_data()</b>
+returns the offset of where the data begins on the
+sub&minus;buffer loaded in <i>kbuf</i>.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em">#include
+&lt;stdio.h&gt; <br>
+#include &lt;stdlib.h&gt; <br>
+#include &lt;fcntl.h&gt; <br>
+#include &lt;unistd.h&gt; <br>
+#include &lt;sys/stat.h&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">#include
+&lt;kbuffer.h&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">int main (int
+argc, char **argv) <br>
+{ <br>
+unsigned long long ts; <br>
+struct kbuffer *kbuf; <br>
+struct stat st; <br>
+char *buf; <br>
+void *event; <br>
+int ret; <br>
+int fd; <br>
+int i = 0;</p>
+
+<p style="margin-left:17%; margin-top: 1em">if (argc &lt;
+2) { <br>
+printf(&quot;usage: %s
+raw&minus;subbuffer&minus;page\n&quot;, argv[0]); <br>
+printf(&quot; Try: dd count=1 bs=4096
+if=/sys/kernel/tracing/per_cpu/cpu0/trace_pipe_raw
+of=/tmp/file\n&quot;); <br>
+exit(0); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">if
+(stat(argv[1], &amp;st) &lt; 0) { <br>
+perror(&quot;stat&quot;); <br>
+exit(&minus;1); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">buf =
+malloc(st.st_size); <br>
+if (!buf) { <br>
+perror(&quot;Allocating buffer&quot;); <br>
+exit(&minus;1); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">fd =
+open(argv[1], O_RDONLY); <br>
+if (fd &lt; 0) { <br>
+perror(argv[1]); <br>
+exit(&minus;1); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">ret = read(fd,
+buf, st.st_size); <br>
+if (ret &lt; 0) { <br>
+perror(&quot;Reading buffer&quot;); <br>
+exit(&minus;1); <br>
+} <br>
+close(fd);</p>
+
+<p style="margin-left:17%; margin-top: 1em">kbuf =
+kbuffer_alloc(KBUFFER_ENDIAN_SAME_AS_HOST, <br>
+KBUFFER_LSIZE_SAME_AS_HOST); <br>
+if (!kbuf) { <br>
+perror(&quot;Creating kbuffer&quot;); <br>
+exit(&minus;1); <br>
+} <br>
+ret = kbuffer_load_subbuffer(kbuf, buf); <br>
+if (ret &lt; 0) { <br>
+perror(&quot;Loading sub bufer&quot;); <br>
+exit(&minus;1); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">if
+(kbuffer_subbuffer_size(kbuf) &gt; st.st_size) { <br>
+fprintf(stderr, &quot;kbuffer is bigger than raw size %d
+&gt; %ld\n&quot;, <br>
+kbuffer_subbuffer_size(kbuf), st.st_size); <br>
+exit(&minus;1); <br>
+}</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">printf(&quot;Kbuffer
+data starts at %d\n&quot;, kbuffer_start_of_data(kbuf));
+<br>
+do { <br>
+event = kbuffer_read_event(kbuf, &amp;ts); <br>
+if (event) { <br>
+printf(&quot; event %3d ts:%lld\n&quot;, i++, ts); <br>
+event = kbuffer_next_event(kbuf, NULL); <br>
+} <br>
+} while (event);</p>
+
+<p style="margin-left:17%; margin-top: 1em">if (!event)
+<br>
+printf(&quot;Finished sub buffer\n&quot;);</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">kbuffer_free(kbuf);</p>
+
+<p style="margin-left:17%; margin-top: 1em">return 0; <br>
+}</p>
+
+<h2>FILES
+<a name="FILES"></a>
+</h2>
+
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>event&minus;parse.h</b>
+<br>
+Header file to include in order to have access to the
+library APIs. <b><br>
+&minus;ltraceevent</b> <br>
+Linker switch to add when building a program that uses the
+library.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>libtraceevent</b>(3),
+<b>trace&minus;cmd</b>(1)</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>Steven
+Rostedt</b>
+&lt;<b><font color="#0000FF">rostedt@goodmis.org</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">&gt;, author of
+<b>libtraceevent</b>.</font></p>
+
+<h2>REPORTING BUGS
+<a name="REPORTING BUGS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Report
+bugs to
+&lt;</font><b><font color="#0000FF">linux&minus;trace&minus;devel@vger.kernel.org</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">&gt;</font></p>
+
+<h2>LICENSE
+<a name="LICENSE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">libtraceevent
+is Free Software licensed under the GNU LGPL 2.1</font></p>
+
+<h2>RESOURCES
+<a name="RESOURCES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><font color="#0000FF">https://git.kernel.org/pub/scm/libs/libtrace/libtraceevent.git/</font></b></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="29%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">rostedt@goodmis.org</font></p> </td>
+<td width="54%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:rostedt@goodmis.org</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">2.</font></p> </td>
+<td width="2%"></td>
+<td width="51%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">linux-trace-devel@vger.kernel.org</font></p> </td>
+<td width="32%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:linux-trace-devel@vger.kernel.org</font></p>
+<hr>
+</body>
+</html>

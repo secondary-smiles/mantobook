@@ -1,0 +1,2515 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:22 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>IPC::Run</title>
+
+</head>
+<body>
+<h1>IPC::Run</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">IPC::Run
+&minus; system() and background procs w/ piping, redirs,
+ptys (Unix, Win32)</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">## First,a
+command to run: <br>
+my @cat = qw( cat ); <br>
+## Using run() instead of system(): <br>
+use IPC::Run qw( run timeout ); <br>
+run \@cat, \$in, \$out, \$err, timeout( 10 ) or die
+&quot;cat: $?&quot;; <br>
+# Can do I/O to sub refs and filenames, too: <br>
+run \@cat, '&lt;', &quot;in.txt&quot;, \&amp;out, \&amp;err
+or die &quot;cat: $?&quot;; <br>
+run \@cat, '&lt;', &quot;in.txt&quot;, '&gt;&gt;',
+&quot;out.txt&quot;, '2&gt;&gt;', &quot;err.txt&quot;; <br>
+# Redirecting using pseudo&minus;terminals instead of pipes.
+<br>
+run \@cat, '&lt;pty&lt;', \$in, '&gt;pty&gt;',
+\$out_and_err; <br>
+## Scripting subprocesses (like Expect): <br>
+use IPC::Run qw( start pump finish timeout ); <br>
+# Incrementally read from / write to scalars. <br>
+# $in is drained as it is fed to cat's stdin, <br>
+# $out accumulates cat's stdout <br>
+# $err accumulates cat's stderr <br>
+# $h is for &quot;harness&quot;. <br>
+my $h = start \@cat, \$in, \$out, \$err, timeout( 10 ); <br>
+$in .= &quot;some input\n&quot;; <br>
+pump $h until $out =~ /input\n/g; <br>
+$in .= &quot;some more input\n&quot;; <br>
+pump $h until $out =~ /\G.*more input\n/; <br>
+$in .= &quot;some final input\n&quot;; <br>
+finish $h or die &quot;cat returned $?&quot;; <br>
+warn $err if $err; <br>
+print $out; ## All of cat's output <br>
+# Piping between children <br>
+run \@cat, '|', \@gzip; <br>
+# Multiple children simultaneously (run() blocks until all
+<br>
+# children exit, use start() for background execution): <br>
+run \@foo1, '&amp;', \@foo2; <br>
+# Calling \&amp;set_up_child in the child before it executes
+the <br>
+# command (only works on systems with true fork() &amp;
+exec()) <br>
+# exceptions thrown in set_up_child() will be propagated
+back <br>
+# to the parent and thrown from run(). <br>
+run \@cat, \$in, \$out, <br>
+init =&gt; \&amp;set_up_child; <br>
+# Read from / write to file handles you open and close <br>
+open IN, '&lt;in.txt' or die $!; <br>
+open OUT, '&gt;out.txt' or die $!; <br>
+print OUT &quot;preamble\n&quot;; <br>
+run \@cat, \*IN, \*OUT or die &quot;cat returned $?&quot;;
+<br>
+print OUT &quot;postamble\n&quot;; <br>
+close IN; <br>
+close OUT; <br>
+# Create pipes for you to read / write (like IPC::Open2
+&amp; 3). <br>
+$h = start <br>
+\@cat, <br>
+'&lt;pipe', \*IN, # may also be a lexical filehandle e.g.
+\my $infh <br>
+'&gt;pipe', \*OUT, <br>
+'2&gt;pipe', \*ERR <br>
+or die &quot;cat returned $?&quot;; <br>
+print IN &quot;some input\n&quot;; <br>
+close IN; <br>
+print &lt;OUT&gt;, &lt;ERR&gt;; <br>
+finish $h; <br>
+# Mixing input and output modes <br>
+run \@cat, 'in.txt', \&amp;catch_some_out, \*ERR_LOG; <br>
+# Other redirection constructs <br>
+run \@cat, '&gt;&amp;', \$out_and_err; <br>
+run \@cat, '2&gt;&amp;1'; <br>
+run \@cat, '0&lt;&amp;3'; <br>
+run \@cat, '&lt;&amp;&minus;'; <br>
+run \@cat, '3&lt;', \$in3; <br>
+run \@cat, '4&gt;', \$out4; <br>
+# etc. <br>
+# Passing options: <br>
+run \@cat, 'in.txt', debug =&gt; 1; <br>
+# Call this system's shell, returns TRUE on 0 exit code <br>
+# THIS IS THE OPPOSITE SENSE OF system()'s RETURN VALUE <br>
+run &quot;cat a b c&quot; or die &quot;cat returned
+$?&quot;; <br>
+# Launch a sub process directly, no shell. Can't do
+redirection <br>
+# with this form, it's here to behave like system() with an
+<br>
+# inverted result. <br>
+$r = run &quot;cat a b c&quot;; <br>
+# Read from a file in to a scalar <br>
+run io( &quot;filename&quot;, 'r', \$recv ); <br>
+run io( \*HANDLE, 'r', \$recv );</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">IPC::Run allows
+you to run and interact with child processes using files,
+pipes, and pseudo-ttys. Both <b>system()</b>&minus;style and
+scripted usages are supported and may be mixed. Likewise,
+functional and <small>OO API</small> styles are both
+supported and may be mixed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Various
+redirection operators reminiscent of those seen on common
+Unix and <small>DOS</small> command lines are provided.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Before digging
+in to the details a few <small>LIMITATIONS</small> are
+important enough to be mentioned right up front: <br>
+Win32 Support</p>
+
+<p style="margin-left:17%;">Win32 support is working but
+<b><small>EXPERIMENTAL</small></b> , but does pass all
+relevant tests on <small>NT 4.0.</small> See &quot;Win32
+<small>LIMITATIONS&quot;</small> .</p>
+
+<p style="margin-left:11%;">pty Support</p>
+
+<p style="margin-left:17%;">If you need pty support,
+IPC::Run should work well enough most of the time, but
+IO::Pty is being improved, and IPC::Run will be improved to
+use IO::Pty&rsquo;s new features when it is released.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The basic
+problem is that the pty needs to initialize itself before
+the parent writes to the master pty, or the data written
+gets lost. So IPC::Run does a <b>sleep</b>(1) in the parent
+after forking to (hopefully) give the child a chance to run.
+This is a kludge that works well on non heavily loaded
+systems :(.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ptys are not
+supported yet under Win32, but will be emulated...</p>
+
+<p style="margin-left:11%;">Debugging Tip</p>
+
+<p style="margin-left:17%;">You may use the environment
+variable &quot;IPCRUNDEBUG&quot; to see what&rsquo;s going
+on under the hood:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$
+IPCRUNDEBUG=basic myscript # prints minimal debugging <br>
+$ IPCRUNDEBUG=data myscript # prints all data reads/writes
+<br>
+$ IPCRUNDEBUG=details myscript # prints lots of
+low&minus;level details <br>
+$ IPCRUNDEBUG=gory myscript # (Win32 only) prints data
+moving through <br>
+# the helper processes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">We now return
+you to your regularly scheduled documentation.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Harnesses</b>
+<br>
+Child processes and I/O handles are gathered in to a
+harness, then started and run until the processing is
+finished or aborted.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>run() vs.
+start(); pump(); finish();</b> <br>
+There are two modes you can run harnesses in: <b>run()</b>
+functions as an enhanced <b>system()</b>, and
+<b>start()</b>/<b>pump()</b>/<b>finish()</b> allow for
+background processes and scripted interactions with
+them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When using
+<b>run()</b>, all data to be sent to the harness is set up
+in advance (though one can feed subprocesses input from
+subroutine refs to get around this limitation). The harness
+is run and all output is collected from it, then any child
+processes are waited for:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run \@cmd,
+\&lt;&lt;IN, \$out; <br>
+blah <br>
+IN <br>
+## To precompile harnesses and run them later: <br>
+my $h = harness \@cmd, \&lt;&lt;IN, \$out; <br>
+blah <br>
+IN <br>
+run $h;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The background
+and scripting <small>API</small> is provided by
+<b>start()</b>, <b>pump()</b>, and <b>finish()</b>:
+<b>start()</b> creates a harness if need be (by calling
+<b>harness()</b>) and launches any subprocesses,
+<b>pump()</b> allows you to poll them for activity, and
+<b>finish()</b> then monitors the harnessed activities until
+they complete.</p>
+
+<p style="margin-left:11%; margin-top: 1em">## Build the
+harness, open all pipes, and launch the subprocesses <br>
+my $h = start \@cat, \$in, \$out; <br>
+$in = &quot;first input\n&quot;; <br>
+## Now do I/O. start() does no I/O. <br>
+pump $h while length $in; ## Wait for all input to go <br>
+## Now do some more I/O. <br>
+$in = &quot;second input\n&quot;; <br>
+pump $h until $out =~ /second input/; <br>
+## Clean up <br>
+finish $h or die &quot;cat returned $?&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can
+optionally compile the harness with <b>harness()</b> prior
+to <b>start()</b>ing or <b>run()</b>ing, and you may omit
+<b>start()</b> between <b>harness()</b> and <b>pump()</b>.
+You might want to do these things if you compile your
+harnesses ahead of time.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Using
+regexps to match output</b> <br>
+As shown in most of the scripting examples, the
+read-to-scalar facility for gathering subcommand&rsquo;s
+output is often used with regular expressions to detect
+stopping points. This is because subcommand output often
+arrives in dribbles and drabs, often only a character or
+line at a time. This output is input for the main program
+and piles up in variables like the $out and $err in our
+examples.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Regular
+expressions can be used to wait for appropriate output in
+several ways. The &quot;cat&quot; example in the previous
+section demonstrates how to <b>pump()</b> until some string
+appears in the output. Here&rsquo;s an example that uses
+&quot;smb&quot; to fetch files from a remote server:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$h = harness
+\@smbclient, \$in, \$out; <br>
+$in = &quot;cd /src\n&quot;; <br>
+$h&minus;&gt;pump until $out =~ /^smb.*&gt; \Z/m; <br>
+die &quot;error cding to /src:\n$out&quot; if $out =~
+&quot;ERR&quot;; <br>
+$out = ''; <br>
+$in = &quot;mget *\n&quot;; <br>
+$h&minus;&gt;pump until $out =~ /^smb.*&gt; \Z/m; <br>
+die &quot;error retrieving files:\n$out&quot; if $out =~
+&quot;ERR&quot;; <br>
+$in = &quot;quit\n&quot;; <br>
+$h&minus;&gt;finish;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Notice that we
+carefully clear $out after the first command/response cycle?
+That&rsquo;s because IPC::Run does not delete $out when we
+continue, and we don&rsquo;t want to trip over the old
+output in the second command/response cycle.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Say you want to
+accumulate all the output in $out and analyze it afterwards.
+Perl offers incremental regular expression matching using
+the &quot;m//gc&quot; and pattern matching idiom and the
+&quot;\G&quot; assertion. IPC::Run is careful not to disturb
+the current &quot;pos()&quot; value for scalars it appends
+data to, so we could modify the above so as not to destroy
+$out by adding a couple of &quot;/gc&quot; modifiers. The
+&quot;/g&quot; keeps us from tripping over the previous
+prompt and the &quot;/c&quot; keeps us from resetting the
+prior match position if the expected prompt doesn&rsquo;t
+materialize immediately:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$h = harness
+\@smbclient, \$in, \$out; <br>
+$in = &quot;cd /src\n&quot;; <br>
+$h&minus;&gt;pump until $out =~ /^smb.*&gt; \Z/mgc; <br>
+die &quot;error cding to /src:\n$out&quot; if $out =~
+&quot;ERR&quot;; <br>
+$in = &quot;mget *\n&quot;; <br>
+$h&minus;&gt;pump until $out =~ /^smb.*&gt; \Z/mgc; <br>
+die &quot;error retrieving files:\n$out&quot; if $out =~
+&quot;ERR&quot;; <br>
+$in = &quot;quit\n&quot;; <br>
+$h&minus;&gt;finish; <br>
+analyze( $out );</p>
+
+<p style="margin-left:11%; margin-top: 1em">When using this
+technique, you may want to preallocate $out to have plenty
+of memory or you may find that the act of growing $out each
+time new input arrives causes an
+&quot;O(length($out)^2)&quot; slowdown as $out grows. Say we
+expect no more than 10,000 characters of input at the most.
+To preallocate memory to $out, do something like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $out =
+&quot;x&quot; x 10_000; <br>
+$out = &quot;&quot;;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;perl&quot;
+will allocate at least 10,000 characters&rsquo; worth of
+space, then mark the $out as having 0 length without freeing
+all that yummy <small>RAM.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Timeouts and
+Timers</b> <br>
+More than likely, you don&rsquo;t want your subprocesses to
+run forever, and sometimes it&rsquo;s nice to know that
+they&rsquo;re going a little slowly. Timeouts throw
+exceptions after a some time has elapsed, timers merely
+cause <b>pump()</b> to return after some time has elapsed.
+Neither is reset/restarted automatically.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Timeout objects
+are created by calling timeout( $interval ) and passing the
+result to <b>run()</b>, <b>start()</b> or <b>harness()</b>.
+The timeout period starts ticking just after all the child
+processes have been <b>fork()</b>ed or <b>spawn()</b>ed, and
+are polled for expiration in <b>run()</b>, <b>pump()</b> and
+<b>finish()</b>. If/when they expire, an exception is
+thrown. This is typically useful to keep a subprocess from
+taking too long.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a timeout
+occurs in <b>run()</b>, all child processes will be
+terminated and all file/pipe/ptty descriptors opened by
+<b>run()</b> will be closed. File descriptors opened by the
+parent process and passed in to <b>run()</b> are not closed
+in this event.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If a timeout
+occurs in <b>pump()</b>, <b>pump_nb()</b>, or
+<b>finish()</b>, it&rsquo;s up to you to decide whether to
+<b>kill_kill()</b> all the children or to implement some
+more graceful fallback. No I/O will be closed in
+<b>pump()</b>, <b>pump_nb()</b> or <b>finish()</b> by such
+an exception (though I/O is often closed down in those
+routines during the natural course of events).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Often an
+exception is too harsh. timer( $interval ) creates timer
+objects that merely prevent <b>pump()</b> from blocking
+forever. This can be useful for detecting stalled I/O or
+printing a soothing message or &quot;.&quot; to pacify an
+anxious user.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Timeouts and
+timers can both be restarted at any time using the
+timer&rsquo;s <b>start()</b> method (this is not the
+<b>start()</b> that launches subprocesses). To restart a
+timer, you need to keep a reference to the timer:</p>
+
+<p style="margin-left:11%; margin-top: 1em">## Start with a
+nice long timeout to let smbclient connect. If <br>
+## pump or finish take too long, an exception will be
+thrown. <br>
+my $h; <br>
+eval { <br>
+$h = harness \@smbclient, \$in, \$out, \$err, ( my $t =
+timeout 30 ); <br>
+sleep 11; # No effect: timer not running yet <br>
+start $h; <br>
+$in = &quot;cd /src\n&quot;; <br>
+pump $h until ! length $in; <br>
+$in = &quot;ls\n&quot;; <br>
+## Now use a short timeout, since this should be faster <br>
+$t&minus;&gt;start( 5 ); <br>
+pump $h until ! length $in; <br>
+$t&minus;&gt;start( 10 ); ## Give smbclient a little while
+to shut down. <br>
+$h&minus;&gt;finish; <br>
+}; <br>
+if ( $@ ) { <br>
+my $x = $@; ## Preserve $@ in case another exception occurs
+<br>
+$h&minus;&gt;kill_kill; ## kill it gently, then brutally if
+need be, or just <br>
+## brutally on Win32. <br>
+die $x; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Timeouts and
+timers are <i>not</i> checked once the subprocesses are shut
+down; they will not expire in the interval between the last
+valid process and when IPC::Run scoops up the
+processes&rsquo; result codes, for instance.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Spawning
+synchronization, child exception propagation <br>
+start()</b> pauses the parent until the child executes the
+command or <small>CODE</small> reference and propagates any
+exceptions thrown (including <b>exec()</b> failure) back to
+the parent. This has several pleasant effects: any
+exceptions thrown in the child, including <b>exec()</b>
+failure, come flying out of <b>start()</b> or <b>run()</b>
+as though they had occurred in the parent.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This includes
+exceptions your code thrown from init subs. In this
+example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">eval { <br>
+run \@cmd, init =&gt; sub { die &quot;blast it! foiled
+again!&quot; }; <br>
+}; <br>
+print $@;</p>
+
+<p style="margin-left:11%; margin-top: 1em">the exception
+&quot;blast it! foiled again&quot; will be thrown from the
+child process (preventing the <b>exec()</b>) and printed by
+the parent.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In situations
+like</p>
+
+<p style="margin-left:11%; margin-top: 1em">run \@cmd1,
+&quot;|&quot;, \@cmd2, &quot;|&quot;, \@cmd3;</p>
+
+<p style="margin-left:11%; margin-top: 1em">@cmd1 will be
+initted and <b>exec()</b>ed before @cmd2, and @cmd2 before
+@cmd3. This can save time and prevent oddball errors emitted
+by later commands when earlier commands fail to execute.
+Note that IPC::Run doesn&rsquo;t start any commands unless
+it can find the executables referenced by all commands.
+These executables must pass both the &quot;&minus;f&quot;
+and &quot;&minus;x&quot; tests described in perlfunc.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Another nice
+effect is that <b>init()</b> subs can take their time doing
+things and there will be no problems caused by a parent
+continuing to execute before a child&rsquo;s <b>init()</b>
+routine is complete. Say the <b>init()</b> routine needs to
+open a socket or a temp file that the parent wants to
+connect to; without this synchronization, the parent will
+need to implement a retry loop to wait for the child to run,
+since often, the parent gets a lot of things done before the
+child&rsquo;s first timeslice is allocated.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is also
+quite necessary for pseudo-tty initialization, which needs
+to take place before the parent writes to the child via pty.
+Writes that occur before the pty is set up can get lost.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A final, minor,
+nicety is that debugging output from the child will be
+emitted before the parent continues on, making for much
+clearer debugging output in complex situations.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The only
+drawback I can conceive of is that the parent can&rsquo;t
+continue to operate while the child is being initted. If
+this ever becomes a problem in the field, we can implement
+an option to avoid this behavior, but I don&rsquo;t expect
+it to.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Win32</b>:
+executing <small>CODE</small> references isn&rsquo;t
+supported on Win32, see &quot;Win32
+<small>LIMITATIONS&quot;</small> for details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Syntax <br>
+run()</b>, <b>start()</b>, and <b>harness()</b> can all take
+a harness specification as input. A harness specification is
+either a single string to be passed to the systems&rsquo;
+shell:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run &quot;echo
+'hi there'&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">or a list of
+commands, io operations, and/or timers/timeouts to execute.
+Consecutive commands must be separated by a pipe operator
+&rsquo;|&rsquo; or an &rsquo;&amp;&rsquo;. External commands
+are passed in as array references or IPC::Run::Win32Process
+objects. On systems supporting <b>fork()</b>, Perl code may
+be passed in as subs:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run \@cmd; <br>
+run \@cmd1, '|', \@cmd2; <br>
+run \@cmd1, '&amp;', \@cmd2; <br>
+run \&amp;sub1; <br>
+run \&amp;sub1, '|', \&amp;sub2; <br>
+run \&amp;sub1, '&amp;', \&amp;sub2;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&rsquo;|&rsquo;
+pipes the stdout of \@cmd1 the stdin of \@cmd2, just like a
+shell pipe. &rsquo;&amp;&rsquo; does not. Child processes to
+the right of a &rsquo;&amp;&rsquo; will have their stdin
+closed unless it&rsquo;s redirected-to.</p>
+
+<p style="margin-left:11%; margin-top: 1em">IPC::Run::IO
+objects may be passed in as well, whether or not child
+processes are also specified:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run io(
+&quot;infile&quot;, &quot;&gt;&quot;, \$in ), io(
+&quot;outfile&quot;, &quot;&lt;&quot;, \$in );</p>
+
+<p style="margin-left:11%; margin-top: 1em">as can
+IPC::Run::Timer objects:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run \@cmd, io(
+&quot;outfile&quot;, &quot;&lt;&quot;, \$in ), timeout( 10
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Commands may be
+followed by scalar, sub, or i/o handle references for
+redirecting child process input &amp; output:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run \@cmd,
+\undef, \$out; <br>
+run \@cmd, \$in, \$out; <br>
+run \@cmd1, \&amp;in, '|', \@cmd2, \*OUT; <br>
+run \@cmd1, \*IN, '|', \@cmd2, \&amp;out;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is known
+as succinct redirection syntax, since <b>run()</b>,
+<b>start()</b> and <b>harness()</b>, figure out which file
+descriptor to redirect and how. File descriptor 0 is
+presumed to be an input for the child process, all others
+are outputs. The assumed file descriptor always starts at 0,
+unless the command is being piped to, in which case it
+starts at 1.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To be explicit
+about your redirects, or if you need to do more complex
+things, there&rsquo;s also a redirection operator
+syntax:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run \@cmd,
+'&lt;', \undef, '&gt;', \$out; <br>
+run \@cmd, '&lt;', \undef, '&gt;&amp;', \$out_and_err; <br>
+run( <br>
+\@cmd1, <br>
+'&lt;', \$in, <br>
+'|', \@cmd2, <br>
+\$out <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Operator syntax
+is required if you need to do something other than simple
+redirection to/from scalars or subs, like duping or closing
+file descriptors or redirecting to/from a named file. The
+operators are covered in detail below.</p>
+
+<p style="margin-left:11%; margin-top: 1em">After each
+\@cmd (or \&amp;foo), parsing begins in succinct mode and
+toggles to operator syntax mode when an operator (ie plain
+scalar, not a ref) is seen. Once in operator syntax mode,
+parsing only reverts to succinct mode when a &rsquo;|&rsquo;
+or &rsquo;&amp;&rsquo; is seen.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In succinct
+mode, each parameter after the \@cmd specifies what to do
+with the next highest file descriptor. These File descriptor
+start with 0 (stdin) unless stdin is being piped to
+(&quot;'|', \@cmd&quot;), in which case they start with 1
+(stdout). Currently, being on the left of a pipe
+(&quot;\@cmd, \$out, \$err, '|'&quot;) does <i>not</i> cause
+stdout to be skipped, though this may change since
+it&rsquo;s not as DWIMerly as it could be. Only stdin is
+assumed to be an input in succinct mode, all others are
+assumed to be outputs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no piping or
+redirection is specified for a child, it will inherit the
+parent&rsquo;s open file handles as dictated by your
+system&rsquo;s close-on-exec behavior and the $^F flag,
+except that processes after a &rsquo;&amp;&rsquo; will not
+inherit the parent&rsquo;s stdin. Also note that $^F does
+not affect file descriptors obtained via
+<small>POSIX,</small> since it only applies to full-fledged
+Perl file handles. Such processes will have their stdin
+closed unless it has been redirected-to.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+close a child processes stdin, you may do any of:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run \@cmd,
+\undef; <br>
+run \@cmd, \&quot;&quot;; <br>
+run \@cmd, '&lt;&amp;&minus;'; <br>
+run \@cmd, '0&lt;&amp;&minus;';</p>
+
+<p style="margin-left:11%; margin-top: 1em">Redirection is
+done by placing redirection specifications immediately after
+a command or child subroutine:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run \@cmd1,
+\$in, '|', \@cmd2, \$out; <br>
+run \@cmd1, '&lt;', \$in, '|', \@cmd2, '&gt;', \$out;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you omit the
+redirection operators, descriptors are counted starting at
+0. Descriptor 0 is assumed to be input, all others are
+outputs. A leading &rsquo;|&rsquo; consumes descriptor 0, so
+this works as expected.</p>
+
+<p style="margin-left:11%; margin-top: 1em">run \@cmd1,
+\$in, '|', \@cmd2, \$out;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The parameter
+following a redirection operator can be a scalar ref, a
+subroutine ref, a file name, an open filehandle, or a closed
+filehandle.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If it&rsquo;s a
+scalar ref, the child reads input from or sends output to
+that variable:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$in =
+&quot;Hello World.\n&quot;; <br>
+run \@cat, \$in, \$out; <br>
+print $out;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Scalars used in
+incremental (<b>start()</b>/<b>pump()</b>/<b>finish()</b>)
+applications are treated as queues: input is removed from
+input scalers, resulting in them dwindling to
+&rsquo;&rsquo;, and output is appended to output scalars.
+This is not true of harnesses <b>run()</b> in batch
+mode.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It&rsquo;s
+usually wise to append new input to be sent to the child to
+the input queue, and you&rsquo;ll often want to zap output
+queues to &rsquo;&rsquo; before pumping.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$h = start
+\@cat, \$in; <br>
+$in = &quot;line 1\n&quot;; <br>
+pump $h; <br>
+$in .= &quot;line 2\n&quot;; <br>
+pump $h; <br>
+$in .= &quot;line 3\n&quot;; <br>
+finish $h;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The final call
+to <b>finish()</b> must be there: it allows the child
+process(es) to run to completion and waits for their exit
+values.</p>
+
+<h2>OBSTINATE CHILDREN
+<a name="OBSTINATE CHILDREN"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Interactive
+applications are usually optimized for human use. This can
+help or hinder trying to interact with them through modules
+like IPC::Run. Frequently, programs alter their behavior
+when they detect that stdin, stdout, or stderr are not
+connected to a tty, assuming that they are being run in
+batch mode. Whether this helps or hurts depends on which
+optimizations change. And there&rsquo;s often no way of
+telling what a program does in these areas other than trial
+and error and occasionally, reading the source. This
+includes different versions and implementations of the same
+program.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All hope is not
+lost, however. Most programs behave in reasonably tractable
+manners, once you figure out what it&rsquo;s trying to
+do.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here are some
+of the issues you might need to be aware of.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="45%">
+
+
+<p><b>fflush()</b>ing stdout and stderr</p></td>
+<td width="38%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This lets the
+user see stdout and stderr immediately. Many programs undo
+this optimization if stdout is not a tty, making them harder
+to manage by things like IPC::Run.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Many programs
+decline to fflush stdout or stderr if they do not detect a
+tty there. Some ftp commands do this, for instance.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If this happens
+to you, look for a way to force interactive behavior, like a
+command line switch or command. If you can&rsquo;t, you will
+need to use a pseudo terminal (&rsquo;&lt;pty&lt;&rsquo; and
+&rsquo;&gt;pty&gt;&rsquo;).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="20%">
+
+
+<p style="margin-top: 1em">false prompts</p></td>
+<td width="63%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Interactive
+programs generally do not guarantee that output from user
+commands won&rsquo;t contain a prompt string. For example,
+your shell prompt might be a &rsquo;$&rsquo;, and a file
+named &rsquo;$&rsquo; might be the only file in a directory
+listing.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This can make
+it hard to guarantee that your output parser won&rsquo;t be
+fooled into early termination of results.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To help work
+around this, you can see if the program can alter it&rsquo;s
+prompt, and use something you feel is never going to occur
+in actual practice.</p>
+
+<p style="margin-left:17%; margin-top: 1em">You should also
+look for your prompt to be the only thing on a line:</p>
+
+<p style="margin-left:17%; margin-top: 1em">pump $h until
+$out =~ /^&lt;SILLYPROMPT&gt;\s?\z/m;</p>
+
+<p style="margin-left:17%; margin-top: 1em">(use
+&quot;(?!\n)\Z&quot; in place of &quot;\z&quot; on older
+perls).</p>
+
+<p style="margin-left:17%; margin-top: 1em">You can also
+take the approach that IPC::ChildSafe takes and emit a
+command with known output after each &rsquo;real&rsquo;
+command you issue, then look for this known output. See
+<b>new_appender()</b> and <b>new_chunker()</b> for filters
+that can help with this task.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If it&rsquo;s
+not convenient or possibly to alter a prompt or use a known
+command/response pair, you might need to autodetect the
+prompt in case the local version of the child program is
+different then the one you tested with, or if the user has
+control over the look &amp; feel of the prompt.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="72%">
+
+
+<p style="margin-top: 1em">Refusing to accept input unless
+stdin is a tty.</p></td>
+<td width="11%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Some programs,
+for security reasons, will only accept certain types of
+input from a tty. su, notable, will not prompt for a
+password unless it&rsquo;s connected to a tty.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If this is your
+situation, use a pseudo terminal (&rsquo;&lt;pty&lt;&rsquo;
+and &rsquo;&gt;pty&gt;&rsquo;).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="61%">
+
+
+<p style="margin-top: 1em">Not prompting unless connected
+to a tty.</p></td>
+<td width="22%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Some programs
+don&rsquo;t prompt unless stdin or stdout is a tty. See if
+you can turn prompting back on. If not, see if you can come
+up with a command that you can issue after every real
+command and look for it&rsquo;s output, as IPC::ChildSafe
+does. There are two filters included with IPC::Run that can
+help with doing this: appender and chunker (see
+<b>new_appender()</b> and <b>new_chunker()</b>).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="80%">
+
+
+<p style="margin-top: 1em">Different output format when not
+connected to a tty.</p></td>
+<td width="3%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Some commands
+alter their formats to ease machine parsability when they
+aren&rsquo;t connected to a pipe. This is actually good, but
+can be surprising.</p>
+
+<h2>PSEUDO TERMINALS
+<a name="PSEUDO TERMINALS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On systems
+providing pseudo terminals under /dev, IPC::Run can use
+IO::Pty (available on <small>CPAN</small> ) to provide a
+terminal environment to subprocesses. This is necessary when
+the subprocess really wants to think it&rsquo;s connected to
+a real terminal.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>CAVEATS</small></b>
+<br>
+Pseudo-terminals are not pipes, though they are similar.
+Here are some differences to watch out for. <br>
+Echoing</p>
+
+<p style="margin-left:17%;">Sending to stdin will cause an
+echo on stdout, which occurs before each line is passed to
+the child program. There is currently no way to disable
+this, although the child process can and should disable it
+for things like passwords.</p>
+
+<p style="margin-left:11%;">Shutdown</p>
+
+<p style="margin-left:17%;">IPC::Run cannot close a pty
+until all output has been collected. This means that it is
+not possible to send an <small>EOF</small> to stdin by
+half-closing the pty, as we can when using a pipe to
+stdin.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This means that
+you need to send the child process an exit command or
+signal, or <b>run()</b> / <b>finish()</b> will time out. Be
+careful not to expect a prompt after sending the exit
+command.</p>
+
+<p style="margin-left:11%;">Command line editing</p>
+
+<p style="margin-left:17%;">Some subprocesses, notable
+shells that depend on the user&rsquo;s prompt settings, will
+reissue the prompt plus the command line input so far once
+for each character.</p>
+
+<p style="margin-left:11%;">&rsquo;&gt;pty&gt;&rsquo; means
+&rsquo;&amp;&gt;pty&gt;&rsquo;, not
+&rsquo;1&gt;pty&gt;&rsquo;</p>
+
+<p style="margin-left:17%;">The pseudo terminal redirects
+both stdout and stderr unless you specify a file descriptor.
+If you want to grab stderr separately, do this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">start \@cmd,
+'&lt;pty&lt;', \$in, '&gt;pty&gt;', \$out, '2&gt;',
+\$err;</p>
+
+<p style="margin-left:11%;">stdin, stdout, and stderr not
+inherited</p>
+
+<p style="margin-left:17%;">Child processes harnessed to a
+pseudo terminal have their stdin, stdout, and stderr
+completely closed before any redirection operators take
+effect. This casts of the bonds of the controlling terminal.
+This is not done when using pipes.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Right now, this
+affects all children in a harness that has a pty in use,
+even if that pty would not affect a particular child.
+That&rsquo;s a bug and will be fixed. Until it is,
+it&rsquo;s best not to mix-and-match children.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Redirection
+Operators</b> <br>
+Operator SHNP Description <br>
+======== ==== =========== <br>
+&lt;, N&lt; SHN Redirects input to a child's fd N (0
+assumed) <br>
+&gt;, N&gt; SHN Redirects output from a child's fd N (1
+assumed) <br>
+&gt;&gt;, N&gt;&gt; SHN Like '&gt;', but appends to scalars
+or named files <br>
+&gt;&amp;, &amp;&gt; SHN Redirects stdout &amp; stderr from
+a child process <br>
+&lt;pty, N&lt;pty S Like '&lt;', but uses a pseudo&minus;tty
+instead of a pipe <br>
+&gt;pty, N&gt;pty S Like '&gt;', but uses a pseudo&minus;tty
+instead of a pipe <br>
+N&lt;&amp;M Dups input fd N to input fd M <br>
+M&gt;&amp;N Dups output fd N to input fd M <br>
+N&lt;&amp;&minus; Closes fd N <br>
+&lt;pipe, N&lt;pipe P Pipe opens H for caller to read,
+write, close. <br>
+&gt;pipe, N&gt;pipe P Pipe opens H for caller to read,
+write, close.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&rsquo;N&rsquo;
+and &rsquo;M&rsquo; are placeholders for integer file
+descriptor numbers. The terms &rsquo;input&rsquo; and
+&rsquo;output&rsquo; are from the child process&rsquo;s
+perspective.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<small>SHNP</small> field indicates what parameters an
+operator can take:</p>
+
+<p style="margin-left:11%; margin-top: 1em">S: \$scalar or
+\&amp;function references. Filters may be used with <br>
+these operators (and only these). <br>
+H: \*HANDLE or IO::Handle for caller to open, and close <br>
+N: &quot;file name&quot;. <br>
+P: \*HANDLE or lexical filehandle opened by IPC::Run as the
+parent end of a pipe, but read <br>
+and written to and closed by the caller (like IPC::Open3).
+<br>
+Redirecting input: [n]&lt;, [n]&lt;pipe</p>
+
+<p style="margin-left:17%;">You can input the child reads
+on file descriptor number n to come from a scalar variable,
+subroutine, file handle, or a named file. If stdin is not
+redirected, the parent&rsquo;s stdin is inherited.</p>
+
+<p style="margin-left:17%; margin-top: 1em">run \@cat,
+\undef ## Closes child's stdin immediately <br>
+or die &quot;cat returned $?&quot;; <br>
+run \@cat, \$in; <br>
+run \@cat, \&lt;&lt;TOHERE; <br>
+blah <br>
+TOHERE <br>
+run \@cat, \&amp;input; ## Calls &amp;input, feeding data
+returned <br>
+## to child's. Closes child's stdin <br>
+## when undef is returned.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Redirecting
+from named files requires you to use the input redirection
+operator:</p>
+
+<p style="margin-left:17%; margin-top: 1em">run \@cat,
+'&lt;.profile'; <br>
+run \@cat, '&lt;', '.profile'; <br>
+open IN, &quot;&lt;foo&quot;; <br>
+run \@cat, \*IN; <br>
+run \@cat, *IN{IO};</p>
+
+<p style="margin-left:17%; margin-top: 1em">The form used
+second example here is the safest, since filenames like
+&quot;0&quot; and &quot;&amp;more\n&quot; won&rsquo;t
+confuse &amp;run:</p>
+
+<p style="margin-left:17%; margin-top: 1em">You can&rsquo;t
+do either of</p>
+
+<p style="margin-left:17%; margin-top: 1em">run \@a, *IN;
+## INVALID <br>
+run \@a, '&lt;', *IN; ## BUGGY: Reads file named like
+&quot;*main::A&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">because perl
+passes a scalar containing a string that looks like
+&quot;*main::A&quot; to &amp;run, and &amp;run can&rsquo;t
+tell the difference between that and a redirection operator
+or a file name. &amp;run guarantees that any scalar you pass
+after a redirection operator is a file name.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If your child
+process will take input from file descriptors other than 0
+(stdin), you can use a redirection operator with any of the
+valid input forms (scalar ref, sub ref, etc.):</p>
+
+<p style="margin-left:17%; margin-top: 1em">run \@cat,
+'3&lt;', \$in3;</p>
+
+<p style="margin-left:17%; margin-top: 1em">When
+redirecting input from a scalar ref, the scalar ref is used
+as a queue. This allows you to use &amp;harness and
+<b>pump()</b> to feed incremental bits of input to a
+coprocess. See &quot;Coprocesses&quot; below for more
+information.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The &lt;pipe
+operator opens the write half of a pipe on the filehandle
+glob reference it takes as an argument:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$h = start
+\@cat, '&lt;pipe', \*IN; <br>
+print IN &quot;hello world\n&quot;; <br>
+pump $h; <br>
+close IN; <br>
+finish $h;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Unlike the
+other &rsquo;&lt;&rsquo; operators, IPC::Run does nothing
+further with it: you are responsible for it. The previous
+example is functionally equivalent to:</p>
+
+<p style="margin-left:17%; margin-top: 1em">pipe( \*R, \*IN
+) or die $!; <br>
+$h = start \@cat, '&lt;', \*IN; <br>
+print IN &quot;hello world\n&quot;; <br>
+pump $h; <br>
+close IN; <br>
+finish $h;</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is like
+the behavior of IPC::Open2 and IPC::Open3.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Win32</b>:
+The handle returned is actually a socket handle, so you can
+use <b>select()</b> on it.</p>
+
+<p style="margin-left:11%;">Redirecting output: [n]&gt;,
+[n]&gt;&gt;, [n]&gt;&amp;[m], [n]&gt;pipe</p>
+
+<p style="margin-left:17%;">You can redirect any output the
+child emits to a scalar variable, subroutine, file handle,
+or file name. You can have &amp;run truncate or append to
+named files or scalars. If you are redirecting stdin as
+well, or if the command is on the receiving end of a
+pipeline (&rsquo;|&rsquo;), you can omit the redirection
+operator:</p>
+
+<p style="margin-left:17%; margin-top: 1em">@ls = ( 'ls' );
+<br>
+run \@ls, \undef, \$out <br>
+or die &quot;ls returned $?&quot;; <br>
+run \@ls, \undef, \&amp;out; ## Calls &amp;out each time
+some output <br>
+## is received from the child's <br>
+## when undef is returned. <br>
+run \@ls, \undef, '2&gt;ls.err'; <br>
+run \@ls, '2&gt;', 'ls.err';</p>
+
+<p style="margin-left:17%; margin-top: 1em">The two
+parameter form guarantees that the filename will not be
+interpreted as a redirection operator:</p>
+
+<p style="margin-left:17%; margin-top: 1em">run \@ls,
+'&gt;', &quot;&amp;more&quot;; <br>
+run \@ls, '2&gt;', &quot;&gt;foo\n&quot;;</p>
+
+<p style="margin-left:17%; margin-top: 1em">You can pass
+file handles you&rsquo;ve opened for writing:</p>
+
+<p style="margin-left:17%; margin-top: 1em">open( *OUT,
+&quot;&gt;out.txt&quot; ); <br>
+open( *ERR, &quot;&gt;err.txt&quot; ); <br>
+run \@cat, \*OUT, \*ERR;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Passing a
+scalar reference and a code reference requires a little more
+work, but allows you to capture all of the output in a
+scalar or each piece of output by a callback:</p>
+
+<p style="margin-left:17%; margin-top: 1em">These two do
+the same things:</p>
+
+<p style="margin-left:17%; margin-top: 1em">run( [ 'ls' ],
+'2&gt;', sub { $err_out .= $_[0] } );</p>
+
+<p style="margin-left:17%; margin-top: 1em">does the same
+basic thing as:</p>
+
+<p style="margin-left:17%; margin-top: 1em">run( [ 'ls' ],
+'2&gt;', \$err_out );</p>
+
+<p style="margin-left:17%; margin-top: 1em">The subroutine
+will be called each time some data is read from the
+child.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The &gt;pipe
+operator is different in concept than the other
+&rsquo;&gt;&rsquo; operators, although it&rsquo;s syntax is
+similar:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$h = start
+\@cat, $in, '&gt;pipe', \*OUT, '2&gt;pipe', \*ERR; <br>
+$in = &quot;hello world\n&quot;; <br>
+finish $h; <br>
+print &lt;OUT&gt;; <br>
+print &lt;ERR&gt;; <br>
+close OUT; <br>
+close ERR;</p>
+
+<p style="margin-left:17%; margin-top: 1em">causes two pipe
+to be created, with one end attached to cat&rsquo;s stdout
+and stderr, respectively, and the other left open on
+<small>OUT</small> and <small>ERR,</small> so that the
+script can manually <b>read()</b>, <b>select()</b>, etc. on
+them. This is like the behavior of IPC::Open2 and
+IPC::Open3.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Win32</b>:
+The handle returned is actually a socket handle, so you can
+use <b>select()</b> on it.</p>
+
+<p style="margin-left:11%;">Duplicating output descriptors:
+&gt;&amp;m, n&gt;&amp;m</p>
+
+<p style="margin-left:17%;">This duplicates output
+descriptor number n (default is 1 if n is omitted) from
+descriptor number m.</p>
+
+<p style="margin-left:11%;">Duplicating input descriptors:
+&lt;&amp;m, n&lt;&amp;m</p>
+
+<p style="margin-left:17%;">This duplicates input
+descriptor number n (default is 0 if n is omitted) from
+descriptor number m</p>
+
+<p style="margin-left:11%;">Closing descriptors:
+&lt;&amp;&minus;, 3&lt;&amp;&minus;</p>
+
+<p style="margin-left:17%;">This closes descriptor number n
+(default is 0 if n is omitted). The following commands are
+equivalent:</p>
+
+<p style="margin-left:17%; margin-top: 1em">run \@cmd,
+\undef; <br>
+run \@cmd, '&lt;&amp;&minus;'; <br>
+run \@cmd, '&lt;in.txt', '&lt;&amp;&minus;';</p>
+
+<p style="margin-left:17%; margin-top: 1em">Doing</p>
+
+<p style="margin-left:17%; margin-top: 1em">run \@cmd,
+\$in, '&lt;&amp;&minus;'; ## SIGPIPE recipe.</p>
+
+<p style="margin-left:17%; margin-top: 1em">is dangerous:
+the parent will get a <small>SIGPIPE</small> if $in is not
+empty.</p>
+
+<p style="margin-left:11%;">Redirecting both stdout and
+stderr: &amp;&gt;, &gt;&amp;, &amp;&gt;pipe,
+&gt;pipe&amp;</p>
+
+<p style="margin-left:17%;">The following pairs of commands
+are equivalent:</p>
+
+<p style="margin-left:17%; margin-top: 1em">run \@cmd,
+'&gt;&amp;', \$out; run \@cmd, '&gt;', \$out, '2&gt;&amp;1';
+<br>
+run \@cmd, '&gt;&amp;', 'out.txt'; run \@cmd, '&gt;',
+'out.txt', '2&gt;&amp;1';</p>
+
+<p style="margin-left:17%; margin-top: 1em">etc.</p>
+
+<p style="margin-left:17%; margin-top: 1em">File descriptor
+numbers are not permitted to the left or the right of these
+operators, and the &rsquo;&amp;&rsquo; may occur on either
+end of the operator.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&rsquo;&amp;&gt;pipe&rsquo; and &rsquo;&gt;pipe&amp;&rsquo;
+variants behave like the &rsquo;&gt;pipe&rsquo; operator,
+except that both stdout and stderr write to the created
+pipe.</p>
+
+<p style="margin-left:11%;">Redirection Filters</p>
+
+<p style="margin-left:17%;">Both input redirections and
+output redirections that use scalars or subs as endpoints
+may have an arbitrary number of filter subs placed between
+them and the child process. This is useful if you want to
+receive output in chunks, or if you want to massage each
+chunk of data sent to the child. To use this feature, you
+must use operator syntax:</p>
+
+<p style="margin-left:17%; margin-top: 1em">run( <br>
+\@cmd <br>
+'&lt;', \&amp;in_filter_2, \&amp;in_filter_1, $in, <br>
+'&gt;', \&amp;out_filter_1, \&amp;in_filter_2, $out, <br>
+);</p>
+
+<p style="margin-left:17%; margin-top: 1em">This capability
+is not provided for <small>IO</small> handles or named
+files.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Two filters are
+provided by IPC::Run: appender and chunker. Because these
+may take an argument, you need to use the constructor
+functions <b>new_appender()</b> and <b>new_chunker()</b>
+rather than using \&amp; syntax:</p>
+
+<p style="margin-left:17%; margin-top: 1em">run( <br>
+\@cmd <br>
+'&lt;', new_appender( &quot;\n&quot; ), $in, <br>
+'&gt;', new_chunker, $out, <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Just doing
+I/O</b> <br>
+If you just want to do I/O to a handle or file you open
+yourself, you may specify a filehandle or filename instead
+of a command in the harness specification:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run io(
+&quot;filename&quot;, '&gt;', \$recv ); <br>
+$h = start io( $io, '&gt;', \$recv ); <br>
+$h = harness \@cmd, '&amp;', io( &quot;file&quot;, '&lt;',
+\$send );</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Options</b>
+<br>
+Options are passed in as name/value pairs:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run \@cat,
+\$in, debug =&gt; 1;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you pass the
+debug option, you may want to pass it in first, so you can
+see what parsing is going on:</p>
+
+<p style="margin-left:11%; margin-top: 1em">run debug =&gt;
+1, \@cat, \$in; <br>
+debug</p>
+
+<p style="margin-left:17%;">Enables debugging output in
+parent and child. Debugging info is emitted to the
+<small>STDERR</small> that was present when IPC::Run was
+first &quot;use()&quot;ed (it&rsquo;s &quot;dup()&quot;ed
+out of the way so that it can be redirected in children
+without having debugging output emitted on it).</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>harness()</b>
+and <b>start()</b> return a reference to an IPC::Run
+harness. This is blessed in to the IPC::Run package, so you
+may make later calls to functions as members if you
+like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$h = harness(
+... ); <br>
+$h&minus;&gt;start; <br>
+$h&minus;&gt;pump; <br>
+$h&minus;&gt;finish; <br>
+$h = start( .... ); <br>
+$h&minus;&gt;pump; <br>
+...</p>
+
+<p style="margin-left:11%; margin-top: 1em">Of course,
+using method call syntax lets you deal with any IPC::Run
+subclasses that might crop up, but don&rsquo;t hold your
+breath waiting for any.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>run()</b>
+and <b>finish()</b> return <small>TRUE</small> when all
+subcommands exit with a 0 result code. <b>This is the
+opposite of perl&rsquo;s system() command</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All routines
+raise exceptions (via <b>die()</b>) when error conditions
+are recognized. A non-zero command result is not treated as
+an error condition, since some commands are tests whose
+results are reported in their exit codes.</p>
+
+<h2>ROUTINES
+<a name="ROUTINES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p style="margin-top: 1em">run</p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em">Run takes a harness or harness
+specification and runs it, pumping all input to the
+child(ren), closing the input pipes when no more input is
+available, collecting all output that arrives, until the
+pipes delivering output are closed, then waiting for the
+children to exit and reaping their result codes.</p></td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">You may think
+of &quot;run( ... )&quot; as being like</p>
+
+<p style="margin-left:23%; margin-top: 1em">start( ...
+)&minus;&gt;finish();</p>
+
+<p style="margin-left:23%; margin-top: 1em">, though there
+is one subtle difference: <b>run()</b> does not set
+\$input_scalars to &rsquo;&rsquo; like <b>finish()</b> does.
+If an exception is thrown from <b>run()</b>, all children
+will be killed off &quot;gently&quot;, and then
+&quot;annihilated&quot; if they do not go gently (in to that
+dark night. sorry).</p>
+
+<p style="margin-left:23%; margin-top: 1em">If any
+exceptions are thrown, this does a &quot;kill_kill&quot;
+before propagating them.</p>
+
+<p style="margin-left:17%;">signal</p>
+
+<p style="margin-left:23%;">## To send it a specific signal
+by name (&quot;USR1&quot;): <br>
+signal $h, &quot;USR1&quot;; <br>
+$h&minus;&gt;signal ( &quot;USR1&quot; );</p>
+
+<p style="margin-left:23%; margin-top: 1em">If $signal is
+provided and defined, sends a signal to all child processes.
+Try not to send numeric signals, use &quot;KILL&quot;
+instead of 9, for instance. Numeric signals aren&rsquo;t
+portable.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Throws an
+exception if $signal is undef.</p>
+
+<p style="margin-left:23%; margin-top: 1em">This will
+<i>not</i> clean up the harness, &quot;finish&quot; it if
+you kill it.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Normally
+<small>TERM</small> kills a process gracefully (this is what
+the command line utility &quot;kill&quot; does by default),
+<small>INT</small> is sent by one of the keys
+&quot;^C&quot;, &quot;Backspace&quot; or
+&quot;&lt;Del&gt;&quot;, and &quot;QUIT&quot; is used to
+kill a process and make it coredump.</p>
+
+<p style="margin-left:23%; margin-top: 1em">The
+&quot;HUP&quot; signal is often used to get a process to
+&quot;restart&quot;, rereading config files, and
+&quot;USR1&quot; and &quot;USR2&quot; for really
+application-specific things.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Often, running
+&quot;kill &minus;l&quot; (that&rsquo;s a lower case
+&quot;L&quot;) on the command line will list the signals
+present on your operating system.</p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><b><small>WARNING</small></b>
+: The signal subsystem is not at all portable. We *may*
+offer to simulate &quot;TERM&quot; and &quot;KILL&quot; on
+some operating systems, submit code to me if you want
+this.</p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><b><small>WARNING
+2</small></b> : Up to and including perl v5.6.1, doing
+almost anything in a signal handler could be dangerous. The
+most safe code avoids all mallocs and system calls, usually
+by preallocating a flag before entering the signal handler,
+altering the flag&rsquo;s value in the handler, and
+responding to the changed value in the main system:</p>
+
+<p style="margin-left:23%; margin-top: 1em">my $got_usr1 =
+0; <br>
+sub usr1_handler { ++$got_signal } <br>
+$SIG{USR1} = \&amp;usr1_handler; <br>
+while () { sleep 1; print &quot;GOT IT&quot; while
+$got_usr1&minus;&minus;; }</p>
+
+<p style="margin-left:23%; margin-top: 1em">Even this
+approach is perilous if ++ and -- aren&rsquo;t atomic on
+your system (I&rsquo;ve never heard of this on any modern
+<small>CPU</small> large enough to run perl).</p>
+
+<p style="margin-left:17%;">kill_kill</p>
+
+<p style="margin-left:23%;">## To kill off a process: <br>
+$h&minus;&gt;kill_kill; <br>
+kill_kill $h; <br>
+## To specify the grace period other than 30 seconds: <br>
+kill_kill $h, grace =&gt; 5; <br>
+## To send QUIT instead of KILL if a process refuses to die:
+<br>
+kill_kill $h, coup_d_grace =&gt; &quot;QUIT&quot;;</p>
+
+<p style="margin-left:23%; margin-top: 1em">Sends a
+&quot;TERM&quot;, waits for all children to exit for up to
+30 seconds, then sends a &quot;KILL&quot; to any that
+survived the &quot;TERM&quot;.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Will wait for
+up to 30 more seconds for the <small>OS</small> to
+successfully &quot;KILL&quot; the processes.</p>
+
+<p style="margin-left:23%; margin-top: 1em">The 30 seconds
+may be overridden by setting the &quot;grace&quot; option,
+this overrides both timers.</p>
+
+<p style="margin-left:23%; margin-top: 1em">The harness is
+then cleaned up.</p>
+
+<p style="margin-left:23%; margin-top: 1em">The doubled
+name indicates that this function may kill again and avoids
+colliding with the core Perl &quot;kill&quot; function.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Returns a 1 if
+the &quot;TERM&quot; was sufficient, or a 0 if
+&quot;KILL&quot; was required. Throws an exception if
+&quot;KILL&quot; did not permit the children to be
+reaped.</p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><b><small>NOTE</small></b>
+: The grace period is actually up to 1 second longer than
+that given. This is because the granularity of
+&quot;time&quot; is 1 second. Let me know if you need finer
+granularity, we can leverage Time::HiRes here.</p>
+
+<p style="margin-left:23%; margin-top: 1em"><b>Win32</b>:
+Win32 does not know how to send real signals, so
+&quot;TERM&quot; is a full-force kill on Win32. Thus all
+talk of grace periods, etc. do not apply to Win32.</p>
+
+<p style="margin-left:17%;">harness</p>
+
+<p style="margin-left:23%;">Takes a harness specification
+and returns a harness. This harness is blessed in to
+IPC::Run, allowing you to use method call syntax for
+<b>run()</b>, <b>start()</b>, et al if you like.</p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><b>harness()</b>
+is provided so that you can pre-build harnesses if you would
+like to, but it&rsquo;s not required..</p>
+
+<p style="margin-left:23%; margin-top: 1em">You may proceed
+to <b>run()</b>, <b>start()</b> or <b>pump()</b> after
+calling <b>harness()</b> (<b>pump()</b> calls <b>start()</b>
+if need be). Alternatively, you may pass your harness
+specification to <b>run()</b> or <b>start()</b> and let them
+<b>harness()</b> for you. You can&rsquo;t pass harness
+specifications to <b>pump()</b>, though.</p>
+
+<p style="margin-left:17%;">close_terminal</p>
+
+<p style="margin-left:23%;">This is used as (or in) an init
+sub to cast off the bonds of a controlling terminal. It must
+precede all other redirection ops that affect <small>STDIN,
+STDOUT,</small> or <small>STDERR</small> to be guaranteed
+effective.</p>
+
+<p style="margin-left:17%;">start</p>
+
+<p style="margin-left:23%;">$h = start( <br>
+\@cmd, \$in, \$out, ..., <br>
+timeout( 30, name =&gt; &quot;process timeout&quot; ), <br>
+$stall_timeout = timeout( 10, name =&gt; &quot;stall
+timeout&quot; ), <br>
+); <br>
+$h = start \@cmd, '&lt;', \$in, '|', \@cmd2, ...;</p>
+
+<p style="margin-left:23%; margin-top: 1em"><b>start()</b>
+accepts a harness or harness specification and returns a
+harness after building all of the pipes and launching (via
+<b>fork()</b>/<b>exec()</b>, or, maybe someday,
+<b>spawn()</b>) all the child processes. It does not send or
+receive any data on the pipes, see <b>pump()</b> and
+<b>finish()</b> for that.</p>
+
+<p style="margin-left:23%; margin-top: 1em">You may call
+<b>harness()</b> and then pass it&rsquo;s result to
+<b>start()</b> if you like, but you only need to if it helps
+you structure or tune your application. If you do call
+<b>harness()</b>, you may skip <b>start()</b> and proceed
+directly to pump.</p>
+
+<p style="margin-left:23%; margin-top: 1em"><b>start()</b>
+also starts all timers in the harness. See IPC::Run::Timer
+for more information.</p>
+
+<p style="margin-left:23%; margin-top: 1em"><b>start()</b>
+flushes <small>STDOUT</small> and <small>STDERR</small> to
+help you avoid duplicate output. It has no way of asking
+Perl to flush all your open filehandles, so you are going to
+need to flush any others you have open. Sorry.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Here&rsquo;s
+how if you don&rsquo;t want to alter the state of $| for
+your filehandle:</p>
+
+<p style="margin-left:23%; margin-top: 1em">$ofh = select
+HANDLE; $of = $|; $| = 1; $| = $of; select $ofh;</p>
+
+<p style="margin-left:23%; margin-top: 1em">If you
+don&rsquo;t mind leaving output unbuffered on
+<small>HANDLE,</small> you can do the slightly shorter</p>
+
+<p style="margin-left:23%; margin-top: 1em">$ofh = select
+HANDLE; $| = 1; select $ofh;</p>
+
+<p style="margin-left:23%; margin-top: 1em">Or, you can use
+IO::Handle&rsquo;s <b>flush()</b> method:</p>
+
+<p style="margin-left:23%; margin-top: 1em">use IO::Handle;
+<br>
+flush HANDLE;</p>
+
+<p style="margin-left:23%; margin-top: 1em">Perl needs the
+equivalent of C&rsquo;s fflush( ( <small>FILE</small> *)NULL
+).</p>
+
+<p style="margin-left:17%;">adopt</p>
+
+<p style="margin-left:23%;">Experimental feature.
+<small>NOT FUNCTIONAL YET, NEED TO CLOSE FDS BETTER IN
+CHILDREN. SEE</small> t/adopt.t for a test suite.</p>
+
+<p style="margin-left:17%;">pump</p>
+
+<p style="margin-left:23%;">pump $h; <br>
+$h&minus;&gt;pump;</p>
+
+<p style="margin-left:23%; margin-top: 1em">Pump accepts a
+single parameter harness. It blocks until it delivers some
+input or receives some output. It returns
+<small>TRUE</small> if there is still input or output to be
+done, <small>FALSE</small> otherwise.</p>
+
+<p style="margin-left:23%; margin-top: 1em"><b>pump()</b>
+will automatically call <b>start()</b> if need be, so you
+may call <b>harness()</b> then proceed to <b>pump()</b> if
+that helps you structure your application.</p>
+
+<p style="margin-left:23%; margin-top: 1em">If
+<b>pump()</b> is called after all harnessed activities have
+completed, a &quot;process ended prematurely&quot; exception
+to be thrown. This allows for simple scripting of external
+applications without having to add lots of error handling
+code at each step of the script:</p>
+
+<p style="margin-left:23%; margin-top: 1em">$h = harness
+\@smbclient, \$in, \$out, $err; <br>
+$in = &quot;cd /foo\n&quot;; <br>
+$h&minus;&gt;pump until $out =~ /^smb.*&gt; \Z/m; <br>
+die &quot;error cding to /foo:\n$out&quot; if $out =~
+&quot;ERR&quot;; <br>
+$out = ''; <br>
+$in = &quot;mget *\n&quot;; <br>
+$h&minus;&gt;pump until $out =~ /^smb.*&gt; \Z/m; <br>
+die &quot;error retrieving files:\n$out&quot; if $out =~
+&quot;ERR&quot;; <br>
+$h&minus;&gt;finish; <br>
+warn $err if $err;</p>
+
+<p style="margin-left:17%;">pump_nb</p>
+
+<p style="margin-left:23%;">pump_nb $h; <br>
+$h&minus;&gt;pump_nb;</p>
+
+
+<p style="margin-left:23%; margin-top: 1em">&quot;<b>pump()</b>
+non-blocking&quot;, pumps if anything&rsquo;s ready to be
+pumped, returns immediately otherwise. This is useful if
+you&rsquo;re doing some long-running task in the foreground,
+but don&rsquo;t want to starve any child processes.</p>
+
+<p style="margin-left:17%;">pumpable</p>
+
+<p style="margin-left:23%;">Returns <small>TRUE</small> if
+calling <b>pump()</b> won&rsquo;t throw an immediate
+&quot;process ended prematurely&quot; exception. This means
+that there are open I/O channels or active processes. May
+yield the parent processes&rsquo; time slice for 0.01 second
+if all pipes are to the child and all are paused. In this
+case we can&rsquo;t tell if the child is dead, so we yield
+the processor and then attempt to reap the child in a
+nonblocking way.</p>
+
+<p style="margin-left:17%;">reap_nb</p>
+
+<p style="margin-left:23%;">Attempts to reap child
+processes, but does not block.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Does not
+currently take any parameters, one day it will allow
+specific children to be reaped.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Only call this
+from a signal handler if your &quot;perl&quot; is recent
+enough to have safe signal handling (5.6.1 did not,
+<small>IIRC,</small> but it was being discussed on
+perl5&minus;porters). Calling this (or doing any significant
+work) in a signal handler on older &quot;perl&quot;s is
+asking for seg faults.</p>
+
+<p style="margin-left:17%;">finish</p>
+
+<p style="margin-left:23%;">This must be called after the
+last <b>start()</b> or <b>pump()</b> call for a harness, or
+your system will accumulate defunct processes and you may
+&quot;leak&quot; file descriptors.</p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><b>finish()</b>
+returns <small>TRUE</small> if all children returned 0 (and
+were not signaled and did not coredump, ie ! $?), and
+<small>FALSE</small> otherwise (this is like <b>run()</b>,
+and the opposite of <b>system()</b>).</p>
+
+<p style="margin-left:23%; margin-top: 1em">Once a harness
+has been finished, it may be <b>run()</b> or
+<b>start()</b>ed again, including by <b>pump()</b>s
+auto-start.</p>
+
+<p style="margin-left:23%; margin-top: 1em">If this throws
+an exception rather than a normal exit, the harness may be
+left in an unstable state, it&rsquo;s best to kill the
+harness to get rid of all the child processes, etc.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Specifically,
+if a timeout expires in <b>finish()</b>, <b>finish()</b>
+will not kill all the children. Call
+&quot;&lt;$h&minus;&quot;kill_kill&gt;&gt; in this case if
+you care. This differs from the behavior of
+&quot;run&quot;.</p>
+
+<p style="margin-left:17%;">result</p>
+
+<p style="margin-left:23%;">$h&minus;&gt;result;</p>
+
+<p style="margin-left:23%; margin-top: 1em">Returns the
+first non-zero result code (ie $? &gt;&gt; 8). See
+&quot;full_result&quot; to get the $? value for a child
+process.</p>
+
+<p style="margin-left:23%; margin-top: 1em">To get the
+result of a particular child, do:</p>
+
+
+<p style="margin-left:23%; margin-top: 1em">$h&minus;&gt;result(
+0 ); # first child's $? &gt;&gt; 8 <br>
+$h&minus;&gt;result( 1 ); # second child</p>
+
+<p style="margin-left:23%; margin-top: 1em">or</p>
+
+
+<p style="margin-left:23%; margin-top: 1em">($h&minus;&gt;results)[0]
+<br>
+($h&minus;&gt;results)[1]</p>
+
+<p style="margin-left:23%; margin-top: 1em">Returns undef
+if no child processes were spawned and no child number was
+specified. Throws an exception if an out-of-range child
+number is passed.</p>
+
+<p style="margin-left:17%;">results</p>
+
+<p style="margin-left:23%;">Returns a list of child exit
+values. See &quot;full_results&quot; if you want to know if
+a signal killed the child.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Throws an
+exception if the harness is not in a finished state.</p>
+
+<p style="margin-left:17%;">full_result</p>
+
+<p style="margin-left:23%;">$h&minus;&gt;full_result;</p>
+
+<p style="margin-left:23%; margin-top: 1em">Returns the
+first non-zero $?. See &quot;result&quot; to get the first
+$? &gt;&gt; 8 value for a child process.</p>
+
+<p style="margin-left:23%; margin-top: 1em">To get the
+result of a particular child, do:</p>
+
+
+<p style="margin-left:23%; margin-top: 1em">$h&minus;&gt;full_result(
+0 ); # first child's $? <br>
+$h&minus;&gt;full_result( 1 ); # second child</p>
+
+<p style="margin-left:23%; margin-top: 1em">or</p>
+
+
+<p style="margin-left:23%; margin-top: 1em">($h&minus;&gt;full_results)[0]
+<br>
+($h&minus;&gt;full_results)[1]</p>
+
+<p style="margin-left:23%; margin-top: 1em">Returns undef
+if no child processes were spawned and no child number was
+specified. Throws an exception if an out-of-range child
+number is passed.</p>
+
+<p style="margin-left:17%;">full_results</p>
+
+<p style="margin-left:23%;">Returns a list of child exit
+values as returned by &quot;wait&quot;. See
+&quot;results&quot; if you don&rsquo;t care about coredumps
+or signals.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Throws an
+exception if the harness is not in a finished state.</p>
+
+<h2>FILTERS
+<a name="FILTERS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These filters
+are used to modify input our output between a child process
+and a scalar or subroutine endpoint. <br>
+binary</p>
+
+<p style="margin-left:17%;">run \@cmd, &quot;&gt;&quot;,
+binary, \$out; <br>
+run \@cmd, &quot;&gt;&quot;, binary, \$out; ## Any TRUE
+value to enable <br>
+run \@cmd, &quot;&gt;&quot;, binary 0, \$out; ## Any FALSE
+value to disable</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is a
+constructor for a &quot;binmode&quot; &quot;filter&quot;
+that tells IPC::Run to keep the carriage returns that would
+ordinarily be edited out for you (binmode is usually off).
+This is not a real filter, but an option masquerading as a
+filter.</p>
+
+<p style="margin-left:17%; margin-top: 1em">It&rsquo;s not
+named &quot;binmode&quot; because you&rsquo;re likely to
+want to call Perl&rsquo;s binmode in programs that are
+piping binary data around.</p>
+
+<p style="margin-left:11%;">new_chunker</p>
+
+<p style="margin-left:17%;">This breaks a stream of data in
+to chunks, based on an optional scalar or regular expression
+parameter. The default is the Perl input record separator in
+$/, which is a newline be default.</p>
+
+<p style="margin-left:17%; margin-top: 1em">run \@cmd,
+'&gt;', new_chunker, \&amp;lines_handler; <br>
+run \@cmd, '&gt;', new_chunker( &quot;\r\n&quot; ),
+\&amp;lines_handler;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Because this
+uses $/ by default, you should always pass in a parameter if
+you are worried about other code (modules, etc) modifying
+$/.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If this filter
+is last in a filter chain that dumps in to a scalar, the
+scalar must be set to &rsquo;&rsquo; before a new chunk will
+be written to it.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As an example
+of how a filter like this can be written, here&rsquo;s a
+chunker that splits on newlines:</p>
+
+<p style="margin-left:17%; margin-top: 1em">sub
+line_splitter { <br>
+my ( $in_ref, $out_ref ) = @_; <br>
+return 0 if length $$out_ref; <br>
+return input_avail &amp;&amp; do { <br>
+while (1) { <br>
+if ( $$in_ref =~ s/\A(.*?\n)// ) { <br>
+$$out_ref .= $1; <br>
+return 1; <br>
+} <br>
+my $hmm = get_more_input; <br>
+unless ( defined $hmm ) { <br>
+$$out_ref = $$in_ref; <br>
+$$in_ref = ''; <br>
+return length $$out_ref ? 1 : 0; <br>
+} <br>
+return 0 if $hmm eq 0; <br>
+} <br>
+} <br>
+};</p>
+
+<p style="margin-left:11%;">new_appender</p>
+
+<p style="margin-left:17%;">This appends a fixed string to
+each chunk of data read from the source scalar or sub. This
+might be useful if you&rsquo;re writing commands to a child
+process that always must end in a fixed string, like
+&quot;\n&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">run( \@cmd,
+<br>
+'&lt;', new_appender( &quot;\n&quot; ), \&amp;commands, <br>
+);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Here&rsquo;s a
+typical filter sub that might be created by
+<b>new_appender()</b>:</p>
+
+<p style="margin-left:17%; margin-top: 1em">sub
+newline_appender { <br>
+my ( $in_ref, $out_ref ) = @_; <br>
+return input_avail &amp;&amp; do { <br>
+$$out_ref = join( '', $$out_ref, $$in_ref, &quot;\n&quot; );
+<br>
+$$in_ref = ''; <br>
+1; <br>
+} <br>
+};</p>
+
+<p style="margin-left:11%;">new_string_source</p>
+
+<p style="margin-left:17%;"><small>TODO:</small> Needs
+confirmation. Was previously undocumented. in this
+module.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is a
+filter which is exportable. Returns a sub which appends the
+data passed in to the output buffer and returns 1 if data
+was appended. 0 if it was an empty string and undef if no
+data was passed.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>NOTE:</small>
+Any additional variables passed to new_string_source will be
+passed to the sub every time it&rsquo;s called and appended
+to the output.</p>
+
+<p style="margin-left:11%;">new_string_sink</p>
+
+<p style="margin-left:17%;"><small>TODO:</small> Needs
+confirmation. Was previously undocumented.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is a
+filter which is exportable. Returns a sub which pops the
+data out of the input stream and pushes it onto the
+string.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p>io</p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>Takes a filename or filehandle, a redirection operator,
+optional filters, and a source or destination (depends on
+the redirection operator). Returns an IPC::Run::IO object
+suitable for <b>harness()</b>ing (including via
+<b>start()</b> or <b>run()</b>).</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This is
+shorthand for</p>
+
+<p style="margin-left:17%; margin-top: 1em">require
+IPC::Run::IO; <br>
+... IPC::Run::IO&minus;&gt;new(...) ...</p>
+
+<p style="margin-left:11%;">timer</p>
+
+<p style="margin-left:17%;">$h = start( \@cmd, \$in, \$out,
+$t = timer( 5 ) ); <br>
+pump $h until $out =~ /expected stuff/ ||
+$t&minus;&gt;is_expired;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Instantiates a
+non-fatal timer. <b>pump()</b> returns once each time a
+timer expires. Has no direct effect on <b>run()</b>, but you
+can pass a subroutine to fire when the timer expires.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See
+&quot;timeout&quot; for building timers that throw
+exceptions on expiration.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See
+&quot;timer&quot; in IPC::Run::Timer for details.</p>
+
+<p style="margin-left:11%;">timeout</p>
+
+<p style="margin-left:17%;">$h = start( \@cmd, \$in, \$out,
+$t = timeout( 5 ) ); <br>
+pump $h until $out =~ /expected stuff/;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Instantiates a
+timer that throws an exception when it expires. If you
+don&rsquo;t provide an exception, a default exception that
+matches /^IPC::Run: .*timed out/ is thrown by default. You
+can pass in your own exception scalar or reference:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$h = start(
+<br>
+\@cmd, \$in, \$out, <br>
+$t = timeout( 5, exception =&gt; 'slowpoke' ), <br>
+);</p>
+
+<p style="margin-left:17%; margin-top: 1em">or set the name
+used in debugging message and in the default exception
+string:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$h = start(
+<br>
+\@cmd, \$in, \$out, <br>
+timeout( 50, name =&gt; 'process timer' ), <br>
+$stall_timer = timeout( 5, name =&gt; 'stall timer' ), <br>
+); <br>
+pump $h until $out =~ /started/; <br>
+$in = 'command 1'; <br>
+$stall_timer&minus;&gt;start; <br>
+pump $h until $out =~ /command 1 finished/; <br>
+$in = 'command 2'; <br>
+$stall_timer&minus;&gt;start; <br>
+pump $h until $out =~ /command 2 finished/; <br>
+$in = 'very slow command 3'; <br>
+$stall_timer&minus;&gt;start( 10 ); <br>
+pump $h until $out =~ /command 3 finished/; <br>
+$stall_timer&minus;&gt;start( 5 ); <br>
+$in = 'command 4'; <br>
+pump $h until $out =~ /command 4 finished/; <br>
+$stall_timer&minus;&gt;reset; # Prevent restarting or
+expirng <br>
+finish $h;</p>
+
+<p style="margin-left:17%; margin-top: 1em">See
+&quot;timer&quot; for building non-fatal timers.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See
+&quot;timer&quot; in IPC::Run::Timer for details.</p>
+
+<h2>FILTER IMPLEMENTATION FUNCTIONS
+<a name="FILTER IMPLEMENTATION FUNCTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These functions
+are for use from within filters. <br>
+input_avail</p>
+
+<p style="margin-left:17%;">Returns <small>TRUE</small> if
+input is available. If none is available, then
+&amp;get_more_input is called and its result is
+returned.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is usually
+used in preference to &amp;get_more_input so that the
+calling filter removes all data from the $in_ref before more
+data gets read in to $in_ref.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;input_avail&quot;
+is usually used as part of a return expression:</p>
+
+<p style="margin-left:17%; margin-top: 1em">return
+input_avail &amp;&amp; do { <br>
+## process the input just gotten <br>
+1; <br>
+};</p>
+
+<p style="margin-left:17%; margin-top: 1em">This technique
+allows input_avail to return the undef or 0 that a filter
+normally returns when there&rsquo;s no input to process. If
+a filter stores intermediate values, however, it will need
+to react to an undef:</p>
+
+<p style="margin-left:17%; margin-top: 1em">my $got =
+input_avail; <br>
+if ( ! defined $got ) { <br>
+## No more input ever, flush internal buffers to $out_ref
+<br>
+} <br>
+return $got unless $got; <br>
+## Got some input, move as much as need be <br>
+return 1 if $added_to_out_ref;</p>
+
+<p style="margin-left:11%;">get_more_input</p>
+
+<p style="margin-left:17%;">This is used to fetch more
+input in to the input variable. It returns undef if there
+will never be any more input, 0 if there is none now, but
+there might be in the future, and <small>TRUE</small> if
+more input was gotten.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">&quot;get_more_input&quot;
+is usually used as part of a return expression, see
+&quot;input_avail&quot; for more information.</p>
+
+<h2>TODO
+<a name="TODO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These will be
+addressed as needed and as time allows.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Stall
+timeout.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Expose a list
+of child process objects. When I do this, each child process
+is likely to be blessed into IPC::Run::Proc.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$kid&minus;&gt;<b>abort()</b>,
+$kid&minus;&gt;<b>kill()</b>, $kid&minus;&gt;signal(
+$num_or_name ).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Write tests for
+/(full_)?results?/ subs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Currently,
+<b>pump()</b> and <b>run()</b> only work on systems where
+<b>select()</b> works on the filehandles returned by
+<b>pipe()</b>. This does *not* include ActiveState on Win32,
+although it does work on cygwin under Win32 (thought the
+tests whine a bit). I&rsquo;d like to rectify that,
+suggestions and patches welcome.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Likewise
+<b>start()</b> only fully works on
+<b>fork()</b>/<b>exec()</b> machines (well, just
+<b>fork()</b> if you only ever pass perl subs as
+subprocesses). There&rsquo;s some scaffolding for calling
+<b>Open3::spawn_with_handles()</b>, but that&rsquo;s
+untested, and not that useful with limited
+<b>select()</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Support for
+&quot;\@sub_cmd&quot; as an argument to a command which gets
+replaced with /dev/fd or the name of a temporary file
+containing foo&rsquo;s output. This is like &lt;(sub_cmd
+...) found in bash and csh ( <small>IIRC</small> ).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Allow multiple
+harnesses to be combined as independent sets of processes in
+to one &rsquo;meta&minus;harness&rsquo;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Allow a harness
+to be passed in place of an \@cmd. This would allow multiple
+harnesses to be aggregated.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ability to add
+external file descriptors w/ filter chains and
+endpoints.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Ability to add
+timeouts and timing generators (i.e. repeating
+timeouts).</p>
+
+<p style="margin-left:11%; margin-top: 1em">High resolution
+timeouts.</p>
+
+<h2>Win32 LIMITATIONS
+<a name="Win32 LIMITATIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">argument-passing
+rules are program-specific</p>
+
+<p style="margin-left:17%;">Win32 programs receive all
+arguments in a single &quot;command line&quot; string.
+IPC::Run assembles this string so programs using standard
+command line parsing rules
+&lt;https://docs.microsoft.com/en-us/cpp/cpp/main-function-command-line-args#parsing-c-command-line-arguments&gt;
+will see an &quot;argv&quot; that matches the array
+reference specifying the command. Some programs use
+different rules to parse their command line. Notable
+examples include <i>cmd.exe</i>, <i>cscript.exe</i>, and
+Cygwin programs called from non-Cygwin programs. Use
+IPC::Run::Win32Process to call these and other nonstandard
+programs.</p>
+
+<p style="margin-left:11%;">batch files</p>
+
+<p style="margin-left:17%;">Properly escaping a batch file
+argument depends on how the script will use that argument,
+because some uses experience multiple levels of caret
+(escape character) removal. Avoid calling batch files with
+arguments, particularly when the argument values originate
+outside your program or contain non-alphanumeric characters.
+Perl scripts and PowerShell scripts are sound alternatives.
+If you do use batch file arguments, IPC::Run escapes them so
+the batch file can pass them, unquoted, to a program having
+standard command line parsing rules. If the batch file
+enables delayed environment variable expansion, it must
+disable that feature before expanding its arguments. For
+example, if <i>foo.cmd</i> contains &quot;perl %*&quot;,
+&quot;run ['foo.cmd', @list]&quot; will create a Perl
+process in which @ARGV matches @list. Prepending a
+&quot;setlocal enabledelayedexpansion&quot; line would make
+the batch file malfunction, silently. Another
+silent-malfunction example is &quot;run ['outer.bat',
+@list]&quot; for <i>outer.bat</i> containing &quot;foo.cmd
+%*&quot;.</p>
+
+<p style="margin-left:11%;">Fails on Win9X</p>
+
+<p style="margin-left:17%;">If you want Win9X support,
+you&rsquo;ll have to debug it or fund me because I
+don&rsquo;t use that system any more. The Win32 subsysem has
+been extended to use temporary files in simple <b>run()</b>
+invocations and these may actually work on Win9X too, but I
+don&rsquo;t have time to work on it.</p>
+
+<p style="margin-left:11%;">May deadlock on Win2K (but not
+WinNT4 or WinXPPro)</p>
+
+<p style="margin-left:17%;">Spawning more than one
+subprocess on Win2K causes a deadlock I haven&rsquo;t
+figured out yet, but simple uses of <b>run()</b> often work.
+Passes all tests on WinXPPro and WinNT.</p>
+
+<p style="margin-left:11%;">no support yet for &lt;pty&lt;
+and &gt;pty&gt;</p>
+
+<p style="margin-left:17%;">These are likely to be
+implemented as &quot;&lt;&quot; and &quot;&gt;&quot; with
+binmode on, not sure.</p>
+
+<p style="margin-left:11%;">no support for file descriptors
+higher than 2 (stderr)</p>
+
+<p style="margin-left:17%;">Win32 only allows passing
+explicit fds 0, 1, and 2. If you really, really need to pass
+file handles, us Win32API:: <b>GetOsFHandle()</b> or
+::<b>FdGetOsFHandle()</b> to get the integer handle and pass
+it to the child process using the command line, environment,
+stdin, intermediary file, or other <small>IPC</small>
+mechanism. Then use that handle in the child (Win32API.pm
+provides ways to reconstitute Perl file handles from Win32
+file handles).</p>
+
+<p style="margin-left:11%;">no support for subroutine
+subprocesses ( <small>CODE</small> refs)</p>
+
+<p style="margin-left:17%;">Can&rsquo;t <b>fork()</b>, so
+the subroutines would have no context, and closures
+certainly have no meaning</p>
+
+<p style="margin-left:17%; margin-top: 1em">Perhaps with
+Win32 <b>fork()</b> emulation, this can be supported in a
+limited fashion, but there are other very serious problems
+with that: all parent fds get <b>dup()</b>ed in to the
+thread emulating the forked process, and that keeps the
+parent from being able to close all of the appropriate
+fds.</p>
+
+<p style="margin-left:11%;">no support for init =&gt; sub
+{} routines.</p>
+
+<p style="margin-left:17%;">Win32 processes are created
+from scratch, there is no way to do an init routine that
+will affect the running child. Some limited support might be
+implemented one day, do <b>chdir()</b> and %ENV changes can
+be made.</p>
+
+<p style="margin-left:11%;">signals</p>
+
+<p style="margin-left:17%;">Win32 does not fully support
+signals. <b>signal()</b> is likely to cause errors unless
+sending a signal that Perl emulates, and
+&quot;kill_kill()&quot; is immediately fatal (there is no
+grace period).</p>
+
+<p style="margin-left:11%;">helper processes</p>
+
+<p style="margin-left:17%;">IPC::Run uses helper processes,
+one per redirected file, to adapt between the anonymous pipe
+connected to the child and the <small>TCP</small> socket
+connected to the parent. This is a waste of resources and
+will change in the future to either use threads (instead of
+helper processes) or a WaitForMultipleObjects call (instead
+of select). Please contact me if you can help with the
+<b>WaitForMultipleObjects()</b> approach; I haven&rsquo;t
+figured out how to get at it without C code.</p>
+
+<p style="margin-left:11%;">shutdown pause</p>
+
+<p style="margin-left:17%;">There seems to be a pause of up
+to 1 second between when a child program exits and the
+corresponding sockets indicate that they are closed in the
+parent. Not sure why.</p>
+
+<p style="margin-left:11%;">binmode</p>
+
+<p style="margin-left:17%;">binmode is not supported yet.
+The underpinnings are implemented, just ask if you need
+it.</p>
+
+<p style="margin-left:11%;">IPC::Run::IO</p>
+
+<p style="margin-left:17%;">IPC::Run::IO objects can be
+used on Unix to read or write arbitrary files. On Win32,
+they will need to use the same helper processes to adapt
+from non&minus;<b>select()</b>able filehandles to
+<b>select()</b>able ones (or perhaps
+<b>WaitForMultipleObjects()</b> will work with them, not
+sure).</p>
+
+<p style="margin-left:11%;">startup race conditions</p>
+
+<p style="margin-left:17%;">There seems to be an occasional
+race condition between child process startup and pipe
+closings. It seems like if the child is not fully created by
+the time CreateProcess returns and we close the
+<small>TCP</small> socket being handed to it, the parent
+socket can also get closed. This is seen with the Win32
+pumper applications, not the &quot;real&quot; child process
+being spawned.</p>
+
+<p style="margin-left:17%; margin-top: 1em">I assume this
+is because the kernel hasn&rsquo;t gotten around to
+incrementing the reference count on the child&rsquo;s end
+(since the child was slow in starting), so the
+parent&rsquo;s closing of the child end causes the socket to
+be closed, thus closing the parent socket.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Being a race
+condition, it&rsquo;s hard to reproduce, but I encountered
+it while testing this code on a drive share to a samba box.
+In this case, it takes t/run.t a long time to spawn
+it&rsquo;s child processes (the parent hangs in the first
+select for several seconds until the child emits any
+debugging output).</p>
+
+<p style="margin-left:17%; margin-top: 1em">I have not seen
+it on local drives, and can&rsquo;t reproduce it at will,
+unfortunately. The symptom is a &quot;bad file descriptor in
+<b>select()</b>&quot; error, and, by turning on debugging,
+it&rsquo;s possible to see that <b>select()</b> is being
+called on a no longer open file descriptor that was returned
+from the <b>_socket()</b> routine in Win32Helper.
+There&rsquo;s a new <b>confess()</b> that checks for this
+(&quot; <small>PARENT_HANDLE</small> no longer open&quot;),
+but I haven&rsquo;t been able to reproduce it
+(typically).</p>
+
+<h2>LIMITATIONS
+<a name="LIMITATIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On Unix,
+requires a system that supports &quot;waitpid( $pid, WNOHANG
+)&quot; so it can tell if a child process is still
+running.</p>
+
+<p style="margin-left:11%; margin-top: 1em">PTYs
+don&rsquo;t seem to be non-blocking on some versions of
+Solaris. Here&rsquo;s a test script contributed by Borislav
+Deianov &lt;borislav@ensim.com&gt; to see if you have the
+problem. If it dies, you have the problem.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">#!/usr/bin/perl
+<br>
+use IPC::Run qw(run); <br>
+use Fcntl; <br>
+use IO::Pty; <br>
+sub makecmd { <br>
+return ['perl', '&minus;e', <br>
+'&lt;STDIN&gt;, print &quot;\n&quot; x '.$_[0].';
+while(&lt;STDIN&gt;){last if /end/}']; <br>
+} <br>
+#pipe R, W; <br>
+#fcntl(W, F_SETFL, O_NONBLOCK); <br>
+#while (syswrite(W, &quot;\n&quot;, 1)) { $pipebuf++ }; <br>
+#print &quot;pipe buffer size is $pipebuf\n&quot;; <br>
+my $pipebuf=4096; <br>
+my $in = &quot;\n&quot; x ($pipebuf * 2) .
+&quot;end\n&quot;; <br>
+my $out; <br>
+$SIG{ALRM} = sub { die &quot;Never completed!\n&quot; };
+<br>
+print &quot;reading from scalar via pipe...&quot;; <br>
+alarm( 2 ); <br>
+run(makecmd($pipebuf * 2), '&lt;', \$in, '&gt;', \$out);
+<br>
+alarm( 0 ); <br>
+print &quot;done\n&quot;; <br>
+print &quot;reading from code via pipe... &quot;; <br>
+alarm( 2 ); <br>
+run(makecmd($pipebuf * 3), '&lt;', sub { $t = $in; undef
+$in; $t}, '&gt;', \$out); <br>
+alarm( 0 ); <br>
+print &quot;done\n&quot;; <br>
+$pty = IO::Pty&minus;&gt;new(); <br>
+$pty&minus;&gt;blocking(0); <br>
+$slave = $pty&minus;&gt;slave(); <br>
+while ($pty&minus;&gt;syswrite(&quot;\n&quot;, 1)) {
+$ptybuf++ }; <br>
+print &quot;pty buffer size is $ptybuf\n&quot;; <br>
+$in = &quot;\n&quot; x ($ptybuf * 3) . &quot;end\n&quot;;
+<br>
+print &quot;reading via pty... &quot;; <br>
+alarm( 2 ); <br>
+run(makecmd($ptybuf * 3), '&lt;pty&lt;', \$in, '&gt;',
+\$out); <br>
+alarm(0); <br>
+print &quot;done\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">No support for
+&rsquo;;&rsquo;, &rsquo;&amp;&amp;&rsquo;, &rsquo;||&rsquo;,
+&rsquo;{ ... }&rsquo;, etc: use perl&rsquo;s, since
+<b>run()</b> returns <small>TRUE</small> when the command
+exits with a 0 result code.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Does not
+provide shell-like string interpolation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">No support for
+&quot;cd&quot;, &quot;setenv&quot;, or &quot;export&quot;:
+do these in an <b>init()</b> sub</p>
+
+<p style="margin-left:11%; margin-top: 1em">run( <br>
+\cmd, <br>
+... <br>
+init =&gt; sub { <br>
+chdir $dir or die $!; <br>
+$ENV{FOO}='BAR' <br>
+} <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Timeout
+calculation does not allow absolute times, or specification
+of days, months, etc.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>WARNING:</small></b>
+Function coprocesses (&quot;run \&amp;foo, ...&quot;) suffer
+from two limitations. The first is that it is difficult to
+close all filehandles the child inherits from the parent,
+since there is no way to scan all open FILEHANDLEs in Perl
+and it both painful and a bit dangerous to close all open
+file descriptors with &quot;POSIX::close()&quot;. Painful
+because we can&rsquo;t tell which fds are open at the
+<small>POSIX</small> level, either, so we&rsquo;d have to
+scan all possible fds and close any that we don&rsquo;t want
+open (normally &quot;exec()&quot; closes any non-inheritable
+but we don&rsquo;t &quot;exec()&quot; for &amp;sub
+processes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The second
+problem is that Perl&rsquo;s <small>DESTROY</small> subs and
+other on-exit cleanup gets run in the child process. If
+objects are instantiated in the parent before the child is
+forked, the <small>DESTROY</small> will get run once in the
+parent and once in the child. When coprocess subs exit,
+POSIX::_exit is called to work around this, but it means
+that objects that are still referred to at that time are not
+cleaned up. So setting package vars or closure vars to point
+to objects that rely on <small>DESTROY</small> to affect
+things outside the process (files, etc), will lead to
+bugs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">I goofed on the
+syntax: &quot;&lt;pipe&quot; vs. &quot;&lt;pty&lt;&quot; and
+&quot;&gt;filename&quot; are both oddities.</p>
+
+<h2>TODO
+<a name="TODO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Allow one
+harness to &quot;adopt&quot; another:</p>
+
+<p style="margin-left:17%;">$new_h = harness \@cmd2; <br>
+$h&minus;&gt;adopt( $new_h );</p>
+
+<p style="margin-left:11%;">Close all filehandles not
+explicitly marked to stay open.</p>
+
+<p style="margin-left:17%;">The problem with this one is
+that there&rsquo;s no good way to scan all open FILEHANDLEs
+in Perl, yet you don&rsquo;t want child processes inheriting
+handles willy-nilly.</p>
+
+<h2>INSPIRATION
+<a name="INSPIRATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Well,
+<b>select()</b> and <b>waitpid()</b> badly needed wrapping,
+and <b>open3()</b> isn&rsquo;t open-minded enough for
+me.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The shell-like
+<small>API</small> inspired by a message Russ Allbery sent
+to perl5&minus;porters, which included:</p>
+
+<p style="margin-left:11%; margin-top: 1em">I've thought
+for some time that it would be <br>
+nice to have a module that could handle full Bourne shell
+pipe syntax <br>
+internally, with fork and exec, without ever invoking a
+shell. Something <br>
+that you could give things like: <br>
+pipeopen (PIPE, [ qw/cat file/ ], '|', [ 'analyze', @args ],
+'&gt;&amp;3');</p>
+
+<p style="margin-left:11%; margin-top: 1em">Message
+ylln51p2b6.fsf@windlord.stanford.edu, on 2000/02/04.</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Bugs should
+always be submitted via the GitHub bug tracker</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;https://github.com/toddr/IPC&minus;Run/issues&gt;</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Adam Kennedy
+&lt;adamk@cpan.org&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Barrie
+Slaymaker &lt;barries@slaysys.com&gt;</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Some parts
+copyright 2008 &minus; 2009 Adam Kennedy.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Copyright 1999
+Barrie Slaymaker.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You may
+distribute under the terms of either the <small>GNU</small>
+General Public License or the Artistic License, as specified
+in the <small>README</small> file.</p>
+<hr>
+</body>
+</html>

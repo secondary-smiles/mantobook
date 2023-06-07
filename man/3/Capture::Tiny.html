@@ -1,0 +1,879 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:24 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Capture::Tiny</title>
+
+</head>
+<body>
+<h1>Capture::Tiny</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Capture::Tiny
+&minus; Capture STDOUT and STDERR from Perl, XS or external
+programs</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+0.48</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Capture::Tiny ':all'; <br>
+# capture from external command <br>
+($stdout, $stderr, $exit) = capture { <br>
+system( $cmd, @args ); <br>
+}; <br>
+# capture from arbitrary code (Perl or external) <br>
+($stdout, $stderr, @result) = capture { <br>
+# your code here <br>
+}; <br>
+# capture partial or merged output <br>
+$stdout = capture_stdout { ... }; <br>
+$stderr = capture_stderr { ... }; <br>
+$merged = capture_merged { ... }; <br>
+# tee output <br>
+($stdout, $stderr) = tee { <br>
+# your code here <br>
+}; <br>
+$stdout = tee_stdout { ... }; <br>
+$stderr = tee_stderr { ... }; <br>
+$merged = tee_merged { ... };</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Capture::Tiny
+provides a simple, portable way to capture almost anything
+sent to <small>STDOUT</small> or <small>STDERR,</small>
+regardless of whether it comes from Perl, from
+<small>XS</small> code or from an external program.
+Optionally, output can be teed so that it is captured while
+being passed through to the original filehandles. Yes, it
+even works on Windows (usually). Stop guessing which of a
+dozen capturing modules to use in any particular situation
+and just use this one.</p>
+
+<h2>USAGE
+<a name="USAGE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+functions are available. None are exported by default.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>capture</b>
+<br>
+($stdout, $stderr, @result) = capture \&amp;code; <br>
+$stdout = capture \&amp;code;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;capture&quot; function takes a code reference and
+returns what is sent to <small>STDOUT</small> and
+<small>STDERR</small> as well as any return values from the
+code reference. In scalar context, it returns only
+<small>STDOUT.</small> If no output was received for a
+filehandle, it returns an empty string for that filehandle.
+Regardless of calling context, all output is captured --
+nothing is passed to the existing filehandles.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is
+prototyped to take a subroutine reference as an argument.
+Thus, it can be called in block form:</p>
+
+<p style="margin-left:11%; margin-top: 1em">($stdout,
+$stderr) = capture { <br>
+# your code here ... <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+coderef is evaluated in list context. If you wish to force
+scalar context on the return value, you must use the
+&quot;scalar&quot; keyword.</p>
+
+<p style="margin-left:11%; margin-top: 1em">($stdout,
+$stderr, $count) = capture { <br>
+my @list = qw/one two three/; <br>
+return scalar @list; # $count will be 3 <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also note that
+within the coderef, the @_ variable will be empty. So
+don&rsquo;t use arguments from a surrounding subroutine
+without copying them to an array first:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub wont_work {
+<br>
+my ($stdout, $stderr) = capture { do_stuff( @_ ) }; # WRONG
+<br>
+... <br>
+} <br>
+sub will_work { <br>
+my @args = @_; <br>
+my ($stdout, $stderr) = capture { do_stuff( @args ) }; #
+RIGHT <br>
+... <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Captures are
+normally done to an anonymous temporary filehandle. To
+capture via a named file (e.g. to externally monitor a
+long-running capture), provide custom filehandles as a
+trailing list of option pairs:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $out_fh =
+IO::File&minus;&gt;new(&quot;out.txt&quot;, &quot;w+&quot;);
+<br>
+my $err_fh = IO::File&minus;&gt;new(&quot;out.txt&quot;,
+&quot;w+&quot;); <br>
+capture { ... } stdout =&gt; $out_fh, stderr =&gt;
+$err_fh;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The filehandles
+must be read/write and seekable. Modifying the files or
+filehandles during a capture operation will give
+unpredictable results. Existing <small>IO</small> layers on
+them may be changed by the capture.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When called in
+void context, &quot;capture&quot; saves memory and time by
+not reading back from the capture handles.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>capture_stdout</b>
+<br>
+($stdout, @result) = capture_stdout \&amp;code; <br>
+$stdout = capture_stdout \&amp;code;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;capture_stdout&quot; function works just like
+&quot;capture&quot; except only <small>STDOUT</small> is
+captured. <small>STDERR</small> is not captured.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>capture_stderr</b>
+<br>
+($stderr, @result) = capture_stderr \&amp;code; <br>
+$stderr = capture_stderr \&amp;code;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;capture_stderr&quot; function works just like
+&quot;capture&quot; except only <small>STDERR</small> is
+captured. <small>STDOUT</small> is not captured.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>capture_merged</b>
+<br>
+($merged, @result) = capture_merged \&amp;code; <br>
+$merged = capture_merged \&amp;code;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;capture_merged&quot; function works just like
+&quot;capture&quot; except <small>STDOUT</small> and
+<small>STDERR</small> are merged. (Technically,
+<small>STDERR</small> is redirected to the same capturing
+handle as <small>STDOUT</small> before executing the
+function.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Caution:
+<small>STDOUT</small> and <small>STDERR</small> output in
+the merged result are not guaranteed to be properly ordered
+due to buffering.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>tee</b> <br>
+($stdout, $stderr, @result) = tee \&amp;code; <br>
+$stdout = tee \&amp;code;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;tee&quot; function works just like
+&quot;capture&quot;, except that output is captured as well
+as passed on to the original <small>STDOUT</small> and
+<small>STDERR.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">When called in
+void context, &quot;tee&quot; saves memory and time by not
+reading back from the capture handles, except when the
+original <small>STDOUT OR STDERR</small> were tied or opened
+to a scalar handle.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tee_stdout</b>
+<br>
+($stdout, @result) = tee_stdout \&amp;code; <br>
+$stdout = tee_stdout \&amp;code;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;tee_stdout&quot; function works just like
+&quot;tee&quot; except only <small>STDOUT</small> is teed.
+<small>STDERR</small> is not teed (output goes to
+<small>STDERR</small> as usual).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tee_stderr</b>
+<br>
+($stderr, @result) = tee_stderr \&amp;code; <br>
+$stderr = tee_stderr \&amp;code;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;tee_stderr&quot; function works just like
+&quot;tee&quot; except only <small>STDERR</small> is teed.
+<small>STDOUT</small> is not teed (output goes to
+<small>STDOUT</small> as usual).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tee_merged</b>
+<br>
+($merged, @result) = tee_merged \&amp;code; <br>
+$merged = tee_merged \&amp;code;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;tee_merged&quot; function works just like
+&quot;capture_merged&quot; except that output is captured as
+well as passed on to <small>STDOUT.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">Caution:
+<small>STDOUT</small> and <small>STDERR</small> output in
+the merged result are not guaranteed to be properly ordered
+due to buffering.</p>
+
+<h2>LIMITATIONS
+<a name="LIMITATIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Portability</b>
+<br>
+Portability is a goal, not a guarantee. &quot;tee&quot;
+requires fork, except on Windows where &quot;system(1,
+@cmd)&quot; is used instead. Not tested on any particularly
+esoteric platforms yet. See the <small>CPAN</small> Testers
+Matrix
+&lt;http://matrix.cpantesters.org/?dist=Capture-Tiny&gt; for
+test result by platform.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>PerlIO
+layers</b> <br>
+Capture::Tiny does its best to preserve PerlIO layers such
+as &rsquo;:utf8&rsquo; or &rsquo;:crlf&rsquo; when capturing
+(only for Perl 5.8.1+) . Layers should be applied to
+<small>STDOUT</small> or <small>STDERR</small> <i>before</i>
+the call to &quot;capture&quot; or &quot;tee&quot;. This may
+not work for tied filehandles (see below).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Modifying
+filehandles before capturing</b> <br>
+Generally speaking, you should do little or no manipulation
+of the standard <small>IO</small> filehandles prior to using
+Capture::Tiny. In particular, closing, reopening, localizing
+or tying standard filehandles prior to capture may cause a
+variety of unexpected, undesirable and/or unreliable
+behaviors, as described below. Capture::Tiny does its best
+to compensate for these situations, but the results may not
+be what you desire.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Closed
+filehandles</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Capture::Tiny
+will work even if <small>STDIN, STDOUT</small> or
+<small>STDERR</small> have been previously closed. However,
+since they will be reopened to capture or tee output, any
+code within the captured block that depends on finding them
+closed will, of course, not find them to be closed. If they
+started closed, Capture::Tiny will close them again when the
+capture block finishes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+reopening will happen even for <small>STDIN</small> or a
+filehandle not being captured to ensure that the filehandle
+used for capture is not opened to file descriptor 0, as this
+causes problems on various platforms.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Prior to Perl
+5.12, closed <small>STDIN</small> combined with
+PERL_UNICODE=D leaks filehandles and also breaks
+<b>tee()</b> for undiagnosed reasons. So don&rsquo;t do
+that.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Localized
+filehandles</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If code
+localizes any of Perl&rsquo;s standard filehandles before
+capturing, the capture will affect the localized filehandles
+and not the original ones. External system calls are not
+affected by localizing a filehandle in Perl and will
+continue to send output to the original filehandles (which
+will thus not be captured).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Scalar
+filehandles</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<small>STDOUT</small> or <small>STDERR</small> are reopened
+to scalar filehandles prior to the call to
+&quot;capture&quot; or &quot;tee&quot;, then Capture::Tiny
+will override the output filehandle for the duration of the
+&quot;capture&quot; or &quot;tee&quot; call and then, for
+&quot;tee&quot;, send captured output to the output
+filehandle after the capture is complete. (Requires Perl
+5.8)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Capture::Tiny
+attempts to preserve the semantics of <small>STDIN</small>
+opened to a scalar reference, but note that external
+processes will not be able to read from such a handle.
+Capture::Tiny tries to ensure that external processes will
+read from the null device instead, but this is not
+guaranteed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Tied output
+filehandles</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<small>STDOUT</small> or <small>STDERR</small> are tied
+prior to the call to &quot;capture&quot; or &quot;tee&quot;,
+then Capture::Tiny will attempt to override the tie for the
+duration of the &quot;capture&quot; or &quot;tee&quot; call
+and then send captured output to the tied filehandle after
+the capture is complete. (Requires Perl 5.8)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Capture::Tiny
+may not succeed resending <small>UTF&minus;8</small> encoded
+data to a tied <small>STDOUT</small> or
+<small>STDERR</small> filehandle. Characters may appear as
+bytes. If the tied filehandle is based on Tie::StdHandle,
+then Capture::Tiny will attempt to determine appropriate
+layers like &quot;:utf8&quot; from the underlying filehandle
+and do the right thing.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Tied input
+filehandle</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Capture::Tiny
+attempts to preserve the semantics of tied
+<small>STDIN,</small> but this requires Perl 5.8 and is not
+entirely predictable. External processes will not be able to
+read from such a handle.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unless having
+<small>STDIN</small> tied is crucial, it may be safest to
+localize <small>STDIN</small> when capturing:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my ($out, $err)
+= do { local *STDIN; capture { ... } };</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Modifying
+filehandles during a capture</b> <br>
+Attempting to modify <small>STDIN, STDOUT</small> or
+<small>STDERR</small> <i>during</i> &quot;capture&quot; or
+&quot;tee&quot; is almost certainly going to cause problems.
+Don&rsquo;t do that.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Forking
+inside a capture</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Forks
+aren&rsquo;t portable. The behavior of filehandles during a
+fork is even less so. If Capture::Tiny detects that a fork
+has occurred within a capture, it will shortcut in the child
+process and return empty strings for captures. Other
+problems may occur in the child or parent, as well. Forking
+in a capture block is not recommended.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Using
+threads</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Filehandles are
+global. Mixing up I/O and captures in different threads
+without coordination is going to cause problems. Besides,
+threads are officially discouraged.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Dropping
+privileges during a capture</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If you drop
+privileges during a capture, temporary files created to
+facilitate the capture may not be cleaned up afterwards.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>No support
+for Perl 5.8.0</b> <br>
+It&rsquo;s just too buggy when it comes to layers and
+<small>UTF&minus;8.</small> Perl 5.8.1 or later is
+recommended.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Limited
+support for Perl 5.6</b> <br>
+Perl 5.6 predates PerlIO. <small>UTF&minus;8</small> data
+may not be captured correctly.</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>PERL_CAPTURE_TINY_TIMEOUT</small></b>
+<br>
+Capture::Tiny uses subprocesses internally for
+&quot;tee&quot;. By default, Capture::Tiny will timeout with
+an error if such subprocesses are not ready to receive data
+within 30 seconds (or whatever is the value of
+$Capture::Tiny::TIMEOUT). An alternate timeout may be
+specified by setting the
+&quot;PERL_CAPTURE_TINY_TIMEOUT&quot; environment variable.
+Setting it to zero will disable timeouts.
+<b><small>NOTE</small></b> , this does not timeout the code
+reference being captured -- this only prevents Capture::Tiny
+itself from hanging your process waiting for its child
+processes to be ready to proceed.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module was
+inspired by IO::CaptureOutput, which provides similar
+functionality without the ability to tee output and with
+more complicated code and <small>API.</small>
+IO::CaptureOutput does not handle layers or most of the
+unusual cases described in the &quot;Limitations&quot;
+section and I no longer recommend it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are many
+other <small>CPAN</small> modules that provide some sort of
+output capture, albeit with various limitations that make
+them appropriate only in particular circumstances. I&rsquo;m
+probably missing some. The long list is provided to show why
+I felt Capture::Tiny was necessary.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IO::Capture</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IO::Capture::Extended</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IO::CaptureOutput</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IPC::Capture</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IPC::Cmd</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IPC::Open2</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IPC::Open3</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IPC::Open3::Simple</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IPC::Open3::Utils</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IPC::Run</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IPC::Run::SafeHandles</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IPC::Run::Simple</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IPC::Run3</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IPC::System::Simple</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>Tee</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>IO::Tee</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>File::Tee</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>Filter::Handle</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>Tie::STDERR</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>Tie::STDOUT</p></td>
+<td width="51%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="32%">
+
+
+<p>Test::Output</p></td>
+<td width="51%">
+</td></tr>
+</table>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Bugs /
+Feature Requests</b> <br>
+Please report any bugs or feature requests through the issue
+tracker at
+&lt;https://github.com/dagolden/Capture&minus;Tiny/issues&gt;.
+You will be notified automatically of any progress on your
+issue.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Source
+Code</b> <br>
+This is open source software. The code repository is
+available for public review and contribution under the terms
+of the license.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;https://github.com/dagolden/Capture&minus;Tiny&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">git clone
+https://github.com/dagolden/Capture&minus;Tiny.git</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">David Golden
+&lt;dagolden@cpan.org&gt;</p>
+
+<h2>CONTRIBUTORS
+<a name="CONTRIBUTORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p style="margin-top: 1em">Dagfinn Ilmari
+Manns&Atilde;&yen;ker &lt;ilmari@ilmari.org&gt;</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p>David E. Wheeler &lt;david@justatheory.com&gt;</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p>fecundf &lt;not.com+github@gmail.com&gt;</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p>Graham Knop &lt;haarg@haarg.org&gt;</p></td>
+<td width="14%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p>Peter Rabbitson &lt;ribasushi@cpan.org&gt;</p></td>
+<td width="14%">
+</td></tr>
+</table>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is Copyright (c) 2009 by David Golden.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software, licensed under:</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Apache
+License, Version 2.0, January 2004</p>
+<hr>
+</body>
+</html>

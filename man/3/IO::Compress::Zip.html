@@ -1,0 +1,1778 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:22 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>IO::Compress::Zip</title>
+
+</head>
+<body>
+<h1>IO::Compress::Zip</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">IO::Compress::Zip
+&minus; Write zip files/buffers</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+IO::Compress::Zip qw(zip $ZipError) ; <br>
+my $status = zip $input =&gt; $output [,OPTS] <br>
+or die &quot;zip failed: $ZipError\n&quot;; <br>
+my $z = IO::Compress::Zip&minus;&gt;new( $output [,OPTS] )
+<br>
+or die &quot;zip failed: $ZipError\n&quot;; <br>
+$z&minus;&gt;print($string); <br>
+$z&minus;&gt;printf($format, $string); <br>
+$z&minus;&gt;write($string); <br>
+$z&minus;&gt;syswrite($string [, $length, $offset]); <br>
+$z&minus;&gt;flush(); <br>
+$z&minus;&gt;tell(); <br>
+$z&minus;&gt;eof(); <br>
+$z&minus;&gt;seek($position, $whence); <br>
+$z&minus;&gt;binmode(); <br>
+$z&minus;&gt;fileno(); <br>
+$z&minus;&gt;opened(); <br>
+$z&minus;&gt;autoflush(); <br>
+$z&minus;&gt;input_line_number(); <br>
+$z&minus;&gt;newStream( [OPTS] ); <br>
+$z&minus;&gt;deflateParams(); <br>
+$z&minus;&gt;close() ; <br>
+$ZipError ; <br>
+# IO::File mode <br>
+print $z $string; <br>
+printf $z $format, $string; <br>
+tell $z <br>
+eof $z <br>
+seek $z, $position, $whence <br>
+binmode $z <br>
+fileno $z <br>
+close $z ;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module
+provides a Perl interface that allows writing zip compressed
+data to files or buffer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The primary
+purpose of this module is to provide streaming write access
+to zip files and buffers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">At present the
+following compression methods are supported by
+IO::Compress::Zip <br>
+Store (0) <br>
+Deflate (8) <br>
+Bzip2 (12)</p>
+
+<p style="margin-left:18%;">To write Bzip2 content, the
+module &quot;IO::Uncompress::Bunzip2&quot; must be
+installed.</p>
+
+<p style="margin-left:11%;">Lzma (14)</p>
+
+<p style="margin-left:18%;">To write <small>LZMA</small>
+content, the module &quot;IO::Uncompress::UnLzma&quot; must
+be installed.</p>
+
+<p style="margin-left:11%;">Zstandard (93)</p>
+
+<p style="margin-left:18%;">To write Zstandard content, the
+module &quot;IO::Compress::Zstd&quot; must be installed.</p>
+
+<p style="margin-left:11%;">Xz (95)</p>
+
+<p style="margin-left:18%;">To write Xz content, the module
+&quot;IO::Uncompress::UnXz&quot; must be installed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For reading zip
+files/buffers, see the companion module
+IO::Uncompress::Unzip.</p>
+
+<h2>Functional Interface
+<a name="Functional Interface"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A top-level
+function, &quot;zip&quot;, is provided to carry out
+&quot;one-shot&quot; compression between buffers and/or
+files. For finer control over the compression process, see
+the &quot; <small>OO</small> Interface&quot; section.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+IO::Compress::Zip qw(zip $ZipError) ; <br>
+zip $input_filename_or_reference =&gt;
+$output_filename_or_reference [,OPTS] <br>
+or die &quot;zip failed: $ZipError\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The functional
+interface needs Perl5.005 or better.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>zip
+$input_filename_or_reference =&gt;
+$output_filename_or_reference [, <small>OPTS</small> ]</b>
+<br>
+&quot;zip&quot; expects at least two parameters,
+$input_filename_or_reference and
+$output_filename_or_reference and zero or more optional
+parameters (see &quot;Optional Parameters&quot;)</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>The
+$input_filename_or_reference parameter</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The parameter,
+$input_filename_or_reference, is used to define the source
+of the uncompressed data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It can take one
+of the following forms: <br>
+A filename</p>
+
+<p style="margin-left:18%;">If the
+$input_filename_or_reference parameter is a simple scalar,
+it is assumed to be a filename. This file will be opened for
+reading and the input data will be read from it.</p>
+
+<p style="margin-left:11%;">A filehandle</p>
+
+<p style="margin-left:18%;">If the
+$input_filename_or_reference parameter is a filehandle, the
+input data will be read from it. The string
+&rsquo;&minus;&rsquo; can be used as an alias for standard
+input.</p>
+
+<p style="margin-left:11%;">A scalar reference</p>
+
+<p style="margin-left:18%;">If $input_filename_or_reference
+is a scalar reference, the input data will be read from
+$$input_filename_or_reference.</p>
+
+<p style="margin-left:11%;">An array reference</p>
+
+<p style="margin-left:18%;">If $input_filename_or_reference
+is an array reference, each element in the array must be a
+filename.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The input data
+will be read from each file in turn.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The complete
+array will be walked to ensure that it only contains valid
+filenames before any data is compressed.</p>
+
+<p style="margin-left:11%;">An Input FileGlob string</p>
+
+<p style="margin-left:18%;">If $input_filename_or_reference
+is a string that is delimited by the characters
+&quot;&lt;&quot; and &quot;&gt;&quot; &quot;zip&quot; will
+assume that it is an <i>input fileglob string</i>. The input
+is the list of files that match the fileglob.</p>
+
+<p style="margin-left:18%; margin-top: 1em">See
+File::GlobMapper for more details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+$input_filename_or_reference parameter is any other type,
+&quot;undef&quot; will be returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In addition, if
+$input_filename_or_reference is a simple filename, the
+default values for the &quot;Name&quot;, &quot;Time&quot;,
+&quot;TextFlag&quot;, &quot;ExtAttr&quot;,
+&quot;exUnixN&quot; and &quot;exTime&quot; options will be
+sourced from that file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you do not
+want to use these defaults they can be overridden by
+explicitly setting the &quot;Name&quot;, &quot;Time&quot;,
+&quot;TextFlag&quot;, &quot;ExtAttr&quot;,
+&quot;exUnixN&quot; and &quot;exTime&quot; options or by
+setting the &quot;Minimal&quot; parameter.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>The
+$output_filename_or_reference parameter</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The parameter
+$output_filename_or_reference is used to control the
+destination of the compressed data. This parameter can take
+one of these forms. <br>
+A filename</p>
+
+<p style="margin-left:18%;">If the
+$output_filename_or_reference parameter is a simple scalar,
+it is assumed to be a filename. This file will be opened for
+writing and the compressed data will be written to it.</p>
+
+<p style="margin-left:11%;">A filehandle</p>
+
+<p style="margin-left:18%;">If the
+$output_filename_or_reference parameter is a filehandle, the
+compressed data will be written to it. The string
+&rsquo;&minus;&rsquo; can be used as an alias for standard
+output.</p>
+
+<p style="margin-left:11%;">A scalar reference</p>
+
+<p style="margin-left:18%;">If
+$output_filename_or_reference is a scalar reference, the
+compressed data will be stored in
+$$output_filename_or_reference.</p>
+
+<p style="margin-left:11%;">An Array Reference</p>
+
+<p style="margin-left:18%;">If
+$output_filename_or_reference is an array reference, the
+compressed data will be pushed onto the array.</p>
+
+<p style="margin-left:11%;">An Output FileGlob</p>
+
+<p style="margin-left:18%;">If
+$output_filename_or_reference is a string that is delimited
+by the characters &quot;&lt;&quot; and &quot;&gt;&quot;
+&quot;zip&quot; will assume that it is an <i>output fileglob
+string</i>. The output is the list of files that match the
+fileglob.</p>
+
+<p style="margin-left:18%; margin-top: 1em">When
+$output_filename_or_reference is an fileglob string,
+$input_filename_or_reference must also be a fileglob string.
+Anything else is an error.</p>
+
+<p style="margin-left:18%; margin-top: 1em">See
+File::GlobMapper for more details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+$output_filename_or_reference parameter is any other type,
+&quot;undef&quot; will be returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Notes</b>
+<br>
+When $input_filename_or_reference maps to multiple
+files/buffers and $output_filename_or_reference is a single
+file/buffer the input files/buffers will each be stored in
+$output_filename_or_reference as a distinct entry.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Optional
+Parameters</b> <br>
+The optional parameters for the one-shot function
+&quot;zip&quot; are (for the most part) identical to those
+used with the <small>OO</small> interface defined in the
+&quot;Constructor Options&quot; section. The exceptions are
+listed below <br>
+&quot;AutoClose =&gt; 0|1&quot;</p>
+
+<p style="margin-left:18%;">This option applies to any
+input or output data streams to &quot;zip&quot; that are
+filehandles.</p>
+
+<p style="margin-left:18%; margin-top: 1em">If
+&quot;AutoClose&quot; is specified, and the value is true,
+it will result in all input and/or output filehandles being
+closed once &quot;zip&quot; has completed.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This parameter
+defaults to 0.</p>
+
+<p style="margin-left:11%;">&quot;BinModeIn =&gt;
+0|1&quot;</p>
+
+<p style="margin-left:18%;">This option is now a no-op. All
+files will be read in binmode.</p>
+
+<p style="margin-left:11%;">&quot;Append =&gt;
+0|1&quot;</p>
+
+<p style="margin-left:18%;">The behaviour of this option is
+dependent on the type of output data stream.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="18%"></td>
+<td width="2%">
+
+
+<p>&bull;</p></td>
+<td width="6%"></td>
+<td width="12%">
+
+
+<p>A Buffer</p></td>
+<td width="62%">
+</td></tr>
+</table>
+
+<p style="margin-left:26%; margin-top: 1em">If
+&quot;Append&quot; is enabled, all compressed data will be
+append to the end of the output buffer. Otherwise the output
+buffer will be cleared before any compressed data is written
+to it.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="18%"></td>
+<td width="2%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="6%"></td>
+<td width="16%">
+
+
+<p style="margin-top: 1em">A Filename</p></td>
+<td width="58%">
+</td></tr>
+</table>
+
+<p style="margin-left:26%; margin-top: 1em">If
+&quot;Append&quot; is enabled, the file will be opened in
+append mode. Otherwise the contents of the file, if any,
+will be truncated before any compressed data is written to
+it.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="18%"></td>
+<td width="2%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="6%"></td>
+<td width="19%">
+
+
+<p style="margin-top: 1em">A Filehandle</p></td>
+<td width="55%">
+</td></tr>
+</table>
+
+<p style="margin-left:26%; margin-top: 1em">If
+&quot;Append&quot; is enabled, the filehandle will be
+positioned to the end of the file via a call to
+&quot;seek&quot; before any compressed data is written to
+it. Otherwise the file pointer will not be moved.</p>
+
+<p style="margin-left:18%; margin-top: 1em">When
+&quot;Append&quot; is specified, and set to true, it will
+<i>append</i> all compressed data to the output data
+stream.</p>
+
+<p style="margin-left:18%; margin-top: 1em">So when the
+output is a filehandle it will carry out a seek to the eof
+before writing any compressed data. If the output is a
+filename, it will be opened for appending. If the output is
+a buffer, all compressed data will be appended to the
+existing buffer.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Conversely when
+&quot;Append&quot; is not specified, or it is present and is
+set to false, it will operate as follows.</p>
+
+<p style="margin-left:18%; margin-top: 1em">When the output
+is a filename, it will truncate the contents of the file
+before writing any compressed data. If the output is a
+filehandle its position will not be changed. If the output
+is a buffer, it will be wiped before any compressed data is
+output.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Defaults to
+0.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Examples</b>
+<br>
+Here are a few example that show the capabilities of the
+module.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>Streaming</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This very
+simple command line example demonstrates the streaming
+capabilities of the module. The code reads data from
+<small>STDIN,</small> compresses it, and writes the
+compressed data to <small>STDOUT.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">$ echo hello
+world | perl &minus;MIO::Compress::Zip=zip &minus;e 'zip
+\*STDIN =&gt; \*STDOUT' &gt;output.zip</p>
+
+<p style="margin-left:11%; margin-top: 1em">The special
+filename &quot;&minus;&quot; can be used as a standin for
+both &quot;\*STDIN&quot; and &quot;\*STDOUT&quot;, so the
+above can be rewritten as</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ echo hello
+world | perl &minus;MIO::Compress::Zip=zip &minus;e 'zip
+&quot;&minus;&quot; =&gt; &quot;&minus;&quot;'
+&gt;output.zip</p>
+
+<p style="margin-left:11%; margin-top: 1em">One problem
+with creating a zip archive directly from
+<small>STDIN</small> can be demonstrated by looking at the
+contents of the zip file, output.zip, that we have just
+created.</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ unzip
+&minus;l output.zip <br>
+Archive: output.zip <br>
+Length Date Time Name <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus; <br>
+12 2019&minus;08&minus;16 22:21 <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus;&minus;&minus;&minus; <br>
+12 1 file</p>
+
+<p style="margin-left:11%; margin-top: 1em">The archive
+member (filename) used is the empty string.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If that
+doesn&rsquo;t suit your needs, you can explicitly set the
+filename used in the zip archive by specifying the Name
+option, like so</p>
+
+<p style="margin-left:11%; margin-top: 1em">echo hello
+world | perl &minus;MIO::Compress::Zip=zip &minus;e 'zip
+&quot;&minus;&quot; =&gt; &quot;&minus;&quot;, Name =&gt;
+&quot;hello.txt&quot;' &gt;output.zip</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now the
+contents of the zip file looks like this</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ unzip
+&minus;l output.zip <br>
+Archive: output.zip <br>
+Length Date Time Name <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus; <br>
+12 2019&minus;08&minus;16 22:22 hello.txt <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+&minus;&minus;&minus;&minus;&minus;&minus;&minus; <br>
+12 1 file</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Compressing
+a file from the filesystem</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">To read the
+contents of the file &quot;file1.txt&quot; and write the
+compressed data to the file &quot;file1.txt.zip&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use strict ;
+<br>
+use warnings ; <br>
+use IO::Compress::Zip qw(zip $ZipError) ; <br>
+my $input = &quot;file1.txt&quot;; <br>
+zip $input =&gt; &quot;$input.zip&quot; <br>
+or die &quot;zip failed: $ZipError\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Reading from
+a Filehandle and writing to an in-memory buffer</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">To read from an
+existing Perl filehandle, $input, and write the compressed
+data to a buffer, $buffer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use strict ;
+<br>
+use warnings ; <br>
+use IO::Compress::Zip qw(zip $ZipError) ; <br>
+use IO::File ; <br>
+my $input = IO::File&minus;&gt;new(
+&quot;&lt;file1.txt&quot; ) <br>
+or die &quot;Cannot open 'file1.txt': $!\n&quot; ; <br>
+my $buffer ; <br>
+zip $input =&gt; \$buffer <br>
+or die &quot;zip failed: $ZipError\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Compressing
+multiple files</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">To create a zip
+file, &quot;output.zip&quot;, that contains the compressed
+contents of the files &quot;alpha.txt&quot; and
+&quot;beta.txt&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">use strict ;
+<br>
+use warnings ; <br>
+use IO::Compress::Zip qw(zip $ZipError) ; <br>
+zip [ 'alpha.txt', 'beta.txt' ] =&gt; 'output.zip' <br>
+or die &quot;zip failed: $ZipError\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+rather than having to explicitly name each of the files that
+you want to compress, you could use a fileglob to select all
+the &quot;txt&quot; files in the current directory, as
+follows</p>
+
+<p style="margin-left:11%; margin-top: 1em">use strict ;
+<br>
+use warnings ; <br>
+use IO::Compress::Zip qw(zip $ZipError) ; <br>
+my @files = &lt;*.txt&gt;; <br>
+zip \@files =&gt; 'output.zip' <br>
+or die &quot;zip failed: $ZipError\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">or more
+succinctly</p>
+
+<p style="margin-left:11%; margin-top: 1em">zip [
+&lt;*.txt&gt; ] =&gt; 'output.zip' <br>
+or die &quot;zip failed: $ZipError\n&quot;;</p>
+
+<h2>OO Interface
+<a name="OO Interface"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Constructor</b>
+<br>
+The format of the constructor for
+&quot;IO::Compress::Zip&quot; is shown below</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $z =
+IO::Compress::Zip&minus;&gt;new( $output [,OPTS] ) <br>
+or die &quot;IO::Compress::Zip failed:
+$ZipError\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">It returns an
+&quot;IO::Compress::Zip&quot; object on success and undef on
+failure. The variable $ZipError will contain an error
+message on failure.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+running Perl 5.005 or better the object, $z, returned from
+IO::Compress::Zip can be used exactly like an IO::File
+filehandle. This means that all normal output file
+operations can be carried out with $z. For example, to write
+to a compressed file/buffer you can use either of these
+forms</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$z&minus;&gt;print(&quot;hello
+world\n&quot;); <br>
+print $z &quot;hello world\n&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The mandatory
+parameter $output is used to control the destination of the
+compressed data. This parameter can take one of these forms.
+<br>
+A filename</p>
+
+<p style="margin-left:18%;">If the $output parameter is a
+simple scalar, it is assumed to be a filename. This file
+will be opened for writing and the compressed data will be
+written to it.</p>
+
+<p style="margin-left:11%;">A filehandle</p>
+
+<p style="margin-left:18%;">If the $output parameter is a
+filehandle, the compressed data will be written to it. The
+string &rsquo;&minus;&rsquo; can be used as an alias for
+standard output.</p>
+
+<p style="margin-left:11%;">A scalar reference</p>
+
+<p style="margin-left:18%;">If $output is a scalar
+reference, the compressed data will be stored in
+$$output.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the $output
+parameter is any other type,
+&quot;IO::Compress::Zip&quot;::new will return undef.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Constructor
+Options</b> <br>
+&quot;OPTS&quot; is any combination of zero or more the
+following options: <br>
+&quot;AutoClose =&gt; 0|1&quot;</p>
+
+<p style="margin-left:18%;">This option is only valid when
+the $output parameter is a filehandle. If specified, and the
+value is true, it will result in the $output being closed
+once either the &quot;close&quot; method is called or the
+&quot;IO::Compress::Zip&quot; object is destroyed.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This parameter
+defaults to 0.</p>
+
+<p style="margin-left:11%;">&quot;Append =&gt;
+0|1&quot;</p>
+
+<p style="margin-left:18%;">Opens $output in append
+mode.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The behaviour
+of this option is dependent on the type of $output.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="18%"></td>
+<td width="2%">
+
+
+<p>&bull;</p></td>
+<td width="6%"></td>
+<td width="12%">
+
+
+<p>A Buffer</p></td>
+<td width="62%">
+</td></tr>
+</table>
+
+<p style="margin-left:26%; margin-top: 1em">If $output is a
+buffer and &quot;Append&quot; is enabled, all compressed
+data will be append to the end of $output. Otherwise $output
+will be cleared before any data is written to it.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="18%"></td>
+<td width="2%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="6%"></td>
+<td width="16%">
+
+
+<p style="margin-top: 1em">A Filename</p></td>
+<td width="58%">
+</td></tr>
+</table>
+
+<p style="margin-left:26%; margin-top: 1em">If $output is a
+filename and &quot;Append&quot; is enabled, the file will be
+opened in append mode. Otherwise the contents of the file,
+if any, will be truncated before any compressed data is
+written to it.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="18%"></td>
+<td width="2%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="6%"></td>
+<td width="19%">
+
+
+<p style="margin-top: 1em">A Filehandle</p></td>
+<td width="55%">
+</td></tr>
+</table>
+
+<p style="margin-left:26%; margin-top: 1em">If $output is a
+filehandle, the file pointer will be positioned to the end
+of the file via a call to &quot;seek&quot; before any
+compressed data is written to it. Otherwise the file pointer
+will not be moved.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This parameter
+defaults to 0.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>File Naming
+Options</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">A quick bit of
+zip file terminology -- A zip archive consists of one or
+more <i>archive members</i>, where each member has an
+associated filename, known as the <i>archive member
+name</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The options
+listed in this section control how the <i>archive member
+name</i> (or filename) is stored the zip archive. <br>
+&quot;Name =&gt; $string&quot;</p>
+
+<p style="margin-left:18%;">This option is used to
+explicitly set the <i>archive member name</i> in the zip
+archive to $string. Most of the time you don&rsquo;t need to
+make use of this option. By default when adding a filename
+to the zip archive, the <i>archive member name</i> will
+match the filename.</p>
+
+<p style="margin-left:18%; margin-top: 1em">You should only
+need to use this option if you want the <i>archive member
+name</i> to be different from the uncompressed filename or
+when the input is a filehandle or a buffer.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The default
+behaviour for what <i>archive member name</i> is used when
+the &quot;Name&quot; option is <i>not</i> specified depends
+on the form of the $input parameter:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="18%"></td>
+<td width="2%">
+
+
+<p>&bull;</p></td>
+<td width="6%"></td>
+<td width="74%">
+
+
+<p>If the $input parameter is a filename, the value of
+$input will be used for the <i>archive member name</i> .</p></td></tr>
+<tr valign="top" align="left">
+<td width="18%"></td>
+<td width="2%">
+
+
+<p>&bull;</p></td>
+<td width="6%"></td>
+<td width="74%">
+
+
+<p>If the $input parameter is not a filename, the
+<i>archive member name</i> will be an empty string.</p></td></tr>
+</table>
+
+<p style="margin-left:18%; margin-top: 1em">Note that both
+the &quot;CanonicalName&quot; and &quot;FilterName&quot;
+options can modify the value used for the <i>archive member
+name</i>.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Also note that
+you should set the &quot;Efs&quot; option to true if you are
+working with <small>UTF8</small> filenames.</p>
+
+<p style="margin-left:11%;">&quot;CanonicalName =&gt;
+0|1&quot;</p>
+
+<p style="margin-left:18%;">This option controls whether
+the <i>archive member name</i> is <i>normalized</i> into
+Unix format before being written to the zip file.</p>
+
+<p style="margin-left:18%; margin-top: 1em">It is
+recommended that you enable this option unless you really
+need to create a non-standard Zip file.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This is what
+<small>APPNOTE.TXT</small> has to say on what should be
+stored in the zip filename header field.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The name of the
+file, with optional relative path. <br>
+The path stored should not contain a drive or <br>
+device letter, or a leading slash. All slashes <br>
+should be forward slashes '/' as opposed to <br>
+backwards slashes '\' for compatibility with Amiga <br>
+and UNIX file systems etc.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This option
+defaults to <b>false</b>.</p>
+
+<p style="margin-left:11%;">&quot;FilterName =&gt; sub {
+... }&quot;</p>
+
+<p style="margin-left:18%;">This option allow the
+<i>archive member</i> name to be modified before it is
+written to the zip file.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This option
+takes a parameter that must be a reference to a sub. On
+entry to the sub the $_ variable will contain the name to be
+filtered. If no filename is available $_ will contain an
+empty string.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The value of $_
+when the sub returns will be used as the <i>archive member
+name</i>.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Note that if
+&quot;CanonicalName&quot; is enabled, a normalized filename
+will be passed to the sub.</p>
+
+<p style="margin-left:18%; margin-top: 1em">If you use
+&quot;FilterName&quot; to modify the filename, it is your
+responsibility to keep the filename in Unix format.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Although this
+option can be used with the <small>OO</small> interface, it
+is of most use with the one-shot interface. For example, the
+code below shows how &quot;FilterName&quot; can be used to
+remove the path component from a series of filenames before
+they are stored in $zipfile.</p>
+
+<p style="margin-left:18%; margin-top: 1em">sub
+compressTxtFiles <br>
+{ <br>
+my $zipfile = shift ; <br>
+my $dir = shift ; <br>
+zip [ &lt;$dir/*.txt&gt; ] =&gt; $zipfile, <br>
+FilterName =&gt; sub { s[^$dir/][] } ; <br>
+}</p>
+
+<p style="margin-left:11%;">&quot;Efs =&gt; 0|1&quot;</p>
+
+<p style="margin-left:18%;">This option controls setting of
+the &quot;Language Encoding Flag&quot; ( <small>EFS</small>
+) in the zip archive. When set, the filename and comment
+fields for the zip archive <small>MUST</small> be valid
+<small>UTF&minus;8.</small></p>
+
+<p style="margin-left:18%; margin-top: 1em">If the string
+used for the filename and/or comment is not valid
+<small>UTF&minus;8</small> when this option is true, the
+script will die with a &quot;wide character&quot; error.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Note that this
+option only works with Perl 5.8.4 or better.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This option
+defaults to <b>false</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Overall Zip
+Archive Structure</i> <br>
+&quot;Minimal =&gt; 1|0&quot;</p>
+
+<p style="margin-left:18%;">If specified, this option will
+disable the creation of all extra fields in the zip local
+and central headers. So the &quot;exTime&quot;,
+&quot;exUnix2&quot;, &quot;exUnixN&quot;,
+&quot;ExtraFieldLocal&quot; and
+&quot;ExtraFieldCentral&quot; options will be ignored.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This parameter
+defaults to 0.</p>
+
+<p style="margin-left:11%;">&quot;Stream =&gt;
+0|1&quot;</p>
+
+<p style="margin-left:18%;">This option controls whether
+the zip file/buffer output is created in streaming mode.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Note that when
+outputting to a file with streaming mode disabled
+(&quot;Stream&quot; is 0), the output file must be
+seekable.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The default is
+1.</p>
+
+<p style="margin-left:11%;">&quot;Zip64 =&gt; 0|1&quot;</p>
+
+<p style="margin-left:18%;">Create a Zip64 zip file/buffer.
+This option is used if you want to store files larger than 4
+Gig or store more than 64K files in a single zip
+archive.</p>
+
+
+<p style="margin-left:18%; margin-top: 1em">&quot;Zip64&quot;
+will be automatically set, as needed, if working with the
+one-shot interface when the input is either a filename or a
+scalar reference.</p>
+
+<p style="margin-left:18%; margin-top: 1em">If you intend
+to manipulate the Zip64 zip files created with this module
+using an external zip/unzip, make sure that it supports
+Zip64.</p>
+
+<p style="margin-left:18%; margin-top: 1em">In particular,
+if you are using Info-Zip you need to have zip version 3.x
+or better to update a Zip64 archive and unzip version 6.x to
+read a zip64 archive.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The default is
+0.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Deflate
+Compression Options</i> <br>
+&minus;Level</p>
+
+<p style="margin-left:18%;">Defines the compression level
+used by zlib. The value should either be a number between 0
+and 9 (0 means no compression and 9 is maximum compression),
+or one of the symbolic constants defined below.</p>
+
+
+<p style="margin-left:18%; margin-top: 1em">Z_NO_COMPRESSION
+<br>
+Z_BEST_SPEED <br>
+Z_BEST_COMPRESSION <br>
+Z_DEFAULT_COMPRESSION</p>
+
+<p style="margin-left:18%; margin-top: 1em">The default is
+Z_DEFAULT_COMPRESSION.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Note, these
+constants are not imported by &quot;IO::Compress::Zip&quot;
+by default.</p>
+
+<p style="margin-left:18%; margin-top: 1em">use
+IO::Compress::Zip qw(:strategy); <br>
+use IO::Compress::Zip qw(:constants); <br>
+use IO::Compress::Zip qw(:all);</p>
+
+<p style="margin-left:11%;">&minus;Strategy</p>
+
+<p style="margin-left:18%;">Defines the strategy used to
+tune the compression. Use one of the symbolic constants
+defined below.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Z_FILTERED <br>
+Z_HUFFMAN_ONLY <br>
+Z_RLE <br>
+Z_FIXED <br>
+Z_DEFAULT_STRATEGY</p>
+
+<p style="margin-left:18%; margin-top: 1em">The default is
+Z_DEFAULT_STRATEGY.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Bzip2
+Compression Options</i> <br>
+&quot;BlockSize100K =&gt; number&quot;</p>
+
+<p style="margin-left:18%;">Specify the number of 100K
+blocks bzip2 uses during compression.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Valid values
+are from 1 to 9, where 9 is best compression.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This option is
+only valid if the &quot;Method&quot; is
+<small>ZIP_CM_BZIP2.</small> It is ignored otherwise.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The default is
+1.</p>
+
+<p style="margin-left:11%;">&quot;WorkFactor =&gt;
+number&quot;</p>
+
+<p style="margin-left:18%;">Specifies how much effort bzip2
+should take before resorting to a slower fallback
+compression algorithm.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Valid values
+range from 0 to 250, where 0 means use the default value
+30.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This option is
+only valid if the &quot;Method&quot; is
+<small>ZIP_CM_BZIP2.</small> It is ignored otherwise.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The default is
+0.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Lzma and Xz
+Compression Options</i> <br>
+&quot;Preset =&gt; number&quot;</p>
+
+<p style="margin-left:18%;">Used to choose the
+<small>LZMA</small> compression preset.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Valid values
+are 0&minus;9 and &quot;LZMA_PRESET_DEFAULT&quot;.</p>
+
+<p style="margin-left:18%; margin-top: 1em">0 is the
+fastest compression with the lowest memory usage and the
+lowest compression.</p>
+
+<p style="margin-left:18%; margin-top: 1em">9 is the
+slowest compression with the highest memory usage but with
+the best compression.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This option is
+only valid if the &quot;Method&quot; is
+<small>ZIP_CM_LZMA.</small> It is ignored otherwise.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Defaults to
+&quot;LZMA_PRESET_DEFAULT&quot; (6).</p>
+
+<p style="margin-left:11%;">&quot;Extreme =&gt;
+0|1&quot;</p>
+
+<p style="margin-left:18%;">Makes <small>LZMA</small>
+compression a lot slower, but a small compression gain.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This option is
+only valid if the &quot;Method&quot; is
+<small>ZIP_CM_LZMA.</small> It is ignored otherwise.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Defaults to
+0.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Other
+Options</i> <br>
+&quot;Time =&gt; $number&quot;</p>
+
+<p style="margin-left:18%;">Sets the last modified time
+field in the zip header to $number.</p>
+
+<p style="margin-left:18%; margin-top: 1em">This field
+defaults to the time the &quot;IO::Compress::Zip&quot;
+object was created if this option is not specified and the
+$input parameter is not a filename.</p>
+
+<p style="margin-left:11%;">&quot;ExtAttr =&gt;
+$attr&quot;</p>
+
+<p style="margin-left:18%;">This option controls the
+&quot;external file attributes&quot; field in the central
+header of the zip file. This is a 4 byte field.</p>
+
+<p style="margin-left:18%; margin-top: 1em">If you are
+running a Unix derivative this value defaults to</p>
+
+<p style="margin-left:18%; margin-top: 1em">0100644
+&lt;&lt; 16</p>
+
+<p style="margin-left:18%; margin-top: 1em">This should
+allow read/write access to any files that are extracted from
+the zip file/buffer&lsquo;.</p>
+
+<p style="margin-left:18%; margin-top: 1em">For all other
+systems it defaults to 0.</p>
+
+<p style="margin-left:11%;">&quot;exTime =&gt; [$atime,
+$mtime, $ctime]&quot;</p>
+
+<p style="margin-left:18%;">This option expects an array
+reference with exactly three elements: $atime,
+&quot;mtime&quot; and $ctime. These correspond to the last
+access time, last modification time and creation time
+respectively.</p>
+
+<p style="margin-left:18%; margin-top: 1em">It uses these
+values to set the extended timestamp field (
+<small>ID</small> is &quot; <small>UT&quot;</small> ) in the
+local zip header using the three values, $atime, $mtime,
+$ctime. In addition it sets the extended timestamp field in
+the central zip header using $mtime.</p>
+
+<p style="margin-left:18%; margin-top: 1em">If any of the
+three values is &quot;undef&quot; that time value will not
+be used. So, for example, to set only the $mtime you would
+use this</p>
+
+<p style="margin-left:18%; margin-top: 1em">exTime =&gt;
+[undef, $mtime, undef]</p>
+
+<p style="margin-left:18%; margin-top: 1em">If the
+&quot;Minimal&quot; option is set to true, this option will
+be ignored.</p>
+
+<p style="margin-left:18%; margin-top: 1em">By default no
+extended time field is created.</p>
+
+<p style="margin-left:11%;">&quot;exUnix2 =&gt; [$uid,
+$gid]&quot;</p>
+
+<p style="margin-left:18%;">This option expects an array
+reference with exactly two elements: $uid and $gid. These
+values correspond to the numeric User <small>ID</small> (
+<small>UID</small> ) and Group <small>ID</small> (
+<small>GID</small> ) of the owner of the files
+respectively.</p>
+
+<p style="margin-left:18%; margin-top: 1em">When the
+&quot;exUnix2&quot; option is present it will trigger the
+creation of a Unix2 extra field ( <small>ID</small> is
+&quot;Ux&quot;) in the local zip header. This will be
+populated with $uid and $gid. An empty Unix2 extra field
+will also be created in the central zip header.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Note &minus;
+The <small>UID &amp; GID</small> are stored as 16&minus;bit
+integers in the &quot;Ux&quot; field. Use
+&quot;exUnixN&quot; if your <small>UID</small> or
+<small>GID</small> are 32&minus;bit.</p>
+
+<p style="margin-left:18%; margin-top: 1em">If the
+&quot;Minimal&quot; option is set to true, this option will
+be ignored.</p>
+
+<p style="margin-left:18%; margin-top: 1em">By default no
+Unix2 extra field is created.</p>
+
+<p style="margin-left:11%;">&quot;exUnixN =&gt; [$uid,
+$gid]&quot;</p>
+
+<p style="margin-left:18%;">This option expects an array
+reference with exactly two elements: $uid and $gid. These
+values correspond to the numeric User <small>ID</small> (
+<small>UID</small> ) and Group <small>ID</small> (
+<small>GID</small> ) of the owner of the files
+respectively.</p>
+
+<p style="margin-left:18%; margin-top: 1em">When the
+&quot;exUnixN&quot; option is present it will trigger the
+creation of a UnixN extra field ( <small>ID</small> is
+&quot;ux&quot;) in both the local and central zip headers.
+This will be populated with $uid and $gid. The <small>UID
+&amp; GID</small> are stored as 32&minus;bit integers.</p>
+
+<p style="margin-left:18%; margin-top: 1em">If the
+&quot;Minimal&quot; option is set to true, this option will
+be ignored.</p>
+
+<p style="margin-left:18%; margin-top: 1em">By default no
+UnixN extra field is created.</p>
+
+<p style="margin-left:11%;">&quot;Comment =&gt;
+$comment&quot;</p>
+
+<p style="margin-left:18%;">Stores the contents of $comment
+in the Central File Header of the zip file.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Set the
+&quot;Efs&quot; option to true if you want to store a
+<small>UTF8</small> comment.</p>
+
+<p style="margin-left:18%; margin-top: 1em">By default, no
+comment field is written to the zip file.</p>
+
+<p style="margin-left:11%;">&quot;ZipComment =&gt;
+$comment&quot;</p>
+
+<p style="margin-left:18%;">Stores the contents of $comment
+in the End of Central Directory record of the zip file.</p>
+
+<p style="margin-left:18%; margin-top: 1em">By default, no
+comment field is written to the zip file.</p>
+
+<p style="margin-left:11%;">&quot;Method =&gt;
+$method&quot;</p>
+
+<p style="margin-left:18%;">Controls which compression
+method is used. At present the compression methods supported
+are: Store (no compression at all), Deflate, Bzip2, Zstd, Xz
+and Lzma.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The symbols
+<small>ZIP_CM_STORE, ZIP_CM_DEFLATE, ZIP_CM_BZIP2,
+ZIP_CM_ZSTD, ZIP_CM_XZ</small> and
+<small>ZIP_CM_LZMA</small> are used to select the
+compression method.</p>
+
+<p style="margin-left:18%; margin-top: 1em">These constants
+are not imported by &quot;IO::Compress::Zip&quot; by
+default.</p>
+
+<p style="margin-left:18%; margin-top: 1em">use
+IO::Compress::Zip qw(:zip_method); <br>
+use IO::Compress::Zip qw(:constants); <br>
+use IO::Compress::Zip qw(:all);</p>
+
+<p style="margin-left:18%; margin-top: 1em">Note that to
+create Bzip2 content, the module
+&quot;IO::Compress::Bzip2&quot; must be installed. A fatal
+error will be thrown if you attempt to create Bzip2 content
+when &quot;IO::Compress::Bzip2&quot; is not available.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Note that to
+create Lzma content, the module
+&quot;IO::Compress::Lzma&quot; must be installed. A fatal
+error will be thrown if you attempt to create Lzma content
+when &quot;IO::Compress::Lzma&quot; is not available.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Note that to
+create Xz content, the module &quot;IO::Compress::Xz&quot;
+must be installed. A fatal error will be thrown if you
+attempt to create Xz content when
+&quot;IO::Compress::Xz&quot; is not available.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Note that to
+create Zstd content, the module
+&quot;IO::Compress::Zstd&quot; must be installed. A fatal
+error will be thrown if you attempt to create Zstd content
+when &quot;IO::Compress::Zstd&quot; is not available.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The default
+method is <small>ZIP_CM_DEFLATE.</small></p>
+
+<p style="margin-left:11%;">&quot;TextFlag =&gt;
+0|1&quot;</p>
+
+<p style="margin-left:18%;">This parameter controls the
+setting of a bit in the zip central header. It is used to
+signal that the data stored in the zip file/buffer is
+probably text.</p>
+
+<p style="margin-left:18%; margin-top: 1em">In one-shot
+mode this flag will be set to true if the Perl
+&quot;&minus;T&quot; operator thinks the file contains
+text.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The default is
+0.</p>
+
+<p style="margin-left:11%;">&quot;ExtraFieldLocal =&gt;
+$data&quot; <br>
+&quot;ExtraFieldCentral =&gt; $data&quot;</p>
+
+<p style="margin-left:18%;">The &quot;ExtraFieldLocal&quot;
+option is used to store additional metadata in the local
+header for the zip file/buffer. The
+&quot;ExtraFieldCentral&quot; does the same for the matching
+central header.</p>
+
+<p style="margin-left:18%; margin-top: 1em">An extra field
+consists of zero or more subfields. Each subfield consists
+of a two byte header followed by the subfield data.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The list of
+subfields can be supplied in any of the following
+formats</p>
+
+
+<p style="margin-left:18%; margin-top: 1em">ExtraFieldLocal
+=&gt; [$id1, $data1, <br>
+$id2, $data2, <br>
+... <br>
+] <br>
+ExtraFieldLocal =&gt; [ [$id1 =&gt; $data1], <br>
+[$id2 =&gt; $data2], <br>
+... <br>
+] <br>
+ExtraFieldLocal =&gt; { $id1 =&gt; $data1, <br>
+$id2 =&gt; $data2, <br>
+... <br>
+}</p>
+
+<p style="margin-left:18%; margin-top: 1em">Where $id1,
+$id2 are two byte subfield <small>ID</small> &rsquo;s.</p>
+
+<p style="margin-left:18%; margin-top: 1em">If you use the
+hash syntax, you have no control over the order in which the
+ExtraSubFields are stored, plus you cannot have SubFields
+with duplicate <small>ID.</small></p>
+
+<p style="margin-left:18%; margin-top: 1em">Alternatively
+the list of subfields can by supplied as a scalar, thus</p>
+
+<p style="margin-left:18%; margin-top: 1em">ExtraField
+=&gt; $rawdata</p>
+
+<p style="margin-left:18%; margin-top: 1em">In this case
+&quot;IO::Compress::Zip&quot; will check that $rawdata
+consists of zero or more conformant sub-fields.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The Extended
+Time field ( <small>ID &quot;UT&quot;</small> ), set using
+the &quot;exTime&quot; option, and the Unix2 extra field (
+<small>ID</small> &quot;Ux), set using the
+&quot;exUnix2&quot; option, are examples of extra
+fields.</p>
+
+<p style="margin-left:18%; margin-top: 1em">If the
+&quot;Minimal&quot; option is set to true, this option will
+be ignored.</p>
+
+<p style="margin-left:18%; margin-top: 1em">The maximum
+size of an extra field 65535 bytes.</p>
+
+<p style="margin-left:11%;">&quot;Strict =&gt;
+0|1&quot;</p>
+
+<p style="margin-left:18%;">This is a placeholder
+option.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Examples</b>
+<small><br>
+TODO</small></p>
+
+<h2>Methods
+<a name="Methods"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>print</b>
+<br>
+Usage is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$z&minus;&gt;print($data)
+<br>
+print $z $data</p>
+
+<p style="margin-left:11%; margin-top: 1em">Compresses and
+outputs the contents of the $data parameter. This has the
+same behaviour as the &quot;print&quot; built-in.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns true if
+successful.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>printf</b>
+<br>
+Usage is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$z&minus;&gt;printf($format,
+$data) <br>
+printf $z $format, $data</p>
+
+<p style="margin-left:11%; margin-top: 1em">Compresses and
+outputs the contents of the $data parameter.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns true if
+successful.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>syswrite</b>
+<br>
+Usage is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$z&minus;&gt;syswrite
+$data <br>
+$z&minus;&gt;syswrite $data, $length <br>
+$z&minus;&gt;syswrite $data, $length, $offset</p>
+
+<p style="margin-left:11%; margin-top: 1em">Compresses and
+outputs the contents of the $data parameter.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+number of uncompressed bytes written, or &quot;undef&quot;
+if unsuccessful.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>write</b>
+<br>
+Usage is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$z&minus;&gt;write
+$data <br>
+$z&minus;&gt;write $data, $length <br>
+$z&minus;&gt;write $data, $length, $offset</p>
+
+<p style="margin-left:11%; margin-top: 1em">Compresses and
+outputs the contents of the $data parameter.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+number of uncompressed bytes written, or &quot;undef&quot;
+if unsuccessful.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>flush</b>
+<br>
+Usage is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$z&minus;&gt;flush;
+<br>
+$z&minus;&gt;flush($flush_type);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Flushes any
+pending compressed data to the output file/buffer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+takes an optional parameter, $flush_type, that controls how
+the flushing will be carried out. By default the $flush_type
+used is &quot;Z_FINISH&quot;. Other valid values for
+$flush_type are &quot;Z_NO_FLUSH&quot;,
+&quot;Z_SYNC_FLUSH&quot;, &quot;Z_FULL_FLUSH&quot; and
+&quot;Z_BLOCK&quot;. It is strongly recommended that you
+only set the &quot;flush_type&quot; parameter if you fully
+understand the implications of what it does &minus; overuse
+of &quot;flush&quot; can seriously degrade the level of
+compression achieved. See the &quot;zlib&quot; documentation
+for details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns true on
+success.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>tell</b>
+<br>
+Usage is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$z&minus;&gt;tell()
+<br>
+tell $z</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns the
+uncompressed file offset.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>eof</b> <br>
+Usage is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$z&minus;&gt;eof();
+<br>
+eof($z);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns true if
+the &quot;close&quot; method has been called.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>seek</b>
+<br>
+$z&minus;&gt;seek($position, $whence); <br>
+seek($z, $position, $whence);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Provides a
+sub-set of the &quot;seek&quot; functionality, with the
+restriction that it is only legal to seek forward in the
+output file/buffer. It is a fatal error to attempt to seek
+backward.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Empty parts of
+the file/buffer will have <small>NULL</small> (0x00) bytes
+written to them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The $whence
+parameter takes one the usual values, namely
+<small>SEEK_SET, SEEK_CUR</small> or
+<small>SEEK_END.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns 1 on
+success, 0 on failure.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>binmode</b>
+<br>
+Usage is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$z&minus;&gt;binmode
+<br>
+binmode $z ;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is a noop
+provided for completeness.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>opened</b>
+<br>
+$z&minus;&gt;opened()</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns true if
+the object currently refers to a opened file/buffer.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>autoflush</b>
+<br>
+my $prev = $z&minus;&gt;autoflush() <br>
+my $prev = $z&minus;&gt;autoflush(EXPR)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the $z
+object is associated with a file or a filehandle, this
+method returns the current autoflush setting for the
+underlying filehandle. If &quot;EXPR&quot; is present, and
+is non-zero, it will enable flushing after every write/print
+operation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If $z is
+associated with a buffer, this method has no effect and
+always returns &quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Note</b>
+that the special variable $| <b>cannot</b> be used to set or
+retrieve the autoflush setting.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>input_line_number</b>
+<br>
+$z&minus;&gt;input_line_number() <br>
+$z&minus;&gt;input_line_number(EXPR)</p>
+
+<p style="margin-left:11%; margin-top: 1em">This method
+always returns &quot;undef&quot; when compressing.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>fileno</b>
+<br>
+$z&minus;&gt;fileno() <br>
+fileno($z)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the $z
+object is associated with a file or a filehandle,
+&quot;fileno&quot; will return the underlying file
+descriptor. Once the &quot;close&quot; method is called
+&quot;fileno&quot; will return &quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the $z
+object is associated with a buffer, this method will return
+&quot;undef&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>close</b>
+<br>
+$z&minus;&gt;close() ; <br>
+close $z ;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Flushes any
+pending compressed data and then closes the output
+file/buffer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For most
+versions of Perl this method will be automatically invoked
+if the IO::Compress::Zip object is destroyed (either
+explicitly or by the variable with the reference to the
+object going out of scope). The exceptions are Perl versions
+5.005 through 5.00504 and 5.8.0. In these cases, the
+&quot;close&quot; method will be called automatically, but
+not until global destruction of all live objects when the
+program is terminating.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Therefore, if
+you want your scripts to be able to run on all versions of
+Perl, you should call &quot;close&quot; explicitly and not
+rely on automatic closing.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Returns true on
+success, otherwise 0.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+&quot;AutoClose&quot; option has been enabled when the
+IO::Compress::Zip object was created, and the object is
+associated with a file, the underlying file will also be
+closed.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>newStream([
+<small>OPTS</small> ])</b> <br>
+Usage is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$z&minus;&gt;newStream(
+[OPTS] )</p>
+
+<p style="margin-left:11%; margin-top: 1em">Closes the
+current compressed data stream and starts a new one.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>OPTS</small>
+consists of any of the options that are available when
+creating the $z object.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See the
+&quot;Constructor Options&quot; section for more
+details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>deflateParams</b>
+<br>
+Usage is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$z&minus;&gt;deflateParams</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>TODO</small></p>
+
+<h2>Importing
+<a name="Importing"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A number of
+symbolic constants are required by some methods in
+&quot;IO::Compress::Zip&quot;. None are imported by
+default.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="6%">
+
+
+<p>:all</p></td>
+<td width="1%"></td>
+<td width="82%">
+
+
+<p>Imports &quot;zip&quot;, $ZipError and all symbolic
+constants that can be used by &quot;IO::Compress::Zip&quot;.
+Same as doing this</p></td></tr>
+</table>
+
+<p style="margin-left:18%; margin-top: 1em">use
+IO::Compress::Zip qw(zip $ZipError :constants) ;</p>
+
+<p style="margin-left:11%;">:constants</p>
+
+<p style="margin-left:18%;">Import all symbolic constants.
+Same as doing this</p>
+
+<p style="margin-left:18%; margin-top: 1em">use
+IO::Compress::Zip qw(:flush :level :strategy :zip_method)
+;</p>
+
+<p style="margin-left:11%;">:flush</p>
+
+<p style="margin-left:18%;">These symbolic constants are
+used by the &quot;flush&quot; method.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Z_NO_FLUSH <br>
+Z_PARTIAL_FLUSH <br>
+Z_SYNC_FLUSH <br>
+Z_FULL_FLUSH <br>
+Z_FINISH <br>
+Z_BLOCK</p>
+
+<p style="margin-left:11%;">:level</p>
+
+<p style="margin-left:18%;">These symbolic constants are
+used by the &quot;Level&quot; option in the constructor.</p>
+
+
+<p style="margin-left:18%; margin-top: 1em">Z_NO_COMPRESSION
+<br>
+Z_BEST_SPEED <br>
+Z_BEST_COMPRESSION <br>
+Z_DEFAULT_COMPRESSION</p>
+
+<p style="margin-left:11%;">:strategy</p>
+
+<p style="margin-left:18%;">These symbolic constants are
+used by the &quot;Strategy&quot; option in the
+constructor.</p>
+
+<p style="margin-left:18%; margin-top: 1em">Z_FILTERED <br>
+Z_HUFFMAN_ONLY <br>
+Z_RLE <br>
+Z_FIXED <br>
+Z_DEFAULT_STRATEGY</p>
+
+<p style="margin-left:11%;">:zip_method</p>
+
+<p style="margin-left:18%;">These symbolic constants are
+used by the &quot;Method&quot; option in the
+constructor.</p>
+
+<p style="margin-left:18%; margin-top: 1em">ZIP_CM_STORE
+<br>
+ZIP_CM_DEFLATE <br>
+ZIP_CM_BZIP2</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Apache::GZip
+Revisited</b> <br>
+See IO::Compress::FAQ</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Working with
+Net::FTP</b> <br>
+See IO::Compress::FAQ</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">General
+feedback/questions/bug reports should be sent to
+&lt;https://github.com/pmqs/IO&minus;Compress/issues&gt;
+(preferred) or
+&lt;https://rt.cpan.org/Public/Dist/Display.html?Name=IO&minus;Compress&gt;.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Compress::Zlib,
+IO::Compress::Gzip, IO::Uncompress::Gunzip,
+IO::Compress::Deflate, IO::Uncompress::Inflate,
+IO::Compress::RawDeflate, IO::Uncompress::RawInflate,
+IO::Compress::Bzip2, IO::Uncompress::Bunzip2,
+IO::Compress::Lzma, IO::Uncompress::UnLzma,
+IO::Compress::Xz, IO::Uncompress::UnXz, IO::Compress::Lzip,
+IO::Uncompress::UnLzip, IO::Compress::Lzop,
+IO::Uncompress::UnLzop, IO::Compress::Lzf,
+IO::Uncompress::UnLzf, IO::Compress::Zstd,
+IO::Uncompress::UnZstd, IO::Uncompress::AnyInflate,
+IO::Uncompress::AnyUncompress</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">IO::Compress::FAQ</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">File::GlobMapper,
+Archive::Zip, Archive::Tar, IO::Zlib</p>
+
+<p style="margin-left:11%; margin-top: 1em">For <small>RFC
+1950, 1951</small> and 1952 see
+&lt;https://datatracker.ietf.org/doc/html/rfc1950&gt;,
+&lt;https://datatracker.ietf.org/doc/html/rfc1951&gt; and
+&lt;https://datatracker.ietf.org/doc/html/rfc1952&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The <i>zlib</i>
+compression library was written by Jean-loup Gailly
+&quot;gzip@prep.ai.mit.edu&quot; and Mark Adler
+&quot;madler@alumni.caltech.edu&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The primary
+site for the <i>zlib</i> compression library is
+&lt;http://www.zlib.org&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The primary
+site for gzip is &lt;http://www.gzip.org&gt;.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This module was
+written by Paul Marquess, &quot;pmqs@cpan.org&quot;.</p>
+
+<h2>MODIFICATION HISTORY
+<a name="MODIFICATION HISTORY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">See the Changes
+file.</p>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright (c)
+2005&minus;2022 Paul Marquess. All rights reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This program is
+free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+<hr>
+</body>
+</html>

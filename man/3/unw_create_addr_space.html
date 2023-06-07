@@ -1,0 +1,345 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:24 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>UNW_CREATE_ADDR_SPACE</title>
+
+</head>
+<body>
+<h1>unw_create_addr_space</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">unw_create_addr_space
+&minus;&minus; create address space for remote unwinding</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;libunwind.h&gt;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">unw_addr_space_t
+unw_create_addr_space(unw_accessors_t *ap, int
+byteorder);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+unw_create_addr_space() routine creates a new unwind
+address&minus;space and initializes it based on the
+call&minus;back routines passed via the ap pointer and the
+specified byteorder. The call&minus;back routines are
+described in detail below. The byteorder can be set to 0 to
+request the default byte&minus;order of the unwind target.
+To request a particular byte&minus;order, byteorder can be
+set to any constant defined by &lt;endian.h&gt;. In
+particular, __LITTLE_ENDIAN would request
+little&minus;endian byte&minus;order and __BIG_ENDIAN would
+request big&minus;endian byte&minus;order. Whether or not a
+particular byte&minus;order is supported depends on the
+target platform.</p>
+
+<h2>CALL&minus;BACK ROUTINES
+<a name="CALL&minus;BACK ROUTINES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Libunwind uses
+a set of call&minus;back routines to access the information
+it needs to unwind a chain of stack&minus;frames. These
+routines are specified via the ap argument, which points to
+a variable of type unw_accessors_t. The contents of this
+variable is copied into the newly&minus;created address
+space, so the variable must remain valid only for the
+duration of the call to unw_create_addr_space().</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first
+argument to every call&minus;back routine is an
+address&minus;space identifier (as) and the last argument is
+an arbitrary, application&minus;specified void&minus;pointer
+(arg). When invoking a call&minus;back routine, libunwind
+sets the as argument to the address&minus;space on whose
+behalf the invocation is made and the arg argument to the
+value that was specified when unw_init_remote(3) was
+called.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The synopsis
+and a detailed description of every call&minus;back routine
+follows below.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>CALL&minus;BACK
+ROUTINE SYNOPSIS</b> <br>
+int find_proc_info(unw_addr_space_t as, <br>
+unw_word_t ip, unw_proc_info_t *pip, <br>
+int need_unwind_info, void *arg); <br>
+void put_unwind_info(unw_addr_space_t as, <br>
+unw_proc_info_t *pip, void *arg); <br>
+int get_dyn_info_list_addr(unw_addr_space_t as, <br>
+unw_word_t *dilap, void *arg); <br>
+int access_mem(unw_addr_space_t as, <br>
+unw_word_t addr, unw_word_t *valp, <br>
+int write, void *arg); <br>
+int access_reg(unw_addr_space_t as, <br>
+unw_regnum_t regnum, unw_word_t *valp, <br>
+int write, void *arg); <br>
+int access_fpreg(unw_addr_space_t as, <br>
+unw_regnum_t regnum, unw_fpreg_t *fpvalp, <br>
+int write, void *arg); <br>
+int resume(unw_addr_space_t as, <br>
+unw_cursor_t *cp, void *arg); <br>
+int get_proc_name(unw_addr_space_t as, <br>
+unw_word_t addr, char *bufp, <br>
+size_t buf_len, unw_word_t *offp, <br>
+void *arg);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>FIND_PROC_INFO</b>
+<br>
+Libunwind invokes the find_proc_info() call&minus;back to
+locate the information need to unwind a particular
+procedure. The ip argument is an instruction&minus;address
+inside the procedure whose information is needed. The pip
+argument is a pointer to the variable used to return the
+desired information. The type of this variable is
+unw_proc_info_t. See unw_get_proc_info(3) for details.
+Argument need_unwind_info is zero if the call&minus;back
+does not need to provide values for the following members in
+the unw_proc_info_t structure: format, unwind_info_size, and
+unwind_info. If need_unwind_info is non&minus;zero, valid
+values need to be returned in these members. Furthermore,
+the contents of the memory addressed by the unwind_info
+member must remain valid until the info is released via the
+put_unwind_info call&minus;back (see below).</p>
+
+<p style="margin-left:11%; margin-top: 1em">On successful
+completion, the find_proc_info() call&minus;back must return
+zero. Otherwise, the negative value of one of the
+unw_error_t error&minus;codes may be returned. In
+particular, this call&minus;back may return
+&minus;UNW_ESTOPUNWIND to signal the end of the
+frame&minus;chain.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>PUT_UNWIND_INFO</b>
+<br>
+Libunwind invokes the put_unwind_info() call&minus;back to
+release the resources (such as memory) allocated by a
+previous call to find_proc_info() with the need_unwind_info
+argument set to a non&minus;zero value. The pip argument has
+the same value as the argument of the same name in the
+previous matching call to find_proc_info(). Note that
+libunwind does <i>not</i> invoke put_unwind_info for calls
+to find_proc_info() with a zero need_unwind_info
+argument.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>GET_DYN_INFO_LIST_ADDR</b>
+<br>
+Libunwind invokes the get_dyn_info_list_addr()
+call&minus;back to obtain the address of the head of the
+dynamic unwind&minus;info registration list. The variable
+stored at the returned address must have a type of
+unw_dyn_info_list_t (see _U_dyn_register(3)). The dliap
+argument is a pointer to a variable of type unw_word_t which
+is used to return the address of the dynamic
+unwind&minus;info registration list. If no dynamic
+unwind&minus;info registration list exist, the value pointed
+to by dliap must be cleared to zero. Libunwind will cache
+the value returned by get_dyn_info_list_addr() if caching is
+enabled for the given address&minus;space. The cache can be
+cleared with a call to unw_flush_cache().</p>
+
+<p style="margin-left:11%; margin-top: 1em">On successful
+completion, the get_dyn_info_list_addr() call&minus;back
+must return zero. Otherwise, the negative value of one of
+the unw_error_t error&minus;codes may be returned.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ACCESS_MEM</b>
+<br>
+Libunwind invokes the access_mem() call&minus;back to read
+from or write to a word of memory in the target
+address&minus;space. The address of the word to be accessed
+is passed in argument addr. To read memory, libunwind sets
+argument write to zero and valp to point to the word that
+receives the read value. To write memory, libunwind sets
+argument write to a non&minus;zero value and valp to point
+to the word that contains the value to be written. The word
+that valp points to is always in the byte&minus;order of the
+host&minus;platform, regardless of the byte&minus;order of
+the target. In other words, it is the responsibility of the
+call&minus;back routine to convert between the
+target&rsquo;s and the host&rsquo;s byte&minus;order, if
+necessary.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On successful
+completion, the access_mem() call&minus;back must return
+zero. Otherwise, the negative value of one of the
+unw_error_t error&minus;codes may be returned.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ACCESS_REG</b>
+<br>
+Libunwind invokes the access_reg() call&minus;back to read
+from or write to a scalar (non&minus;floating&minus;point)
+CPU register. The index of the register to be accessed is
+passed in argument regnum. To read a register, libunwind
+sets argument write to zero and valp to point to the word
+that receives the read value. To write a register, libunwind
+sets argument write to a non&minus;zero value and valp to
+point to the word that contains the value to be written. The
+word that valp points to is always in the byte&minus;order
+of the host&minus;platform, regardless of the
+byte&minus;order of the target. In other words, it is the
+responsibility of the call&minus;back routine to convert
+between the target&rsquo;s and the host&rsquo;s
+byte&minus;order, if necessary.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On successful
+completion, the access_reg() call&minus;back must return
+zero. Otherwise, the negative value of one of the
+unw_error_t error&minus;codes may be returned.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ACCESS_FPREG</b>
+<br>
+Libunwind invokes the access_fpreg() call&minus;back to read
+from or write to a floating&minus;point CPU register. The
+index of the register to be accessed is passed in argument
+regnum. To read a register, libunwind sets argument write to
+zero and fpvalp to point to a variable of type unw_fpreg_t
+that receives the read value. To write a register, libunwind
+sets argument write to a non&minus;zero value and fpvalp to
+point to the variable of type unw_fpreg_t that contains the
+value to be written. The word that fpvalp points to is
+always in the byte&minus;order of the host&minus;platform,
+regardless of the byte&minus;order of the target. In other
+words, it is the responsibility of the call&minus;back
+routine to convert between the target&rsquo;s and the
+host&rsquo;s byte&minus;order, if necessary.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On successful
+completion, the access_fpreg() call&minus;back must return
+zero. Otherwise, the negative value of one of the
+unw_error_t error&minus;codes may be returned.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>RESUME</b>
+<br>
+Libunwind invokes the resume() call&minus;back to resume
+execution in the target address space. Argument cp is the
+unwind&minus;cursor that identifies the stack&minus;frame in
+which execution should resume. By the time libunwind invokes
+the resume call&minus;back, it has already established the
+desired machine&minus; and memory&minus;state via calls to
+the access_reg(), access_fpreg, and access_mem()
+call&minus;backs. Thus, all the call&minus;back needs to do
+is perform whatever action is needed to actually resume
+execution.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The resume
+call&minus;back is invoked only in response to a call to
+unw_resume(3), so applications which never invoke
+unw_resume(3) need not define the resume callback.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On successful
+completion, the resume() call&minus;back must return zero.
+Otherwise, the negative value of one of the unw_error_t
+error&minus;codes may be returned. As a special case, when
+resuming execution in the local address space, the
+call&minus;back will not return on success.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>GET_PROC_NAME</b>
+<br>
+Libunwind invokes the get_proc_name() call&minus;back to
+obtain the procedure&minus;name of a static (not dynamically
+generated) procedure. Argument addr is an
+instruction&minus;address within the procedure whose name is
+to be obtained. The bufp argument is a pointer to a
+character&minus;buffer used to return the procedure name.
+The size of this buffer is specified in argument buf_len.
+The returned name must be terminated by a NUL character. If
+the procedure&rsquo;s name is longer than buf_len bytes, it
+must be truncated to buf_len&minus;1 bytes, with the last
+byte in the buffer set to the NUL character and
+&minus;UNW_ENOMEM must be returned. Argument offp is a
+pointer to a word which is used to return the
+byte&minus;offset relative to the start of the procedure
+whose name is being returned. For example, if procedure
+foo() starts at address 0x40003000, then invoking
+get_proc_name() with addr set to 0x40003080 should return a
+value of 0x80 in the word pointed to by offp (assuming the
+procedure is at least 0x80 bytes long).</p>
+
+<p style="margin-left:11%; margin-top: 1em">On successful
+completion, the get_proc_name() call&minus;back must return
+zero. Otherwise, the negative value of one of the
+unw_error_t error&minus;codes may be returned.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On successful
+completion, unw_create_addr_space() returns a non&minus;NULL
+value that represents the newly created address&minus;space.
+Otherwise, NULL is returned.</p>
+
+<h2>THREAD AND SIGNAL SAFETY
+<a name="THREAD AND SIGNAL SAFETY"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">unw_create_addr_space()
+is thread&minus;safe but <i>not</i> safe to use from a
+signal handler.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">_U_dyn_register(3),
+libunwind(3), unw_destroy_addr_space(3),
+unw_get_proc_info(3), unw_init_remote(3), unw_resume(3)</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">David
+Mosberger&minus;Tang <br>
+Email: <b>dmosberger@gmail.com</b> <br>
+WWW: <b>http://www.nongnu.org/libunwind/</b>.</p>
+<hr>
+</body>
+</html>

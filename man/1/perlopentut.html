@@ -1,0 +1,569 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:59 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERLOPENTUT</title>
+
+</head>
+<body>
+<h1>perlopentut</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perlopentut
+&minus; simple recipes for opening files and pipes in
+Perl</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Whenever you do
+I/O on a file in Perl, you do so through what in Perl is
+called a <b>filehandle</b>. A filehandle is an internal name
+for an external file. It is the job of the &quot;open&quot;
+function to make the association between the internal name
+and the external name, and it is the job of the
+&quot;close&quot; function to break that association.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For your
+convenience, Perl sets up a few special filehandles that are
+already open when you run. These include &quot;STDIN&quot;,
+&quot;STDOUT&quot;, &quot;STDERR&quot;, and
+&quot;ARGV&quot;. Since those are pre-opened, you can use
+them right away without having to go to the trouble of
+opening them yourself:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print STDERR
+&quot;This is a debugging message.\n&quot;; <br>
+print STDOUT &quot;Please enter something: &quot;; <br>
+$response = &lt;STDIN&gt; // die &quot;how come no
+input?&quot;; <br>
+print STDOUT &quot;Thank you!\n&quot;; <br>
+while (&lt;ARGV&gt;) { ... }</p>
+
+<p style="margin-left:11%; margin-top: 1em">As you see from
+those examples, &quot;STDOUT&quot; and &quot;STDERR&quot;
+are output handles, and &quot;STDIN&quot; and
+&quot;ARGV&quot; are input handles. They are in all capital
+letters because they are reserved to Perl, much like the
+@ARGV array and the %ENV hash are. Their external
+associations were set up by your shell.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You will need
+to open every other filehandle on your own. Although there
+are many variants, the most common way to call Perl&rsquo;s
+<b>open()</b> function is with three arguments and one
+return value:</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;
+<i>OK</i> = open(<i>HANDLE</i>, <i>MODE</i>,
+<i>PATHNAME</i>)&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Where:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><i><small>OK</small></i></p></td>
+<td width="3%"></td>
+<td width="83%">
+
+
+<p>will be some defined value if the open succeeds, but
+&quot;undef&quot; if it fails;</p></td></tr>
+</table>
+
+
+<p style="margin-left:11%;"><i><small>HANDLE</small></i></p>
+
+<p style="margin-left:17%;">should be an undefined scalar
+variable to be filled in by the &quot;open&quot; function if
+it succeeds;</p>
+
+<p style="margin-left:11%;"><i><small>MODE</small></i></p>
+
+<p style="margin-left:17%;">is the access mode and the
+encoding format to open the file with;</p>
+
+
+<p style="margin-left:11%;"><i><small>PATHNAME</small></i></p>
+
+<p style="margin-left:17%;">is the external name of the
+file you want opened.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Most of the
+complexity of the &quot;open&quot; function lies in the many
+possible values that the <i><small>MODE</small></i>
+parameter can take on.</p>
+
+<p style="margin-left:11%; margin-top: 1em">One last thing
+before we show you how to open files: opening files does not
+(usually) automatically lock them in Perl. See perlfaq5 for
+how to lock.</p>
+
+<h2>Opening Text Files
+<a name="Opening Text Files"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Opening Text
+Files for Reading</b> <br>
+If you want to read from a text file, first open it in
+read-only mode like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $filename =
+&quot;/some/path/to/a/textfile/goes/here&quot;; <br>
+my $encoding = &quot;:encoding(UTF&minus;8)&quot;; <br>
+my $handle = undef; # this will be filled in on success <br>
+open($handle, &quot;&lt; $encoding&quot;, $filename) <br>
+|| die &quot;$0: can't open $filename for reading:
+$!&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">As with the
+shell, in Perl the &quot;&lt;&quot; is used to open the file
+in read-only mode. If it succeeds, Perl allocates a brand
+new filehandle for you and fills in your previously
+undefined $handle argument with a reference to that
+handle.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now you may use
+functions like &quot;readline&quot;, &quot;read&quot;,
+&quot;getc&quot;, and &quot;sysread&quot; on that handle.
+Probably the most common input function is the one that
+looks like an operator:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$line =
+readline($handle); <br>
+$line = &lt;$handle&gt;; # same thing</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because the
+&quot;readline&quot; function returns &quot;undef&quot; at
+end of file or upon error, you will sometimes see it used
+this way:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$line =
+&lt;$handle&gt;; <br>
+if (defined $line) { <br>
+# do something with $line <br>
+} <br>
+else { <br>
+# $line is not valid, so skip it <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+just quickly &quot;die&quot; on an undefined value this
+way:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$line =
+&lt;$handle&gt; // die &quot;no input found&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, if
+hitting <small>EOF</small> is an expected and normal event,
+you do not want to exit simply because you have run out of
+input. Instead, you probably just want to exit an input
+loop. You can then test to see if an actual error has caused
+the loop to terminate, and act accordingly:</p>
+
+<p style="margin-left:11%; margin-top: 1em">while
+(&lt;$handle&gt;) { <br>
+# do something with data in $_ <br>
+} <br>
+if ($!) { <br>
+die &quot;unexpected error while reading from $filename:
+$!&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>A Note on
+Encodings</b>: Having to specify the text encoding every
+time might seem a bit of a bother. To set up a default
+encoding for &quot;open&quot; so that you don&rsquo;t have
+to supply it each time, you can use the &quot;open&quot;
+pragma:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use open qw&lt;
+:encoding(UTF&minus;8) &gt;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once
+you&rsquo;ve done that, you can safely omit the encoding
+part of the open mode:</p>
+
+<p style="margin-left:11%; margin-top: 1em">open($handle,
+&quot;&lt;&quot;, $filename) <br>
+|| die &quot;$0: can't open $filename for reading:
+$!&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">But never use
+the bare &quot;&lt;&quot; without having set up a default
+encoding first. Otherwise, Perl cannot know which of the
+many, many, many possible flavors of text file you have, and
+Perl will have no idea how to correctly map the data in your
+file into actual characters it can work with. Other common
+encoding formats including &quot;ASCII&quot;,
+&quot;ISO&minus;8859&minus;1&quot;,
+&quot;ISO&minus;8859&minus;15&quot;,
+&quot;Windows&minus;1252&quot;, &quot;MacRoman&quot;, and
+even &quot;UTF&minus;16LE&quot;. See perlunitut for more
+about encodings.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Opening Text
+Files for Writing</b> <br>
+When you want to write to a file, you first have to decide
+what to do about any existing contents of that file. You
+have two basic choices here: to preserve or to clobber.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you want to
+preserve any existing contents, then you want to open the
+file in append mode. As in the shell, in Perl you use
+&quot;&gt;&gt;&quot; to open an existing file in append
+mode. &quot;&gt;&gt;&quot; creates the file if it does not
+already exist.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $handle =
+undef; <br>
+my $filename =
+&quot;/some/path/to/a/textfile/goes/here&quot;; <br>
+my $encoding = &quot;:encoding(UTF&minus;8)&quot;; <br>
+open($handle, &quot;&gt;&gt; $encoding&quot;, $filename)
+<br>
+|| die &quot;$0: can't open $filename for appending:
+$!&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now you can
+write to that filehandle using any of &quot;print&quot;,
+&quot;printf&quot;, &quot;say&quot;, &quot;write&quot;, or
+&quot;syswrite&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As noted above,
+if the file does not already exist, then the append-mode
+open will create it for you. But if the file does already
+exist, its contents are safe from harm because you will be
+adding your new text past the end of the old text.</p>
+
+<p style="margin-left:11%; margin-top: 1em">On the other
+hand, sometimes you want to clobber whatever might already
+be there. To empty out a file before you start writing to
+it, you can open it in write-only mode:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $handle =
+undef; <br>
+my $filename =
+&quot;/some/path/to/a/textfile/goes/here&quot;; <br>
+my $encoding = &quot;:encoding(UTF&minus;8)&quot;; <br>
+open($handle, &quot;&gt; $encoding&quot;, $filename) <br>
+|| die &quot;$0: can't open $filename in write&minus;open
+mode: $!&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here again Perl
+works just like the shell in that the &quot;&gt;&quot;
+clobbers an existing file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As with the
+append mode, when you open a file in write-only mode, you
+can now write to that filehandle using any of
+&quot;print&quot;, &quot;printf&quot;, &quot;say&quot;,
+&quot;write&quot;, or &quot;syswrite&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">What about
+read-write mode? You should probably pretend it
+doesn&rsquo;t exist, because opening text files in
+read-write mode is unlikely to do what you would like. See
+perlfaq5 for details.</p>
+
+<h2>Opening Binary Files
+<a name="Opening Binary Files"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If the file to
+be opened contains binary data instead of text characters,
+then the &quot;MODE&quot; argument to &quot;open&quot; is a
+little different. Instead of specifying the encoding, you
+tell Perl that your data are in raw bytes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $filename =
+&quot;/some/path/to/a/binary/file/goes/here&quot;; <br>
+my $encoding = &quot;:raw :bytes&quot; <br>
+my $handle = undef; # this will be filled in on success</p>
+
+<p style="margin-left:11%; margin-top: 1em">And then open
+as before, choosing &quot;&lt;&quot;, &quot;&gt;&gt;&quot;,
+or &quot;&gt;&quot; as needed:</p>
+
+<p style="margin-left:11%; margin-top: 1em">open($handle,
+&quot;&lt; $encoding&quot;, $filename) <br>
+|| die &quot;$0: can't open $filename for reading: $!&quot;;
+<br>
+open($handle, &quot;&gt;&gt; $encoding&quot;, $filename)
+<br>
+|| die &quot;$0: can't open $filename for appending:
+$!&quot;; <br>
+open($handle, &quot;&gt; $encoding&quot;, $filename) <br>
+|| die &quot;$0: can't open $filename in write&minus;open
+mode: $!&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternately,
+you can change to binary mode on an existing handle this
+way:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">binmode($handle)
+|| die &quot;cannot binmode handle&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is
+especially handy for the handles that Perl has already
+opened for you.</p>
+
+<p style="margin-left:11%; margin-top: 1em">binmode(STDIN)
+|| die &quot;cannot binmode STDIN&quot;; <br>
+binmode(STDOUT) || die &quot;cannot binmode
+STDOUT&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+pass &quot;binmode&quot; an explicit encoding to change it
+on the fly. This isn&rsquo;t exactly &quot;binary&quot;
+mode, but we still use &quot;binmode&quot; to do it:</p>
+
+<p style="margin-left:11%; margin-top: 1em">binmode(STDIN,
+&quot;:encoding(MacRoman)&quot;) || die &quot;cannot binmode
+STDIN&quot;; <br>
+binmode(STDOUT, &quot;:encoding(UTF&minus;8)&quot;) || die
+&quot;cannot binmode STDOUT&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once you have
+your binary file properly opened in the right mode, you can
+use all the same Perl I/O functions as you used on text
+files. However, you may wish to use the fixed-size
+&quot;read&quot; instead of the variable-sized
+&quot;readline&quot; for your input.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s an
+example of how to copy a binary file:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $BUFSIZ = 64
+* (2 ** 10); <br>
+my $name_in = &quot;/some/input/file&quot;; <br>
+my $name_out = &quot;/some/output/flie&quot;; <br>
+my($in_fh, $out_fh, $buffer); <br>
+open($in_fh, &quot;&lt;&quot;, $name_in) <br>
+|| die &quot;$0: cannot open $name_in for reading: $!&quot;;
+<br>
+open($out_fh, &quot;&gt;&quot;, $name_out) <br>
+|| die &quot;$0: cannot open $name_out for writing:
+$!&quot;; <br>
+for my $fh ($in_fh, $out_fh) { <br>
+binmode($fh) || die &quot;binmode failed&quot;; <br>
+} <br>
+while (read($in_fh, $buffer, $BUFSIZ)) { <br>
+unless (print $out_fh $buffer) { <br>
+die &quot;couldn't write to $name_out: $!&quot;; <br>
+} <br>
+} <br>
+close($in_fh) || die &quot;couldn't close $name_in:
+$!&quot;; <br>
+close($out_fh) || die &quot;couldn't close $name_out:
+$!&quot;;</p>
+
+<h2>Opening Pipes
+<a name="Opening Pipes"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Perl also lets
+you open a filehandle into an external program or shell
+command rather than into a file. You can do this in order to
+pass data from your Perl program to an external command for
+further processing, or to receive data from another program
+for your own Perl program to process.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Filehandles
+into commands are also known as <i>pipes</i>, since they
+work on similar inter-process communication principles as
+Unix pipelines. Such a filehandle has an active program
+instead of a static file on its external end, but in every
+other sense it works just like a more typical file-based
+filehandle, with all the techniques discussed earlier in
+this article just as applicable.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As such, you
+open a pipe using the same &quot;open&quot; call that you
+use for opening files, setting the second (&quot;MODE&quot;)
+argument to special characters that indicate either an input
+or an output pipe. Use &quot;&minus;|&quot; for a filehandle
+that will let your Perl program read data from an external
+program, and &quot;|&minus;&quot; for a filehandle that will
+send data to that program instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Opening a
+pipe for reading</b> <br>
+Let&rsquo;s say you&rsquo;d like your Perl program to
+process data stored in a nearby directory called
+&quot;unsorted&quot;, which contains a number of textfiles.
+You&rsquo;d also like your program to sort all the contents
+from these files into a single, alphabetically sorted list
+of unique lines before it starts processing them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You could do
+this through opening an ordinary filehandle into each of
+those files, gradually building up an in-memory array of all
+the file contents you load this way, and finally sorting and
+filtering that array when you&rsquo;ve run out of files to
+load. <i>Or</i>, you could offload all that merging and
+sorting into your operating system&rsquo;s own
+&quot;sort&quot; command by opening a pipe directly into its
+output, and get to work that much faster.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s
+how that might look:</p>
+
+<p style="margin-left:11%; margin-top: 1em">open(my
+$sort_fh, '&minus;|', 'sort &minus;u unsorted/*.txt') <br>
+or die &quot;Couldn't open a pipe into sort: $!&quot;; <br>
+# And right away, we can start reading sorted lines: <br>
+while (my $line = &lt;$sort_fh&gt;) { <br>
+# <br>
+# ... Do something interesting with each $line here ... <br>
+# <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The second
+argument to &quot;open&quot;, &quot;&minus;|&quot;, makes it
+a read-pipe into a separate program, rather than an ordinary
+filehandle into a file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+third argument to &quot;open&quot; is a string containing
+the program name (&quot;sort&quot;) plus all its arguments:
+in this case, &quot;&minus;u&quot; to specify unqiue sort,
+and then a fileglob specifying the files to sort. The
+resulting filehandle $sort_fh works just like a read-only
+(&quot;&lt;&quot;) filehandle, and your program can
+subsequently read data from it as if it were opened onto an
+ordinary, single file.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Opening a
+pipe for writing</b> <br>
+Continuing the previous example, let&rsquo;s say that your
+program has completed its processing, and the results sit in
+an array called @processed. You want to print these lines to
+a file called &quot;numbered.txt&quot; with a neatly
+formatted column of line-numbers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Certainly you
+could write your own code to do this X or, once again, you
+could kick that work over to another program. In this case,
+&quot;cat&quot;, running with its own &quot;&minus;n&quot;
+option to activate line numbering, should do the trick:</p>
+
+<p style="margin-left:11%; margin-top: 1em">open(my
+$cat_fh, '|&minus;', 'cat &minus;n &gt; numbered.txt') <br>
+or die &quot;Couldn't open a pipe into cat: $!&quot;; <br>
+for my $line (@processed) { <br>
+print $cat_fh $line; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here, we use a
+second &quot;open&quot; argument of &quot;|&minus;&quot;,
+signifying that the filehandle assigned to $cat_fh should be
+a write-pipe. We can then use it just as we would a
+write-only ordinary filehandle, including the basic function
+of &quot;print&quot;&minus;ing data to it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+third argument, specifying the command that we wish to pipe
+to, sets up &quot;cat&quot; to redirect its output via that
+&quot;&gt;&quot; symbol into the file
+&quot;numbered.txt&quot;. This can start to look a little
+tricky, because that same symbol would have meant something
+entirely different had it showed it in the second argument
+to &quot;open&quot;! But here in the third argument,
+it&rsquo;s simply part of the shell command that Perl will
+open the pipe into, and Perl itself doesn&rsquo;t invest any
+special meaning to it.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Expressing
+the command as a list</b> <br>
+For opening pipes, Perl offers the option to call
+&quot;open&quot; with a list comprising the desired command
+and all its own arguments as separate elements, rather than
+combining them into a single string as in the examples
+above. For instance, we could have phrased the
+&quot;open&quot; call in the first example like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">open(my
+$sort_fh, '&minus;|', 'sort', '&minus;u',
+glob('unsorted/*.txt')) <br>
+or die &quot;Couldn't open a pipe into sort: $!&quot;;</p>
+
+<p style="margin-left:11%; margin-top: 1em">When you call
+&quot;open&quot; this way, Perl invokes the given command
+directly, bypassing the shell. As such, the shell
+won&rsquo;t try to interpret any special characters within
+the command&rsquo;s argument list, which might overwise have
+unwanted effects. This can make for safer, less error-prone
+&quot;open&quot; calls, useful in cases such as passing in
+variables as arguments, or even just referring to filenames
+with spaces in them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, when
+you <i>do</i> want to pass a meaningful metacharacter to the
+shell, such with the &quot;*&quot; inside that final
+&quot;unsorted/*.txt&quot; argument here, you can&rsquo;t
+use this alternate syntax. In this case, we have worked
+around it via Perl&rsquo;s handy &quot;glob&quot; built-in
+function, which evaluates its argument into a list of
+filenames X and we can safely pass that resulting list right
+into &quot;open&quot;, as shown above.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note also that
+representing piped-command arguments in list form like this
+doesn&rsquo;t work on every platform. It will work on any
+Unix-based <small>OS</small> that provides a real
+&quot;fork&quot; function (e.g. macOS or Linux), as well as
+on Windows when running Perl 5.22 or later.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The full
+documentation for &quot;open&quot; provides a thorough
+reference to this function, beyond the best-practice basics
+covered here.</p>
+
+<h2>AUTHOR and COPYRIGHT
+<a name="AUTHOR and COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright 2013
+Tom Christiansen; now maintained by Perl5 Porters</p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+documentation is free; you can redistribute it and/or modify
+it under the same terms as Perl itself.</p>
+<hr>
+</body>
+</html>

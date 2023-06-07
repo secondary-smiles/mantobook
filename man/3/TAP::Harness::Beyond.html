@@ -1,0 +1,574 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:16 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>TAP::Harness::Beyond</title>
+
+</head>
+<body>
+<h1>TAP::Harness::Beyond</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Test::Harness::Beyond
+&minus; Beyond make test</p>
+
+<h2>Beyond make test
+<a name="Beyond make test"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Test::Harness
+is responsible for running test scripts, analysing their
+output and reporting success or failure. When I type <i>make
+test</i> (or <i>./Build test</i>) for a module,
+Test::Harness is usually used to run the tests (not all
+modules use Test::Harness but the majority do).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To start
+exploring some of the features of Test::Harness I need to
+switch from <i>make test</i> to the <i>prove</i> command
+(which ships with Test::Harness). For the following examples
+I&rsquo;ll also need a recent version of Test::Harness
+installed; 3.14 is current as I write.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For the
+examples I&rsquo;m going to assume that we&rsquo;re working
+with a &rsquo;normal&rsquo; Perl module distribution.
+Specifically I&rsquo;ll assume that typing <i>make</i> or
+<i>./Build</i> causes the built, ready-to-install module
+code to be available below ./blib/lib and ./blib/arch and
+that there&rsquo;s a directory called &rsquo;t&rsquo; that
+contains our tests. Test::Harness isn&rsquo;t hardwired to
+that configuration but it saves me from explaining which
+files live where for each example.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Back to
+<i>prove</i>; like <i>make test</i> it runs a test suite
+&minus; but it provides far more control over which tests
+are executed, in what order and how their results are
+reported. Typically <i>make test</i> runs all the test
+scripts below the &rsquo;t&rsquo; directory. To do the same
+thing with prove I type:</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove &minus;rb
+t</p>
+
+<p style="margin-left:11%; margin-top: 1em">The switches
+here are &minus;r to recurse into any directories below
+&rsquo;t&rsquo; and &minus;b which adds ./blib/lib and
+./blib/arch to Perl&rsquo;s include path so that the tests
+can find the code they will be testing. If I&rsquo;m testing
+a module of which an earlier version is already installed I
+need to be careful about the include path to make sure
+I&rsquo;m not running my tests against the installed version
+rather than the new one that I&rsquo;m working on.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unlike <i>make
+test</i>, typing <i>prove</i> doesn&rsquo;t automatically
+rebuild my module. If I forget to make before prove I will
+be testing against older versions of those files &minus;
+which inevitably leads to confusion. I either get into the
+habit of typing</p>
+
+<p style="margin-left:11%; margin-top: 1em">make &amp;&amp;
+prove &minus;rb t</p>
+
+<p style="margin-left:11%; margin-top: 1em">or &minus; if I
+have no <small>XS</small> code that needs to be built I use
+the modules below <i>lib</i> instead</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove
+&minus;Ilib &minus;r t</p>
+
+<p style="margin-left:11%; margin-top: 1em">So far
+I&rsquo;ve shown you nothing that <i>make test</i>
+doesn&rsquo;t do. Let&rsquo;s fix that.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Saved
+State</b> <br>
+If I have failing tests in a test suite that consists of
+more than a handful of scripts and takes more than a few
+seconds to run it rapidly becomes tedious to run the whole
+test suite repeatedly as I track down the problems.</p>
+
+<p style="margin-left:11%; margin-top: 1em">I can tell
+prove just to run the tests that are failing like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove &minus;b
+t/this_fails.t t/so_does_this.t</p>
+
+<p style="margin-left:11%; margin-top: 1em">That speeds
+things up but I have to make a note of which tests are
+failing and make sure that I run those tests. Instead I can
+use prove&rsquo;s &minus;&minus;state switch and have it
+keep track of failing tests for me. First I do a complete
+run of the test suite and tell prove to save the
+results:</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove &minus;rb
+&minus;&minus;state=save t</p>
+
+<p style="margin-left:11%; margin-top: 1em">That stores a
+machine readable summary of the test run in a file called
+&rsquo;.prove&rsquo; in the current directory. If I have
+failures I can then run just the failing scripts like
+this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove &minus;b
+&minus;&minus;state=failed</p>
+
+<p style="margin-left:11%; margin-top: 1em">I can also tell
+prove to save the results again so that it updates its idea
+of which tests failed:</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove &minus;b
+&minus;&minus;state=failed,save</p>
+
+<p style="margin-left:11%; margin-top: 1em">As soon as one
+of my failing tests passes it will be removed from the list
+of failed tests. Eventually I fix them all and prove can
+find no failing tests to run:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Files=0,
+Tests=0, 0 wallclock secs ( 0.00 usr + 0.00 sys = 0.00 CPU)
+<br>
+Result: NOTESTS</p>
+
+<p style="margin-left:11%; margin-top: 1em">As I work on a
+particular part of my module it&rsquo;s most likely that the
+tests that cover that code will fail. I&rsquo;d like to run
+the whole test suite but have it prioritize these
+&rsquo;hot&rsquo; tests. I can tell prove to do this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove &minus;rb
+&minus;&minus;state=hot,save t</p>
+
+<p style="margin-left:11%; margin-top: 1em">All the tests
+will run but those that failed most recently will be run
+first. If no tests have failed since I started saving state
+all tests will run in their normal order. This combines full
+test coverage with early notification of failures.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&minus;&minus;state switch supports a number of options; for
+example to run failed tests first followed by all remaining
+tests ordered by the timestamps of the test scripts &minus;
+and save the results &minus; I can use</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove &minus;rb
+&minus;&minus;state=failed,new,save t</p>
+
+<p style="margin-left:11%; margin-top: 1em">See the prove
+documentation (type prove &minus;&minus;man) for the full
+list of state options.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When I tell
+prove to save state it writes a file called
+&rsquo;.prove&rsquo; (&rsquo;_prove&rsquo; on Windows) in
+the current directory. It&rsquo;s a <small>YAML</small>
+document so it&rsquo;s quite easy to write tools of your own
+that work on the saved test state &minus; but the format
+isn&rsquo;t officially documented so it might change without
+(much) warning in the future.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Parallel
+Testing</b> <br>
+If my tests take too long to run I may be able to speed them
+up by running multiple test scripts in parallel. This is
+particularly effective if the tests are I/O bound or if I
+have multiple <small>CPU</small> cores. I tell prove to run
+my tests in parallel like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove &minus;rb
+&minus;j 9 t</p>
+
+<p style="margin-left:11%; margin-top: 1em">The &minus;j
+switch enables parallel testing; the number that follows it
+is the maximum number of tests to run in parallel. Sometimes
+tests that pass when run sequentially will fail when run in
+parallel. For example if two different test scripts use the
+same temporary file or attempt to listen on the same socket
+I&rsquo;ll have problems running them in parallel. If I see
+unexpected failures I need to check my tests to work out
+which of them are trampling on the same resource and rename
+temporary files or add locks as appropriate.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To get the most
+performance benefit I want to have the test scripts that
+take the longest to run start first &minus; otherwise
+I&rsquo;ll be waiting for the one test that takes nearly a
+minute to complete after all the others are done. I can use
+the &minus;&minus;state switch to run the tests in slowest
+to fastest order:</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove &minus;rb
+&minus;j 9 &minus;&minus;state=slow,save t</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Non-Perl
+Tests</b> <br>
+The Test Anything Protocol (http://testanything.org/)
+isn&rsquo;t just for Perl. Just about any language can be
+used to write tests that output <small>TAP.</small> There
+are <small>TAP</small> based testing libraries for C, C
+<small>++</small> , <small>PHP,</small> Python and many
+others. If I can&rsquo;t find a <small>TAP</small> library
+for my language of choice it&rsquo;s easy to generate valid
+<small>TAP.</small> It looks like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">1..3 <br>
+ok 1 &minus; init OK <br>
+ok 2 &minus; opened file <br>
+not ok 3 &minus; appended to file</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first line
+is the plan &minus; it specifies the number of tests
+I&rsquo;m going to run so that it&rsquo;s easy to check that
+the test script didn&rsquo;t exit before running all the
+expected tests. The following lines are the test results
+&minus; &rsquo;ok&rsquo; for pass, &rsquo;not ok&rsquo; for
+fail. Each test has a number and, optionally, a description.
+And that&rsquo;s it. Any language that can produce output
+like that on <small>STDOUT</small> can be used to write
+tests.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Recently
+I&rsquo;ve been rekindling a two-decades-old interest in
+Forth. Evidently I have a masochistic streak that even Perl
+can&rsquo;t satisfy. I want to write tests in Forth and run
+them using prove (you can find my gforth <small>TAP</small>
+experiments at https://svn.hexten.net/andy/Forth/Testing/).
+I can use the &minus;&minus;exec switch to tell prove to run
+the tests using gforth like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove &minus;r
+&minus;&minus;exec gforth t</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternately, if
+the language used to write my tests allows a shebang line I
+can use that to specify the interpreter. Here&rsquo;s a test
+written in <small>PHP:</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">#!/usr/bin/php
+<br>
+&lt;?php <br>
+print &quot;1..2\n&quot;; <br>
+print &quot;ok 1\n&quot;; <br>
+print &quot;not ok 2\n&quot;; <br>
+?&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">If I save that
+as t/phptest.t the shebang line will ensure that it runs
+correctly along with all my other tests.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Mixing it
+up</b> <br>
+Subtle interdependencies between test programs can mask
+problems &minus; for example an earlier test may neglect to
+remove a temporary file that affects the behaviour of a
+later test. To find this kind of problem I use the
+&minus;&minus;shuffle and &minus;&minus;reverse options to
+run my tests in random or reversed order.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Rolling My
+Own</b> <br>
+If I need a feature that prove doesn&rsquo;t provide I can
+easily write my own.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Typically
+you&rsquo;ll want to change how <small>TAP</small> gets
+<i>input</i> into and <i>output</i> from the parser.
+App::Prove supports arbitrary plugins, and TAP::Harness
+supports custom <i>formatters</i> and <i>source handlers</i>
+that you can load using either prove or Module::Build; there
+are many examples to base mine on. For more details see
+App::Prove, TAP::Parser::SourceHandler, and
+TAP::Formatter::Base.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If writing a
+plugin is not enough, you can write your own test harness;
+one of the motives for the 3.00 rewrite of Test::Harness was
+to make it easier to subclass and extend.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+Test::Harness module is a compatibility wrapper around
+TAP::Harness. For new applications I should use TAP::Harness
+directly. As we&rsquo;ll see, prove uses TAP::Harness.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When I run
+prove it processes its arguments, figures out which test
+scripts to run and then passes control to TAP::Harness to
+run the tests, parse, analyse and present the results. By
+subclassing TAP::Harness I can customise many aspects of the
+test run.</p>
+
+<p style="margin-left:11%; margin-top: 1em">I want to log
+my test results in a database so I can track them over time.
+To do this I override the summary method in TAP::Harness. I
+start with a simple prototype that dumps the results as a
+<small>YAML</small> document:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+My::TAP::Harness; <br>
+use base 'TAP::Harness'; <br>
+use YAML; <br>
+sub summary { <br>
+my ( $self, $aggregate ) = @_; <br>
+print Dump( $aggregate ); <br>
+$self&minus;&gt;SUPER::summary( $aggregate ); <br>
+} <br>
+1;</p>
+
+<p style="margin-left:11%; margin-top: 1em">I need to tell
+prove to use my My::TAP::Harness. If My::TAP::Harness is on
+Perl&rsquo;s @INC include path I can</p>
+
+<p style="margin-left:11%; margin-top: 1em">prove
+&minus;&minus;harness=My::TAP::Harness &minus;rb t</p>
+
+<p style="margin-left:11%; margin-top: 1em">If I
+don&rsquo;t have My::TAP::Harness installed on @INC I need
+to provide the correct path to perl when I run prove:</p>
+
+<p style="margin-left:11%; margin-top: 1em">perl
+&minus;Ilib `which prove`
+&minus;&minus;harness=My::TAP::Harness &minus;rb t</p>
+
+<p style="margin-left:11%; margin-top: 1em">I can
+incorporate these options into my own version of prove.
+It&rsquo;s pretty simple. Most of the work of prove is
+handled by App::Prove. The important code in prove is
+just:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use App::Prove;
+<br>
+my $app = App::Prove&minus;&gt;new; <br>
+$app&minus;&gt;process_args(@ARGV); <br>
+exit( $app&minus;&gt;run ? 0 : 1 );</p>
+
+<p style="margin-left:11%; margin-top: 1em">If I write a
+subclass of App::Prove I can customise any aspect of the
+test runner while inheriting all of prove&rsquo;s behaviour.
+Here&rsquo;s myprove:</p>
+
+<p style="margin-left:11%; margin-top: 1em">#!/usr/bin/env
+perl use lib qw( lib ); # Add ./lib to @INC <br>
+use App::Prove; <br>
+my $app = App::Prove&minus;&gt;new; <br>
+# Use custom TAP::Harness subclass <br>
+$app&minus;&gt;harness( 'My::TAP::Harness' ); <br>
+$app&minus;&gt;process_args( @ARGV ); exit(
+$app&minus;&gt;run ? 0 : 1 );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now I can run
+my tests like this</p>
+
+<p style="margin-left:11%; margin-top: 1em">./myprove
+&minus;rb t</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Deeper
+Customisation</b> <br>
+Now that I know how to subclass and replace TAP::Harness I
+can replace any other part of the harness. To do that I need
+to know which classes are responsible for which
+functionality. Here&rsquo;s a brief guided tour; the default
+class for each component is shown in parentheses. Normally
+any replacements I write will be subclasses of these default
+classes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When I run my
+tests TAP::Harness creates a scheduler
+(TAP::Parser::Scheduler) to work out the running order for
+the tests, an aggregator (TAP::Parser::Aggregator) to
+collect and analyse the test results and a formatter
+(TAP::Formatter::Console) to display those results.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If I&rsquo;m
+running my tests in parallel there may also be a multiplexer
+(TAP::Parser::Multiplexer) &minus; the component that allows
+multiple tests to run simultaneously.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once it has
+created those helpers TAP::Harness starts running the tests.
+For each test it creates a new parser (TAP::Parser) which is
+responsible for running the test script and parsing its
+output.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To replace any
+of these components I call one of these harness methods with
+the name of the replacement class:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">aggregator_class
+<br>
+formatter_class <br>
+multiplexer_class <br>
+parser_class <br>
+scheduler_class</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example, to
+replace the aggregator I would</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$harness&minus;&gt;aggregator_class(
+'My::Aggregator' );</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternately I
+can supply the names of my substitute classes to the
+TAP::Harness constructor:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $harness =
+TAP::Harness&minus;&gt;new( <br>
+{ aggregator_class =&gt; 'My::Aggregator' } <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">If I need to
+reach even deeper into the internals of the harness I can
+replace the classes that TAP::Parser uses to execute test
+scripts and tokenise their output. Before running a test
+script TAP::Parser creates a grammar (TAP::Parser::Grammar)
+to decode the raw <small>TAP</small> into tokens, a result
+factory (TAP::Parser::ResultFactory) to turn the decoded
+<small>TAP</small> results into objects and, depending on
+whether it&rsquo;s running a test script or reading
+<small>TAP</small> from a file, scalar or array a source or
+an iterator (TAP::Parser::IteratorFactory).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each of these
+objects may be replaced by calling one of these parser
+methods:</p>
+
+<p style="margin-left:11%; margin-top: 1em">source_class
+<br>
+perl_source_class <br>
+grammar_class <br>
+iterator_factory_class <br>
+result_factory_class</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Callbacks</b>
+<br>
+As an alternative to subclassing the components I need to
+change I can attach callbacks to the default classes.
+TAP::Harness exposes these callbacks:</p>
+
+<p style="margin-left:11%; margin-top: 1em">parser_args
+Tweak the parameters used to create the parser <br>
+made_parser Just made a new parser <br>
+before_runtests About to run tests <br>
+after_runtests Have run all tests <br>
+after_test Have run an individual test script</p>
+
+<p style="margin-left:11%; margin-top: 1em">TAP::Parser
+also supports callbacks; bailout, comment, plan, test,
+unknown, version and yaml are called for the corresponding
+<small>TAP</small> result types, <small>ALL</small> is
+called for all results, <small>ELSE</small> is called for
+all results for which a named callback is not installed and
+<small>EOF</small> is called once at the end of each
+<small>TAP</small> stream.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To install a
+callback I pass the name of the callback and a subroutine
+reference to TAP::Harness or TAP::Parser&rsquo;s callback
+method:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$harness&minus;&gt;callback(
+after_test =&gt; sub { <br>
+my ( $script, $desc, $parser ) = @_; <br>
+} );</p>
+
+<p style="margin-left:11%; margin-top: 1em">I can also pass
+callbacks to the constructor:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $harness =
+TAP::Harness&minus;&gt;new({ <br>
+callbacks =&gt; { <br>
+after_test =&gt; sub { <br>
+my ( $script, $desc, $parser ) = @_; <br>
+# Do something interesting here <br>
+} <br>
+} <br>
+});</p>
+
+<p style="margin-left:11%; margin-top: 1em">When it comes
+to altering the behaviour of the test harness there&rsquo;s
+more than one way to do it. Which way is best depends on my
+requirements. In general if I only want to observe test
+execution without changing the harness&rsquo; behaviour (for
+example to log test results to a database) I choose
+callbacks. If I want to make the harness behave differently
+subclassing gives me more control.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Parsing
+<small>TAP</small></b> <br>
+Perhaps I don&rsquo;t need a complete test harness. If I
+already have a <small>TAP</small> test log that I need to
+parse all I need is TAP::Parser and the various classes it
+depends upon. Here&rsquo;s the code I need to run a test and
+parse its <small>TAP</small> output</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+TAP::Parser; <br>
+my $parser = TAP::Parser&minus;&gt;new( { source =&gt;
+'t/simple.t' } ); <br>
+while ( my $result = $parser&minus;&gt;next ) { <br>
+print $result&minus;&gt;as_string, &quot;\n&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternately I
+can pass an open filehandle as source and have the parser
+read from that rather than attempting to run a test
+script:</p>
+
+<p style="margin-left:11%; margin-top: 1em">open my $tap,
+'&lt;', 'tests.tap' <br>
+or die &quot;Can't read TAP transcript ($!)\n&quot;; <br>
+my $parser = TAP::Parser&minus;&gt;new( { source =&gt; $tap
+} ); <br>
+while ( my $result = $parser&minus;&gt;next ) { <br>
+print $result&minus;&gt;as_string, &quot;\n&quot;; <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This approach
+is useful if I need to convert my <small>TAP</small> based
+test results into some other representation. See
+TAP::Convert::TET
+(http://search.cpan.org/dist/TAP&minus;Convert&minus;TET/)
+for an example of this approach.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Getting
+Support</b> <br>
+The Test::Harness developers hang out on the tapx-dev
+mailing list[1]. For discussion of general, language
+independent <small>TAP</small> issues there&rsquo;s the
+tap&minus;l[2] list. Finally there&rsquo;s a wiki dedicated
+to the Test Anything Protocol[3]. Contributions to the wiki,
+patches and suggestions are all welcome.</p>
+
+<p style="margin-left:11%; margin-top: 1em">[1]
+&lt;http://www.hexten.net/mailman/listinfo/tapx&minus;dev&gt;
+[2]
+&lt;http://testanything.org/mailman/listinfo/tap&minus;l&gt;
+[3] &lt;http://testanything.org/&gt;</p>
+<hr>
+</body>
+</html>

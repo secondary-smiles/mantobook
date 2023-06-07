@@ -1,0 +1,188 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:06 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>NSS&minus;MYMACHINES</title>
+
+</head>
+<body>
+<h1>libnss_mymachines.so.2</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">nss-mymachines,
+libnss_mymachines.so.2 &minus; Hostname resolution for local
+container instances</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">libnss_mymachines.so.2</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>nss&minus;mymachines</b>
+is a plug&minus;in module for the GNU Name Service Switch
+(NSS) functionality of the GNU C Library (<b>glibc</b>),
+providing hostname resolution for the names of containers
+running locally that are registered with
+<b>systemd-machined.service</b>(8). The container names are
+resolved to the IP addresses of the specific container,
+ordered by their scope. This functionality only applies to
+containers using network namespacing (see the description of
+<b>&minus;&minus;private&minus;network</b> in
+<b>systemd-nspawn</b>(1)). Note that the name that is
+resolved is the one registered with
+<b>systemd&minus;machined</b>, which may be different than
+the hostname configured inside of the container.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that this
+NSS module only makes available names of the containers
+running immediately below the current system context. It
+does not provide host name resolution for containers running
+side&minus;by&minus;side with the invoking system context,
+or containers further up or down the container hierarchy. Or
+in other words, on the host system it provides host name
+resolution for the containers running immediately below the
+host environment. When used inside a container environment
+however, it will not be able to provide name resolution for
+containers running on the host (as those are siblings and
+not children of the current container environment), but
+instead only for nested containers running immediately below
+its own container environment.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To activate the
+NSS module, add &quot;mymachines&quot; to the line starting
+with &quot;hosts:&quot; in /etc/nsswitch.conf.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is
+recommended to place &quot;mymachines&quot; before the
+&quot;resolve&quot; or &quot;dns&quot; entry of the
+&quot;hosts:&quot; line of /etc/nsswitch.conf in order to
+make sure that its mappings are preferred over other
+resolvers such as DNS.</p>
+
+<h2>CONFIGURATION IN /ETC/NSSWITCH.CONF
+<a name="CONFIGURATION IN /ETC/NSSWITCH.CONF"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Here is an
+example /etc/nsswitch.conf file that enables
+<b>nss&minus;mymachines</b> correctly:</p>
+
+<p style="margin-left:17%; margin-top: 1em">passwd: compat
+systemd <br>
+group: compat [SUCCESS=merge] systemd <br>
+shadow: compat systemd <br>
+gshadow: files systemd</p>
+
+<p style="margin-left:17%; margin-top: 1em">hosts:
+<b>mymachines</b> resolve [!UNAVAIL=return] files myhostname
+dns <br>
+networks: files</p>
+
+<p style="margin-left:17%; margin-top: 1em">protocols: db
+files <br>
+services: db files <br>
+ethers: db files <br>
+rpc: db files</p>
+
+<p style="margin-left:17%; margin-top: 1em">netgroup:
+nis</p>
+
+<h2>EXAMPLE: MAPPINGS PROVIDED BY NSS&minus;MYMACHINES
+<a name="EXAMPLE: MAPPINGS PROVIDED BY NSS&minus;MYMACHINES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The container
+&quot;rawhide&quot; is spawned using
+<b>systemd-nspawn</b>(1):</p>
+
+<p style="margin-left:17%; margin-top: 1em">#
+systemd&minus;nspawn &minus;M rawhide &minus;&minus;boot
+&minus;&minus;network&minus;veth
+&minus;&minus;private&minus;users=pick <br>
+Spawning container rawhide on /var/lib/machines/rawhide.
+<br>
+Selected user namespace base 20119552 and range 65536. <br>
+...</p>
+
+<p style="margin-left:17%; margin-top: 1em">$ machinectl
+&minus;&minus;max&minus;addresses=3 <br>
+MACHINE CLASS SERVICE OS VERSION ADDRESSES <br>
+rawhide container systemd&minus;nspawn fedora 30
+169.254.40.164 fe80::94aa:3aff:fe7b:d4b9</p>
+
+<p style="margin-left:17%; margin-top: 1em">$ ping
+&minus;c1 rawhide <br>
+PING rawhide(fe80::94aa:3aff:fe7b:d4b9%ve&minus;rawhide
+(fe80::94aa:3aff:fe7b:d4b9%ve&minus;rawhide)) 56 data bytes
+<br>
+64 bytes from fe80::94aa:3aff:fe7b:d4b9%ve&minus;rawhide
+(fe80::94aa:3aff:fe7b:d4b9%ve&minus;rawhide): icmp_seq=1
+ttl=64 time=0.045 ms <br>
+... <br>
+$ ping &minus;c1 &minus;4 rawhide <br>
+PING rawhide (169.254.40.164) 56(84) bytes of data. <br>
+64 bytes from 169.254.40.164 (169.254.40.164): icmp_seq=1
+ttl=64 time=0.064 ms <br>
+...</p>
+
+<p style="margin-left:17%; margin-top: 1em"># machinectl
+shell rawhide /sbin/ip a <br>
+Connected to machine rawhide. Press ^] three times within 1s
+to exit session. <br>
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue
+state UNKNOWN group default qlen 1000 <br>
+... <br>
+2: host0@if21: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu
+1500 qdisc noqueue state UP group default qlen 1000 <br>
+link/ether 96:aa:3a:7b:d4:b9 brd ff:ff:ff:ff:ff:ff
+link&minus;netnsid 0 <br>
+inet 169.254.40.164/16 brd 169.254.255.255 scope link host0
+<br>
+valid_lft forever preferred_lft forever <br>
+inet6 fe80::94aa:3aff:fe7b:d4b9/64 scope link <br>
+valid_lft forever preferred_lft forever <br>
+Connection to machine rawhide terminated.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>systemd-machined.service</b>(8), <b>machinectl</b>(1),
+<b>nss-systemd</b>(8), <b>nss-resolve</b>(8),
+<b>nss-myhostname</b>(8), <b>nsswitch.conf</b>(5),
+<b>getent</b>(1)</p>
+<hr>
+</body>
+</html>

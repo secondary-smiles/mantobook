@@ -1,0 +1,202 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:59 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SD_EVENT_GET_FD</title>
+
+</head>
+<body>
+<h1>sd_event_get_fd</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">sd_event_get_fd
+&minus; Obtain a file descriptor to poll for event loop
+events</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;systemd/sd&minus;event.h&gt;</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="57%">
+
+
+<p style="margin-top: 1em"><b>int
+sd_event_get_fd(sd_event&nbsp;*</b><i>event</i><b>);</b></p> </td>
+<td width="32%">
+</td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd_event_get_fd()</b>
+returns the file descriptor that an event loop object
+returned by the <b>sd_event_new</b>(3) function uses to wait
+for events. This file descriptor may itself be polled for
+<b>POLLIN</b>/<b>EPOLLIN</b> events. This makes it possible
+to embed an <b>sd-event</b>(3) event loop into another,
+possibly foreign, event loop.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The returned
+file descriptor refers to an <b>epoll</b>(7) object. It is
+recommended not to alter it by invoking <b>epoll_ctl</b>(2)
+on it, in order to avoid interference with the event loop's
+inner logic and assumptions.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On success,
+<b>sd_event_get_fd()</b> returns a non&minus;negative file
+descriptor. On failure, it returns a negative
+errno&minus;style error code.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Errors</b>
+<br>
+Returned errors may indicate the following problems:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;EINVAL</b></p>
+
+<p style="margin-left:17%;"><i>event</i> is not a valid
+pointer to an sd_event structure.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;ECHILD</b></p>
+
+<p style="margin-left:17%;">The event loop has been created
+in a different process.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Example&nbsp;1.&nbsp;Integration
+in the GLib event loop</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">/*
+SPDX&minus;License&minus;Identifier: MIT&minus;0 */</p>
+
+<p style="margin-left:17%; margin-top: 1em">#include
+&lt;stdlib.h&gt; <br>
+#include &lt;glib.h&gt; <br>
+#include &lt;systemd/sd&minus;event.h&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">typedef struct
+SDEventSource { <br>
+GSource source; <br>
+GPollFD pollfd; <br>
+sd_event *event; <br>
+} SDEventSource;</p>
+
+<p style="margin-left:17%; margin-top: 1em">static gboolean
+event_prepare(GSource *source, gint *timeout_) { <br>
+return sd_event_prepare(((SDEventSource
+*)source)&minus;&gt;event) &gt; 0; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">static gboolean
+event_check(GSource *source) { <br>
+return sd_event_wait(((SDEventSource
+*)source)&minus;&gt;event, 0) &gt; 0; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">static gboolean
+event_dispatch(GSource *source, GSourceFunc callback,
+gpointer user_data) { <br>
+return sd_event_dispatch(((SDEventSource
+*)source)&minus;&gt;event) &gt; 0; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">static void
+event_finalize(GSource *source) { <br>
+sd_event_unref(((SDEventSource *)source)&minus;&gt;event);
+<br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">static
+GSourceFuncs event_funcs = { <br>
+.prepare = event_prepare, <br>
+.check = event_check, <br>
+.dispatch = event_dispatch, <br>
+.finalize = event_finalize, <br>
+};</p>
+
+<p style="margin-left:17%; margin-top: 1em">GSource
+*g_sd_event_create_source(sd_event *event) { <br>
+SDEventSource *source;</p>
+
+<p style="margin-left:17%; margin-top: 1em">source =
+(SDEventSource *)g_source_new(&amp;event_funcs,
+sizeof(SDEventSource));</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">source&minus;&gt;event
+= sd_event_ref(event); <br>
+source&minus;&gt;pollfd.fd = sd_event_get_fd(event); <br>
+source&minus;&gt;pollfd.events = G_IO_IN | G_IO_HUP |
+G_IO_ERR;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">g_source_add_poll((GSource
+*)source, &amp;source&minus;&gt;pollfd);</p>
+
+<p style="margin-left:17%; margin-top: 1em">return (GSource
+*)source; <br>
+}</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">These APIs are
+implemented as a shared library, which can be compiled and
+linked to with the <b>libsystemd&nbsp;pkg-config</b>(1)
+file.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sd-event</b>(3),
+<b>sd_event_new</b>(3), <b>sd_event_wait</b>(3),
+<b>epoll_ctl</b>(2), <b>epoll</b>(7)</p>
+<hr>
+</body>
+</html>

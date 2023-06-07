@@ -1,0 +1,5012 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:46 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>FFMPEG</title>
+
+</head>
+<body>
+<h1>ffmpeg</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;
+ffmpeg video converter</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg
+[<i>global_options</i>] {[<i>input_file_options</i>]
+&minus;i <i>input_url</i>} ... {[<i>output_file_options</i>]
+<i>output_url</i>} ...</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ffmpeg</b>
+is a very fast video and audio converter that can also grab
+from a live audio/video source. It can also convert between
+arbitrary sample rates and resize video on the fly with a
+high quality polyphase filter.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>ffmpeg</b>
+reads from an arbitrary number of input &quot;files&quot;
+(which can be regular files, pipes, network streams,
+grabbing devices, etc.), specified by the
+&quot;&minus;i&quot; option, and writes to an arbitrary
+number of output &quot;files&quot;, which are specified by a
+plain output url. Anything found on the command line which
+cannot be interpreted as an option is considered to be an
+output url.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each input or
+output url can, in principle, contain any number of streams
+of different types (video/audio/subtitle/attachment/data).
+The allowed number and/or types of streams may be limited by
+the container format. Selecting which streams from which
+inputs will go into which output is either done
+automatically or with the &quot;&minus;map&quot; option (see
+the Stream selection chapter).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To refer to
+input files in options, you must use their indices
+(0&minus;based). E.g. the first input file is 0, the second
+is 1, etc. Similarly, streams within a file are referred to
+by their indices. E.g. &quot;2:3&quot; refers to the fourth
+stream in the third input file. Also see the Stream
+specifiers chapter.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As a general
+rule, options are applied to the next specified file.
+Therefore, order is important, and you can have the same
+option on the command line multiple times. Each occurrence
+is then applied to the next input or output file. Exceptions
+from this rule are the global options (e.g. verbosity
+level), which should be specified first.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Do not mix
+input and output files -- first specify all input files,
+then all output files. Also do not mix options which belong
+to different files. All options apply <small>ONLY</small> to
+the next input or output file and are reset between
+files.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>To set the video bitrate of the output file to 64
+kbit/s:</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+input.avi &minus;b:v 64k &minus;bufsize 64k output.avi</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="81%">
+
+
+<p style="margin-top: 1em">To force the frame rate of the
+output file to 24 fps:</p></td>
+<td width="2%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+input.avi &minus;r 24 output.avi</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">To force the frame rate of the
+input file (valid for raw formats only) to 1 fps and the
+frame rate of the output file to 24 fps:</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;r
+1 &minus;i input.m2v &minus;r 24 output.avi</p>
+
+<p style="margin-left:11%; margin-top: 1em">The format
+option may be needed for raw input files.</p>
+
+<h2>DETAILED DESCRIPTION
+<a name="DETAILED DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The transcoding
+process in <b>ffmpeg</b> for each output can be described by
+the following diagram:</p>
+
+<p style="margin-left:11%; margin-top: 1em">_______
+______________ <br>
+| | | | <br>
+| input | demuxer | encoded data | decoder <br>
+| file |
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&gt;
+| packets | &minus;&minus;&minus;&minus;&minus;+ <br>
+|_______| |______________| | <br>
+v <br>
+_________ <br>
+| | <br>
+| decoded | <br>
+| frames | <br>
+|_________| <br>
+________ ______________ | <br>
+| | | | | <br>
+| output |
+&lt;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+| encoded data | &lt;&minus;&minus;&minus;&minus;+ <br>
+| file | muxer | packets | encoder <br>
+|________| |______________|</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>ffmpeg</b>
+calls the libavformat library (containing demuxers) to read
+input files and get packets containing encoded data from
+them. When there are multiple input files, <b>ffmpeg</b>
+tries to keep them synchronized by tracking lowest timestamp
+on any active input stream.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Encoded packets
+are then passed to the decoder (unless streamcopy is
+selected for the stream, see further for a description). The
+decoder produces uncompressed frames (raw video/PCM
+audio/...) which can be processed further by filtering (see
+next section). After filtering, the frames are passed to the
+encoder, which encodes them and outputs encoded packets.
+Finally those are passed to the muxer, which writes the
+encoded packets to the output file.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Filtering</b>
+<br>
+Before encoding, <b>ffmpeg</b> can process raw audio and
+video frames using filters from the libavfilter library.
+Several chained filters form a filter graph. <b>ffmpeg</b>
+distinguishes between two types of filtergraphs: simple and
+complex.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Simple
+filtergraphs</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Simple
+filtergraphs are those that have exactly one input and
+output, both of the same type. In the above diagram they can
+be represented by simply inserting an additional step
+between decoding and encoding:</p>
+
+<p style="margin-left:11%; margin-top: 1em">_________
+______________ <br>
+| | | | <br>
+| decoded | | encoded data | <br>
+| frames |\ _ | packets | <br>
+|_________| \ /||______________| <br>
+\ __________ / <br>
+simple _\|| | / encoder <br>
+filtergraph | filtered |/ <br>
+| frames | <br>
+|__________|</p>
+
+<p style="margin-left:11%; margin-top: 1em">Simple
+filtergraphs are configured with the per-stream
+<b>&minus;filter</b> option (with <b>&minus;vf</b> and
+<b>&minus;af</b> aliases for video and audio respectively).
+A simple filtergraph for video can look for example like
+this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">_______
+_____________ _______ ________ <br>
+| | | | | | | | <br>
+| input | &minus;&minus;&minus;&gt; | deinterlace |
+&minus;&minus;&minus;&gt; | scale |
+&minus;&minus;&minus;&gt; | output | <br>
+|_______| |_____________| |_______| |________|</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that some
+filters change frame properties but not frame contents. E.g.
+the &quot;fps&quot; filter in the example above changes
+number of frames, but does not touch the frame contents.
+Another example is the &quot;setpts&quot; filter, which only
+sets timestamps and otherwise passes the frames
+unchanged.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Complex
+filtergraphs</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Complex
+filtergraphs are those which cannot be described as simply a
+linear processing chain applied to one stream. This is the
+case, for example, when the graph has more than one input
+and/or output, or when output stream type is different from
+input. They can be represented with the following
+diagram:</p>
+
+<p style="margin-left:11%; margin-top: 1em">_________ <br>
+| | <br>
+| input 0 |\ __________ <br>
+|_________| \ | | <br>
+\ _________ /| output 0 | <br>
+\ | | / |__________| <br>
+_________ \| complex | / <br>
+| | | |/ <br>
+| input 1 |&minus;&minus;&minus;&minus;&gt;| filter |\ <br>
+|_________| | | \ __________ <br>
+/| graph | \ | | <br>
+/ | | \| output 1 | <br>
+_________ / |_________| |__________| <br>
+| | / <br>
+| input 2 |/ <br>
+|_________|</p>
+
+<p style="margin-left:11%; margin-top: 1em">Complex
+filtergraphs are configured with the
+<b>&minus;filter_complex</b> option. Note that this option
+is global, since a complex filtergraph, by its nature,
+cannot be unambiguously associated with a single stream or
+file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>&minus;lavfi</b> option is equivalent to
+<b>&minus;filter_complex</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A trivial
+example of a complex filtergraph is the &quot;overlay&quot;
+filter, which has two video inputs and one video output,
+containing one video overlaid on top of the other. Its audio
+counterpart is the &quot;amix&quot; filter.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Stream
+copy</b> <br>
+Stream copy is a mode selected by supplying the
+&quot;copy&quot; parameter to the <b>&minus;codec</b>
+option. It makes <b>ffmpeg</b> omit the decoding and
+encoding step for the specified stream, so it does only
+demuxing and muxing. It is useful for changing the container
+format or modifying container-level metadata. The diagram
+above will, in this case, simplify to this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">_______
+______________ ________ <br>
+| | | | | | <br>
+| input | demuxer | encoded data | muxer | output | <br>
+| file |
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&gt;
+| packets |
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&gt; | file
+| <br>
+|_______| |______________| |________|</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since there is
+no decoding or encoding, it is very fast and there is no
+quality loss. However, it might not work in some cases
+because of many factors. Applying filters is obviously also
+impossible, since filters work on uncompressed data.</p>
+
+<h2>STREAM SELECTION
+<a name="STREAM SELECTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ffmpeg</b>
+provides the &quot;&minus;map&quot; option for manual
+control of stream selection in each output file. Users can
+skip &quot;&minus;map&quot; and let ffmpeg perform automatic
+stream selection as described below. The &quot;&minus;vn /
+&minus;an / &minus;sn / &minus;dn&quot; options can be used
+to skip inclusion of video, audio, subtitle and data streams
+respectively, whether manually mapped or automatically
+selected, except for those streams which are outputs of
+complex filtergraphs.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Description</b>
+<br>
+The sub-sections that follow describe the various rules that
+are involved in stream selection. The examples that follow
+next show how these rules are applied in practice.</p>
+
+<p style="margin-left:11%; margin-top: 1em">While every
+effort is made to accurately reflect the behavior of the
+program, FFmpeg is under continuous development and the code
+may have changed since the time of this writing.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Automatic
+stream selection</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">In the absence
+of any map options for a particular output file, ffmpeg
+inspects the output format to check which type of streams
+can be included in it, viz. video, audio and/or subtitles.
+For each acceptable stream type, ffmpeg will pick one
+stream, when available, from among all the inputs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It will select
+that stream based upon the following criteria:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">for video, it is the stream with
+the highest resolution,</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>for audio, it is the stream with the most channels,</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>for subtitles, it is the first subtitle stream found but
+there&rsquo;s a caveat. The output format&rsquo;s default
+subtitle encoder can be either text-based or image-based,
+and only a subtitle stream of the same type will be
+chosen.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">In the case
+where several streams of the same type rate equally, the
+stream with the lowest index is chosen.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Data or
+attachment streams are not automatically selected and can
+only be included using &quot;&minus;map&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Manual
+stream selection</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">When
+&quot;&minus;map&quot; is used, only user-mapped streams are
+included in that output file, with one possible exception
+for filtergraph outputs described below.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Complex
+filtergraphs</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">If there are
+any complex filtergraph output streams with unlabeled pads,
+they will be added to the first output file. This will lead
+to a fatal error if the stream type is not supported by the
+output format. In the absence of the map option, the
+inclusion of these streams leads to the automatic stream
+selection of their types being skipped. If map options are
+present, these filtergraph streams are included in addition
+to the mapped streams.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Complex
+filtergraph output streams with labeled pads must be mapped
+once and exactly once.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Stream
+handling</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">Stream handling
+is independent of stream selection, with an exception for
+subtitles described below. Stream handling is set via the
+&quot;&minus;codec&quot; option addressed to streams within
+a specific <i>output</i> file. In particular, codec options
+are applied by ffmpeg after the stream selection process and
+thus do not influence the latter. If no
+&quot;&minus;codec&quot; option is specified for a stream
+type, ffmpeg will select the default encoder registered by
+the output file muxer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An exception
+exists for subtitles. If a subtitle encoder is specified for
+an output file, the first subtitle stream found of any type,
+text or image, will be included. ffmpeg does not validate if
+the specified encoder can convert the selected stream or if
+the converted stream is acceptable within the output format.
+This applies generally as well: when the user sets an
+encoder manually, the stream selection process cannot check
+if the encoded stream can be muxed into the output file. If
+it cannot, ffmpeg will abort and <i>all</i> output files
+will fail to be processed.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Examples</b>
+<br>
+The following examples illustrate the behavior, quirks and
+limitations of ffmpeg&rsquo;s stream selection methods.</p>
+
+<p style="margin-left:11%; margin-top: 1em">They assume the
+following three input files.</p>
+
+<p style="margin-left:11%; margin-top: 1em">input file
+'A.avi' <br>
+stream 0: video 640x360 <br>
+stream 1: audio 2 channels <br>
+input file 'B.mp4' <br>
+stream 0: video 1920x1080 <br>
+stream 1: audio 2 channels <br>
+stream 2: subtitles (text) <br>
+stream 3: audio 5.1 channels <br>
+stream 4: subtitles (text) <br>
+input file 'C.mkv' <br>
+stream 0: video 1280x720 <br>
+stream 1: audio 2 channels <br>
+stream 2: subtitles (image)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Example:
+automatic stream selection</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;i
+A.avi &minus;i B.mp4 out1.mkv out2.wav &minus;map 1:a
+&minus;c:a copy out3.mov</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are three
+output files specified, and for the first two, no
+&quot;&minus;map&quot; options are set, so ffmpeg will
+select streams for these two files automatically.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>out1.mkv</i>
+is a Matroska container file and accepts video, audio and
+subtitle streams, so ffmpeg will try to select one of each
+type.For video, it will select &quot;stream 0&quot; from
+<i>B.mp4</i>, which has the highest resolution among all the
+input video streams.For audio, it will select &quot;stream
+3&quot; from <i>B.mp4</i>, since it has the greatest number
+of channels.For subtitles, it will select &quot;stream
+2&quot; from <i>B.mp4</i>, which is the first subtitle
+stream from among <i>A.avi</i> and <i>B.mp4</i>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>out2.wav</i>
+accepts only audio streams, so only &quot;stream 3&quot;
+from <i>B.mp4</i> is selected.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+<i>out3.mov</i>, since a &quot;&minus;map&quot; option is
+set, no automatic stream selection will occur. The
+&quot;&minus;map 1:a&quot; option will select all audio
+streams from the second input <i>B.mp4</i>. No other streams
+will be included in this output file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For the first
+two outputs, all included streams will be transcoded. The
+encoders chosen will be the default ones registered by each
+output format, which may not match the codec of the selected
+input streams.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For the third
+output, codec option for audio streams has been set to
+&quot;copy&quot;, so no decoding-filtering-encoding
+operations will occur, or <i>can</i> occur. Packets of
+selected streams shall be conveyed from the input file and
+muxed within the output file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Example:
+automatic subtitles selection</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;i
+C.mkv out1.mkv &minus;c:s dvdsub &minus;an out2.mkv</p>
+
+<p style="margin-left:11%; margin-top: 1em">Although
+<i>out1.mkv</i> is a Matroska container file which accepts
+subtitle streams, only a video and audio stream shall be
+selected. The subtitle stream of <i>C.mkv</i> is image-based
+and the default subtitle encoder of the Matroska muxer is
+text-based, so a transcode operation for the subtitles is
+expected to fail and hence the stream isn&rsquo;t selected.
+However, in <i>out2.mkv</i>, a subtitle encoder is specified
+in the command and so, the subtitle stream is selected, in
+addition to the video stream. The presence of
+&quot;&minus;an&quot; disables audio stream selection for
+<i>out2.mkv</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Example:
+unlabeled filtergraph outputs</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;i
+A.avi &minus;i C.mkv &minus;i B.mp4 &minus;filter_complex
+&quot;overlay&quot; out1.mp4 out2.srt</p>
+
+<p style="margin-left:11%; margin-top: 1em">A filtergraph
+is setup here using the &quot;&minus;filter_complex&quot;
+option and consists of a single video filter. The
+&quot;overlay&quot; filter requires exactly two video
+inputs, but none are specified, so the first two available
+video streams are used, those of <i>A.avi</i> and
+<i>C.mkv</i>. The output pad of the filter has no label and
+so is sent to the first output file <i>out1.mp4</i>. Due to
+this, automatic selection of the video stream is skipped,
+which would have selected the stream in <i>B.mp4</i>. The
+audio stream with most channels viz. &quot;stream 3&quot; in
+<i>B.mp4</i>, is chosen automatically. No subtitle stream is
+chosen however, since the <small>MP4</small> format has no
+default subtitle encoder registered, and the user
+hasn&rsquo;t specified a subtitle encoder.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The 2nd output
+file, <i>out2.srt</i>, only accepts text-based subtitle
+streams. So, even though the first subtitle stream available
+belongs to <i>C.mkv</i>, it is image-based and hence
+skipped. The selected stream, &quot;stream 2&quot; in
+<i>B.mp4</i>, is the first text-based subtitle stream.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Example:
+labeled filtergraph outputs</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;i
+A.avi &minus;i B.mp4 &minus;i C.mkv &minus;filter_complex
+&quot;[1:v]hue=s=0[outv];overlay;aresample&quot; \ <br>
+&minus;map '[outv]' &minus;an out1.mp4 \ <br>
+out2.mkv \ <br>
+&minus;map '[outv]' &minus;map 1:a:0 out3.mkv</p>
+
+<p style="margin-left:11%; margin-top: 1em">The above
+command will fail, as the output pad labelled
+&quot;[outv]&quot; has been mapped twice. None of the output
+files shall be processed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;i
+A.avi &minus;i B.mp4 &minus;i C.mkv &minus;filter_complex
+&quot;[1:v]hue=s=0[outv];overlay;aresample&quot; \ <br>
+&minus;an out1.mp4 \ <br>
+out2.mkv \ <br>
+&minus;map 1:a:0 out3.mkv</p>
+
+<p style="margin-left:11%; margin-top: 1em">This command
+above will also fail as the hue filter output has a label,
+&quot;[outv]&quot;, and hasn&rsquo;t been mapped
+anywhere.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The command
+should be modified as follows,</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;i
+A.avi &minus;i B.mp4 &minus;i C.mkv &minus;filter_complex
+&quot;[1:v]hue=s=0,split=2[outv1][outv2];overlay;aresample&quot;
+\ <br>
+&minus;map '[outv1]' &minus;an out1.mp4 \ <br>
+out2.mkv \ <br>
+&minus;map '[outv2]' &minus;map 1:a:0 out3.mkv</p>
+
+<p style="margin-left:11%; margin-top: 1em">The video
+stream from <i>B.mp4</i> is sent to the hue filter, whose
+output is cloned once using the split filter, and both
+outputs labelled. Then a copy each is mapped to the first
+and third output files.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The overlay
+filter, requiring two video inputs, uses the first two
+unused video streams. Those are the streams from
+<i>A.avi</i> and <i>C.mkv</i>. The overlay output
+isn&rsquo;t labelled, so it is sent to the first output file
+<i>out1.mp4</i>, regardless of the presence of the
+&quot;&minus;map&quot; option.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The aresample
+filter is sent the first unused audio stream, that of
+<i>A.avi</i>. Since this filter output is also unlabelled,
+it too is mapped to the first output file. The presence of
+&quot;&minus;an&quot; only suppresses automatic or manual
+stream selection of audio streams, not outputs sent from
+filtergraphs. Both these mapped streams shall be ordered
+before the mapped stream in <i>out1.mp4</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The video,
+audio and subtitle streams mapped to &quot;out2.mkv&quot;
+are entirely determined by automatic stream selection.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>out3.mkv</i>
+consists of the cloned video output from the hue filter and
+the first audio stream from <i>B.mp4</i>.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">All the
+numerical options, if not specified otherwise, accept a
+string representing a number as input, which may be followed
+by one of the <small>SI</small> unit prefixes, for example:
+&rsquo;K&rsquo;, &rsquo;M&rsquo;, or &rsquo;G&rsquo;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+&rsquo;i&rsquo; is appended to the <small>SI</small> unit
+prefix, the complete prefix will be interpreted as a unit
+prefix for binary multiples, which are based on powers of
+1024 instead of powers of 1000. Appending &rsquo;B&rsquo; to
+the <small>SI</small> unit prefix multiplies the value by 8.
+This allows using, for example: &rsquo; <small>KB</small>
+&rsquo;, &rsquo;MiB&rsquo;, &rsquo;G&rsquo; and
+&rsquo;B&rsquo; as number suffixes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Options which
+do not take arguments are boolean options, and set the
+corresponding value to true. They can be set to false by
+prefixing the option name with &quot;no&quot;. For example
+using &quot;&minus;nofoo&quot; will set the boolean option
+with name &quot;foo&quot; to false.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Stream
+specifiers</b> <br>
+Some options are applied per-stream, e.g. bitrate or codec.
+Stream specifiers are used to precisely specify which
+stream(s) a given option belongs to.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A stream
+specifier is a string generally appended to the option name
+and separated from it by a colon. E.g.
+&quot;&minus;codec:a:1 ac3&quot; contains the
+&quot;a:1&quot; stream specifier, which matches the second
+audio stream. Therefore, it would select the ac3 codec for
+the second audio stream.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A stream
+specifier can match several streams, so that the option is
+applied to all of them. E.g. the stream specifier in
+&quot;&minus;b:a 128k&quot; matches all audio streams.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An empty stream
+specifier matches all streams. For example,
+&quot;&minus;codec copy&quot; or &quot;&minus;codec:
+copy&quot; would copy all the streams without
+reencoding.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Possible forms
+of stream specifiers are: <i><br>
+stream_index</i></p>
+
+<p style="margin-left:17%;">Matches the stream with this
+index. E.g. &quot;&minus;threads:1 4&quot; would set the
+thread count for the second stream to 4. If
+<i>stream_index</i> is used as an additional stream
+specifier (see below), then it selects stream number
+<i>stream_index</i> from the matching streams. Stream
+numbering is based on the order of the streams as detected
+by libavformat except when a program <small>ID</small> is
+also specified. In this case it is based on the ordering of
+the streams in the program.</p>
+
+
+<p style="margin-left:11%;"><i>stream_type</i><b>[:</b><i>additional_stream_specifier</i><b>]</b></p>
+
+<p style="margin-left:17%;"><i>stream_type</i> is one of
+following: &rsquo;v&rsquo; or &rsquo;V&rsquo; for video,
+&rsquo;a&rsquo; for audio, &rsquo;s&rsquo; for subtitle,
+&rsquo;d&rsquo; for data, and &rsquo;t&rsquo; for
+attachments. &rsquo;v&rsquo; matches all video streams,
+&rsquo;V&rsquo; only matches video streams which are not
+attached pictures, video thumbnails or cover arts. If
+<i>additional_stream_specifier</i> is used, then it matches
+streams which both have this type and match the
+<i>additional_stream_specifier</i>. Otherwise, it matches
+all streams of the specified type.</p>
+
+
+<p style="margin-left:11%;"><b>p:</b><i>program_id</i><b>[:</b><i>additional_stream_specifier</i><b>]</b></p>
+
+<p style="margin-left:17%;">Matches streams which are in
+the program with the id <i>program_id</i>. If
+<i>additional_stream_specifier</i> is used, then it matches
+streams which both are part of the program and match the
+<i>additional_stream_specifier</i>.</p>
+
+<p style="margin-left:11%;"><b>#</b><i>stream_id</i> <b>or
+i:</b><i>stream_id</i></p>
+
+<p style="margin-left:17%;">Match the stream by stream id
+(e.g. <small>PID</small> in MPEG-TS container).</p>
+
+
+<p style="margin-left:11%;"><b>m:</b><i>key</i><b>[:</b><i>value</i><b>]</b></p>
+
+<p style="margin-left:17%;">Matches streams with the
+metadata tag <i>key</i> having the specified value. If
+<i>value</i> is not given, matches streams that contain the
+given tag with any value.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p><b>u</b></p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Matches streams with usable configuration, the codec
+must be defined and the essential information such as video
+dimension or audio sample rate must be present.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Note that in
+<b>ffmpeg</b>, matching by metadata will only work properly
+for input files.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Generic
+options</b> <br>
+These options are shared amongst the ff* tools.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em"><b>&minus;L</b></p></td>
+<td width="3%"></td>
+<td width="20%">
+
+
+<p style="margin-top: 1em">Show license.</p></td>
+<td width="63%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>&minus;h, &minus;?,
+&minus;help, &minus;&minus;help [</b><i>arg</i><b>]</b></p>
+
+<p style="margin-left:17%;">Show help. An optional
+parameter may be specified to print help about a specific
+item. If no argument is specified, only basic (non advanced)
+tool options are shown.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Possible values
+of <i>arg</i> are: <b><br>
+long</b></p>
+
+<p style="margin-left:23%;">Print advanced tool options in
+addition to the basic tool options.</p>
+
+<p style="margin-left:17%;"><b>full</b></p>
+
+<p style="margin-left:23%;">Print complete list of options,
+including shared and private options for encoders, decoders,
+demuxers, muxers, filters, etc.</p>
+
+
+<p style="margin-left:17%;"><b>decoder=</b><i>decoder_name</i></p>
+
+<p style="margin-left:23%;">Print detailed information
+about the decoder named <i>decoder_name</i>. Use the
+<b>&minus;decoders</b> option to get a list of all
+decoders.</p>
+
+
+<p style="margin-left:17%;"><b>encoder=</b><i>encoder_name</i></p>
+
+<p style="margin-left:23%;">Print detailed information
+about the encoder named <i>encoder_name</i>. Use the
+<b>&minus;encoders</b> option to get a list of all
+encoders.</p>
+
+
+<p style="margin-left:17%;"><b>demuxer=</b><i>demuxer_name</i></p>
+
+<p style="margin-left:23%;">Print detailed information
+about the demuxer named <i>demuxer_name</i>. Use the
+<b>&minus;formats</b> option to get a list of all demuxers
+and muxers.</p>
+
+
+<p style="margin-left:17%;"><b>muxer=</b><i>muxer_name</i></p>
+
+<p style="margin-left:23%;">Print detailed information
+about the muxer named <i>muxer_name</i>. Use the
+<b>&minus;formats</b> option to get a list of all muxers and
+demuxers.</p>
+
+
+<p style="margin-left:17%;"><b>filter=</b><i>filter_name</i></p>
+
+<p style="margin-left:23%;">Print detailed information
+about the filter named <i>filter_name</i>. Use the
+<b>&minus;filters</b> option to get a list of all
+filters.</p>
+
+
+<p style="margin-left:17%;"><b>bsf=</b><i>bitstream_filter_name</i></p>
+
+<p style="margin-left:23%;">Print detailed information
+about the bitstream filter named
+<i>bitstream_filter_name</i>. Use the <b>&minus;bsfs</b>
+option to get a list of all bitstream filters.</p>
+
+
+<p style="margin-left:17%;"><b>protocol=</b><i>protocol_name</i></p>
+
+<p style="margin-left:23%;">Print detailed information
+about the protocol named <i>protocol_name</i>. Use the
+<b>&minus;protocols</b> option to get a list of all
+protocols.</p>
+
+<p style="margin-left:11%;"><b>&minus;version</b></p>
+
+<p style="margin-left:17%;">Show version.</p>
+
+<p style="margin-left:11%;"><b>&minus;buildconf</b></p>
+
+<p style="margin-left:17%;">Show the build configuration,
+one option per line.</p>
+
+<p style="margin-left:11%;"><b>&minus;formats</b></p>
+
+<p style="margin-left:17%;">Show available formats
+(including devices).</p>
+
+<p style="margin-left:11%;"><b>&minus;demuxers</b></p>
+
+<p style="margin-left:17%;">Show available demuxers.</p>
+
+<p style="margin-left:11%;"><b>&minus;muxers</b></p>
+
+<p style="margin-left:17%;">Show available muxers.</p>
+
+<p style="margin-left:11%;"><b>&minus;devices</b></p>
+
+<p style="margin-left:17%;">Show available devices.</p>
+
+<p style="margin-left:11%;"><b>&minus;codecs</b></p>
+
+<p style="margin-left:17%;">Show all codecs known to
+libavcodec.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that the
+term &rsquo;codec&rsquo; is used throughout this
+documentation as a shortcut for what is more correctly
+called a media bitstream format.</p>
+
+<p style="margin-left:11%;"><b>&minus;decoders</b></p>
+
+<p style="margin-left:17%;">Show available decoders.</p>
+
+<p style="margin-left:11%;"><b>&minus;encoders</b></p>
+
+<p style="margin-left:17%;">Show all available
+encoders.</p>
+
+<p style="margin-left:11%;"><b>&minus;bsfs</b></p>
+
+<p style="margin-left:17%;">Show available bitstream
+filters.</p>
+
+<p style="margin-left:11%;"><b>&minus;protocols</b></p>
+
+<p style="margin-left:17%;">Show available protocols.</p>
+
+<p style="margin-left:11%;"><b>&minus;filters</b></p>
+
+<p style="margin-left:17%;">Show available libavfilter
+filters.</p>
+
+<p style="margin-left:11%;"><b>&minus;pix_fmts</b></p>
+
+<p style="margin-left:17%;">Show available pixel
+formats.</p>
+
+<p style="margin-left:11%;"><b>&minus;sample_fmts</b></p>
+
+<p style="margin-left:17%;">Show available sample
+formats.</p>
+
+<p style="margin-left:11%;"><b>&minus;layouts</b></p>
+
+<p style="margin-left:17%;">Show channel names and standard
+channel layouts.</p>
+
+<p style="margin-left:11%;"><b>&minus;dispositions</b></p>
+
+<p style="margin-left:17%;">Show stream dispositions.</p>
+
+<p style="margin-left:11%;"><b>&minus;colors</b></p>
+
+<p style="margin-left:17%;">Show recognized color
+names.</p>
+
+<p style="margin-left:11%;"><b>&minus;sources</b>
+<i>device</i><b>[,</b><i>opt1</i><b>=</b><i>val1</i><b>[,</b><i>opt2</i><b>=</b><i>val2</i><b>]...]</b></p>
+
+<p style="margin-left:17%;">Show autodetected sources of
+the input device. Some devices may provide system-dependent
+source names that cannot be autodetected. The returned list
+cannot be assumed to be always complete.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg
+&minus;sources pulse,server=192.168.0.4</p>
+
+<p style="margin-left:11%;"><b>&minus;sinks</b>
+<i>device</i><b>[,</b><i>opt1</i><b>=</b><i>val1</i><b>[,</b><i>opt2</i><b>=</b><i>val2</i><b>]...]</b></p>
+
+<p style="margin-left:17%;">Show autodetected sinks of the
+output device. Some devices may provide system-dependent
+sink names that cannot be autodetected. The returned list
+cannot be assumed to be always complete.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg
+&minus;sinks pulse,server=192.168.0.4</p>
+
+<p style="margin-left:11%;"><b>&minus;loglevel
+[</b><i>flags</i><b>+]</b><i>loglevel</i> <b>| &minus;v
+[</b><i>flags</i><b>+]</b><i>loglevel</i></p>
+
+<p style="margin-left:17%;">Set logging level and flags
+used by the library.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The optional
+<i>flags</i> prefix can consist of the following values:
+<b><br>
+repeat</b></p>
+
+<p style="margin-left:23%;">Indicates that repeated log
+output should not be compressed to the first line and the
+&quot;Last message repeated n times&quot; line will be
+omitted.</p>
+
+<p style="margin-left:17%;"><b>level</b></p>
+
+<p style="margin-left:23%;">Indicates that log output
+should add a &quot;[level]&quot; prefix to each message
+line. This can be used as an alternative to log coloring,
+e.g. when dumping the log to file.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Flags can also
+be used alone by adding a
+&rsquo;+&rsquo;/&rsquo;&minus;&rsquo; prefix to set/reset a
+single flag without affecting other <i>flags</i> or changing
+<i>loglevel</i>. When setting both <i>flags</i> and
+<i>loglevel</i>, a &rsquo;+&rsquo; separator is expected
+between the last <i>flags</i> value and before
+<i>loglevel</i>.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><i>loglevel</i>
+is a string or a number containing one of the following
+values: <b><br>
+quiet, &minus;8</b></p>
+
+<p style="margin-left:23%;">Show nothing at all; be
+silent.</p>
+
+<p style="margin-left:17%;"><b>panic, 0</b></p>
+
+<p style="margin-left:23%;">Only show fatal errors which
+could lead the process to crash, such as an assertion
+failure. This is not currently used for anything.</p>
+
+<p style="margin-left:17%;"><b>fatal, 8</b></p>
+
+<p style="margin-left:23%;">Only show fatal errors. These
+are errors after which the process absolutely cannot
+continue.</p>
+
+<p style="margin-left:17%;"><b>error, 16</b></p>
+
+<p style="margin-left:23%;">Show all errors, including ones
+which can be recovered from.</p>
+
+<p style="margin-left:17%;"><b>warning, 24</b></p>
+
+<p style="margin-left:23%;">Show all warnings and errors.
+Any message related to possibly incorrect or unexpected
+events will be shown.</p>
+
+<p style="margin-left:17%;"><b>info, 32</b></p>
+
+<p style="margin-left:23%;">Show informative messages
+during processing. This is in addition to warnings and
+errors. This is the default value.</p>
+
+<p style="margin-left:17%;"><b>verbose, 40</b></p>
+
+<p style="margin-left:23%;">Same as &quot;info&quot;,
+except more verbose.</p>
+
+<p style="margin-left:17%;"><b>debug, 48</b></p>
+
+<p style="margin-left:23%;">Show everything, including
+debugging information.</p>
+
+<p style="margin-left:17%;"><b>trace, 56</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">For example to
+enable repeated log output, add the &quot;level&quot;
+prefix, and set <i>loglevel</i> to &quot;verbose&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg
+&minus;loglevel repeat+level+verbose &minus;i input
+output</p>
+
+<p style="margin-left:17%; margin-top: 1em">Another example
+that enables repeated log output without affecting current
+state of &quot;level&quot; prefix flag or
+<i>loglevel</i>:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg [...]
+&minus;loglevel +repeat</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default the
+program logs to stderr. If coloring is supported by the
+terminal, colors are used to mark errors and warnings. Log
+coloring can be disabled setting the environment variable
+<b><small>AV_LOG_FORCE_NOCOLOR</small></b> , or can be
+forced setting the environment variable
+<b><small>AV_LOG_FORCE_COLOR</small></b> .</p>
+
+<p style="margin-left:11%;"><b>&minus;report</b></p>
+
+<p style="margin-left:17%;">Dump full command line and log
+output to a file named
+&quot;<i>program</i>&minus;<i>YYYYMMDD</i>&minus;<i>HHMMSS</i>.log&quot;
+in the current directory. This file can be useful for bug
+reports. It also implies &quot;&minus;loglevel
+debug&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Setting the
+environment variable <b><small>FFREPORT</small></b> to any
+value has the same effect. If the value is a
+&rsquo;:&rsquo;&minus;separated key=value sequence, these
+options will affect the report; option values must be
+escaped if they contain special characters or the options
+delimiter &rsquo;:&rsquo; (see the &lsquo;&lsquo;Quoting and
+escaping&rsquo;&rsquo; section in the ffmpeg-utils
+manual).</p>
+
+<p style="margin-left:17%; margin-top: 1em">The following
+options are recognized: <b><br>
+file</b></p>
+
+<p style="margin-left:23%;">set the file name to use for
+the report; %p is expanded to the name of the program, %t is
+expanded to a timestamp, &quot;%%&quot; is expanded to a
+plain &quot;%&quot;</p>
+
+<p style="margin-left:17%;"><b>level</b></p>
+
+<p style="margin-left:23%;">set the log verbosity level
+using a numerical value (see
+&quot;&minus;loglevel&quot;).</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example, to
+output a report to a file named <i>ffreport.log</i> using a
+log level of 32 (alias for log level &quot;info&quot;):</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">FFREPORT=file=ffreport.log:level=32
+ffmpeg &minus;i input output</p>
+
+<p style="margin-left:17%; margin-top: 1em">Errors in
+parsing the environment variable are not fatal, and will not
+appear in the report.</p>
+
+<p style="margin-left:11%;"><b>&minus;hide_banner</b></p>
+
+<p style="margin-left:17%;">Suppress printing banner.</p>
+
+<p style="margin-left:17%; margin-top: 1em">All FFmpeg
+tools will normally show a copyright notice, build options
+and library versions. This option can be used to suppress
+printing this information.</p>
+
+<p style="margin-left:11%;"><b>&minus;cpuflags flags
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Allows setting and clearing cpu
+flags. This option is intended for testing. Do not use it
+unless you know what you&rsquo;re doing.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg
+&minus;cpuflags &minus;sse+mmx ... <br>
+ffmpeg &minus;cpuflags mmx ... <br>
+ffmpeg &minus;cpuflags 0 ...</p>
+
+<p style="margin-left:17%; margin-top: 1em">Possible flags
+for this option are:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="11%">
+
+
+<p><b>x86</b></p></td>
+<td width="72%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="11%">
+
+
+<p><b>mmx</b></p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%;"><b>mmxext</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="5%">
+
+
+<p><b>sse</b></p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%;"><b>sse2 <br>
+sse2slow <br>
+sse3 <br>
+sse3slow <br>
+ssse3 <br>
+atom <br>
+sse4.1 <br>
+sse4.2</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="5%">
+
+
+<p><b>avx</b></p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%;"><b>avx2</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="5%">
+
+
+<p><b>xop</b></p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%;"><b>fma3 <br>
+fma4 <br>
+3dnow <br>
+3dnowext <br>
+bmi1 <br>
+bmi2 <br>
+cmov</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b><small>ARM</small></b></p></td>
+<td width="1%"></td>
+<td width="11%">
+
+
+<p><b>armv5te</b></p></td>
+<td width="66%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%;"><b>armv6 <br>
+armv6t2</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="5%">
+
+
+<p><b>vfp</b></p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%;"><b>vfpv3 <br>
+neon <br>
+setend</b></p>
+
+<p style="margin-left:17%;"><b>AArch64</b></p>
+
+<p style="margin-left:23%;"><b>armv8</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="5%">
+
+
+<p><b>vfp</b></p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%;"><b>neon</b></p>
+
+<p style="margin-left:17%;"><b>PowerPC</b></p>
+
+<p style="margin-left:23%;"><b>altivec</b></p>
+
+<p style="margin-left:17%;"><b>Specific Processors</b></p>
+
+<p style="margin-left:23%;"><b>pentium2 <br>
+pentium3 <br>
+pentium4</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="5%">
+
+
+<p><b>k6</b></p></td>
+<td width="72%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="5%">
+
+
+<p><b>k62</b></p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%;"><b>athlon <br>
+athlonxp</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="3%">
+
+
+<p><b>k8</b></p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>&minus;cpucount</b>
+<i>count</i> <b>(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Override detection of
+<small>CPU</small> count. This option is intended for
+testing. Do not use it unless you know what you&rsquo;re
+doing.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg
+&minus;cpucount 2</p>
+
+<p style="margin-left:11%;"><b>&minus;max_alloc</b>
+<i>bytes</i></p>
+
+<p style="margin-left:17%;">Set the maximum size limit for
+allocating a block on the heap by ffmpeg&rsquo;s family of
+malloc functions. Exercise <b>extreme caution</b> when using
+this option. Don&rsquo;t use if you do not understand the
+full consequence of doing so. Default is
+<small>INT_MAX.</small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>AVOptions</b>
+<br>
+These options are provided directly by the libavformat,
+libavdevice and libavcodec libraries. To see the list of
+available AVOptions, use the <b>&minus;help</b> option. They
+are separated into two categories: <b><br>
+generic</b></p>
+
+<p style="margin-left:17%;">These options can be set for
+any container, codec or device. Generic options are listed
+under AVFormatContext options for containers/devices and
+under AVCodecContext options for codecs.</p>
+
+<p style="margin-left:11%;"><b>private</b></p>
+
+<p style="margin-left:17%;">These options are specific to
+the given container, device or codec. Private options are
+listed under their corresponding
+containers/devices/codecs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example to
+write an ID3v2.3 header instead of a default ID3v2.4 to an
+<small>MP3</small> file, use the <b>id3v2_version</b>
+private option of the <small>MP3</small> muxer:</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;i
+input.flac &minus;id3v2_version 3 out.mp3</p>
+
+<p style="margin-left:11%; margin-top: 1em">All codec
+AVOptions are per-stream, and thus a stream specifier should
+be attached to them:</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;i
+multichannel.mxf &minus;map 0:v:0 &minus;map 0:a:0
+&minus;map 0:a:0 &minus;c:a:0 ac3 &minus;b:a:0 640k
+&minus;ac:a:1 2 &minus;c:a:1 aac &minus;b:2 128k out.mp4</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the above
+example, a multichannel audio stream is mapped twice for
+output. The first instance is encoded with codec ac3 and
+bitrate 640k. The second instance is downmixed to 2 channels
+and encoded with codec aac. A bitrate of 128k is specified
+for it using absolute index of the output stream.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: the
+<b>&minus;nooption</b> syntax cannot be used for boolean
+AVOptions, use <b>&minus;option 0</b>/<b>&minus;option
+1</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note: the old
+undocumented way of specifying per-stream AVOptions by
+prepending v/a/s to the options name is now obsolete and
+will be removed soon.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Main options
+<br>
+&minus;f</b> <i>fmt</i>
+<b>(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Force input or output file
+format. The format is normally auto detected for input files
+and guessed from the file extension for output files, so
+this option is not needed in most cases.</p>
+
+<p style="margin-left:11%;"><b>&minus;i</b> <i>url</i>
+<b>(</b><i>input</i><b>)</b></p>
+
+<p style="margin-left:17%;">input file url</p>
+
+<p style="margin-left:11%;"><b>&minus;y
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Overwrite output files without
+asking.</p>
+
+<p style="margin-left:11%;"><b>&minus;n
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Do not overwrite output files,
+and exit immediately if a specified output file already
+exists.</p>
+
+<p style="margin-left:11%;"><b>&minus;stream_loop</b>
+<i>number</i> <b>(</b><i>input</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set number of times input
+stream shall be looped. Loop 0 means no loop, loop &minus;1
+means infinite loop.</p>
+
+<p style="margin-left:11%;"><b>&minus;recast_media
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Allow forcing a decoder of a
+different media type than the one detected or designated by
+the demuxer. Useful for decoding media data muxed as data
+streams.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;c[:</b><i>stream_specifier</i><b>]</b>
+<i>codec</i>
+<b>(</b><i>input/output,per&minus;stream</i><b>) <br>
+&minus;codec[:</b><i>stream_specifier</i><b>]</b>
+<i>codec</i>
+<b>(</b><i>input/output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Select an encoder (when used
+before an output file) or a decoder (when used before an
+input file) for one or more streams. <i>codec</i> is the
+name of a decoder/encoder or a special value
+&quot;copy&quot; (output only) to indicate that the stream
+is not to be re-encoded.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map 0 &minus;c:v libx264 &minus;c:a copy
+OUTPUT</p>
+
+<p style="margin-left:17%; margin-top: 1em">encodes all
+video streams with libx264 and copies all audio streams.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For each
+stream, the last matching &quot;c&quot; option is applied,
+so</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map 0 &minus;c copy &minus;c:v:1 libx264
+&minus;c:a:137 libvorbis OUTPUT</p>
+
+<p style="margin-left:17%; margin-top: 1em">will copy all
+the streams except the second video, which will be encoded
+with libx264, and the 138th audio, which will be encoded
+with libvorbis.</p>
+
+<p style="margin-left:11%;"><b>&minus;t</b> <i>duration</i>
+<b>(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">When used as an input option
+(before &quot;&minus;i&quot;), limit the <i>duration</i> of
+data read from the input file.</p>
+
+<p style="margin-left:17%; margin-top: 1em">When used as an
+output option (before an output url), stop writing the
+output after its duration reaches <i>duration</i>.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><i>duration</i>
+must be a time duration specification, see <b>the Time
+duration section in the ffmpeg&minus;utils(1)
+manual</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&minus;to and
+&minus;t are mutually exclusive and &minus;t has
+priority.</p>
+
+<p style="margin-left:11%;"><b>&minus;to</b>
+<i>position</i> <b>(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Stop writing the output or
+reading the input at <i>position</i>. <i>position</i> must
+be a time duration specification, see <b>the Time duration
+section in the ffmpeg&minus;utils(1) manual</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&minus;to and
+&minus;t are mutually exclusive and &minus;t has
+priority.</p>
+
+<p style="margin-left:11%;"><b>&minus;fs</b>
+<i>limit_size</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the file size limit,
+expressed in bytes. No further chunk of bytes is written
+after the limit is exceeded. The size of the output file is
+slightly more than the requested file size.</p>
+
+<p style="margin-left:11%;"><b>&minus;ss</b>
+<i>position</i> <b>(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">When used as an input option
+(before &quot;&minus;i&quot;), seeks in this input file to
+<i>position</i>. Note that in most formats it is not
+possible to seek exactly, so <b>ffmpeg</b> will seek to the
+closest seek point before <i>position</i>. When transcoding
+and <b>&minus;accurate_seek</b> is enabled (the default),
+this extra segment between the seek point and
+<i>position</i> will be decoded and discarded. When doing
+stream copy or when <b>&minus;noaccurate_seek</b> is used,
+it will be preserved.</p>
+
+<p style="margin-left:17%; margin-top: 1em">When used as an
+output option (before an output url), decodes but discards
+input until the timestamps reach <i>position</i>.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><i>position</i>
+must be a time duration specification, see <b>the Time
+duration section in the ffmpeg&minus;utils(1)
+manual</b>.</p>
+
+<p style="margin-left:11%;"><b>&minus;sseof</b>
+<i>position</i> <b>(</b><i>input</i><b>)</b></p>
+
+<p style="margin-left:17%;">Like the &quot;&minus;ss&quot;
+option but relative to the &quot;end of file&quot;. That is
+negative values are earlier in the file, 0 is at
+<small>EOF.</small></p>
+
+<p style="margin-left:11%;"><b>&minus;isync</b>
+<i>input_index</i> <b>(</b><i>input</i><b>)</b></p>
+
+<p style="margin-left:17%;">Assign an input as a sync
+source.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This will take
+the difference between the start times of the target and
+reference inputs and offset the timestamps of the target
+file by that difference. The source timestamps of the two
+inputs should derive from the same clock source for expected
+results. If &quot;copyts&quot; is set then
+&quot;start_at_zero&quot; must also be set. If either of the
+inputs has no starting timestamp then no sync adjustment is
+made.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Acceptable
+values are those that refer to a valid ffmpeg input index.
+If the sync reference is the target index itself or
+<i>&minus;1</i>, then no adjustment is made to target
+timestamps. A sync reference may not itself be synced to any
+other input.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Default value
+is <i>&minus;1</i>.</p>
+
+<p style="margin-left:11%;"><b>&minus;itsoffset</b>
+<i>offset</i> <b>(</b><i>input</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the input time offset.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><i>offset</i>
+must be a time duration specification, see <b>the Time
+duration section in the ffmpeg&minus;utils(1)
+manual</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The offset is
+added to the timestamps of the input files. Specifying a
+positive offset means that the corresponding streams are
+delayed by the time duration specified in <i>offset</i>.</p>
+
+<p style="margin-left:11%;"><b>&minus;itsscale</b>
+<i>scale</i>
+<b>(</b><i>input,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Rescale input timestamps.
+<i>scale</i> should be a floating point number.</p>
+
+<p style="margin-left:11%;"><b>&minus;timestamp</b>
+<i>date</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the recording timestamp in
+the container.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><i>date</i>
+must be a date specification, see <b>the Date section in the
+ffmpeg&minus;utils(1) manual</b>.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;metadata[:metadata_specifier]</b>
+<i>key</i><b>=</b><i>value</i>
+<b>(</b><i>output,per&minus;metadata</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set a metadata key/value
+pair.</p>
+
+<p style="margin-left:17%; margin-top: 1em">An optional
+<i>metadata_specifier</i> may be given to set metadata on
+streams, chapters or programs. See
+&quot;&minus;map_metadata&quot; documentation for
+details.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This option
+overrides metadata set with &quot;&minus;map_metadata&quot;.
+It is also possible to delete metadata by using an empty
+value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example,
+for setting the title in the output file:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+in.avi &minus;metadata title=&quot;my title&quot;
+out.flv</p>
+
+<p style="margin-left:17%; margin-top: 1em">To set the
+language of the first audio stream:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;metadata:s:a:0 language=eng OUTPUT</p>
+
+
+<p style="margin-left:11%;"><b>&minus;disposition[:stream_specifier]</b>
+<i>value</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Sets the disposition for a
+stream.</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default, the
+disposition is copied from the input stream, unless the
+output stream this option applies to is fed by a complex
+filtergraph &minus; in that case the disposition is unset by
+default.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><i>value</i> is
+a sequence of items separated by &rsquo;+&rsquo; or
+&rsquo;&minus;&rsquo;. The first item may also be prefixed
+with &rsquo;+&rsquo; or &rsquo;&minus;&rsquo;, in which case
+this option modifies the default value. Otherwise (the first
+item is not prefixed) this options overrides the default
+value. A &rsquo;+&rsquo; prefix adds the given disposition,
+&rsquo;&minus;&rsquo; removes it. It is also possible to
+clear the disposition by setting it to 0.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If no
+&quot;&minus;disposition&quot; options were specified for an
+output file, ffmpeg will automatically set the
+&rsquo;default&rsquo; disposition on the first stream of
+each type, when there are multiple streams of this type in
+the output file and no stream of that type is already marked
+as default.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;&minus;dispositions&quot; option lists the known
+dispositions.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example, to
+make the second audio stream the default stream:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+in.mkv &minus;c copy &minus;disposition:a:1 default
+out.mkv</p>
+
+<p style="margin-left:17%; margin-top: 1em">To make the
+second subtitle stream the default stream and remove the
+default disposition from the first subtitle stream:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+in.mkv &minus;c copy &minus;disposition:s:0 0
+&minus;disposition:s:1 default out.mkv</p>
+
+<p style="margin-left:17%; margin-top: 1em">To add an
+embedded cover/thumbnail:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+in.mp4 &minus;i IMAGE &minus;map 0 &minus;map 1 &minus;c
+copy &minus;c:v:1 png &minus;disposition:v:1 attached_pic
+out.mp4</p>
+
+<p style="margin-left:17%; margin-top: 1em">Not all muxers
+support embedded thumbnails, and those who do, only support
+a few formats, like <small>JPEG</small> or
+<small>PNG.</small></p>
+
+<p style="margin-left:11%;"><b>&minus;program <br>
+
+[title=</b><i>title</i><b>:][program_num=</b><i>program_num</i><b>:]st=</b><i>stream</i><b>[:st=</b><i>stream</i><b>...]
+<br>
+(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Creates a program with the
+specified <i>title</i>, <i>program_num</i> and adds the
+specified <i>stream</i>(s) to it.</p>
+
+<p style="margin-left:11%;"><b>&minus;target</b>
+<i>type</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Specify target file type
+(&quot;vcd&quot;, &quot;svcd&quot;, &quot;dvd&quot;,
+&quot;dv&quot;, &quot;dv50&quot;). <i>type</i> may be
+prefixed with &quot;pal&minus;&quot;,
+&quot;ntsc&minus;&quot; or &quot;film&minus;&quot; to use
+the corresponding standard. All the format options (bitrate,
+codecs, buffer sizes) are then set automatically. You can
+just type:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+myfile.avi &minus;target vcd /tmp/vcd.mpg</p>
+
+<p style="margin-left:17%; margin-top: 1em">Nevertheless
+you can specify additional options as long as you know they
+do not conflict with the standard, as in:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+myfile.avi &minus;target vcd &minus;bf 2 /tmp/vcd.mpg</p>
+
+<p style="margin-left:17%; margin-top: 1em">The parameters
+set for each target are as follows.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>VCD</small></b></p>
+
+<p style="margin-left:17%; margin-top: 1em">&lt;pal&gt;:
+<br>
+&minus;f vcd &minus;muxrate 1411200 &minus;muxpreload 0.44
+&minus;packetsize 2324 <br>
+&minus;s 352x288 &minus;r 25 <br>
+&minus;codec:v mpeg1video &minus;g 15 &minus;b:v 1150k
+&minus;maxrate:v 1150k &minus;minrate:v 1150k
+&minus;bufsize:v 327680 <br>
+&minus;ar 44100 &minus;ac 2 <br>
+&minus;codec:a mp2 &minus;b:a 224k <br>
+&lt;ntsc&gt;: <br>
+&minus;f vcd &minus;muxrate 1411200 &minus;muxpreload 0.44
+&minus;packetsize 2324 <br>
+&minus;s 352x240 &minus;r 30000/1001 <br>
+&minus;codec:v mpeg1video &minus;g 18 &minus;b:v 1150k
+&minus;maxrate:v 1150k &minus;minrate:v 1150k
+&minus;bufsize:v 327680 <br>
+&minus;ar 44100 &minus;ac 2 <br>
+&minus;codec:a mp2 &minus;b:a 224k <br>
+&lt;film&gt;: <br>
+&minus;f vcd &minus;muxrate 1411200 &minus;muxpreload 0.44
+&minus;packetsize 2324 <br>
+&minus;s 352x240 &minus;r 24000/1001 <br>
+&minus;codec:v mpeg1video &minus;g 18 &minus;b:v 1150k
+&minus;maxrate:v 1150k &minus;minrate:v 1150k
+&minus;bufsize:v 327680 <br>
+&minus;ar 44100 &minus;ac 2 <br>
+&minus;codec:a mp2 &minus;b:a 224k</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>SVCD</small></b></p>
+
+<p style="margin-left:17%; margin-top: 1em">&lt;pal&gt;:
+<br>
+&minus;f svcd &minus;packetsize 2324 <br>
+&minus;s 480x576 &minus;pix_fmt yuv420p &minus;r 25 <br>
+&minus;codec:v mpeg2video &minus;g 15 &minus;b:v 2040k
+&minus;maxrate:v 2516k &minus;minrate:v 0 &minus;bufsize:v
+1835008 &minus;scan_offset 1 <br>
+&minus;ar 44100 <br>
+&minus;codec:a mp2 &minus;b:a 224k <br>
+&lt;ntsc&gt;: <br>
+&minus;f svcd &minus;packetsize 2324 <br>
+&minus;s 480x480 &minus;pix_fmt yuv420p &minus;r 30000/1001
+<br>
+&minus;codec:v mpeg2video &minus;g 18 &minus;b:v 2040k
+&minus;maxrate:v 2516k &minus;minrate:v 0 &minus;bufsize:v
+1835008 &minus;scan_offset 1 <br>
+&minus;ar 44100 <br>
+&minus;codec:a mp2 &minus;b:a 224k <br>
+&lt;film&gt;: <br>
+&minus;f svcd &minus;packetsize 2324 <br>
+&minus;s 480x480 &minus;pix_fmt yuv420p &minus;r 24000/1001
+<br>
+&minus;codec:v mpeg2video &minus;g 18 &minus;b:v 2040k
+&minus;maxrate:v 2516k &minus;minrate:v 0 &minus;bufsize:v
+1835008 &minus;scan_offset 1 <br>
+&minus;ar 44100 <br>
+&minus;codec:a mp2 &minus;b:a 224k</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>DVD</small></b></p>
+
+<p style="margin-left:17%; margin-top: 1em">&lt;pal&gt;:
+<br>
+&minus;f dvd &minus;muxrate 10080k &minus;packetsize 2048
+<br>
+&minus;s 720x576 &minus;pix_fmt yuv420p &minus;r 25 <br>
+&minus;codec:v mpeg2video &minus;g 15 &minus;b:v 6000k
+&minus;maxrate:v 9000k &minus;minrate:v 0 &minus;bufsize:v
+1835008 <br>
+&minus;ar 48000 <br>
+&minus;codec:a ac3 &minus;b:a 448k <br>
+&lt;ntsc&gt;: <br>
+&minus;f dvd &minus;muxrate 10080k &minus;packetsize 2048
+<br>
+&minus;s 720x480 &minus;pix_fmt yuv420p &minus;r 30000/1001
+<br>
+&minus;codec:v mpeg2video &minus;g 18 &minus;b:v 6000k
+&minus;maxrate:v 9000k &minus;minrate:v 0 &minus;bufsize:v
+1835008 <br>
+&minus;ar 48000 <br>
+&minus;codec:a ac3 &minus;b:a 448k <br>
+&lt;film&gt;: <br>
+&minus;f dvd &minus;muxrate 10080k &minus;packetsize 2048
+<br>
+&minus;s 720x480 &minus;pix_fmt yuv420p &minus;r 24000/1001
+<br>
+&minus;codec:v mpeg2video &minus;g 18 &minus;b:v 6000k
+&minus;maxrate:v 9000k &minus;minrate:v 0 &minus;bufsize:v
+1835008 <br>
+&minus;ar 48000 <br>
+&minus;codec:a ac3 &minus;b:a 448k</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><small>DV</small></b></p>
+
+<p style="margin-left:17%; margin-top: 1em">&lt;pal&gt;:
+<br>
+&minus;f dv <br>
+&minus;s 720x576 &minus;pix_fmt yuv420p &minus;r 25 <br>
+&minus;ar 48000 &minus;ac 2 <br>
+&lt;ntsc&gt;: <br>
+&minus;f dv <br>
+&minus;s 720x480 &minus;pix_fmt yuv411p &minus;r 30000/1001
+<br>
+&minus;ar 48000 &minus;ac 2 <br>
+&lt;film&gt;: <br>
+&minus;f dv <br>
+&minus;s 720x480 &minus;pix_fmt yuv411p &minus;r 24000/1001
+<br>
+&minus;ar 48000 &minus;ac 2</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;dv50&quot; target is identical to the &quot;dv&quot;
+target except that the pixel format set is
+&quot;yuv422p&quot; for all three standards.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Any user-set
+value for a parameter above will override the target preset
+value. In that case, the output may not comply with the
+target standard.</p>
+
+<p style="margin-left:11%;"><b>&minus;dn
+(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">As an input option, blocks all
+data streams of a file from being filtered or being
+automatically selected or mapped for any output. See
+&quot;&minus;discard&quot; option to disable streams
+individually.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As an output
+option, disables data recording i.e. automatic selection or
+mapping of any data stream. For full manual control see the
+&quot;&minus;map&quot; option.</p>
+
+<p style="margin-left:11%;"><b>&minus;dframes</b>
+<i>number</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the number of data frames
+to output. This is an obsolete alias for
+&quot;&minus;frames:d&quot;, which you should use
+instead.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;frames[:</b><i>stream_specifier</i><b>]</b>
+<i>framecount</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Stop writing to the stream
+after <i>framecount</i> frames.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;q[:</b><i>stream_specifier</i><b>]</b>
+<i>q</i> <b>(</b><i>output,per&minus;stream</i><b>) <br>
+&minus;qscale[:</b><i>stream_specifier</i><b>]</b> <i>q</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Use fixed quality scale (
+<small>VBR</small> ). The meaning of <i>q</i>/<i>qscale</i>
+is codec-dependent. If <i>qscale</i> is used without a
+<i>stream_specifier</i> then it applies only to the video
+stream, this is to maintain compatibility with previous
+behavior and as specifying the same codec specific value to
+2 different codecs that is audio and video generally is not
+what is intended when no stream_specifier is used.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;filter[:</b><i>stream_specifier</i><b>]</b>
+<i>filtergraph</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Create the filtergraph
+specified by <i>filtergraph</i> and use it to filter the
+stream.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><i>filtergraph</i>
+is a description of the filtergraph to apply to the stream,
+and must have a single input and a single output of the same
+type of the stream. In the filtergraph, the input is
+associated to the label &quot;in&quot;, and the output to
+the label &quot;out&quot;. See the ffmpeg-filters manual for
+more information about the filtergraph syntax.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See the
+<b>&minus;filter_complex option</b> if you want to create
+filtergraphs with multiple inputs and/or outputs.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;filter_script[:</b><i>stream_specifier</i><b>]</b>
+<i>filename</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">This option is similar to
+<b>&minus;filter</b>, the only difference is that its
+argument is the name of the file from which a filtergraph
+description is to be read.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;reinit_filter[:</b><i>stream_specifier</i><b>]</b>
+<i>integer</i>
+<b>(</b><i>input,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">This boolean option determines
+if the filtergraph(s) to which this stream is fed gets
+reinitialized when input frame parameters change mid-stream.
+This option is enabled by default as most video and all
+audio filters cannot handle deviation in input frame
+properties. Upon reinitialization, existing filter state is
+lost, like e.g. the frame count &quot;n&quot; reference
+available in some filters. Any frames buffered at time of
+reinitialization are lost. The properties where a change
+triggers reinitialization are, for video, frame resolution
+or pixel format; for audio, sample format, sample rate,
+channel count or channel layout.</p>
+
+<p style="margin-left:11%;"><b>&minus;filter_threads</b>
+<i>nb_threads</i> <b>(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Defines how many threads are
+used to process a filter pipeline. Each pipeline will
+produce a thread pool with this many threads available for
+parallel processing. The default is the number of available
+CPUs.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;pre[:</b><i>stream_specifier</i><b>]</b>
+<i>preset_name</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Specify the preset for matching
+stream(s).</p>
+
+<p style="margin-left:11%;"><b>&minus;stats
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Print encoding
+progress/statistics. It is on by default, to explicitly
+disable it you need to specify
+&quot;&minus;nostats&quot;.</p>
+
+<p style="margin-left:11%;"><b>&minus;stats_period</b>
+<i>time</i> <b>(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set period at which encoding
+progress/statistics are updated. Default is 0.5 seconds.</p>
+
+<p style="margin-left:11%;"><b>&minus;progress</b>
+<i>url</i> <b>(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Send program-friendly progress
+information to <i>url</i>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Progress
+information is written periodically and at the end of the
+encoding process. It is made of
+&quot;<i>key</i>=<i>value</i>&quot; lines. <i>key</i>
+consists of only alphanumeric characters. The last key of a
+sequence of progress information is always
+&quot;progress&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The update
+period is set using &quot;&minus;stats_period&quot;.</p>
+
+<p style="margin-left:11%;"><b>&minus;stdin</b></p>
+
+<p style="margin-left:17%;">Enable interaction on standard
+input. On by default unless standard input is used as an
+input. To explicitly disable interaction you need to specify
+&quot;&minus;nostdin&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Disabling
+interaction on standard input is useful, for example, if
+ffmpeg is in the background process group. Roughly the same
+result can be achieved with &quot;ffmpeg ... &lt;
+/dev/null&quot; but it requires a shell.</p>
+
+<p style="margin-left:11%;"><b>&minus;debug_ts
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Print timestamp information. It
+is off by default. This option is mostly useful for testing
+and debugging purposes, and the output format may change
+from one version to another, so it should not be employed by
+portable scripts.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See also the
+option &quot;&minus;fdebug ts&quot;.</p>
+
+<p style="margin-left:11%;"><b>&minus;attach</b>
+<i>filename</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Add an attachment to the output
+file. This is supported by a few formats like Matroska for
+e.g. fonts used in rendering subtitles. Attachments are
+implemented as a specific type of stream, so this option
+will add a new stream to the file. It is then possible to
+use per-stream options on this stream in the usual way.
+Attachment streams created with this option will be created
+after all the other streams (i.e. those created with
+&quot;&minus;map&quot; or automatic mappings).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that for
+Matroska you also have to set the mimetype metadata tag:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;attach DejaVuSans.ttf &minus;metadata:s:2
+mimetype=application/x&minus;truetype&minus;font out.mkv</p>
+
+<p style="margin-left:17%; margin-top: 1em">(assuming that
+the attachment stream will be third in the output file).</p>
+
+
+<p style="margin-left:11%;"><b>&minus;dump_attachment[:</b><i>stream_specifier</i><b>]</b>
+<i>filename</i>
+<b>(</b><i>input,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Extract the matching attachment
+stream into a file named <i>filename</i>. If <i>filename</i>
+is empty, then the value of the &quot;filename&quot;
+metadata tag will be used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">E.g. to extract
+the first attachment to a file named
+&rsquo;out.ttf&rsquo;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg
+&minus;dump_attachment:t:0 out.ttf &minus;i INPUT</p>
+
+<p style="margin-left:17%; margin-top: 1em">To extract all
+attachments to files determined by the &quot;filename&quot;
+tag:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg
+&minus;dump_attachment:t &quot;&quot; &minus;i INPUT</p>
+
+<p style="margin-left:17%; margin-top: 1em">Technical note
+-- attachments are implemented as codec extradata, so this
+option can actually be used to extract extradata from any
+stream, not just attachments.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Video
+Options <br>
+&minus;vframes</b> <i>number</i>
+<b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the number of video frames
+to output. This is an obsolete alias for
+&quot;&minus;frames:v&quot;, which you should use
+instead.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;r[:</b><i>stream_specifier</i><b>]</b>
+<i>fps</i>
+<b>(</b><i>input/output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set frame rate (Hz value,
+fraction or abbreviation).</p>
+
+<p style="margin-left:17%; margin-top: 1em">As an input
+option, ignore any timestamps stored in the file and instead
+generate timestamps assuming constant frame rate <i>fps</i>.
+This is not the same as the <b>&minus;framerate</b> option
+used for some input formats like image2 or v4l2 (it used to
+be the same in older versions of FFmpeg). If in doubt use
+<b>&minus;framerate</b> instead of the input option
+<b>&minus;r</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As an output
+option: <b><br>
+video encoding</b></p>
+
+<p style="margin-left:23%;">Duplicate or drop frames right
+before encoding them to achieve constant output frame rate
+<i>fps</i>.</p>
+
+<p style="margin-left:17%;"><b>video streamcopy</b></p>
+
+<p style="margin-left:23%;">Indicate to the muxer that
+<i>fps</i> is the stream frame rate. No data is dropped or
+duplicated in this case. This may produce invalid files if
+<i>fps</i> does not match the actual stream frame rate as
+determined by packet timestamps. See also the
+&quot;setts&quot; bitstream filter.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;fpsmax[:</b><i>stream_specifier</i><b>]</b>
+<i>fps</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set maximum frame rate (Hz
+value, fraction or abbreviation).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Clamps output
+frame rate when output framerate is auto-set and is higher
+than this value. Useful in batch processing or when input
+framerate is wrongly detected as very high. It cannot be set
+together with &quot;&minus;r&quot;. It is ignored during
+streamcopy.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;s[:</b><i>stream_specifier</i><b>]</b>
+<i>size</i>
+<b>(</b><i>input/output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set frame size.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As an input
+option, this is a shortcut for the <b>video_size</b> private
+option, recognized by some demuxers for which the frame size
+is either not stored in the file or is configurable -- e.g.
+raw video or video grabbers.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As an output
+option, this inserts the &quot;scale&quot; video filter to
+the <i>end</i> of the corresponding filtergraph. Please use
+the &quot;scale&quot; filter directly to insert it at the
+beginning or some other place.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The format is
+<b>wxh</b> (default &minus; same as source).</p>
+
+
+<p style="margin-left:11%;"><b>&minus;aspect[:</b><i>stream_specifier</i><b>]</b>
+<i>aspect</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the video display aspect
+ratio specified by <i>aspect</i>.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><i>aspect</i>
+can be a floating point number string, or a string of the
+form <i>num</i>:<i>den</i>, where <i>num</i> and <i>den</i>
+are the numerator and denominator of the aspect ratio. For
+example &quot;4:3&quot;, &quot;16:9&quot;,
+&quot;1.3333&quot;, and &quot;1.7777&quot; are valid
+argument values.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If used
+together with <b>&minus;vcodec copy</b>, it will affect the
+aspect ratio stored at container level, but not the aspect
+ratio stored in encoded frames, if it exists.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;display_rotation[:</b><i>stream_specifier</i><b>]</b>
+<i>rotation</i>
+<b>(</b><i>input,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set video rotation
+metadata.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><i>rotation</i>
+is a decimal number specifying the amount in degree by which
+the video should be rotated counter-clockwise before being
+displayed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This option
+overrides the rotation/display transform metadata stored in
+the file, if any. When the video is being transcoded (rather
+than copied) and &quot;&minus;autorotate&quot; is enabled,
+the video will be rotated at the filtering stage. Otherwise,
+the metadata will be written into the output file if the
+muxer supports it.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+&quot;&minus;display_hflip&quot; and/or
+&quot;&minus;display_vflip&quot; options are given, they are
+applied after the rotation specified by this option.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;display_hflip[:</b><i>stream_specifier</i><b>]
+(</b><i>input,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set whether on display the
+image should be horizontally flipped.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See the
+&quot;&minus;display_rotation&quot; option for more
+details.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;display_vflip[:</b><i>stream_specifier</i><b>]
+(</b><i>input,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set whether on display the
+image should be vertically flipped.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See the
+&quot;&minus;display_rotation&quot; option for more
+details.</p>
+
+<p style="margin-left:11%;"><b>&minus;vn
+(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">As an input option, blocks all
+video streams of a file from being filtered or being
+automatically selected or mapped for any output. See
+&quot;&minus;discard&quot; option to disable streams
+individually.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As an output
+option, disables video recording i.e. automatic selection or
+mapping of any video stream. For full manual control see the
+&quot;&minus;map&quot; option.</p>
+
+<p style="margin-left:11%;"><b>&minus;vcodec</b>
+<i>codec</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the video codec. This is an
+alias for &quot;&minus;codec:v&quot;.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;pass[:</b><i>stream_specifier</i><b>]</b>
+<i>n</i> <b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Select the pass number (1 or
+2). It is used to do two-pass video encoding. The statistics
+of the video are recorded in the first pass into a log file
+(see also the option &minus;passlogfile), and in the second
+pass that log file is used to generate the video at the
+exact requested bitrate. On pass 1, you may just deactivate
+audio and set output to null, examples for Windows and
+Unix:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+foo.mov &minus;c:v libxvid &minus;pass 1 &minus;an &minus;f
+rawvideo &minus;y NUL <br>
+ffmpeg &minus;i foo.mov &minus;c:v libxvid &minus;pass 1
+&minus;an &minus;f rawvideo &minus;y /dev/null</p>
+
+
+<p style="margin-left:11%;"><b>&minus;passlogfile[:</b><i>stream_specifier</i><b>]</b>
+<i>prefix</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set two-pass log file name
+prefix to <i>prefix</i>, the default file name prefix is
+&lsquo;&lsquo;ffmpeg2pass&rsquo;&rsquo;. The complete file
+name will be <i><small>PREFIX&minus;N</small> .log</i>,
+where N is a number specific to the output stream</p>
+
+<p style="margin-left:11%;"><b>&minus;vf</b>
+<i>filtergraph</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Create the filtergraph
+specified by <i>filtergraph</i> and use it to filter the
+stream.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is an
+alias for &quot;&minus;filter:v&quot;, see the
+<b>&minus;filter option</b>.</p>
+
+<p style="margin-left:11%;"><b>&minus;autorotate</b></p>
+
+<p style="margin-left:17%;">Automatically rotate the video
+according to file metadata. Enabled by default, use
+<b>&minus;noautorotate</b> to disable it.</p>
+
+<p style="margin-left:11%;"><b>&minus;autoscale</b></p>
+
+<p style="margin-left:17%;">Automatically scale the video
+according to the resolution of first frame. Enabled by
+default, use <b>&minus;noautoscale</b> to disable it. When
+autoscale is disabled, all output frames of filter graph
+might not be in the same resolution and may be inadequate
+for some encoder/muxer. Therefore, it is not recommended to
+disable it unless you really know what you are doing.
+Disable autoscale at your own risk.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Advanced
+Video options <br>
+&minus;pix_fmt[:</b><i>stream_specifier</i><b>]</b>
+<i>format</i>
+<b>(</b><i>input/output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set pixel format. Use
+&quot;&minus;pix_fmts&quot; to show all the supported pixel
+formats. If the selected pixel format can not be selected,
+ffmpeg will print a warning and select the best pixel format
+supported by the encoder. If <i>pix_fmt</i> is prefixed by a
+&quot;+&quot;, ffmpeg will exit with an error if the
+requested pixel format can not be selected, and automatic
+conversions inside filtergraphs are disabled. If
+<i>pix_fmt</i> is a single &quot;+&quot;, ffmpeg selects the
+same pixel format as the input (or graph output) and
+automatic conversions are disabled.</p>
+
+<p style="margin-left:11%;"><b>&minus;sws_flags</b>
+<i>flags</i> <b>(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set SwScaler flags.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;rc_override[:</b><i>stream_specifier</i><b>]</b>
+<i>override</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Rate control override for
+specific intervals, formatted as &quot;int,int,int&quot;
+list separated with slashes. Two first values are the
+beginning and end frame numbers, last one is quantizer to
+use if positive, or quality factor if negative.</p>
+
+<p style="margin-left:11%;"><b>&minus;psnr</b></p>
+
+<p style="margin-left:17%;">Calculate <small>PSNR</small>
+of compressed frames. This option is deprecated, pass the
+<small>PSNR</small> flag to the encoder instead, using
+&quot;&minus;flags +psnr&quot;.</p>
+
+<p style="margin-left:11%;"><b>&minus;vstats</b></p>
+
+<p style="margin-left:17%;">Dump video coding statistics to
+<i>vstats_HHMMSS.log</i>.</p>
+
+<p style="margin-left:11%;"><b>&minus;vstats_file</b>
+<i>file</i></p>
+
+<p style="margin-left:17%;">Dump video coding statistics to
+<i>file</i>.</p>
+
+<p style="margin-left:11%;"><b>&minus;vstats_version</b>
+<i>file</i></p>
+
+<p style="margin-left:17%;">Specifies which version of the
+vstats format to use. Default is 2.</p>
+
+<p style="margin-left:17%; margin-top: 1em">version = 1
+:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&quot;frame=
+%5d q= %2.1f PSNR= %6.2f f_size= %6d s_size= %8.0fkB time=
+%0.3f br= %7.1fkbits/s avg_br= %7.1fkbits/s&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">version &gt;
+1:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&quot;out= %2d
+st= %2d frame= %5d q= %2.1f PSNR= %6.2f f_size= %6d s_size=
+%8.0fkB time= %0.3f br= %7.1fkbits/s avg_br=
+%7.1fkbits/s&quot;</p>
+
+
+<p style="margin-left:11%;"><b>&minus;top[:</b><i>stream_specifier</i><b>]</b>
+<i>n</i> <b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">top=1/bottom=0/auto=&minus;1
+field first</p>
+
+<p style="margin-left:11%;"><b>&minus;vtag</b>
+<i>fourcc/tag</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Force video tag/fourcc. This is
+an alias for &quot;&minus;tag:v&quot;.</p>
+
+<p style="margin-left:11%;"><b>&minus;qphist
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Show <small>QP</small>
+histogram</p>
+
+<p style="margin-left:11%;"><b>&minus;vbsf</b>
+<i>bitstream_filter</i></p>
+
+<p style="margin-left:17%;">Deprecated see &minus;bsf</p>
+
+
+<p style="margin-left:11%;"><b>&minus;force_key_frames[:</b><i>stream_specifier</i><b>]</b>
+<i>time</i><b>[,</b><i>time</i><b>...]
+(</b><i>output,per&minus;stream</i><b>) <br>
+&minus;force_key_frames[:</b><i>stream_specifier</i><b>]
+expr:</b><i>expr</i>
+<b>(</b><i>output,per&minus;stream</i><b>) <br>
+&minus;force_key_frames[:</b><i>stream_specifier</i><b>]
+source (</b><i>output,per&minus;stream</i><b>) <br>
+&minus;force_key_frames[:</b><i>stream_specifier</i><b>]
+source_no_drop
+(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;"><i>force_key_frames</i> can
+take arguments of the following form: <i><br>
+time</i><b>[,</b><i>time</i><b>...]</b></p>
+
+<p style="margin-left:23%;">If the argument consists of
+timestamps, ffmpeg will round the specified times to the
+nearest output timestamp as per the encoder time base and
+force a keyframe at the first frame having timestamp equal
+or greater than the computed timestamp. Note that if the
+encoder time base is too coarse, then the keyframes may be
+forced on frames with timestamps lower than the specified
+time. The default encoder time base is the inverse of the
+output framerate but may be set otherwise via
+&quot;&minus;enc_time_base&quot;.</p>
+
+<p style="margin-left:23%; margin-top: 1em">If one of the
+times is &quot;&quot;chapters&quot;[<i>delta</i>]&quot;, it
+is expanded into the time of the beginning of all chapters
+in the file, shifted by <i>delta</i>, expressed as a time in
+seconds. This option can be useful to ensure that a seek
+point is present at a chapter mark or any other designated
+place in the output file.</p>
+
+<p style="margin-left:23%; margin-top: 1em">For example, to
+insert a key frame at 5 minutes, plus key frames 0.1 second
+before the beginning of every chapter:</p>
+
+
+<p style="margin-left:23%; margin-top: 1em">&minus;force_key_frames
+0:05:00,chapters&minus;0.1</p>
+
+<p style="margin-left:17%;"><b>expr:</b><i>expr</i></p>
+
+<p style="margin-left:23%;">If the argument is prefixed
+with &quot;expr:&quot;, the string <i>expr</i> is
+interpreted like an expression and is evaluated for each
+frame. A key frame is forced in case the evaluation is
+non-zero.</p>
+
+<p style="margin-left:23%; margin-top: 1em">The expression
+in <i>expr</i> can contain the following constants:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="2%">
+
+
+<p><b>n</b></p></td>
+<td width="4%"></td>
+<td width="71%">
+
+
+<p>the number of current processed frame, starting from
+0</p> </td></tr>
+</table>
+
+<p style="margin-left:23%;"><b>n_forced</b></p>
+
+<p style="margin-left:29%;">the number of forced frames</p>
+
+<p style="margin-left:23%;"><b>prev_forced_n</b></p>
+
+<p style="margin-left:29%;">the number of the previous
+forced frame, it is &quot;NAN&quot; when no keyframe was
+forced yet</p>
+
+<p style="margin-left:23%;"><b>prev_forced_t</b></p>
+
+<p style="margin-left:29%;">the time of the previous forced
+frame, it is &quot;NAN&quot; when no keyframe was forced
+yet</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="2%">
+
+
+<p><b>t</b></p></td>
+<td width="4%"></td>
+<td width="60%">
+
+
+<p>the time of the current processed frame</p></td>
+<td width="11%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">For example to
+force a key frame every 5 seconds, you can specify:</p>
+
+
+<p style="margin-left:23%; margin-top: 1em">&minus;force_key_frames
+expr:gte(t,n_forced*5)</p>
+
+<p style="margin-left:23%; margin-top: 1em">To force a key
+frame 5 seconds after the time of the last forced one,
+starting from second 13:</p>
+
+
+<p style="margin-left:23%; margin-top: 1em">&minus;force_key_frames
+expr:if(isnan(prev_forced_t),gte(t,13),gte(t,prev_forced_t+5))</p>
+
+<p style="margin-left:17%;"><b>source</b></p>
+
+<p style="margin-left:23%;">If the argument is
+&quot;source&quot;, ffmpeg will force a key frame if the
+current frame being encoded is marked as a key frame in its
+source.</p>
+
+<p style="margin-left:17%;"><b>source_no_drop</b></p>
+
+<p style="margin-left:23%;">If the argument is
+&quot;source_no_drop&quot;, ffmpeg will force a key frame if
+the current frame being encoded is marked as a key frame in
+its source. In cases where this particular source frame has
+to be dropped, enforce the next available frame to become a
+key frame instead.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+forcing too many keyframes is very harmful for the lookahead
+algorithms of certain encoders: using fixed-GOP options or
+similar would be more efficient.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;copyinkf[:</b><i>stream_specifier</i><b>]
+(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">When doing stream copy, copy
+also non-key frames found at the beginning.</p>
+
+<p style="margin-left:11%;"><b>&minus;init_hw_device</b>
+<i>type</i><b>[=</b><i>name</i><b>][:</b><i>device</i><b>[,</b><i>key=value</i><b>...]]</b></p>
+
+<p style="margin-left:17%;">Initialise a new hardware
+device of type <i>type</i> called <i>name</i>, using the
+given device parameters. If no name is specified it will
+receive a default name of the form
+&quot;<i>type</i>%d&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The meaning of
+<i>device</i> and the following arguments depends on the
+device type: <b><br>
+cuda</b></p>
+
+<p style="margin-left:23%;"><i>device</i> is the number of
+the <small>CUDA</small> device.</p>
+
+<p style="margin-left:23%; margin-top: 1em">The following
+options are recognized: <b><br>
+primary_ctx</b></p>
+
+<p style="margin-left:29%;">If set to 1, uses the primary
+device context instead of creating a new one.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Examples:
+<i><br>
+&minus;init_hw_device cuda:1</i></p>
+
+<p style="margin-left:29%;">Choose the second device on the
+system.</p>
+
+<p style="margin-left:23%;"><i>&minus;init_hw_device
+cuda:0,primary_ctx=1</i></p>
+
+<p style="margin-left:29%;">Choose the first device and use
+the primary device context.</p>
+
+<p style="margin-left:17%;"><b>dxva2</b></p>
+
+<p style="margin-left:23%;"><i>device</i> is the number of
+the Direct3D 9 display adapter.</p>
+
+<p style="margin-left:17%;"><b>d3d11va</b></p>
+
+<p style="margin-left:23%;"><i>device</i> is the number of
+the Direct3D 11 display adapter.</p>
+
+<p style="margin-left:17%;"><b>vaapi</b></p>
+
+<p style="margin-left:23%;"><i>device</i> is either an X11
+display name or a <small>DRM</small> render node. If not
+specified, it will attempt to open the default X11 display
+(<i>$DISPLAY</i>) and then the first <small>DRM</small>
+render node (<i>/dev/dri/renderD128</i>).</p>
+
+<p style="margin-left:17%;"><b>vdpau</b></p>
+
+<p style="margin-left:23%;"><i>device</i> is an X11 display
+name. If not specified, it will attempt to open the default
+X11 display (<i>$DISPLAY</i>).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>qsv</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p><i>device</i> selects a value in <b>MFX_IMPL_*</b>.
+Allowed values are:</p></td></tr>
+</table>
+
+<p style="margin-left:23%;"><b>auto</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="3%">
+
+
+<p><b>sw</b></p></td>
+<td width="74%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="3%">
+
+
+<p><b>hw</b></p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%;"><b>auto_any <br>
+hw_any</b></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="5%">
+
+
+<p><b>hw2</b></p></td>
+<td width="72%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="5%">
+
+
+<p><b>hw3</b></p></td>
+<td width="72%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="23%"></td>
+<td width="5%">
+
+
+<p><b>hw4</b></p></td>
+<td width="72%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%;">If not specified,
+<b>auto_any</b> is used. (Note that it may be easier to
+achieve the desired result for <small>QSV</small> by
+creating the platform-appropriate subdevice (<b>dxva2</b> or
+<b>d3d11va</b> or <b>vaapi</b>) and then deriving a
+<small>QSV</small> device from that.)</p>
+
+<p style="margin-left:23%; margin-top: 1em">Alternatively,
+<b>child_device_type</b> helps to choose
+platform-appropriate subdevice type. On Windows
+<b>d3d11va</b> is used as default subdevice type.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Examples:
+<i><br>
+&minus;init_hw_device
+qsv:hw,child_device_type=d3d11va</i></p>
+
+<p style="margin-left:29%;">Choose the <small>GPU</small>
+subdevice with type <b>d3d11va</b> and create
+<small>QSV</small> device with
+<b><small>MFX_IMPL_HARDWARE</small></b> .</p>
+
+<p style="margin-left:23%;"><i>&minus;init_hw_device
+qsv:hw,child_device_type=dxva2</i></p>
+
+<p style="margin-left:29%;">Choose the <small>GPU</small>
+subdevice with type <b>dxva2</b> and create
+<small>QSV</small> device with
+<b><small>MFX_IMPL_HARDWARE</small></b> .</p>
+
+<p style="margin-left:17%;"><b>opencl</b></p>
+
+<p style="margin-left:23%;"><i>device</i> selects the
+platform and device as
+<i>platform_index.device_index</i>.</p>
+
+<p style="margin-left:23%; margin-top: 1em">The set of
+devices can also be filtered using the key-value pairs to
+find only devices matching particular platform or device
+strings.</p>
+
+<p style="margin-left:23%; margin-top: 1em">The strings
+usable as filters are: <b><br>
+platform_profile <br>
+platform_version <br>
+platform_name <br>
+platform_vendor <br>
+platform_extensions <br>
+device_name <br>
+device_vendor <br>
+driver_version <br>
+device_version <br>
+device_profile <br>
+device_extensions <br>
+device_type</b></p>
+
+<p style="margin-left:23%; margin-top: 1em">The indices and
+filters must together uniquely select a device.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Examples:
+<i><br>
+&minus;init_hw_device opencl:0.1</i></p>
+
+<p style="margin-left:29%;">Choose the second device on the
+first platform.</p>
+
+<p style="margin-left:23%;"><i>&minus;init_hw_device
+opencl:,device_name=Foo9000</i></p>
+
+<p style="margin-left:29%;">Choose the device with a name
+containing the string <i>Foo9000</i>.</p>
+
+<p style="margin-left:23%;"><i>&minus;init_hw_device <br>
+
+opencl:1,device_type=gpu,device_extensions=cl_khr_fp16</i></p>
+
+<p style="margin-left:29%;">Choose the <small>GPU</small>
+device on the second platform supporting the
+<i>cl_khr_fp16</i> extension.</p>
+
+<p style="margin-left:17%;"><b>vulkan</b></p>
+
+<p style="margin-left:23%;">If <i>device</i> is an integer,
+it selects the device by its index in a system-dependent
+list of devices. If <i>device</i> is any other string, it
+selects the first device with a name containing that string
+as a substring.</p>
+
+<p style="margin-left:23%; margin-top: 1em">The following
+options are recognized: <b><br>
+debug</b></p>
+
+<p style="margin-left:29%;">If set to 1, enables the
+validation layer, if installed.</p>
+
+<p style="margin-left:23%;"><b>linear_images</b></p>
+
+<p style="margin-left:29%;">If set to 1, images allocated
+by the hwcontext will be linear and locally mappable.</p>
+
+<p style="margin-left:23%;"><b>instance_extensions</b></p>
+
+<p style="margin-left:29%;">A plus separated list of
+additional instance extensions to enable.</p>
+
+<p style="margin-left:23%;"><b>device_extensions</b></p>
+
+<p style="margin-left:29%;">A plus separated list of
+additional device extensions to enable.</p>
+
+<p style="margin-left:23%; margin-top: 1em">Examples:
+<i><br>
+&minus;init_hw_device vulkan:1</i></p>
+
+<p style="margin-left:29%;">Choose the second device on the
+system.</p>
+
+<p style="margin-left:23%;"><i>&minus;init_hw_device
+vulkan:RADV</i></p>
+
+<p style="margin-left:29%;">Choose the first device with a
+name containing the string <i><small>RADV</small></i> .</p>
+
+<p style="margin-left:23%;"><i>&minus;init_hw_device <br>
+
+vulkan:0,instance_extensions=VK_KHR_wayland_surface+VK_KHR_xcb_surface</i></p>
+
+<p style="margin-left:29%;">Choose the first device and
+enable the Wayland and <small>XCB</small> instance
+extensions.</p>
+
+<p style="margin-left:11%;"><b>&minus;init_hw_device</b>
+<i>type</i><b>[=</b><i>name</i><b>]@</b><i>source</i></p>
+
+<p style="margin-left:17%;">Initialise a new hardware
+device of type <i>type</i> called <i>name</i>, deriving it
+from the existing device with the name <i>source</i>.</p>
+
+<p style="margin-left:11%;"><b>&minus;init_hw_device
+list</b></p>
+
+<p style="margin-left:17%;">List all hardware device types
+supported in this build of ffmpeg.</p>
+
+<p style="margin-left:11%;"><b>&minus;filter_hw_device</b>
+<i>name</i></p>
+
+<p style="margin-left:17%;">Pass the hardware device called
+<i>name</i> to all filters in any filter graph. This can be
+used to set the device to upload to with the
+&quot;hwupload&quot; filter, or the device to map to with
+the &quot;hwmap&quot; filter. Other filters may also make
+use of this parameter when they require a hardware device.
+Note that this is typically only required when the input is
+not already in hardware frames &minus; when it is, filters
+will derive the device they require from the context of the
+frames they receive as input.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is a
+global setting, so all filters will receive the same
+device.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;hwaccel[:</b><i>stream_specifier</i><b>]</b>
+<i>hwaccel</i>
+<b>(</b><i>input,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Use hardware acceleration to
+decode the matching stream(s). The allowed values of
+<i>hwaccel</i> are: <b><br>
+none</b></p>
+
+<p style="margin-left:23%;">Do not use any hardware
+acceleration (the default).</p>
+
+<p style="margin-left:17%;"><b>auto</b></p>
+
+<p style="margin-left:23%;">Automatically select the
+hardware acceleration method.</p>
+
+<p style="margin-left:17%;"><b>vdpau</b></p>
+
+<p style="margin-left:23%;">Use <small>VDPAU</small> (Video
+Decode and Presentation <small>API</small> for Unix)
+hardware acceleration.</p>
+
+<p style="margin-left:17%;"><b>dxva2</b></p>
+
+<p style="margin-left:23%;">Use <small>DXVA2</small>
+(DirectX Video Acceleration) hardware acceleration.</p>
+
+<p style="margin-left:17%;"><b>d3d11va</b></p>
+
+<p style="margin-left:23%;">Use D3D11VA (DirectX Video
+Acceleration) hardware acceleration.</p>
+
+<p style="margin-left:17%;"><b>vaapi</b></p>
+
+<p style="margin-left:23%;">Use <small>VAAPI</small> (Video
+Acceleration <small>API</small> ) hardware acceleration.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>qsv</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Use the Intel QuickSync Video acceleration for video
+transcoding.</p> </td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">Unlike most
+other values, this option does not enable accelerated
+decoding (that is used automatically whenever a qsv decoder
+is selected), but accelerated transcoding, without copying
+the frames into the system memory.</p>
+
+<p style="margin-left:23%; margin-top: 1em">For it to work,
+both the decoder and the encoder must support
+<small>QSV</small> acceleration and no filters must be
+used.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This option has
+no effect if the selected hwaccel is not available or not
+supported by the chosen decoder.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that most
+acceleration methods are intended for playback and will not
+be faster than software decoding on modern CPUs.
+Additionally, <b>ffmpeg</b> will usually need to copy the
+decoded frames from the <small>GPU</small> memory into the
+system memory, resulting in further performance loss. This
+option is thus mainly useful for testing.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;hwaccel_device[:</b><i>stream_specifier</i><b>]</b>
+<i>hwaccel_device</i>
+<b>(</b><i>input,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Select a device to use for
+hardware acceleration.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This option
+only makes sense when the <b>&minus;hwaccel</b> option is
+also specified. It can either refer to an existing device
+created with <b>&minus;init_hw_device</b> by name, or it can
+create a new device as if <b>&minus;init_hw_device</b>
+<i>type</i>:<i>hwaccel_device</i> were called immediately
+before.</p>
+
+<p style="margin-left:11%;"><b>&minus;hwaccels</b></p>
+
+<p style="margin-left:17%;">List all hardware acceleration
+components enabled in this build of ffmpeg. Actual runtime
+availability depends on the hardware and its suitable driver
+being installed.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;fix_sub_duration_heartbeat[:</b><i>stream_specifier</i><b>]</b></p>
+
+<p style="margin-left:17%;">Set a specific output video
+stream as the heartbeat stream according to which to split
+and push through currently in-progress subtitle upon receipt
+of a random access packet.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This lowers the
+latency of subtitles for which the end packet or the
+following subtitle has not yet been received. As a drawback,
+this will most likely lead to duplication of subtitle events
+in order to cover the full duration, so when dealing with
+use cases where latency of when the subtitle event is passed
+on to output is not relevant this option should not be
+utilized.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Requires
+<b>&minus;fix_sub_duration</b> to be set for the relevant
+input subtitle stream for this to have any effect, as well
+as for the input subtitle stream having to be directly
+mapped to the same output in which the heartbeat stream
+resides.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Audio
+Options <br>
+&minus;aframes</b> <i>number</i>
+<b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the number of audio frames
+to output. This is an obsolete alias for
+&quot;&minus;frames:a&quot;, which you should use
+instead.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;ar[:</b><i>stream_specifier</i><b>]</b>
+<i>freq</i>
+<b>(</b><i>input/output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the audio sampling
+frequency. For output streams it is set by default to the
+frequency of the corresponding input stream. For input
+streams this option only makes sense for audio grabbing
+devices and raw demuxers and is mapped to the corresponding
+demuxer options.</p>
+
+<p style="margin-left:11%;"><b>&minus;aq</b> <i>q</i>
+<b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the audio quality
+(codec-specific, <small>VBR</small> ). This is an alias for
+&minus;q:a.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;ac[:</b><i>stream_specifier</i><b>]</b>
+<i>channels</i>
+<b>(</b><i>input/output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the number of audio
+channels. For output streams it is set by default to the
+number of input audio channels. For input streams this
+option only makes sense for audio grabbing devices and raw
+demuxers and is mapped to the corresponding demuxer
+options.</p>
+
+<p style="margin-left:11%;"><b>&minus;an
+(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">As an input option, blocks all
+audio streams of a file from being filtered or being
+automatically selected or mapped for any output. See
+&quot;&minus;discard&quot; option to disable streams
+individually.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As an output
+option, disables audio recording i.e. automatic selection or
+mapping of any audio stream. For full manual control see the
+&quot;&minus;map&quot; option.</p>
+
+<p style="margin-left:11%;"><b>&minus;acodec</b>
+<i>codec</i> <b>(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the audio codec. This is an
+alias for &quot;&minus;codec:a&quot;.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;sample_fmt[:</b><i>stream_specifier</i><b>]</b>
+<i>sample_fmt</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the audio sample format.
+Use &quot;&minus;sample_fmts&quot; to get a list of
+supported sample formats.</p>
+
+<p style="margin-left:11%;"><b>&minus;af</b>
+<i>filtergraph</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Create the filtergraph
+specified by <i>filtergraph</i> and use it to filter the
+stream.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is an
+alias for &quot;&minus;filter:a&quot;, see the
+<b>&minus;filter option</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Advanced
+Audio options <br>
+&minus;atag</b> <i>fourcc/tag</i>
+<b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Force audio tag/fourcc. This is
+an alias for &quot;&minus;tag:a&quot;.</p>
+
+<p style="margin-left:11%;"><b>&minus;absf</b>
+<i>bitstream_filter</i></p>
+
+<p style="margin-left:17%;">Deprecated, see &minus;bsf</p>
+
+<p style="margin-left:11%;"><b>&minus;guess_layout_max</b>
+<i>channels</i>
+<b>(</b><i>input,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">If some input channel layout is
+not known, try to guess only if it corresponds to at most
+the specified number of channels. For example, 2 tells to
+<b>ffmpeg</b> to recognize 1 channel as mono and 2 channels
+as stereo but not 6 channels as 5.1. The default is to
+always try to guess. Use 0 to disable all guessing.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Subtitle
+options <br>
+&minus;scodec</b> <i>codec</i>
+<b>(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the subtitle codec. This is
+an alias for &quot;&minus;codec:s&quot;.</p>
+
+<p style="margin-left:11%;"><b>&minus;sn
+(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">As an input option, blocks all
+subtitle streams of a file from being filtered or being
+automatically selected or mapped for any output. See
+&quot;&minus;discard&quot; option to disable streams
+individually.</p>
+
+<p style="margin-left:17%; margin-top: 1em">As an output
+option, disables subtitle recording i.e. automatic selection
+or mapping of any subtitle stream. For full manual control
+see the &quot;&minus;map&quot; option.</p>
+
+<p style="margin-left:11%;"><b>&minus;sbsf</b>
+<i>bitstream_filter</i></p>
+
+<p style="margin-left:17%;">Deprecated, see &minus;bsf</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Advanced
+Subtitle options <br>
+&minus;fix_sub_duration</b></p>
+
+<p style="margin-left:17%;">Fix subtitles durations. For
+each subtitle, wait for the next packet in the same stream
+and adjust the duration of the first to avoid overlap. This
+is necessary with some subtitles codecs, especially
+<small>DVB</small> subtitles, because the duration in the
+original packet is only a rough estimate and the end is
+actually marked by an empty subtitle frame. Failing to use
+this option when necessary can result in exaggerated
+durations or muxing failures due to non-monotonic
+timestamps.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that this
+option will delay the output of all data until the next
+subtitle packet is decoded: it may increase memory
+consumption and latency a lot.</p>
+
+<p style="margin-left:11%;"><b>&minus;canvas_size</b>
+<i>size</i></p>
+
+<p style="margin-left:17%;">Set the size of the canvas used
+to render subtitles.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Advanced
+options <br>
+&minus;map
+[&minus;]</b><i>input_file_id</i><b>[:</b><i>stream_specifier</i><b>][?]
+|</b> <i>[linklabel]</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Create one or more streams in
+the output file. This option has two forms for specifying
+the data source(s): the first selects one or more streams
+from some input file (specified with &quot;&minus;i&quot;),
+the second takes an output from some complex filtergraph
+(specified with &quot;&minus;filter_complex&quot; or
+&quot;&minus;filter_complex_script&quot;).</p>
+
+<p style="margin-left:17%; margin-top: 1em">In the first
+form, an output stream is created for every stream from the
+input file with the index <i>input_file_id</i>. If
+<i>stream_specifier</i> is given, only those streams that
+match the specifier are used (see the <b>Stream
+specifiers</b> section for the <i>stream_specifier</i>
+syntax).</p>
+
+<p style="margin-left:17%; margin-top: 1em">A
+&quot;&minus;&quot; character before the stream identifier
+creates a &quot;negative&quot; mapping. It disables matching
+streams from already created mappings.</p>
+
+<p style="margin-left:17%; margin-top: 1em">A trailing
+&quot;?&quot; after the stream index will allow the map to
+be optional: if the map matches no streams the map will be
+ignored instead of failing. Note the map will still fail if
+an invalid input file index is used; such as if the map
+refers to a non-existent input.</p>
+
+<p style="margin-left:17%; margin-top: 1em">An alternative
+<i>[linklabel]</i> form will map outputs from complex filter
+graphs (see the <b>&minus;filter_complex</b> option) to the
+output file. <i>linklabel</i> must correspond to a defined
+output link label in the graph.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This option may
+be specified multiple times, each adding more streams to the
+output file. Any given input stream may also be mapped any
+number of times as a source for different output streams,
+e.g. in order to use different encoding options and/or
+filters. The streams are created in the output in the same
+order in which the &quot;&minus;map&quot; options are given
+on the commandline.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using this
+option disables the default mappings for this output
+file.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Examples:
+<i><br>
+map everything</i></p>
+
+<p style="margin-left:23%;">To map <small>ALL</small>
+streams from the first input file to output</p>
+
+<p style="margin-left:23%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map 0 output</p>
+
+<p style="margin-left:17%;"><i>select specific
+stream</i></p>
+
+<p style="margin-left:23%;">If you have two audio streams
+in the first input file, these streams are identified by
+<i>0:0</i> and <i>0:1</i>. You can use
+&quot;&minus;map&quot; to select which streams to place in
+an output file. For example:</p>
+
+<p style="margin-left:23%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map 0:1 out.wav</p>
+
+<p style="margin-left:23%; margin-top: 1em">will map the
+second input stream in <i><small>INPUT</small></i> to the
+(single) output stream in <i>out.wav</i>.</p>
+
+<p style="margin-left:17%;"><i>create multiple
+streams</i></p>
+
+<p style="margin-left:23%;">To select the stream with index
+2 from input file <i>a.mov</i> (specified by the identifier
+<i>0:2</i>), and stream with index 6 from input <i>b.mov</i>
+(specified by the identifier <i>1:6</i>), and copy them to
+the output file <i>out.mov</i>:</p>
+
+<p style="margin-left:23%; margin-top: 1em">ffmpeg &minus;i
+a.mov &minus;i b.mov &minus;c copy &minus;map 0:2 &minus;map
+1:6 out.mov</p>
+
+<p style="margin-left:17%;"><i>create multiple streams
+2</i></p>
+
+<p style="margin-left:23%;">To select all video and the
+third audio stream from an input file:</p>
+
+<p style="margin-left:23%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map 0:v &minus;map 0:a:2 OUTPUT</p>
+
+<p style="margin-left:17%;"><i>negative map</i></p>
+
+<p style="margin-left:23%;">To map all the streams except
+the second audio, use negative mappings</p>
+
+<p style="margin-left:23%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map 0 &minus;map &minus;0:a:1 OUTPUT</p>
+
+<p style="margin-left:17%;"><i>optional map</i></p>
+
+<p style="margin-left:23%;">To map the video and audio
+streams from the first input, and using the trailing
+&quot;?&quot;, ignore the audio mapping if no audio streams
+exist in the first input:</p>
+
+<p style="margin-left:23%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map 0:v &minus;map 0:a? OUTPUT</p>
+
+<p style="margin-left:17%;"><i>map by language</i></p>
+
+<p style="margin-left:23%;">To pick the English audio
+stream:</p>
+
+<p style="margin-left:23%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map 0:m:language:eng OUTPUT</p>
+
+
+<p style="margin-left:11%;"><b>&minus;ignore_unknown</b></p>
+
+<p style="margin-left:17%;">Ignore input streams with
+unknown type instead of failing if copying such streams is
+attempted.</p>
+
+<p style="margin-left:11%;"><b>&minus;copy_unknown</b></p>
+
+<p style="margin-left:17%;">Allow input streams with
+unknown type to be copied instead of failing if copying such
+streams is attempted.</p>
+
+<p style="margin-left:11%;"><b>&minus;map_channel <br>
+
+[</b><i>input_file_id</i><b>.</b><i>stream_specifier</i><b>.</b><i>channel_id</i><b>|&minus;1][?][:</b><i>output_file_id</i><b>.</b><i>stream_specifier</i><b>]</b></p>
+
+<p style="margin-left:17%;">This option is deprecated and
+will be removed. It can be replaced by the <i>pan</i>
+filter. In some cases it may be easier to use some
+combination of the <i>channelsplit</i>, <i>channelmap</i>,
+or <i>amerge</i> filters.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Map an audio
+channel from a given input to an output. If
+<i>output_file_id</i>.<i>stream_specifier</i> is not set,
+the audio channel will be mapped on all the audio
+streams.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Using
+&quot;&minus;1&quot; instead of
+<i>input_file_id</i>.<i>stream_specifier</i>.<i>channel_id</i>
+will map a muted channel.</p>
+
+<p style="margin-left:17%; margin-top: 1em">A trailing
+&quot;?&quot; will allow the map_channel to be optional: if
+the map_channel matches no channel the map_channel will be
+ignored instead of failing.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example,
+assuming <i><small>INPUT</small></i> is a stereo audio file,
+you can switch the two audio channels with the following
+command:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map_channel 0.0.1 &minus;map_channel 0.0.0
+OUTPUT</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you want to
+mute the first channel and keep the second:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map_channel &minus;1 &minus;map_channel 0.0.1
+OUTPUT</p>
+
+<p style="margin-left:17%; margin-top: 1em">The order of
+the &quot;&minus;map_channel&quot; option specifies the
+order of the channels in the output stream. The output
+channel layout is guessed from the number of channels mapped
+(mono if one &quot;&minus;map_channel&quot;, stereo if two,
+etc.). Using &quot;&minus;ac&quot; in combination of
+&quot;&minus;map_channel&quot; makes the channel gain levels
+to be updated if input and output channel layouts
+don&rsquo;t match (for instance two
+&quot;&minus;map_channel&quot; options and &quot;&minus;ac
+6&quot;).</p>
+
+<p style="margin-left:17%; margin-top: 1em">You can also
+extract each channel of an input to specific outputs; the
+following command extracts two channels of the
+<i><small>INPUT</small></i> audio stream (file 0, stream 0)
+to the respective <i><small>OUTPUT_CH0</small></i> and
+<i><small>OUTPUT_CH1</small></i> outputs:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map_channel 0.0.0 OUTPUT_CH0 &minus;map_channel
+0.0.1 OUTPUT_CH1</p>
+
+<p style="margin-left:17%; margin-top: 1em">The following
+example splits the channels of a stereo input into two
+separate streams, which are put into the same output
+file:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+stereo.wav &minus;map 0:0 &minus;map 0:0 &minus;map_channel
+0.0.0:0.0 &minus;map_channel 0.0.1:0.1 &minus;y out.ogg</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+currently each output stream can only contain channels from
+a single input stream; you can&rsquo;t for example use
+&quot;&minus;map_channel&quot; to pick multiple input audio
+channels contained in different streams (from the same or
+different files) and merge them into a single output stream.
+It is therefore not currently possible, for example, to turn
+two separate mono streams into a single stereo stream.
+However splitting a stereo stream into two single channel
+mono streams is possible.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you need
+this feature, a possible workaround is to use the
+<i>amerge</i> filter. For example, if you need to merge a
+media (here <i>input.mkv</i>) with 2 mono audio streams into
+one single stereo channel audio stream (and keep the video
+stream), you can use the following command:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+input.mkv &minus;filter_complex &quot;[0:1] [0:2]
+amerge&quot; &minus;c:a pcm_s16le &minus;c:v copy
+output.mkv</p>
+
+<p style="margin-left:17%; margin-top: 1em">To map the
+first two audio channels from the first input, and using the
+trailing &quot;?&quot;, ignore the audio channel mapping if
+the first input is mono instead of stereo:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+INPUT &minus;map_channel 0.0.0 &minus;map_channel 0.0.1?
+OUTPUT</p>
+
+
+<p style="margin-left:11%;"><b>&minus;map_metadata[:</b><i>metadata_spec_out</i><b>]</b>
+<i>infile</i><b>[:</b><i>metadata_spec_in</i><b>] <br>
+(</b><i>output,per&minus;metadata</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set metadata information of the
+next output file from <i>infile</i>. Note that those are
+file indices (zero-based), not filenames. Optional
+<i>metadata_spec_in/out</i> parameters specify, which
+metadata to copy. A metadata specifier can have the
+following forms:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p><i>g</i></p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>global metadata, i.e. metadata that applies to the whole
+file</p> </td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><i>s</i><b>[:</b><i>stream_spec</i><b>]</b></p>
+
+<p style="margin-left:23%;">per-stream metadata.
+<i>stream_spec</i> is a stream specifier as described in the
+<b>Stream specifiers</b> chapter. In an input metadata
+specifier, the first matching stream is copied from. In an
+output metadata specifier, all matching streams are copied
+to.</p>
+
+
+<p style="margin-left:17%;"><i>c</i><b>:</b><i>chapter_index</i></p>
+
+<p style="margin-left:23%;">per-chapter metadata.
+<i>chapter_index</i> is the zero-based chapter index.</p>
+
+
+<p style="margin-left:17%;"><i>p</i><b>:</b><i>program_index</i></p>
+
+<p style="margin-left:23%;">per-program metadata.
+<i>program_index</i> is the zero-based program index.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If metadata
+specifier is omitted, it defaults to global.</p>
+
+<p style="margin-left:17%; margin-top: 1em">By default,
+global metadata is copied from the first input file,
+per-stream and per-chapter metadata is copied along with
+streams/chapters. These default mappings are disabled by
+creating any mapping of the relevant type. A negative file
+index can be used to create a dummy mapping that just
+disables automatic copying.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example to
+copy metadata from the first stream of the input file to
+global metadata of the output file:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+in.ogg &minus;map_metadata 0:s:0 out.mp3</p>
+
+<p style="margin-left:17%; margin-top: 1em">To do the
+reverse, i.e. copy global metadata to all audio streams:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+in.mkv &minus;map_metadata:s:a 0:g out.mkv</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+simple 0 would work as well in this example, since global
+metadata is assumed by default.</p>
+
+<p style="margin-left:11%;"><b>&minus;map_chapters</b>
+<i>input_file_index</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Copy chapters from input file
+with index <i>input_file_index</i> to the next output file.
+If no chapter mapping is specified, then chapters are copied
+from the first input file with at least one chapter. Use a
+negative file index to disable any chapter copying.</p>
+
+<p style="margin-left:11%;"><b>&minus;benchmark
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Show benchmarking information
+at the end of an encode. Shows real, system and user time
+used and maximum memory consumption. Maximum memory
+consumption is not supported on all systems, it will usually
+display as 0 if not supported.</p>
+
+<p style="margin-left:11%;"><b>&minus;benchmark_all
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Show benchmarking information
+during the encode. Shows real, system and user time used in
+various steps (audio/video encode/decode).</p>
+
+<p style="margin-left:11%;"><b>&minus;timelimit</b>
+<i>duration</i> <b>(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Exit after ffmpeg has been
+running for <i>duration</i> seconds in <small>CPU</small>
+user time.</p>
+
+<p style="margin-left:11%;"><b>&minus;dump
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Dump each input packet to
+stderr.</p>
+
+<p style="margin-left:11%;"><b>&minus;hex
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">When dumping packets, also dump
+the payload.</p>
+
+<p style="margin-left:11%;"><b>&minus;readrate</b>
+<i>speed</i> <b>(</b><i>input</i><b>)</b></p>
+
+<p style="margin-left:17%;">Limit input read speed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Its value is a
+floating-point positive number which represents the maximum
+duration of media, in seconds, that should be ingested in
+one second of wallclock time. Default value is zero and
+represents no imposed limitation on speed of ingestion.
+Value 1 represents real-time speed and is equivalent to
+&quot;&minus;re&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Mainly used to
+simulate a capture device or live input stream (e.g. when
+reading from a file). Should not be used with a low value
+when input is an actual capture device or live stream as it
+may cause packet loss.</p>
+
+<p style="margin-left:17%; margin-top: 1em">It is useful
+for when flow speed of output packets is important, such as
+live streaming.</p>
+
+<p style="margin-left:11%;"><b>&minus;re
+(</b><i>input</i><b>)</b></p>
+
+<p style="margin-left:17%;">Read input at native frame
+rate. This is equivalent to setting &quot;&minus;readrate
+1&quot;.</p>
+
+<p style="margin-left:11%;"><b>&minus;vsync</b>
+<i>parameter</i> <b>(</b><i>global</i><b>) <br>
+&minus;fps_mode[:</b><i>stream_specifier</i><b>]</b>
+<i>parameter</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set video sync method /
+framerate mode. vsync is applied to all output video streams
+but can be overridden for a stream by setting fps_mode.
+vsync is deprecated and will be removed in the future.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For
+compatibility reasons some of the values for vsync can be
+specified as numbers (shown in parentheses in the following
+table). <b><br>
+passthrough (0)</b></p>
+
+<p style="margin-left:23%;">Each frame is passed with its
+timestamp from the demuxer to the muxer.</p>
+
+<p style="margin-left:17%;"><b>cfr (1)</b></p>
+
+<p style="margin-left:23%;">Frames will be duplicated and
+dropped to achieve exactly the requested constant frame
+rate.</p>
+
+<p style="margin-left:17%;"><b>vfr (2)</b></p>
+
+<p style="margin-left:23%;">Frames are passed through with
+their timestamp or dropped so as to prevent 2 frames from
+having the same timestamp.</p>
+
+<p style="margin-left:17%;"><b>drop</b></p>
+
+<p style="margin-left:23%;">As passthrough but destroys all
+timestamps, making the muxer generate fresh timestamps based
+on frame-rate.</p>
+
+<p style="margin-left:17%;"><b>auto (&minus;1)</b></p>
+
+<p style="margin-left:23%;">Chooses between cfr and vfr
+depending on muxer capabilities. This is the default
+method.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that the
+timestamps may be further modified by the muxer, after this.
+For example, in the case that the format option
+<b>avoid_negative_ts</b> is enabled.</p>
+
+<p style="margin-left:17%; margin-top: 1em">With &minus;map
+you can select from which stream the timestamps should be
+taken. You can leave either video or audio unchanged and
+sync the remaining stream(s) to the unchanged one.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;frame_drop_threshold</b>
+<i>parameter</i></p>
+
+<p style="margin-left:17%;">Frame drop threshold, which
+specifies how much behind video frames can be before they
+are dropped. In frame rate units, so 1.0 is one frame. The
+default is &minus;1.1. One possible usecase is to avoid
+framedrops in case of noisy timestamps or to increase frame
+drop precision in case of exact timestamps.</p>
+
+<p style="margin-left:11%;"><b>&minus;adrift_threshold</b>
+<i>time</i></p>
+
+<p style="margin-left:17%;">Set the minimum difference
+between timestamps and audio data (in seconds) to trigger
+adding/dropping samples to make it match the timestamps.
+This option effectively is a threshold to select between
+hard (add/drop) and soft (squeeze/stretch) compensation.
+&quot;&minus;async&quot; must be set to a positive
+value.</p>
+
+<p style="margin-left:11%;"><b>&minus;apad</b>
+<i>parameters</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Pad the output audio stream(s).
+This is the same as applying &quot;&minus;af apad&quot;.
+Argument is a string of filter parameters composed the same
+as with the &quot;apad&quot; filter.
+&quot;&minus;shortest&quot; must be set for this output for
+the option to take effect.</p>
+
+<p style="margin-left:11%;"><b>&minus;copyts</b></p>
+
+<p style="margin-left:17%;">Do not process input
+timestamps, but keep their values without trying to sanitize
+them. In particular, do not remove the initial start time
+offset value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that,
+depending on the <b>vsync</b> option or on specific muxer
+processing (e.g. in case the format option
+<b>avoid_negative_ts</b> is enabled) the output timestamps
+may mismatch with the input timestamps even when this option
+is selected.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;start_at_zero</b></p>
+
+<p style="margin-left:17%;">When used with <b>copyts</b>,
+shift input timestamps so they start at zero.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This means that
+using e.g. &quot;&minus;ss 50&quot; will make output
+timestamps start at 50 seconds, regardless of what timestamp
+the input file started at.</p>
+
+<p style="margin-left:11%;"><b>&minus;copytb</b>
+<i>mode</i></p>
+
+<p style="margin-left:17%;">Specify how to set the encoder
+timebase when stream copying. <i>mode</i> is an integer
+numeric value, and can assume one of the following
+values:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p><b>1</b></p></td>
+<td width="5%"></td>
+<td width="39%">
+
+
+<p>Use the demuxer timebase.</p></td>
+<td width="38%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">The time base
+is copied to the output encoder from the corresponding input
+demuxer. This is sometimes required to avoid non
+monotonically increasing timestamps when copying video
+streams with variable frame rate.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em"><b>0</b></p></td>
+<td width="5%"></td>
+<td width="39%">
+
+
+<p style="margin-top: 1em">Use the decoder timebase.</p></td>
+<td width="38%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">The time base
+is copied to the output encoder from the corresponding input
+decoder.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em"><b>&minus;1</b></p></td>
+<td width="3%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em">Try to make the choice
+automatically, in order to generate a sane output.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Default value
+is &minus;1.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;enc_time_base[:</b><i>stream_specifier</i><b>]</b>
+<i>timebase</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the encoder timebase.
+<i>timebase</i> is a floating point number, and can assume
+one of the following values:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p><b>0</b></p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>Assign a default value according to the media type.</p></td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">For video
+&minus; use 1/framerate, for audio &minus; use
+1/samplerate.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em"><b>&minus;1</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p style="margin-top: 1em">Use the input stream timebase
+when possible.</p></td>
+<td width="9%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">If an input
+stream is not available, the default timebase will be
+used.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="3%">
+
+
+<p style="margin-top: 1em"><b>&gt;0</b></p></td>
+<td width="3%"></td>
+<td width="62%">
+
+
+<p style="margin-top: 1em">Use the provided number as the
+timebase.</p> </td>
+<td width="15%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">This field can
+be provided as a ratio of two integers (e.g. 1:24, 1:48000)
+or as a floating point number (e.g. 0.04166,
+2.0833e&minus;5)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Default value
+is 0.</p>
+
+<p style="margin-left:11%;"><b>&minus;bitexact
+(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Enable bitexact mode for
+(de)muxer and (de/en)coder</p>
+
+<p style="margin-left:11%;"><b>&minus;shortest
+(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Finish encoding when the
+shortest output stream ends.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that this
+option may require buffering frames, which introduces extra
+latency. The maximum amount of this latency may be
+controlled with the &quot;&minus;shortest_buf_duration&quot;
+option.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;shortest_buf_duration</b>
+<i>duration</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">The &quot;&minus;shortest&quot;
+option may require buffering potentially large amounts of
+data when at least one of the streams is &quot;sparse&quot;
+(i.e. has large gaps between frames X this is typically the
+case for subtitles).</p>
+
+<p style="margin-left:17%; margin-top: 1em">This option
+controls the maximum duration of buffered frames in seconds.
+Larger values may allow the &quot;&minus;shortest&quot;
+option to produce more accurate results, but increase memory
+use and latency.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+value is 10 seconds.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;dts_delta_threshold</b></p>
+
+<p style="margin-left:17%;">Timestamp discontinuity delta
+threshold.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;dts_error_threshold</b>
+<i>seconds</i></p>
+
+<p style="margin-left:17%;">Timestamp error delta
+threshold. This threshold use to discard crazy/damaged
+timestamps and the default is 30 hours which is arbitrarily
+picked and quite conservative.</p>
+
+<p style="margin-left:11%;"><b>&minus;muxdelay</b>
+<i>seconds</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the maximum demux-decode
+delay.</p>
+
+<p style="margin-left:11%;"><b>&minus;muxpreload</b>
+<i>seconds</i> <b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set the initial demux-decode
+delay.</p>
+
+<p style="margin-left:11%;"><b>&minus;streamid</b>
+<i>output-stream-index</i><b>:</b><i>new-value</i>
+<b>(</b><i>output</i><b>)</b></p>
+
+<p style="margin-left:17%;">Assign a new stream-id value to
+an output stream. This option should be specified prior to
+the output filename to which it applies. For the situation
+where multiple output files exist, a streamid may be
+reassigned to a different value.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example, to
+set the stream 0 <small>PID</small> to 33 and the stream 1
+<small>PID</small> to 36 for an output mpegts file:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+inurl &minus;streamid 0:33 &minus;streamid 1:36 out.ts</p>
+
+
+<p style="margin-left:11%;"><b>&minus;bsf[:</b><i>stream_specifier</i><b>]</b>
+<i>bitstream_filters</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set bitstream filters for
+matching streams. <i>bitstream_filters</i> is a
+comma-separated list of bitstream filters. Use the
+&quot;&minus;bsfs&quot; option to get the list of bitstream
+filters.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+h264.mp4 &minus;c:v copy &minus;bsf:v h264_mp4toannexb
+&minus;an out.h264 <br>
+ffmpeg &minus;i file.mov &minus;an &minus;vn &minus;bsf:s
+mov2textsub &minus;c:s copy &minus;f rawvideo sub.txt</p>
+
+
+<p style="margin-left:11%;"><b>&minus;tag[:</b><i>stream_specifier</i><b>]</b>
+<i>codec_tag</i>
+<b>(</b><i>input/output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Force a tag/fourcc for matching
+streams.</p>
+
+<p style="margin-left:11%;"><b>&minus;timecode</b>
+<i>hh</i><b>:</b><i>mm</i><b>:</b><i>ss</i>
+<b><small>SEP</small></b> <i>ff</i></p>
+
+<p style="margin-left:17%;">Specify Timecode for writing.
+<i><small>SEP</small></i> is &rsquo;:&rsquo; for non drop
+timecode and &rsquo;;&rsquo; (or &rsquo;.&rsquo;) for
+drop.</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+input.mpg &minus;timecode 01:02:03.04 &minus;r 30000/1001
+&minus;s ntsc output.mpg</p>
+
+<p style="margin-left:11%;"><b>&minus;filter_complex</b>
+<i>filtergraph</i> <b>(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Define a complex filtergraph,
+i.e. one with arbitrary number of inputs and/or outputs. For
+simple graphs -- those with one input and one output of the
+same type -- see the <b>&minus;filter</b> options.
+<i>filtergraph</i> is a description of the filtergraph, as
+described in the &lsquo;&lsquo;Filtergraph
+syntax&rsquo;&rsquo; section of the ffmpeg-filters
+manual.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Input link
+labels must refer to input streams using the
+&quot;[file_index:stream_specifier]&quot; syntax (i.e. the
+same as <b>&minus;map</b> uses). If <i>stream_specifier</i>
+matches multiple streams, the first one will be used. An
+unlabeled input will be connected to the first unused input
+stream of the matching type.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Output link
+labels are referred to with <b>&minus;map</b>. Unlabeled
+outputs are added to the first output file.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that with
+this option it is possible to use only lavfi sources without
+normal input files.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example, to
+overlay an image over video</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+video.mkv &minus;i image.png &minus;filter_complex
+'[0:v][1:v]overlay[out]' &minus;map <br>
+'[out]' out.mkv</p>
+
+<p style="margin-left:17%; margin-top: 1em">Here
+&quot;[0:v]&quot; refers to the first video stream in the
+first input file, which is linked to the first (main) input
+of the overlay filter. Similarly the first video stream in
+the second input is linked to the second (overlay) input of
+overlay.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Assuming there
+is only one video stream in each input file, we can omit
+input labels, so the above is equivalent to</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+video.mkv &minus;i image.png &minus;filter_complex
+'overlay[out]' &minus;map <br>
+'[out]' out.mkv</p>
+
+<p style="margin-left:17%; margin-top: 1em">Furthermore we
+can omit the output label and the single output from the
+filter graph will be added to the output file automatically,
+so we can simply write</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+video.mkv &minus;i image.png &minus;filter_complex 'overlay'
+out.mkv</p>
+
+<p style="margin-left:17%; margin-top: 1em">As a special
+exception, you can use a bitmap subtitle stream as input: it
+will be converted into a video with the same size as the
+largest video in the file, or 720x576 if no video is
+present. Note that this is an experimental and temporary
+solution. It will be removed once libavfilter has proper
+support for subtitles.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example, to
+hardcode subtitles on top of a DVB-T recording stored in
+MPEG-TS format, delaying the subtitles by 1 second:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+input.ts &minus;filter_complex \ <br>
+'[#0x2ef] setpts=PTS+1/TB [sub] ; [#0x2d0] [sub] overlay' \
+<br>
+&minus;sn &minus;map '#0x2dc' output.mkv</p>
+
+<p style="margin-left:17%; margin-top: 1em">(0x2d0, 0x2dc
+and 0x2ef are the MPEG-TS PIDs of respectively the video,
+audio and subtitles streams; 0:0, 0:3 and 0:7 would have
+worked too)</p>
+
+<p style="margin-left:17%; margin-top: 1em">To generate 5
+seconds of pure red video using lavfi &quot;color&quot;
+source:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg
+&minus;filter_complex 'color=c=red' &minus;t 5 out.mkv</p>
+
+
+<p style="margin-left:11%;"><b>&minus;filter_complex_threads</b>
+<i>nb_threads</i> <b>(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Defines how many threads are
+used to process a filter_complex graph. Similar to
+filter_threads but used for
+&quot;&minus;filter_complex&quot; graphs only. The default
+is the number of available CPUs.</p>
+
+<p style="margin-left:11%;"><b>&minus;lavfi</b>
+<i>filtergraph</i> <b>(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Define a complex filtergraph,
+i.e. one with arbitrary number of inputs and/or outputs.
+Equivalent to <b>&minus;filter_complex</b>.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;filter_complex_script</b>
+<i>filename</i> <b>(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">This option is similar to
+<b>&minus;filter_complex</b>, the only difference is that
+its argument is the name of the file from which a complex
+filtergraph description is to be read.</p>
+
+<p style="margin-left:11%;"><b>&minus;accurate_seek
+(</b><i>input</i><b>)</b></p>
+
+<p style="margin-left:17%;">This option enables or disables
+accurate seeking in input files with the <b>&minus;ss</b>
+option. It is enabled by default, so seeking is accurate
+when transcoding. Use <b>&minus;noaccurate_seek</b> to
+disable it, which may be useful e.g. when copying some
+streams and transcoding the others.</p>
+
+<p style="margin-left:11%;"><b>&minus;seek_timestamp
+(</b><i>input</i><b>)</b></p>
+
+<p style="margin-left:17%;">This option enables or disables
+seeking by timestamp in input files with the
+<b>&minus;ss</b> option. It is disabled by default. If
+enabled, the argument to the <b>&minus;ss</b> option is
+considered an actual timestamp, and is not offset by the
+start time of the file. This matters only for files which do
+not start from timestamp 0, such as transport streams.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;thread_queue_size</b>
+<i>size</i> <b>(</b><i>input/output</i><b>)</b></p>
+
+<p style="margin-left:17%;">For input, this option sets the
+maximum number of queued packets when reading from the file
+or device. With low latency / high rate live streams,
+packets may be discarded if they are not read in a timely
+manner; setting this value can force ffmpeg to use a
+separate input thread and read packets as soon as they
+arrive. By default ffmpeg only does this if multiple inputs
+are specified.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For output,
+this option specified the maximum number of packets that may
+be queued to each muxing thread.</p>
+
+<p style="margin-left:11%;"><b>&minus;sdp_file</b>
+<i>file</i> <b>(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Print sdp information for an
+output stream to <i>file</i>. This allows dumping sdp
+information when at least one output isn&rsquo;t an rtp
+stream. (Requires at least one of the output formats to be
+rtp).</p>
+
+<p style="margin-left:11%;"><b>&minus;discard
+(</b><i>input</i><b>)</b></p>
+
+<p style="margin-left:17%;">Allows discarding specific
+streams or frames from streams. Any input stream can be
+fully discarded, using value &quot;all&quot; whereas
+selective discarding of frames from a stream occurs at the
+demuxer and is not supported by all demuxers. <b><br>
+none</b></p>
+
+<p style="margin-left:23%;">Discard no frame.</p>
+
+<p style="margin-left:17%;"><b>default</b></p>
+
+<p style="margin-left:23%;">Default, which discards no
+frames.</p>
+
+<p style="margin-left:17%;"><b>noref</b></p>
+
+<p style="margin-left:23%;">Discard all non-reference
+frames.</p>
+
+<p style="margin-left:17%;"><b>bidir</b></p>
+
+<p style="margin-left:23%;">Discard all bidirectional
+frames.</p>
+
+<p style="margin-left:17%;"><b>nokey</b></p>
+
+<p style="margin-left:23%;">Discard all frames excepts
+keyframes.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>all</b></p></td>
+<td width="1%"></td>
+<td width="29%">
+
+
+<p>Discard all frames.</p></td>
+<td width="48%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>&minus;abort_on</b>
+<i>flags</i> <b>(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Stop and abort on various
+conditions. The following flags are available: <b><br>
+empty_output</b></p>
+
+<p style="margin-left:23%;">No packets were passed to the
+muxer, the output is empty.</p>
+
+<p style="margin-left:17%;"><b>empty_output_stream</b></p>
+
+<p style="margin-left:23%;">No packets were passed to the
+muxer in some of the output streams.</p>
+
+<p style="margin-left:11%;"><b>&minus;max_error_rate
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Set fraction of decoding frame
+failures across all inputs which when crossed ffmpeg will
+return exit code 69. Crossing this threshold does not
+terminate processing. Range is a floating-point number
+between 0 to 1. Default is 2/3.</p>
+
+<p style="margin-left:11%;"><b>&minus;xerror
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Stop and exit on error</p>
+
+
+<p style="margin-left:11%;"><b>&minus;max_muxing_queue_size</b>
+<i>packets</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">When transcoding audio and/or
+video streams, ffmpeg will not begin writing into the output
+until it has one packet for each such stream. While waiting
+for that to happen, packets for other streams are buffered.
+This option sets the size of this buffer, in packets, for
+the matching output stream.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+value of this option should be high enough for most uses, so
+only touch this option if you are sure that you need it.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;muxing_queue_data_threshold</b>
+<i>bytes</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">This is a minimum threshold
+until which the muxing queue size is not taken into account.
+Defaults to 50 megabytes per stream, and is based on the
+overall size of packets passed to the muxer.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;auto_conversion_filters
+(</b><i>global</i><b>)</b></p>
+
+<p style="margin-left:17%;">Enable automatically inserting
+format conversion filters in all filter graphs, including
+those defined by <b>&minus;vf</b>, <b>&minus;af</b>,
+<b>&minus;filter_complex</b> and <b>&minus;lavfi</b>. If
+filter format negotiation requires a conversion, the
+initialization of the filters will fail. Conversions can
+still be performed by inserting the relevant conversion
+filter (scale, aresample) in the graph. On by default, to
+explicitly disable it you need to specify
+&quot;&minus;noauto_conversion_filters&quot;.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;bits_per_raw_sample[:</b><i>stream_specifier</i><b>]</b>
+<i>value</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Declare the number of bits per
+raw sample in the given output stream to be <i>value</i>.
+Note that this option sets the information provided to the
+encoder/muxer, it does not change the stream to conform to
+this value. Setting values that do not match the stream
+properties may result in encoding failures or invalid output
+files.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;stats_enc_pre[:</b><i>stream_specifier</i><b>]</b>
+<i>path</i> <b>(</b><i>output,per&minus;stream</i><b>) <br>
+&minus;stats_enc_post[:</b><i>stream_specifier</i><b>]</b>
+<i>path</i> <b>(</b><i>output,per&minus;stream</i><b>) <br>
+&minus;stats_mux_pre[:</b><i>stream_specifier</i><b>]</b>
+<i>path</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Write per-frame encoding
+information about the matching streams into the file given
+by <i>path</i>.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>&minus;stats_enc_pre</b>
+writes information about raw video or audio frames right
+before they are sent for encoding, while
+<b>&minus;stats_enc_post</b> writes information about
+encoded packets as they are received from the encoder.
+<b>&minus;stats_mux_pre</b> writes information about packets
+just as they are about to be sent to the muxer. Every frame
+or packet produces one line in the specified file. The
+format of this line is controlled by
+<b>&minus;stats_enc_pre_fmt</b> /
+<b>&minus;stats_enc_post_fmt</b> /
+<b>&minus;stats_mux_pre_fmt</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">When stats for
+multiple streams are written into a single file, the lines
+corresponding to different streams will be interleaved. The
+precise order of this interleaving is not specified and not
+guaranteed to remain stable between different invocations of
+the program, even with the same options.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;stats_enc_pre_fmt[:</b><i>stream_specifier</i><b>]</b>
+<i>format_spec</i>
+<b>(</b><i>output,per&minus;stream</i><b>) <br>
+
+&minus;stats_enc_post_fmt[:</b><i>stream_specifier</i><b>]</b>
+<i>format_spec</i>
+<b>(</b><i>output,per&minus;stream</i><b>) <br>
+
+&minus;stats_mux_pre_fmt[:</b><i>stream_specifier</i><b>]</b>
+<i>format_spec</i>
+<b>(</b><i>output,per&minus;stream</i><b>)</b></p>
+
+<p style="margin-left:17%;">Specify the format for the
+lines written with <b>&minus;stats_enc_pre</b> /
+<b>&minus;stats_enc_post</b> /
+<b>&minus;stats_mux_pre</b>.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><i>format_spec</i>
+is a string that may contain directives of the form
+<i>{fmt}</i>. <i>format_spec</i> is backslash-escaped
+&minus;&minus;&minus; use \{, \}, and \\ to write a literal
+{, }, or \, respectively, into the output.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The directives
+given with <i>fmt</i> may be one of the following: <b><br>
+fidx</b></p>
+
+<p style="margin-left:23%;">Index of the output file.</p>
+
+<p style="margin-left:17%;"><b>sidx</b></p>
+
+<p style="margin-left:23%;">Index of the output stream in
+the file.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>n</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Frame number. Pre-encoding: number of frames sent to the
+encoder so far. Post-encoding: number of packets received
+from the encoder so far. Muxing: number of packets submitted
+to the muxer for this stream so far.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>ni</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Input frame number. Index of the input frame (i.e.
+output by a decoder) that corresponds to this output frame
+or packet. &minus;1 if unavailable.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>tb</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Encoder timebase, as a rational number <i>num/den</i>.
+Note that this may be different from the timebase used by
+the muxer.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>tbi</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Timebase for <i>ptsi</i>, as a rational number
+<i>num/den</i>. Available when <i>ptsi</i> is available,
+<i>0/1</i> otherwise.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>pts</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Presentation timestamp of the frame or packet, as an
+integer. Should be multiplied by the timebase to compute
+presentation time.</p></td></tr>
+</table>
+
+<p style="margin-left:17%;"><b>ptsi</b></p>
+
+<p style="margin-left:23%;">Presentation timestamp of the
+input frame (see <i>ni</i>), as an integer. Should be
+multiplied by <i>tbi</i> to compute presentation time.
+Printed as (2^63 &minus; 1 = 9223372036854775807) when not
+available.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>t</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Presentation time of the frame or packet, as a decimal
+number. Equal to <i>pts</i> multiplied by <i>tb</i>.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>ti</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Presentation time of the input frame (see <i>ni</i>), as
+a decimal number. Equal to <i>ptsi</i> multiplied by
+<i>tbi</i>. Printed as inf when not available.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>dts</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Decoding timestamp of the packet, as an integer. Should
+be multiplied by the timebase to compute presentation time.
+Post-encoding only.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>dt</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Decoding time of the frame or packet, as a decimal
+number. Equal to <i>dts</i> multiplied by <i>tb</i>.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>sn</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Number of audio samples sent to the encoder so far.
+Audio and pre-encoding only.</p></td></tr>
+</table>
+
+<p style="margin-left:17%;"><b>samp</b></p>
+
+<p style="margin-left:23%;">Number of audio samples in the
+frame. Audio and pre-encoding only.</p>
+
+<p style="margin-left:17%;"><b>size</b></p>
+
+<p style="margin-left:23%;">Size of the encoded packet in
+bytes. Post-encoding only.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>br</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Current bitrate in bits per second. Post-encoding
+only.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="5%">
+
+
+<p><b>abr</b></p></td>
+<td width="1%"></td>
+<td width="77%">
+
+
+<p>Average bitrate for the whole stream so far, in bits per
+second, &minus;1 if it cannot be determined at this point.
+Post-encoding only.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+format strings are: <b><br>
+pre-encoding</b></p>
+
+<p style="margin-left:23%;">{fidx} {sidx} {n} {t}</p>
+
+<p style="margin-left:17%;"><b>post-encoding</b></p>
+
+<p style="margin-left:23%;">{fidx} {sidx} {n} {t}</p>
+
+<p style="margin-left:17%; margin-top: 1em">In the future,
+new items may be added to the end of the default formatting
+strings. Users who depend on the format staying exactly the
+same, should prescribe it manually.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that stats
+for different streams written into the same file may have
+different formats.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Preset
+files</b> <br>
+A preset file contains a sequence of
+<i>option</i>=<i>value</i> pairs, one for each line,
+specifying a sequence of options which would be awkward to
+specify on the command line. Lines starting with the hash
+(&rsquo;#&rsquo;) character are ignored and are used to
+provide comments. Check the <i>presets</i> directory in the
+FFmpeg source tree for examples.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are two
+types of preset files: ffpreset and avpreset files.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>ffpreset
+files</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">ffpreset files
+are specified with the &quot;vpre&quot;, &quot;apre&quot;,
+&quot;spre&quot;, and &quot;fpre&quot; options. The
+&quot;fpre&quot; option takes the filename of the preset
+instead of a preset name as input and can be used for any
+kind of codec. For the &quot;vpre&quot;, &quot;apre&quot;,
+and &quot;spre&quot; options, the options specified in a
+preset file are applied to the currently selected codec of
+the same type as the preset option.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The argument
+passed to the &quot;vpre&quot;, &quot;apre&quot;, and
+&quot;spre&quot; preset options identifies the preset file
+to use according to the following rules:</p>
+
+<p style="margin-left:11%; margin-top: 1em">First ffmpeg
+searches for a file named <i>arg</i>.ffpreset in the
+directories <i>$FFMPEG_DATADIR</i> (if set), and
+<i>$HOME/.ffmpeg</i>, and in the datadir defined at
+configuration time (usually <i>PREFIX/share/ffmpeg</i>) or
+in a <i>ffpresets</i> folder along the executable on win32,
+in that order. For example, if the argument is
+&quot;libvpx&minus;1080p&quot;, it will search for the file
+<i>libvpx&minus;1080p.ffpreset</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no such file
+is found, then ffmpeg will search for a file named
+<i>codec_name</i>&minus;<i>arg</i>.ffpreset in the
+above-mentioned directories, where <i>codec_name</i> is the
+name of the codec to which the preset file options will be
+applied. For example, if you select the video codec with
+&quot;&minus;vcodec libvpx&quot; and use &quot;&minus;vpre
+1080p&quot;, then it will search for the file
+<i>libvpx&minus;1080p.ffpreset</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>avpreset
+files</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">avpreset files
+are specified with the &quot;pre&quot; option. They work
+similar to ffpreset files, but they only allow
+encoder&minus; specific options. Therefore, an
+<i>option</i>=<i>value</i> pair specifying an encoder cannot
+be used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When the
+&quot;pre&quot; option is specified, ffmpeg will look for
+files with the suffix .avpreset in the directories
+<i>$AVCONV_DATADIR</i> (if set), and <i>$HOME/.avconv</i>,
+and in the datadir defined at configuration time (usually
+<i>PREFIX/share/ffmpeg</i>), in that order.</p>
+
+<p style="margin-left:11%; margin-top: 1em">First ffmpeg
+searches for a file named
+<i>codec_name</i>&minus;<i>arg</i>.avpreset in the
+above-mentioned directories, where <i>codec_name</i> is the
+name of the codec to which the preset file options will be
+applied. For example, if you select the video codec with
+&quot;&minus;vcodec libvpx&quot; and use &quot;&minus;pre
+1080p&quot;, then it will search for the file
+<i>libvpx&minus;1080p.avpreset</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no such file
+is found, then ffmpeg will search for a file named
+<i>arg</i>.avpreset in the same directories.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Video and
+Audio grabbing</b> <br>
+If you specify the input format and device then ffmpeg can
+grab video and audio directly.</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;f
+oss &minus;i /dev/dsp &minus;f video4linux2 &minus;i
+/dev/video0 /tmp/out.mpg</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or with an
+<small>ALSA</small> audio source (mono input, card id 1)
+instead of <small>OSS:</small></p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;f
+alsa &minus;ac 1 &minus;i hw:1 &minus;f video4linux2
+&minus;i /dev/video0 /tmp/out.mpg</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that you
+must activate the right video source and channel before
+launching ffmpeg with any <small>TV</small> viewer such as
+&lt;<b>http://linux.bytesex.org/xawtv/</b>&gt; by Gerd
+Knorr. You also have to set the audio recording levels
+correctly with a standard mixer.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>X11
+grabbing</b> <br>
+Grab the X11 display with ffmpeg via</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;f
+x11grab &minus;video_size cif &minus;framerate 25 &minus;i
+:0.0 /tmp/out.mpg</p>
+
+<p style="margin-left:11%; margin-top: 1em">0.0 is
+display.screen number of your X11 server, same as the
+<small>DISPLAY</small> environment variable.</p>
+
+<p style="margin-left:11%; margin-top: 1em">ffmpeg &minus;f
+x11grab &minus;video_size cif &minus;framerate 25 &minus;i
+:0.0+10,20 /tmp/out.mpg</p>
+
+<p style="margin-left:11%; margin-top: 1em">0.0 is
+display.screen number of your X11 server, same as the
+<small>DISPLAY</small> environment variable. 10 is the
+x&minus;offset and 20 the y&minus;offset for the
+grabbing.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Video and
+Audio file format conversion</b> <br>
+Any supported file format and protocol can serve as input to
+ffmpeg:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Examples:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="48%">
+
+
+<p>You can use <small>YUV</small> files as input:</p></td>
+<td width="35%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+/tmp/test%d.Y /tmp/out.mpg</p>
+
+<p style="margin-left:17%; margin-top: 1em">It will use the
+files:</p>
+
+<p style="margin-left:17%; margin-top: 1em">/tmp/test0.Y,
+/tmp/test0.U, /tmp/test0.V, <br>
+/tmp/test1.Y, /tmp/test1.U, /tmp/test1.V, etc...</p>
+
+<p style="margin-left:17%; margin-top: 1em">The Y files use
+twice the resolution of the U and V files. They are raw
+files, without header. They can be generated by all decent
+video decoders. You must specify the size of the image with
+the <b>&minus;s</b> option if ffmpeg cannot guess it.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="58%">
+
+
+<p style="margin-top: 1em">You can input from a raw
+<small>YUV420P</small> file:</p></td>
+<td width="25%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+/tmp/test.yuv /tmp/out.avi</p>
+
+<p style="margin-left:17%; margin-top: 1em">test.yuv is a
+file containing raw <small>YUV</small> planar data. Each
+frame is composed of the Y plane followed by the U and V
+planes at half vertical and horizontal resolution.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="57%">
+
+
+<p style="margin-top: 1em">You can output to a raw
+<small>YUV420P</small> file:</p></td>
+<td width="26%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+mydivx.avi hugefile.yuv</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="75%">
+
+
+<p style="margin-top: 1em">You can set several input files
+and output files:</p></td>
+<td width="8%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+/tmp/a.wav &minus;s 640x480 &minus;i /tmp/a.yuv
+/tmp/a.mpg</p>
+
+<p style="margin-left:17%; margin-top: 1em">Converts the
+audio file a.wav and the raw <small>YUV</small> video file
+a.yuv to <small>MPEG</small> file a.mpg.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">You can also do audio and video
+conversions at the same time:</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+/tmp/a.wav &minus;ar 22050 /tmp/a.mp2</p>
+
+<p style="margin-left:17%; margin-top: 1em">Converts a.wav
+to <small>MPEG</small> audio at 22050 Hz sample rate.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">You can encode to several
+formats at the same time and define a mapping from input
+stream to output streams:</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+/tmp/a.wav &minus;map 0:a &minus;b:a 64k /tmp/a.mp2
+&minus;map 0:a &minus;b:a 128k /tmp/b.mp2</p>
+
+<p style="margin-left:17%; margin-top: 1em">Converts a.wav
+to a.mp2 at 64 kbits and to b.mp2 at 128 kbits.
+&rsquo;&minus;map file:index&rsquo; specifies which input
+stream is used for each output stream, in the order of the
+definition of output streams.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="51%">
+
+
+<p style="margin-top: 1em">You can transcode decrypted
+VOBs:</p> </td>
+<td width="32%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+snatch_1.vob &minus;f avi &minus;c:v mpeg4 &minus;b:v 800k
+&minus;g 300 &minus;bf 2 &minus;c:a libmp3lame &minus;b:a
+128k snatch.avi</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is a
+typical <small>DVD</small> ripping example; the input is a
+<small>VOB</small> file, the output an <small>AVI</small>
+file with <small>MPEG&minus;4</small> video and
+<small>MP3</small> audio. Note that in this command we use
+B&minus;frames so the <small>MPEG&minus;4</small> stream is
+DivX5 compatible, and <small>GOP</small> size is 300 which
+means one intra frame every 10 seconds for 29.97fps input
+video. Furthermore, the audio stream is MP3&minus;encoded so
+you need to enable <small>LAME</small> support by passing
+&quot;&minus;&minus;enable&minus;libmp3lame&quot; to
+configure. The mapping is particularly useful for
+<small>DVD</small> transcoding to get the desired audio
+language.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>NOTE:</small>
+To see the supported input formats, use &quot;ffmpeg
+&minus;demuxers&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">You can extract images from a
+video, or create a video from many images:</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">For extracting
+images from a video:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+foo.avi &minus;r 1 &minus;s WxH &minus;f image2
+foo&minus;%03d.jpeg</p>
+
+<p style="margin-left:17%; margin-top: 1em">This will
+extract one video frame per second from the video and will
+output them in files named <i>foo&minus;001.jpeg</i>,
+<i>foo&minus;002.jpeg</i>, etc. Images will be rescaled to
+fit the new WxH values.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you want to
+extract just a limited number of frames, you can use the
+above command in combination with the
+&quot;&minus;frames:v&quot; or &quot;&minus;t&quot; option,
+or in combination with &minus;ss to start extracting from a
+certain point in time.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For creating a
+video from many images:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;f
+image2 &minus;framerate 12 &minus;i foo&minus;%03d.jpeg
+&minus;s WxH foo.avi</p>
+
+<p style="margin-left:17%; margin-top: 1em">The syntax
+&quot;foo&minus;%03d.jpeg&quot; specifies to use a decimal
+number composed of three digits padded with zeroes to
+express the sequence number. It is the same syntax supported
+by the C printf function, but only formats accepting a
+normal integer are suitable.</p>
+
+<p style="margin-left:17%; margin-top: 1em">When importing
+an image sequence, &minus;i also supports expanding
+shell-like wildcard patterns (globbing) internally, by
+selecting the image2&minus;specific
+&quot;&minus;pattern_type glob&quot; option.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example,
+for creating a video from filenames matching the glob
+pattern &quot;foo&minus;*.jpeg&quot;:</p>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;f
+image2 &minus;pattern_type glob &minus;framerate 12 &minus;i
+'foo&minus;*.jpeg' &minus;s WxH foo.avi</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">You can put many streams of the
+same type in the output:</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+test1.avi &minus;i test2.avi &minus;map 1:1 &minus;map 1:0
+&minus;map 0:1 &minus;map 0:0 &minus;c copy &minus;y
+test12.nut</p>
+
+<p style="margin-left:17%; margin-top: 1em">The resulting
+output file <i>test12.nut</i> will contain the first four
+streams from the input files in reverse order.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="40%">
+
+
+<p style="margin-top: 1em">To force <small>CBR</small>
+video output:</p></td>
+<td width="43%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+myfile.avi &minus;b 4000k &minus;minrate 4000k
+&minus;maxrate 4000k &minus;bufsize 1835k out.m2v</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">The four options lmin, lmax,
+mblmin and mblmax use &rsquo;lambda&rsquo; units, but you
+may use the <small>QP2LAMBDA</small> constant to easily
+convert from &rsquo;q&rsquo; units:</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">ffmpeg &minus;i
+src.ext &minus;lmax 21*QP2LAMBDA dst.ext</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ffmpeg&minus;all</b>(1),
+<b>ffplay</b>(1), <b>ffprobe</b>(1),
+<b>ffmpeg&minus;utils</b>(1), <b>ffmpeg&minus;scaler</b>(1),
+<b>ffmpeg&minus;resampler</b>(1),
+<b>ffmpeg&minus;codecs</b>(1),
+<b>ffmpeg&minus;bitstream&minus;filters</b>(1),
+<b>ffmpeg&minus;formats</b>(1),
+<b>ffmpeg&minus;devices</b>(1),
+<b>ffmpeg&minus;protocols</b>(1),
+<b>ffmpeg&minus;filters</b>(1)</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The FFmpeg
+developers.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For details
+about the authorship, see the Git history of the project
+(git://source.ffmpeg.org/ffmpeg), e.g. by typing the command
+<b>git log</b> in the FFmpeg source directory, or browsing
+the online repository at
+&lt;<b>http://source.ffmpeg.org</b>&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Maintainers for
+the specific components are listed in the file
+<i><small>MAINTAINERS</small></i> in the source code
+tree.</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:08 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Packet sample action in tc</title>
+
+</head>
+<body>
+<h1>tc-sample</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">sample - packet
+sampling tc action</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:23%; margin-top: 1em"><b>tc</b> ...
+<b>action sample rate</b> <i>RATE</i> <b>group</b>
+<i>GROUP</i> [ <b>trunc</b> <i>SIZE</i> ] [ <b>index</b>
+<i>INDEX</i> ]</p>
+
+<p style="margin-left:23%; margin-top: 1em"><b>tc</b> ...
+<b>action sample index</b> <i>INDEX</i></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>sample</b> action allows sampling packets matching
+classifier.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The packets are
+chosen randomly according to the <b>rate</b> parameter, and
+are sampled using the <b>psample</b> generic netlink
+channel. The user can also specify packet truncation to save
+user-kernel traffic. Each sample includes some informative
+metadata about the original packet, which is sent using
+netlink attributes, alongside the original packet data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The user can
+either specify the sample action parameters as presented in
+the first form above, or use an existing sample action using
+its index, as presented in the second form.</p>
+
+<h2>SAMPLED PACKETS METADATA FIELDS
+<a name="SAMPLED PACKETS METADATA FIELDS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The metadata
+are delivered to userspace applications using the
+<b>psample</b> generic netlink channel, where each sample
+includes the following netlink attributes: <b><br>
+PSAMPLE_ATTR_IIFINDEX</b></p>
+
+<p style="margin-left:22%;">The input interface index of
+the packet, if there is one.</p>
+
+
+<p style="margin-left:11%;"><b>PSAMPLE_ATTR_OIFINDEX</b></p>
+
+<p style="margin-left:22%;">The output interface index of
+the packet. This field is not relevant on ingress
+sampling</p>
+
+
+<p style="margin-left:11%;"><b>PSAMPLE_ATTR_ORIGSIZE</b></p>
+
+<p style="margin-left:22%;">The size of the original packet
+(before truncation)</p>
+
+
+<p style="margin-left:11%;"><b>PSAMPLE_ATTR_SAMPLE_GROUP</b></p>
+
+<p style="margin-left:22%;">The <b>psample</b> group the
+packet was sent to</p>
+
+
+<p style="margin-left:11%;"><b>PSAMPLE_ATTR_GROUP_SEQ</b></p>
+
+<p style="margin-left:22%;">A sequence number of the
+sampled packet. This number is incremented with each sampled
+packet of the current <b>psample</b> group</p>
+
+
+<p style="margin-left:11%;"><b>PSAMPLE_ATTR_SAMPLE_RATE</b></p>
+
+<p style="margin-left:22%;">The rate the packet was sampled
+with</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>rate</b>
+<i>RATE</i></p>
+
+<p style="margin-left:22%;">The packet sample rate.
+<i>RATE</i> is the expected ratio between observed packets
+and sampled packets. For example, <i>RATE</i> of 100 will
+lead to an average of one sampled packet out of every 100
+observed.</p>
+
+<p style="margin-left:11%;"><b>trunc</b> <i>SIZE</i></p>
+
+<p style="margin-left:22%;">Upon set, defines the maximum
+size of the sampled packets, and causes truncation if
+needed</p>
+
+<p style="margin-left:11%;"><b>group</b> <i>GROUP</i></p>
+
+<p style="margin-left:22%;">The <b>psample</b> group the
+packet will be sent to. The <b>psample</b> module defines
+the concept of groups, which allows the user to match
+specific sampled packets in the case of multiple sampling
+rules, thus identify only the packets that came from a
+specific rule.</p>
+
+<p style="margin-left:11%;"><b>index</b> <i>INDEX</i></p>
+
+<p style="margin-left:22%;">Is a unique ID for an action.
+When creating new action instance, this parameter allows one
+to set the new action index. When using existing action,
+this parameter allows one to specify the existing action
+index. The index must 32bit unsigned integer greater than
+zero.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Sample one of
+every 100 packets flowing into interface eth0 to psample
+group 12:</p>
+
+<p style="margin-left:22%; margin-top: 1em">tc qdisc add
+dev eth0 handle ffff: ingress <br>
+tc filter add dev eth0 parent ffff: matchall \ <br>
+action sample rate 100 group 12 index 19</p>
+
+<p style="margin-left:11%; margin-top: 1em">Use the same
+action instance to sample eth1 too:</p>
+
+<p style="margin-left:22%; margin-top: 1em">tc qdisc add
+dev eth1 handle ffff: ingress <br>
+tc filter add dev eth1 parent ffff: matchall \ <br>
+action sample index 19</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tc</b>(8),
+<b>tc-matchall</b>(8) <b>psample</b>(1)</p>
+<hr>
+</body>
+</html>

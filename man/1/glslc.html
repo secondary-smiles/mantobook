@@ -1,0 +1,1100 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:43 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>&lsquo;GLSLC&lsquo;</title>
+
+</head>
+<body>
+<h1>glslc</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&lsquo;glslc&lsquo;
+&minus; A command&minus;line GLSL/HLSL to SPIR&minus;V
+compiler with Clang&minus;compatible arguments.</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em">glslc
+[&minus;&minus;help] <br>
+glslc [&minus;h]</p>
+
+<p style="margin-left:17%; margin-top: 1em">glslc
+[&minus;&minus;show&minus;limits]</p>
+
+<p style="margin-left:17%; margin-top: 1em">glslc
+[&minus;c|&minus;S|&minus;E] <br>
+[&minus;x ...] [&minus;std=standard] <br>
+[ ... options for resource bindings ... ] <br>
+[&minus;fhlsl&minus;16bit&minus;types] <br>
+[&minus;fhlsl&minus;offsets] <br>
+[&minus;fhlsl&minus;functionality1] <br>
+[&minus;fentry&minus;point=&lt;name&gt;] <br>
+[&minus;fauto&minus;map&minus;locations] <br>
+[&minus;finvert&minus;y] <br>
+[&minus;flimit=...] <br>
+[&minus;flimit&minus;file
+&lt;resource&minus;limits&minus;file&gt;] <br>
+[&minus;fshader&minus;stage=...] <br>
+[&minus;&minus;target&minus;env=...] <br>
+[&minus;&minus;target&minus;spv=...] <br>
+[&minus;g] <br>
+[&minus;O0|&minus;Os] <br>
+[&minus;Idirectory...] <br>
+[&minus;Dmacroname[=value]...] <br>
+[&minus;w] [&minus;Werror] <br>
+[&minus;o outfile] <br>
+shader...</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Input file
+languages</b> <br>
+glslc accepts both GLSL/HLSL source and SPIR&minus;V
+assembly files as inputs.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Shader stage
+specification</b> <br>
+glslc provides three ways to specify the shader stage of a
+GLSL source file: &minus;fshader&minus;stage=&lt;stage&gt;,
+#pragma shader_stage(&lt;stage&gt;), and file extension. The
+&minus;fshader&minus;stage= option overrides #pragma
+shader_stage(), which overrides the file extension.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Shader stages
+can be specified by naming a file with an appropriate
+extension as shown in the following table.
+&minus;fshader&minus;stage= and #pragma shader_stage(), on
+the other hand, enable you to specify shader stages from the
+command line and within the source file. Possible stages for
+them are also listed in the following table. Details about
+&minus;fshader&minus;stage= can be found in its own
+section.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Table 1.
+Shader Stage Selection</b></p>
+
+
+<p align="center"><b><img src="grohtml-30186211.png" alt="Image grohtml-30186211.png"></b></p>
+
+<p style="margin-left:11%;">#pragma shader_stage() relies
+on the #pragma preprocessor directive; thus, the token
+inside shader_stage() is not subject to preprocessor macro
+expansion. It must be exactly one of the stages in the above
+table.</p>
+
+<p style="margin-left:11%; margin-top: 1em">#pragma
+shader_stage() behaves as follows:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+first #pragma shader_stage() directive in a translation unit
+must precede any non&minus;preprocessor tokens.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; If there
+is more than one #pragma shader_stage() directive in the
+same translation unit, all the stages specified must be the
+same. Otherwise, glslc will issue an error.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SPIR&minus;V
+assembly files</b> <br>
+SPIR&minus;V assembly input files should follow the
+<i>syntax</i>
+&lt;https://github.com/KhronosGroup/SPIRV&minus;Tools/blob/master/syntax.md&gt;
+defined in the <i>SPIRV&minus;Tools</i>
+&lt;https://github.com/KhronosGroup/SPIRV&minus;Tools&gt;
+project and have the .spvasm extension. Command line options
+treat SPIR&minus;V assembly files differently; some may
+ignore them, e.g., &minus;E, &minus;S, and some may even
+treat them not as SPIR&minus;V assembly files, e.g.,
+&minus;fshader&minus;stage=.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Output file
+naming</b> <br>
+If a name is specified via &minus;o, the output file will be
+given that name. Otherwise,</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; If a
+compilation stage selection option is given (&minus;S or
+&minus;c), there will be one output file generated per input
+shader file. The generated output file will end with a file
+extension that matches the compilation stage, which is
+.spvasm for &minus;S and .spv for &minus;c. The name will
+depend on the original file&rsquo;s name and extension.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull; If the
+input file has a shader stage selection extension, the
+output file will be named as by appending the file extension
+for the compilation stage to the input file&rsquo;s name.
+E.g., glslc &minus;c foo.vert will generate foo.vert.spv,
+and glslc &minus;S bar.frag will generate
+bar.frag.spvasm.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+Otherwise, the output file will be named as by replacing the
+input file&rsquo;s file extension, if any, with the file
+extension for the compilation stage. E.g., glslc &minus;c
+foo will generate foo.spv, and glslc &minus;S bar.glsl will
+generate bar.spvasm.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; If no
+compilation stage is selected, the output file will be named
+a.spv.</p>
+
+<h2>COMMAND LINE OPTIONS
+<a name="COMMAND LINE OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Overall
+Options</b> <br>
+&minus;&minus;help<b>,</b> &minus;h <br>
+Option &minus;&minus;help or &minus;h tells the glslc
+compiler to display all available options and exit.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;show&minus;limits
+<br>
+&minus;&minus;show&minus;limits shows default resource
+limits for shader compilation. The syntax is the same as
+accepted by &minus;flimit= and for the contents of the file
+specified by &minus;flimit&minus;file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;o <br>
+&minus;o lets you specify the output file&rsquo;s name. It
+cannot be used when there are multiple files generated. A
+filename of &minus; represents standard output.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Language and
+Mode Selection Options</b> <br>
+&minus;finvert&minus;y <br>
+Inverts position.Y output in a vertex shader.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;flimit=
+<br>
+&minus;flimit=&lt;resource&minus;limits&gt; lets you specify
+resource limits. The argument should be a sequence of limit
+name, integer value pairs. Tokens should be separated by
+whitespace. If the same limit is specified several times,
+only the last setting takes effect.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Use
+&minus;&minus;show&minus;limits to show the default values,
+and example syntax.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This option
+affects all compiled shaders.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;flimit&minus;file
+<br>
+&minus;flimit&minus;file
+&lt;resource&minus;limits&minus;file&gt; lets you specify
+resource limits in a file. The syntax of the file contents
+is the same as the argument to &minus;flimit= and the output
+of &minus;&minus;show&minus;limits. This option accepts
+Glslang resource configuration files, e.g. as emitted by
+glslangValidator &minus;c.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This option
+affects all compiled shaders.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;fshader&minus;stage=
+<br>
+&minus;fshader&minus;stage=&lt;stage&gt; lets you specify
+the shader stage for one or more inputs from the command
+line.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Possible values
+for &lt;stage&gt; are listed in the Shader Stage Selection
+table.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;fshader&minus;stage=
+behaves as follows:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+&minus;fshader&minus;stage= sets the shader stage for
+subsequent input files. It does not affect the stages of any
+preceding inputs on the command line.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; When
+supplying more than one &minus;fshader&minus;stage=
+argument, the most recent argument preceding an input file
+applies.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A shader
+file not ending with known shader file extensions must have
+a &minus;fshader&minus;stage= argument ahead of it to
+specify its stage.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; If there
+is a &minus;fshader&minus;stage= before a file in which
+there is a #pragma shader_stage() directive, the directive
+is ignored and the &minus;fshader&minus;stage= argument is
+used instead.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; If there
+is a &minus;fshader&minus;stage= before a file with a known
+shader file extension, the file extension is ignored and the
+&minus;fshader&minus;stage= argument is used instead.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><big>Caution</big></b>
+<br>
+&minus;fshader&minus;stage= overrides file extension; that
+means it should not be used together with SPIR&minus;V
+assembly files because glslc will treat the given
+SPIR&minus;V assembly files as GLSL source code of the given
+shader stage. If you need to supply both SPIR&minus;V
+assembly files and &minus;fshader&minus;stage= on the same
+command line, please put SPIR&minus;V assembly files ahead
+of the first &minus;fshader&minus;stage=, since
+&minus;fshader&minus;stage= only affects the treatment of
+subsequent files.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;std=
+<br>
+&minus;std=&lt;value&gt; lets you specify a shader version
+and profile on the command line. &lt;value&gt; can be any
+valid concatenation of a GLSL version number and profile,
+e.g., 310es, 450core, etc. The profile can be omitted as
+allowed by GLSL, e.g., 450.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;std=
+behaves as follows:</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull;
+&minus;std= affects the version of all GLSL inputs passed to
+glslc.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull;
+&minus;std= is ignored for HLSL inputs.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull;
+&minus;std= overwrites #version directives in all input
+shaders, including those preceding the argument.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull; If
+a &minus;std= argument specifies a different version from a
+#version directive in an input file, glslc will issue a
+warning.</big></p>
+
+<p style="margin-left:17%; margin-top: 1em"><big>&bull; If
+multiple &minus;std= arguments are specified on the command
+line, only the last one takes effect.</big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><b><big>Caution</big></b>
+<br>
+&minus;std= does not affect the #version directive in the
+preprocessed output. That is, when &minus;std= specifies a
+version different from the shader source code, the #version
+directive in preprocessed output will still be the one in
+the source code. But &minus;std= does affect the behavior of
+#line directives in the preprocessed output. Behavior of
+#line directives will follow the version specified by
+&minus;std=.</big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>&minus;&minus;target&minus;env=
+<br>
+&minus;&minus;target&minus;env=&lt;value&gt; lets you
+specify a target environment on the command line. This
+affects the generation of warnings and errors. The
+&lt;value&gt; can be one of the following:</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+vulkan: create SPIR&minus;V under Vulkan 1.0
+semantics.</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+vulkan1.0: create SPIR&minus;V under Vulkan 1.0
+semantics.</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+vulkan1.1: create SPIR&minus;V under Vulkan 1.1
+semantics.</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+vulkan1.2: create SPIR&minus;V under Vulkan 1.2
+semantics.</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+opengl: create SPIR&minus;V under OpenGL 4.5
+semantics.</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+opengl4.5: create SPIR&minus;V under OpenGL 4.5
+semantics.</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>Generated
+code uses SPIR&minus;V 1.0, except for code compiled for
+Vulkan 1.1, which uses SPIR&minus;V 1.3, and code compiled
+for Vulkan 1.2, which uses SPIR&minus;V 1.5.</big></big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>If
+this option is not specified, a default of vulkan1.0 is
+used.</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>Note:
+Support for OpenGL compatibility profile, opengl_compat, has
+been removed.</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>&minus;&minus;target&minus;spv=
+<br>
+&minus;&minus;target&minus;spv=&lt;value&gt; lets you
+specify the SPIR&minus;V version to be used by the generated
+module. The default is to use the highest version of
+SPIR&minus;V required to be supported by the target
+environment. The defaults for specific Vulkan target
+environments are as follows: SPIR&minus;V 1.0 for Vulkan
+1.0, SPIR&minus;V 1.3 for Vulkan 1.1, and SPIR&minus;V 1.5
+for Vulkan 1.2.</big></big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>The
+&lt;value&gt; can be one of the following:</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+spv1.0</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+spv1.1</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+spv1.2</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+spv1.3</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+spv1.4</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+spv1.5</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big>&bull;
+spv1.6</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>&minus;x
+<br>
+&minus;x lets you specify the language of the input shader
+files. Valid languages are glsl and hlsl. If the file
+extension is hlsl then the default language is HLSL.
+Otherwise the default is 'glsl'.</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>Note:
+HLSL compilation will use HLSL packing (offset) rules for
+variables that are vertex shader outputs, and inputs and
+outputs of both geometry and pixel shaders.</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><b>Compilation
+Stage Selection Options</b> <br>
+&minus;c <br>
+&minus;c tells the glslc compiler to run the preprocessing
+and compiling stage. Each input shader file results in a
+SPIR&minus;V binary file; these SPIR&minus;V binary files
+are named by the rules in the Output File Naming
+section.</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>&minus;E
+<br>
+&minus;E tells the glslc compiler to run only the
+preprocessing stage. It overrides &minus;c and &minus;S.
+Preprocessed output is written to standard output, while
+preprocessing errors are written to standard error. If
+multiple input shader files are given, their preprocessed
+output are all written to standard output, in the order
+specified on the command line.</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>glslc
+will do nothing for SPIR&minus;V assembly files with this
+option.</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>&minus;S
+<br>
+&minus;S tells the glslc compiler to run the preprocessing,
+compiling, and then disassembling stage. It overrides
+&minus;c. Each input shader file results in a SPIR&minus;V
+assembly file; these SPIR&minus;V assembly files are named
+by the rules in the Output File Naming
+section.</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big>glslc
+will do nothing for SPIR&minus;V assembly files with this
+option.</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><b>No
+Compilation Stage Selection</b> <br>
+If none of the above options is given, the glslc compiler
+will run preprocessing, compiling, and linking
+stages.</big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><b><big>Warning</big></b>
+<br>
+Linking of multiple input shader files are not supported
+yet.</big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><b><big>Preprocessor
+Options</big></b> <big><br>
+&minus;D <br>
+&minus;Dmacroname[=[value]] lets you define a preprocessor
+macro before input shader files are preprocessed. If value
+is omitted, the macro is defined with an empty
+value.</big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big>&minus;I
+<br>
+&minus;Idirectory or &minus;I directory adds the specified
+directory to the search path for include files. The
+directory may be an absolute path or a relative path to the
+current working directory.</big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><b>Code
+Generation Options</b> <br>
+&minus;g <br>
+Requests that the compiler place source&minus;level debug
+information into the object code, such as identifier names
+and line numbers.</big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big>This
+option restrains &minus;O from turning on the
+strip&minus;debug&minus;info optimization
+pass.</big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><b><big>Note</big></b>
+<br>
+Currently this option has no effect. Full functionality
+depends on glslang support for generating debug
+info.</big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;O0<b>,</b>
+&minus;Os <br>
+&minus;O specifies which optimization level to
+use:</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>&bull;
+&minus;O0 means &quot;no optimization&quot;. This level
+generates the most debuggable
+code.</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>&bull;
+&minus;O means the default optimization level for better
+performance.</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>&bull;
+&minus;Os enables optimizations to reduce code
+size.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;mfmt=&lt;format&gt;
+<br>
+&minus;mfmt=&lt;format&gt; selects output format for
+compilation output in SPIR&minus;V binary code form.
+Supported options are listed in the binary output format
+options table. This option is only valid to be used when the
+compilation output is SPIR&minus;V binary code. Specifying
+any options listed below when the output is not SPIR&minus;V
+binary code, like disassembly (with &minus;S specified),
+text (with &minus;M, &minus;MM or &minus;E specified) will
+trigger an error.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big><b>Table
+2. Binary Output Format
+Options</b></big></big></big></big></p>
+
+
+<p align="center"><big><big><big><big><b><img src="grohtml-30186212.png" alt="Image grohtml-30186212.png"></b></big></big></big></big></p>
+
+
+<p style="margin-left:11%;"><big><big><big><big>&minus;fhlsl&minus;16bit&minus;types
+<br>
+Enables 16bit types for HLSL
+compilation.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fhlsl&minus;offsets
+<br>
+Use HLSL packing rules instead of GLSL rules when
+determining offsets of members of blocks. This option is
+always on when compiling for
+HLSL.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fhlsl&minus;functionality1
+<br>
+Enable extension SPV_GOOGLE_hlsl_functionality1, and
+instructs the compiler to:</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>&bull;
+Annotate HLSL semantic string decorations on interface
+objects</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>&bull;
+Explicitly record the association of a UAV resource with its
+companion counter buffer.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>This
+option can also be spelled with an underscore:
+&minus;fhlsl_functionality1.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fentry&minus;point=&lt;name&gt;
+<br>
+&minus;fentry&minus;point=&lt;name&gt; lets you specify the
+entry point name. This is only significant for HLSL
+compilation. The default is
+&quot;main&quot;.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fauto&minus;map&minus;locations
+<br>
+For GLSL compilation, option
+&minus;fauto&minus;map&minus;locations directs the compiler
+to automatically assign location numbers to
+user&minus;defined stage input and output variables if not
+explicitly specified by the shader
+source.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>For
+HLSL compilation, this option is on by
+default.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>Client
+APIs normally require adjacent stages to agree on their I/O
+interface. The compiler only sees one stage at a time, so it
+is strongly recommended that you avoid relying on this
+option to assign locations.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>Instead,
+an explicit binding number should be specified in the shader
+source, as follows:</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>&bull;
+In a GLSL shader, use a location layout
+qualifier:</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>layout(location
+= 1) in vec4 x;</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>&bull;
+In an HLSL shader, use a vk::location
+attribute:</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>[[vk::location(1)]]
+float4 FooShader( <br>
+[[vk::location(0)]] float4 a, <br>
+[[vk::location(2)]] float4 b) : COLOR0 { <br>
+return a + b; <br>
+}</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>[[option&minus;fpreserve&minus;bindings
+====
+&minus;fpreserve&minus;bindings</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>Directs
+the optimizer to preserve bindings declarations, even when
+those bindings are known to be
+unused.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big><b>Warning
+and Error Options</b> <br>
+&minus;w <br>
+&minus;w suppresses all warning output from glslc. Any
+warning that would have been generated is silently
+ignored.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;Werror
+<br>
+&minus;Werror forces any warning to be treated as an error
+in glslc. This means that all warning: messages are shown as
+error: and any warnings will cause a non&minus;zero exit
+code from glslc. If &minus;w is specified the warnings
+generated are suppressed before they are converted to
+errors.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big><b>Dependency
+Generation Options</b> <br>
+&minus;M <b>or</b> &minus;MM <br>
+&minus;M generates <b>make</b> dependencies. It outputs a
+rule suitable for <b>make</b> describing the dependencies of
+the input file. Instead of outputting the result of
+preprocessing, the preprocessor outputs one <b>make</b> rule
+containing the SPIR&minus;V object file name for that source
+file, a colon, and the names of all the included
+files.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>Unless
+specified explicitly (with &minus;MT), the SPIR&minus;V
+object file name in the generated <b>make</b> rules follows
+the rules of Output File Naming as in &minus;c compilation
+stage.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>Specifying
+&minus;M implies &minus;E, and suppresses warnings with an
+implicit &minus;w. By default the output will be written to
+stdout, unless &minus;MF or &minus;o is
+specified.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>The
+dependency info file name can be specified by &minus;o and
+&minus;MF options. When both are specified, &minus;o option
+is ignored.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>Specifying
+multiple input files is valid when the <b>make</b> rules are
+written to stdout, which means neither &minus;MF nor
+&minus;o is specified. When &minus;o or &minus;MF is
+specified, only one input file is
+allowed.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;MM
+is an alias for &minus;M.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>E.g.,
+glslc &minus;M main.vert will dump main.vert.spv: main.vert
+&lt;other included files&gt; to stdout. More examples are
+listed in Dependency Generation
+Examples</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;MD
+<br>
+&minus;MD tells the glslc compiler to both compile the
+source and generate <b>make</b> dependencies. Dependencies
+are written to a file whose name is determined as follows:
+If option &minus;MF is specified, use its argument.
+Otherwise, use the filename formed by appending <b>.d</b> to
+the name of the file containing compilation
+results.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>Specifying
+multiple input files is valid when neither &minus;MF nor
+&minus;o is specified. When &minus;o or &minus;MF is
+specified, only one input file is
+allowed.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>E.g.,
+glslc &minus;c &minus;MD main.vert will generate
+main.vert.spv as the SPIR&minus;V object file and
+main.vert.spv.d as the dependency info file. More examples
+are listed in Dependency Generation
+Examples</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;MF
+<br>
+&minus;MF lets you specify the dependency info file name
+when used with &minus;M or &minus;MD. This option is invalid
+when used with multiple input
+files.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>E.g.,
+glslc &minus;c &minus;MD main.vert &minus;MF dep_info will
+generate main.vert.spv as the SPIR&minus;V object file and
+dep_info as the dependency info
+file.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;MT
+<br>
+&minus;MT lets you specify the target of the rule emitted by
+dependency generation when used with &minus;M or &minus;MD.
+This option is invalid when used with multiple input
+files.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>E.g.,
+glslc &minus;M main.vert &minus;MT target will dump
+following dependency info to stdout: target: main.vert
+&lt;other dependent files&gt;.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big><b>Table
+3. Dependency Generation
+Examples</b></big></big></big></big></p>
+
+
+<p align="center"><big><big><big><big><b><img src="grohtml-30186213.png" alt="Image grohtml-30186213.png"></b></big></big></big></big></p>
+
+
+<p style="margin-left:11%;"><big><big><big><big><b>Resource
+Binding Options</b> <br>
+&minus;fauto&minus;bind&minus;uniforms <br>
+Option &minus;fauto&minus;bind&minus;uniforms directs the
+compiler to automatically assign binding numbers to uniform
+variables, when an explicit binding is not specified in the
+shader source.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>An
+explicit binding number can be specified in the shader
+source by using a binding layout qualifier. For
+example:</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>layout(binding
+= 12) uniform texture2D;</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fhlsl&minus;iomap
+<br>
+Option &minus;fhlsl&minus;iomap directs the compiler to use
+HLSL register assignments as binding
+values.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fimage&minus;binding&minus;base
+<br>
+Option &minus;fimage&minus;binding&minus;base [stage] base
+sets the lowest automatically assigned binding for images.
+If a stage is specified, only affects the specified
+stage.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>For
+HLSL, sets one less than the
+base.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fsampler&minus;binding&minus;base
+<br>
+Option &minus;fsampler&minus;binding&minus;base [stage] base
+sets the lowest automatically assigned binding for samplers.
+If a stage is specified, only affects the specified
+stage.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>For
+HLSL, sets one less than the
+base.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;ftexture&minus;binding&minus;base
+<br>
+Option &minus;ftexture&minus;binding&minus;base [stage] base
+sets the lowest automatically assigned binding for textures.
+If a stage is specified, only affects the specified
+stage.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>For
+HLSL, sets one less than the
+base.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fubo&minus;binding&minus;base
+<br>
+Option &minus;fubo&minus;binding&minus;base [stage] base
+sets the lowest automatically assigned binding for Uniform
+Buffer Objects (GLSL) or Cbuffers (HLSL). If a stage is
+specified, only affects the specified
+stage.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>For
+HLSL, sets one less than the
+base.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fcbuffer&minus;binding&minus;base
+<br>
+Option &minus;fcbuffer&minus;binding&minus;base [stage] base
+is the same as &minus;fubo&minus;binding&minus;base [stage]
+base.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fssbo&minus;binding&minus;base
+<br>
+Option &minus;fssbo&minus;binding&minus;base [stage] base
+sets the lowest automatically assigned binding for Shader
+Storage Buffer Objects (GLSL). If a stage is specified, only
+affects the specified stage.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>This
+only affects GLSL compilation.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fuav&minus;binding&minus;base
+<br>
+Option &minus;fuav&minus;binding&minus;base [stage] base
+sets one less than the lowest automatically assigned binding
+for Unordered Access Views (UAV). If a stage is specified,
+only affects the specified
+stage.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>This
+only affects HLSL compilation.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>&minus;fresource&minus;set&minus;binding
+<br>
+Option &minus;fresource&minus;set&minus;binding [stage]
+&lt;reg0&gt; &lt;set0&gt; &lt;binding0&gt; sets the
+descriptor set and binding for an HLSL resource, by register
+name. To specify settings for more registers, append their
+triples consisting of register name, descriptor set, and
+binding.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>Example:</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>#
+For a texture in register t1, use set 1 binding 0. <br>
+# For a texture in register t2, use set 1 binding 3 <br>
+glslc &minus;x hlsl foo.frag
+&minus;fresource&minus;set&minus;binding t1 1 0 t2 1
+3</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>If
+a stage is specified, only affects the specified
+stage.</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>#
+Same as the previous example, but the settings only apply
+<br>
+# to fragment (pixel) shaders. <br>
+glslc &minus;x hlsl foo.frag
+&minus;fresource&minus;set&minus;binding frag t1 1 0 t2 1
+3</big></big></big></big></p>
+
+<h2>DIVERGENCE FROM AND EXTENSIONS TO GLSL SPECIFICATIONS
+<a name="DIVERGENCE FROM AND EXTENSIONS TO GLSL SPECIFICATIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big><b>Source&minus;filename&minus;based</b>
+#line <b>and</b> __FILE__ <br>
+This section describes how the glslc compiler extends the
+syntax for the #line directive and the __FILE__ macro. By
+default, the glslc compiler enables the
+GL_GOOGLE_cpp_style_line_directive extension. It will
+generate this extended syntax in the preprocessed output
+(obtained via the &minus;E
+option).</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big><b><big>Warning</big></b>
+<br>
+This section is still evolving. Expect
+changes.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>GLSL
+specifications have a notion of source
+strings.</big></big></big></big></p>
+
+
+<p style="margin-left:15%; margin-top: 1em"><big><big><big><big>The
+source for a single shader is an array of strings of
+characters from the character set. A single shader is made
+from the concatenation of these
+strings.</big></big></big></big></p>
+
+<p style="margin-left:18%;"><big><big><big><big>&mdash;
+Section 3.2 of both version 3.30 and
+4.50</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>With
+the above notion, the second parameter to the #line
+directive should be a constant integer expressions
+representing the source string number. Also the __FILE__
+macro will &quot;substitute a decimal integer constant that
+says which source string number is currently being
+processed.&quot;</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>The
+glslc compiler implements the standard #line and __FILE__
+syntax. It also provides an extension,
+GL_GOOGLE_cpp_style_line_directive, to allow source
+filenames to be used instead of integer source string
+indices. Specifically, the #line directive can have, after
+macro substitution, one of the following three
+forms:</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>#line
+line&minus;number <br>
+#line line&minus;number
+integer&minus;source&minus;string&minus;index <br>
+#line line&minus;number
+&quot;source&minus;filename&quot;</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>where
+source&minus;filename can be any combinations of characters
+except double quotation marks. (Note that according to the
+GLSL specification, &quot;there are no escape sequences or
+other uses of the backslash beyond use as the
+line&minus;continuation
+character&quot;.)</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big>And
+if source&minus;filename&minus;based #line is used, the
+__FILE__ macro expands to a string whose contents are the
+filename quoted with double quotation marks. The filename is
+dertermined as the last of</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>&bull;
+The filename given to the glslc
+compiler,</big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big>&bull;
+The filename argument of the most recent #line directive, if
+any.</big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big><big>#include
+<br>
+The glslc compiler extends GLSL with the include syntax by
+turning on the GL_GOOGLE_include_directive extension. It
+will preprocess and substitute #include directives properly
+with the following
+behaviors.</big></big></big></big></big></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><big><big><big><big><big><b><big>Warning</big></b>
+<br>
+This section is still evolving. Expect
+changes.</big></big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big><big>If
+#include directives are used in a shader, there will be an
+#extension GL_GOOGLE_include_directive : enable line
+generated into the preprocessed
+output.</big></big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big><big>The
+GL_GOOGLE_cpp_style_line_directive extension is implicitly
+turned on by the GL_GOOGLE_include_directive
+extension.</big></big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big><big>The
+file argument to #include must be enclosed in double quotes.
+It must be a relative path, using whatever path separator
+the OS supports. However, the last path element &mdash; the
+name of the file itself &mdash; must not contain either '/'
+or '\', regardless of which path separator is used. This
+will not be flagged as an error but will instead trigger
+undefined behavior. For example, let&rsquo;s say there is a
+file named f\ilename.vert on a Unix OS. It is not possible
+to craft a #include that includes that
+file.</big></big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big><big>Furthermore,
+it is not possible to escape any characters in a #include
+directive, so the file argument cannot contain any special
+characters that need escaping in
+C.</big></big></big></big></big></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big><big><big><big><big>The
+file argument is a relative path that is matched first
+against the including file&rsquo;s own directory and then
+against all &minus;I arguments in order of their appearance
+on the command line. If the file cannot be found, glslc
+aborts with an error.</big></big></big></big></big></p>
+<hr>
+</body>
+</html>

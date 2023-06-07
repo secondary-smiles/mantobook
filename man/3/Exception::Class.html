@@ -1,0 +1,621 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:59 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Exception::Class</title>
+
+</head>
+<body>
+<h1>Exception::Class</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Exception::Class
+&minus; A module that allows you to declare real exception
+classes in Perl</p>
+
+<h2>VERSION
+<a name="VERSION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">version
+1.45</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Exception::Class ( <br>
+'MyException', <br>
+'AnotherException' =&gt; { isa =&gt; 'MyException' }, <br>
+'YetAnotherException' =&gt; { <br>
+isa =&gt; 'AnotherException', <br>
+description =&gt; 'These exceptions are related to IPC' <br>
+}, <br>
+'ExceptionWithFields' =&gt; { <br>
+isa =&gt; 'YetAnotherException', <br>
+fields =&gt; [ 'grandiosity', 'quixotic' ], <br>
+alias =&gt; 'throw_fields', <br>
+}, <br>
+); <br>
+use Scalar::Util qw( blessed ); <br>
+use Try::Tiny; <br>
+try { <br>
+MyException&minus;&gt;throw( error =&gt; 'I feel funny.' );
+<br>
+} <br>
+catch { <br>
+die $_ unless blessed $_ &amp;&amp;
+$_&minus;&gt;can('rethrow'); <br>
+if ( $_&minus;&gt;isa('Exception::Class') ) { <br>
+warn $_&minus;&gt;error, &quot;\n&quot;,
+$_&minus;&gt;trace&minus;&gt;as_string, &quot;\n&quot;; <br>
+warn join ' ', $_&minus;&gt;euid, $_&minus;&gt;egid,
+$_&minus;&gt;uid, $_&minus;&gt;gid, $_&minus;&gt;pid,
+$_&minus;&gt;time; <br>
+exit; <br>
+} <br>
+elsif ( $_&minus;&gt;isa('ExceptionWithFields') ) { <br>
+if ( $_&minus;&gt;quixotic ) { <br>
+handle_quixotic_exception(); <br>
+} <br>
+else { <br>
+handle_non_quixotic_exception(); <br>
+} <br>
+} <br>
+else { <br>
+$_&minus;&gt;rethrow; <br>
+} <br>
+}; <br>
+# without Try::Tiny <br>
+eval { ... }; <br>
+if ( my $e = Exception::Class&minus;&gt;caught ) { ... }
+<br>
+# use an alias &minus; without parens subroutine name is
+checked at <br>
+# compile time <br>
+throw_fields error =&gt; &quot;No strawberry&quot;,
+grandiosity =&gt; &quot;quite a bit&quot;;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>RECOMMENDATION
+1</small></b> : If you are writing modern Perl code with
+Moose or Moo I highly recommend using Throwable instead of
+this module.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>RECOMMENDATION
+2</small></b> : Whether or not you use Throwable, you should
+use Try::Tiny.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Exception::Class
+allows you to declare exception hierarchies in your modules
+in a &quot;Java-esque&quot; manner.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It features a
+simple interface allowing programmers to
+&rsquo;declare&rsquo; exception classes at compile time. It
+also has a base exception class, Exception::Class::Base,
+that can be easily extended.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is designed
+to make structured exception handling simpler and better by
+encouraging people to use hierarchies of exceptions in their
+applications, as opposed to a single catch-all exception
+class.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This module
+does not implement any try/catch syntax. Please see the
+&quot; <small>OTHER EXCEPTION MODULES</small> (try/catch
+syntax)&quot; section for more information on how to get
+this syntax.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You will also
+want to look at the documentation for
+Exception::Class::Base, which is the default base class for
+all exception objects created by this module.</p>
+
+<h2>DECLARING EXCEPTION CLASSES
+<a name="DECLARING EXCEPTION CLASSES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Importing
+&quot;Exception::Class&quot; allows you to automagically
+create Exception::Class::Base subclasses. You can also
+create subclasses via the traditional means of defining your
+own subclass with @ISA. These two methods may be easily
+combined, so that you could subclass an exception class
+defined via the automagic import, if you desired this.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The syntax for
+the magic declarations is as follows:</p>
+
+<p style="margin-left:11%; margin-top: 1em">'MANDATORY
+CLASS NAME' =&gt; \%optional_hashref</p>
+
+<p style="margin-left:11%; margin-top: 1em">The hashref may
+contain the following options:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="5%">
+
+
+<p>isa</p></td>
+<td width="78%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This is the
+class&rsquo;s parent class. If this isn&rsquo;t provided
+then the class name in $Exception::Class::BASE_EXC_CLASS is
+assumed to be the parent (see below).</p>
+
+<p style="margin-left:17%; margin-top: 1em">This parameter
+lets you create arbitrarily deep class hierarchies. This can
+be any other Exception::Class::Base subclass in your
+declaration <i>or</i> a subclass loaded from a module.</p>
+
+<p style="margin-left:17%; margin-top: 1em">To change the
+default exception class you will need to change the value of
+$Exception::Class::BASE_EXC_CLASS <i>before</i> calling
+&quot;import&quot;. To do this simply do something like
+this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">BEGIN {
+$Exception::Class::BASE_EXC_CLASS = 'SomeExceptionClass';
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">If anyone can
+come up with a more elegant way to do this please let me
+know.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>CAVEAT:</small>
+If you want to automagically subclass an
+Exception::Class::Base subclass loaded from a file, then you
+<i>must</i> compile the class (via use or require or some
+other magic) <i>before</i> you import
+&quot;Exception::Class&quot; or you&rsquo;ll get a compile
+time error.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em">fields</p></td>
+<td width="74%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This allows you
+to define additional attributes for your exception class.
+Any field you define can be passed to the &quot;throw&quot;
+or &quot;new&quot; methods as additional parameters for the
+constructor. In addition, your exception object will have an
+accessor method for the fields you define.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This parameter
+can be either a scalar (for a single field) or an array
+reference if you need to define multiple fields.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Each field name
+must be a legal Perl identifier: it starts with a
+<small>ASCII</small> letter or underscore, and is followed
+by zero or more <small>ASCII</small> letters,
+<small>ASCII</small> digits, or underscores. If a field name
+does not match this, the creation of that exception class
+croaks.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Fields will be
+inherited by subclasses.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em">alias</p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Specifying an
+alias causes this class to create a subroutine of the
+specified name in the <i>caller&rsquo;s</i> namespace.
+Calling this subroutine is equivalent to calling
+&quot;&lt;class&gt;&minus;&gt;throw(@_)&quot; for the given
+exception class.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Besides
+convenience, using aliases also allows for additional
+compile time checking. If the alias is called <i>without
+parentheses</i>, as in &quot;throw_fields &quot;an error
+occurred&quot;&quot;, then Perl checks for the existence of
+the &quot;throw_fields&quot; subroutine at compile time. If
+instead you do
+&quot;ExceptionWithFields&minus;&gt;throw(...)&quot;, then
+Perl checks the class name at runtime, meaning that typos
+may sneak through.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="17%">
+
+
+<p style="margin-top: 1em">description</p></td>
+<td width="66%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Each exception
+class has a description method that returns a fixed string.
+This should describe the exception <i>class</i> (as opposed
+to any particular exception object). This may be useful for
+debugging if you start catching exceptions you weren&rsquo;t
+expecting (particularly if someone forgot to document them)
+and you don&rsquo;t understand the error messages.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Exception::Class&quot; magic attempts to detect
+circular class hierarchies and will die if it finds one. It
+also detects missing links in a chain, for example if you
+declare Bar to be a subclass of Foo and never declare
+Foo.</p>
+
+<h2>Try::Tiny
+<a name="Try::Tiny"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you are
+interested in adding try/catch/finally syntactic sugar to
+your code then I recommend you check out Try::Tiny. This is
+a great module that helps you ignore some of the weirdness
+with &quot;eval&quot; and $@. Here&rsquo;s an example of how
+the two modules work together:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Exception::Class ( 'My::Exception' ); <br>
+use Scalar::Util qw( blessed ); <br>
+use Try::Tiny; <br>
+try { <br>
+might_throw(); <br>
+} <br>
+catch { <br>
+if ( blessed $_ &amp;&amp; $_&minus;&gt;isa('My::Exception')
+) { <br>
+handle_it(); <br>
+} <br>
+else { <br>
+die $_; <br>
+} <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that you
+<b>cannot</b> use
+&quot;Exception::Class&minus;&gt;caught&quot; with
+Try::Tiny.</p>
+
+<h2>Catching Exceptions Without Try::Tiny
+<a name="Catching Exceptions Without Try::Tiny"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Exception::Class&quot;
+provides some syntactic sugar for catching exceptions in a
+safe manner:</p>
+
+<p style="margin-left:11%; margin-top: 1em">eval {...};
+<br>
+if ( my $e = Exception::Class&minus;&gt;caught('My::Error')
+) { <br>
+cleanup(); <br>
+do_something_with_exception($e); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;caught&quot; method takes a class name and returns an
+exception object if the last thrown exception is of the
+given class, or a subclass of that class. If it is not given
+any arguments, it simply returns $@.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You should
+<b>always</b> make a copy of the exception object, rather
+than using $@ directly. This is necessary because if your
+&quot;cleanup&quot; function uses &quot;eval&quot;, or calls
+something which uses it, then $@ is overwritten. Copying the
+exception preserves it for the call to
+&quot;do_something_with_exception&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Exception
+objects also provide a caught method so you can write:</p>
+
+<p style="margin-left:11%; margin-top: 1em">if ( my $e =
+My::Error&minus;&gt;caught ) { <br>
+cleanup(); <br>
+do_something_with_exception($e); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Uncatchable
+Exceptions</b> <br>
+Internally, the &quot;caught&quot; method will call
+&quot;isa&quot; on the exception object. You could make an
+exception &quot;uncatchable&quot; by overriding
+&quot;isa&quot; in that class like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+Exception::Uncatchable; <br>
+sub isa { shift&minus;&gt;rethrow }</p>
+
+<p style="margin-left:11%; margin-top: 1em">Of course, this
+only works if you always call
+&quot;Exception::Class&minus;&gt;caught&quot; after an
+&quot;eval&quot;.</p>
+
+<h2>USAGE RECOMMENDATION
+<a name="USAGE RECOMMENDATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;re
+creating a complex system that throws lots of different
+types of exceptions, consider putting all the exception
+declarations in one place. For an app called Foo you might
+make a &quot;Foo::Exceptions&quot; module and use that in
+all your code. This module could just contain the code to
+make &quot;Exception::Class&quot; do its automagic class
+creation. Doing this allows you to more easily see what
+exceptions you have, and makes it easier to keep track of
+them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This might look
+something like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+Foo::Bar::Exceptions; <br>
+use Exception::Class ( <br>
+Foo::Bar::Exception::Senses =&gt; <br>
+{ description =&gt; 'sense&minus;related exception' }, <br>
+Foo::Bar::Exception::Smell =&gt; { <br>
+isa =&gt; 'Foo::Bar::Exception::Senses', <br>
+fields =&gt; 'odor', <br>
+description =&gt; 'stinky!' <br>
+}, <br>
+Foo::Bar::Exception::Taste =&gt; { <br>
+isa =&gt; 'Foo::Bar::Exception::Senses', <br>
+fields =&gt; [ 'taste', 'bitterness' ], <br>
+description =&gt; 'like, gag me with a spoon!' <br>
+}, <br>
+... <br>
+);</p>
+
+<p style="margin-left:11%; margin-top: 1em">You may want to
+create a real module to subclass Exception::Class::Base as
+well, particularly if you want your exceptions to have more
+methods.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Subclassing
+Exception::Class::Base</b> <br>
+As part of your usage of &quot;Exception::Class&quot;, you
+may want to create your own base exception class which
+subclasses Exception::Class::Base. You should feel free to
+subclass any of the methods documented above. For example,
+you may want to subclass &quot;new&quot; to add additional
+information to your exception objects.</p>
+
+<h2>Exception::Class FUNCTIONS
+<a name="Exception::Class FUNCTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Exception::Class&quot; method offers one function,
+&quot;Classes&quot;, which is not exported. This method
+returns a list of the classes that have been created by
+calling the &quot;Exception::Class&quot; &quot;import&quot;
+method. Note that this is <i>all</i> the subclasses that
+have been created, so it may include subclasses created by
+things like <small>CPAN</small> modules, etc. Also note that
+if you simply define a subclass via the normal Perl method
+of setting @ISA or &quot;use base&quot;, then your subclass
+will not be included.</p>
+
+<h2>SUPPORT
+<a name="SUPPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Bugs may be
+submitted at
+&lt;https://github.com/houseabsolute/Exception&minus;Class/issues&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">I am also
+usually active on <small>IRC</small> as
+&rsquo;autarch&rsquo; on &quot;irc://irc.perl.org&quot;.</p>
+
+<h2>SOURCE
+<a name="SOURCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The source code
+repository for Exception-Class can be found at
+&lt;https://github.com/houseabsolute/Exception&minus;Class&gt;.</p>
+
+<h2>DONATIONS
+<a name="DONATIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;d
+like to thank me for the work I&rsquo;ve done on this
+module, please consider making a &quot;donation&quot; to me
+via PayPal. I spend a lot of free time creating free
+software, and would appreciate any support you&rsquo;d care
+to offer.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Please note
+that <b>I am not suggesting that you must do this</b> in
+order for me to continue working on this particular
+software. I will continue to do so, inasmuch as I have in
+the past, for as long as it interests me.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Similarly, a
+donation made in this way will probably not make me work on
+this software much more, unless I get so many donations that
+I can consider working on free software full time
+(let&rsquo;s all have a chuckle at that together).</p>
+
+<p style="margin-left:11%; margin-top: 1em">To donate, log
+into PayPal and send money to autarch@urth.org, or use the
+button at
+&lt;https://www.urth.org/fs&minus;donation.html&gt;.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Dave Rolsky
+&lt;autarch@urth.org&gt;</p>
+
+<h2>CONTRIBUTORS
+<a name="CONTRIBUTORS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="60%">
+
+
+<p style="margin-top: 1em">Alexander Batyrshin
+&lt;0x62ash@gmail.com&gt;</p> </td>
+<td width="23%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="60%">
+
+
+<p>brian d foy &lt;brian.d.foy@gmail.com&gt;</p></td>
+<td width="23%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="60%">
+
+
+<p>Leon Timmermans &lt;fawaka@gmail.com&gt;</p></td>
+<td width="23%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="60%">
+
+
+<p>Ricardo Signes &lt;rjbs@cpan.org&gt;</p></td>
+<td width="23%">
+</td></tr>
+</table>
+
+<h2>COPYRIGHT AND LICENSE
+<a name="COPYRIGHT AND LICENSE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2021 by Dave Rolsky.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The full text
+of the license can be found in the
+<i><small>LICENSE</small></i> file included with this
+distribution.</p>
+<hr>
+</body>
+</html>

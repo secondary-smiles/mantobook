@@ -1,0 +1,394 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:43 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>BT_POSTPROCESS</title>
+
+</head>
+<body>
+<h1>bt_postprocess</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">bt_postprocess
+&minus; post&minus;processing of BibTeX strings, values, and
+entries</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">void
+bt_postprocess_string (char * s, <br>
+btshort options) <br>
+char * bt_postprocess_value (AST * value, <br>
+btshort options, <br>
+boolean replace); <br>
+char * bt_postprocess_field (AST * field, <br>
+btshort options, <br>
+boolean replace); <br>
+void bt_postprocess_entry (AST * entry, <br>
+btshort options);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When
+<b>btparse</b> parses a BibTeX entry, it initially stores
+the results in an abstract syntax tree ( <small>AST</small>
+), in a form exactly mirroring the parsed data. For example,
+the entry</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">@Article{Jones:1997a,
+<br>
+AuThOr = &quot;Bob Jones&quot; # and # &quot;Jim Smith
+&quot;, <br>
+TITLE = &quot;Feeding Habits of <br>
+the Common Cockroach&quot;, <br>
+JoUrNaL = j_ent, <br>
+YEAR = 1997 <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">would parse to
+an <small>AST</small> that could be represented as
+follows:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">(entry,&quot;Article&quot;)
+<br>
+(key,&quot;Jones:1997a&quot;) <br>
+(field,&quot;AuThOr&quot;) <br>
+(string,&quot;Bob Jones&quot;) <br>
+(macro,&quot;and&quot;) <br>
+(string,&quot;Jim Smith &quot;) <br>
+(field,&quot;TITLE&quot;) <br>
+(string,&quot;Feeding Habits of the Common Cockroach&quot;)
+<br>
+(field,&quot;JoUrNaL&quot;) <br>
+(macro,&quot;j_ent&quot;) <br>
+(field,&quot;YEAR&quot;) <br>
+(number,&quot;1997&quot;)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The advantage
+of this form is that all the important information in the
+entry is readily available by traversing the tree using the
+functions described in bt_traversal. This obvious problem is
+that the data is a little too raw to be immediately useful:
+entry types and field names are inconsistently capitalized,
+strings are full of unwanted whitespace, field values not
+reduced to single strings, and so forth.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All of these
+problems are addressed by <b>btparse</b>&rsquo;s
+post-processing functions, described here. Normally, you
+won&rsquo;t have to call these
+functions&minus;&minus;&minus;the library does the Right
+Thing for you after parsing each entry, and you can
+customize what exactly the Right Thing is for your
+application. (For instance, you can tell it to expand
+macros, but not to concatenate substrings together.)
+However, it&rsquo;s conceivable that you might wish to move
+the post-processing into your own code and out of the
+library&rsquo;s control. More likely, you could have strings
+that come from something other than BibTeX files that you
+would like to have treated as BibTeX strings; for that
+situation, the post-processing functions are essential.
+Finally, you might just be curious about what exactly
+happens to your data after it&rsquo;s parsed. If so,
+you&rsquo;ve come to the right place for excruciatingly
+detailed explanations.</p>
+
+<h2>FUNCTIONS
+<a name="FUNCTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>btparse</b>
+offers four points of entry to its post-processing code. Of
+these, probably only the first and
+last&minus;&minus;&minus;for processing individual strings
+and whole entries&minus;&minus;&minus;will be commonly
+used.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Post-processing
+entry points</b> <br>
+To understand why four entry points are offered, an
+explanation of the sample <small>AST</small> shown above
+will help. First of all, the whole entry is represented by
+the &quot;(entry,&quot;Article&quot;)&quot; node; this node
+has the entry key and all its field/value pairs as children.
+Entry nodes are returned by &quot;bt_parse_entry()&quot; and
+&quot;bt_parse_entry_s()&quot; (see bt_input) as well as
+&quot;bt_next_entry()&quot; (which traverses a list of
+entries returned from
+&quot;bt_parse_file()&quot;&minus;&minus;&minus;see
+bt_traversal). Whole entries may be post-processed with
+&quot;bt_postprocess_entry()&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You may also
+need to post-process a single field, or just the value
+associated with it. (The difference is that processing the
+field can change the field name&minus;&minus;&minus;e.g. to
+lowercase&minus;&minus;&minus;in addition to the field
+value.) The &quot;(field,&quot;AuThOr&quot;)&quot; node
+above is an example of a field sub-AST, and
+&quot;(string,&quot;Bob Jones&quot;)&quot; is the first node
+in the list of simple values representing that field&rsquo;s
+value. (Recall that a field value is, in general, a list of
+simple values.) Field nodes are returned by
+&quot;bt_next_field()&quot;, value nodes by
+&quot;bt_next_value()&quot;. The former may be passed to
+&quot;bt_postprocess_field()&quot; for post-processing, the
+latter to &quot;bt_postprocess_value()&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Finally,
+individual strings may wander into your program from many
+places other than a <b>btparse</b> <small>AST.</small> For
+that reason, &quot;bt_postprocess_string()&quot; is
+available for post-processing arbitrary strings.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Post-processing
+options</b> <br>
+All of the post-processing routines have an
+&quot;options&quot; parameter, which you can use to
+fine-tune the post-processing. (This is just like the
+per-metatype string-processing options that you can set
+before parsing entries; see &quot;bt_set_stringopts()&quot;
+in bt_input.) Like elsewhere in the library,
+&quot;options&quot; is a bitmap constructed by or&rsquo;ing
+together various predefined constants. These constants and
+their effects are documented in &quot;String processing
+option macros&quot; in btparse. <br>
+bt_postprocess_string ()</p>
+
+<p style="margin-left:17%;">void bt_postprocess_string
+(char * s, <br>
+btshort options)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Post-processes
+an individual string, &quot;s&quot;, which is modified in
+place. The only post-processing option that makes sense on
+individual strings is whether to collapse whitespace
+according to the BibTeX rules; thus, if &quot;options &amp;
+BTO_COLLAPSE&quot; is false, this function has no effect.
+(Although it makes a complete pass over the string anyways.
+This is for future expansion.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">The exact rules
+for collapsing whitespace are simple: non-space whitespace
+characters (tabs and newlines mainly) are converted to
+space, any strings of more than one space within are
+collapsed to a single space, and any leading or trailing
+spaces are deleted. (Ensuring that all whitespace is spaces
+is actually done by <b>btparse</b>&rsquo;s lexical scanner,
+so strings in <b>btparse</b> ASTs will never have whitespace
+apart from space. Likewise, any strings passed to
+<b>bt_postprocess_string()</b> should not contain non-space
+whitespace characters.)</p>
+
+<p style="margin-left:11%;">bt_postprocess_value ()</p>
+
+<p style="margin-left:17%;">char * bt_postprocess_value
+(AST * value, <br>
+btshort options, <br>
+boolean replace);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Post-processes
+a single field value, which is the head of a list of simple
+values as returned by &quot;bt_next_value()&quot;. All of
+the relevant string-processing options come into play here:
+conversion of numbers to strings (&quot;BTO_CONVERT&quot;),
+macro expansion (&quot;BTO_EXPAND&quot;), collapsing of
+whitespace (&quot;BTO_COLLAPSE&quot;), and string pasting
+(&quot;BTO_PASTE&quot;). Since pasting substrings together
+without first expanding macros and converting numbers would
+be nonsensical, attempting to do so is a fatal error.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;replace&quot; is true, then the list headed by
+&quot;value&quot; will be replaced by a list representing
+the processed value. That is, if string pasting is turned on
+(&quot;options &amp; BTO_PASTE&quot; is true), then this
+list will be collapsed to a single node containing the
+single string that results from pasting together all the
+substrings. If string pasting is not on, then each node in
+the list will be left intact, but will have its text
+replaced by processed text.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;replace&quot; is false, then a new string will be
+built on the fly and returned by the function. Note that if
+pasting is not on in this case, you will only get the last
+string in the list. (It doesn&rsquo;t really make a lot of
+sense to post-process a value without pasting unless
+you&rsquo;re replacing it with the new value, though.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+string that resulted from processing the whole value, which
+only makes sense if pasting was on or there was only one
+value in the list. If a multiple-value list was processed
+without pasting, the last string in the list is returned
+(after processing).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Consider what
+might be done to the value of the &quot;author&quot; field
+in the above example, which is the concatenation of a
+string, a macro, and another string. Assume that the macro
+&quot;and&quot; expands to &quot; and &quot;, and that the
+variable &quot;value&quot; points to the sub-AST for this
+value. The original sub-AST corresponding to this value
+is</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">(string,&quot;Bob
+Jones&quot;) <br>
+(macro,&quot;and&quot;) <br>
+(string,&quot;Jim Smith &quot;)</p>
+
+<p style="margin-left:17%; margin-top: 1em">To fully
+process this value in-place, you would call</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">bt_postprocess_value
+(value, BTO_FULL, TRUE);</p>
+
+<p style="margin-left:17%; margin-top: 1em">This would
+convert the value to a single-element list,</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">(string,&quot;Bob
+Jones and Jim Smith&quot;)</p>
+
+<p style="margin-left:17%; margin-top: 1em">and return the
+fully-processed string &quot;Bob Jones and Jim Smith&quot;.
+Note that the &quot;and&quot; macro has been expanded,
+interpolated between the two literal strings, everything
+pasted together, and finally whitespace collapsed.
+(Collapsing whitespace before concatenating the strings
+would be a bad idea.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">(Incidentally,
+&quot;BTO_FULL&quot; is just a macro for the combination of
+all possible string-processing options, currently:</p>
+
+<p style="margin-left:17%; margin-top: 1em">BTO_CONVERT |
+BTO_EXPAND | BTO_PASTE | BTO_COLLAPSE</p>
+
+<p style="margin-left:17%; margin-top: 1em">There are two
+other similar shortcut macros: &quot;BTO_MACRO&quot; to
+express the special string-processing done on macro values,
+which is the same as &quot;BTO_FULL&quot; except for the
+absence of &quot;BTO_COLLAPSE&quot;; and
+&quot;BTO_MINIMAL&quot;, which means no string-processing is
+to be done.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Let&rsquo;s say
+you&rsquo;d rather preserve the list nature of the value,
+while expanding macros and converting any numbers to
+strings. (This conversion is trivial: it just changes the
+type of the node from &quot;BTAST_NUMBER&quot; to
+&quot;BTAST_STRING&quot;. &quot;Number&quot; values are
+always stored as a string of digits, just as they appear in
+the file.) This would be done with the call</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">bt_postprocess_value
+<br>
+(value, BTO_CONVERT|BTO_EXPAND|BTO_COLLAPSE,TRUE);</p>
+
+<p style="margin-left:17%; margin-top: 1em">which would
+change the list to</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">(string,&quot;Bob
+Jones&quot;) <br>
+(string,&quot;and&quot;) <br>
+(string,&quot;Jim Smith&quot;)</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+whitespace is collapsed here <i>before</i> any concatenation
+can be done; this is probably a bad idea. But you can do it
+if you wish. (If you get any ideas about cooking up your own
+value post-processing scheme by doing it in little steps
+like this, take a look at the source to
+&quot;bt_postprocess_value()&quot;; it should dissuade you
+from such a venture.)</p>
+
+<p style="margin-left:11%;">bt_postprocess_field ()</p>
+
+<p style="margin-left:17%;">char * bt_postprocess_field
+(AST * field, <br>
+btshort options, <br>
+boolean replace);</p>
+
+<p style="margin-left:17%; margin-top: 1em">This is little
+more than a front-end to &quot;bt_postprocess_value()&quot;;
+the only difference is that you pass it a &quot;field&quot;
+<small>AST</small> node (eg. the
+&quot;(field,&quot;AuThOr&quot;)&quot; in the above
+example), and that it transforms the field name in addition
+to its value. In particular, the field name is forced to
+lowercase; this behaviour is (currently) not optional.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Returns the
+string returned by &quot;bt_postprocess_value()&quot;.</p>
+
+<p style="margin-left:11%;">bt_postprocess_entry ()</p>
+
+<p style="margin-left:17%;">void bt_postprocess_entry (AST
+* entry, <br>
+btshort options);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Post-processes
+all values in an entry. If &quot;entry&quot; points to the
+<small>AST</small> for a &quot;regular&quot; or &quot;macro
+definition&quot; entry, then the values are just what
+you&rsquo;d expect: everything on the right-hand side of a
+field or macro &quot;assignment.&quot; You can also
+post-process comment and preamble entries, though. Comment
+entries are essentially one big string, so only whitespace
+collapsing makes sense on them. Preambles may have multiple
+strings pasted together, so all the string-processing
+options apply to them. (And there&rsquo;s nothing to prevent
+you from using macros in a preamble.)</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">btparse,
+bt_input, bt_traversal</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Greg Ward
+&lt;gward@python.net&gt;</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,943 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:21 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LIBTRACEFS</title>
+
+</head>
+<body>
+<h1>tracefs_sql</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">tracefs_sql
+&minus; Create a synthetic event via an SQL statement</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;tracefs.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">struct
+tracefs_synth *<b>tracefs_sql</b>(struct tep_handle
+*<i>tep</i>, const char *<i>name</i>, <br>
+const char *<i>sql_buffer</i>, char **<i>err</i>);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Synthetic
+events are dynamically created events that attach two
+existing events together via one or more matching fields
+between the two events. It can be used to find the latency
+between the events, or to simply pass fields of the first
+event on to the second event to display as one event.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Linux
+kernel interface to create synthetic events is complex, and
+there needs to be a better way to create synthetic events
+that is easy and can be understood via existing
+technology.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you think of
+each event as a table, where the fields are the column of
+the table and each instance of the event as a row, you can
+understand how SQL can be used to attach two events together
+and form another event (table). Utilizing the SQL <b>SELECT
+FROM JOIN ON</b> [ <b>WHERE</b> ] syntax, a synthetic event
+can easily be created from two different events.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For simple SQL
+queries to make a histogram instead of a synthetic event,
+see HISTOGRAMS below.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>tracefs_sql</b>()
+takes in a <i>tep</i> handler (See
+<i>tep_local_events</i>(3)) that is used to verify the
+events within the <i>sql_buffer</i> expression. The
+<i>name</i> is the name of the synthetic event to create. If
+<i>err</i> points to an address of a string, it will be
+filled with a detailed message on any type of parsing error,
+including fields that do not belong to an event, or if the
+events or fields are not properly compared.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The example
+program below is a fully functional parser where it will
+create a synthetic event from a SQL syntax passed in via the
+command line or a file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The SQL format
+is as follows:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>SELECT</b>
+&lt;fields&gt; <b>FROM</b> &lt;start&minus;event&gt;
+<b>JOIN</b> &lt;end&minus;event&gt; <b>ON</b>
+&lt;matching&minus;fields&gt; <b>WHERE</b>
+&lt;filter&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note, although
+the examples show the SQL commands in uppercase, they are
+not required to be so. That is, you can use
+&quot;SELECT&quot; or &quot;select&quot; or
+&quot;sElEct&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">SELECT
+syscalls.sys_enter_read.fd, syscalls.sys_exit_read.ret FROM
+syscalls.sys_enter_read <br>
+JOIN syscalls.sys_exit_read <br>
+ON syscalls.sys_enter_read.common_pid =
+syscalls.sys_exit_write.common_pid</p>
+
+<p style="margin-left:11%; margin-top: 1em">Will create a
+synthetic event that with the fields:</p>
+
+<p style="margin-left:17%; margin-top: 1em">u64 fd; s64
+ret;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because the
+function takes a <i>tep</i> handle, and usually all event
+names are unique, you can leave off the system (group) name
+of the event, and <b>tracefs_sql</b>() will discover the
+system for you.</p>
+
+<p style="margin-left:11%; margin-top: 1em">That is, the
+above statement would work with:</p>
+
+<p style="margin-left:17%; margin-top: 1em">SELECT
+sys_enter_read.fd, sys_exit_read.ret FROM sys_enter_read
+JOIN sys_exit_read <br>
+ON sys_enter_read.common_pid = sys_exit_write.common_pid</p>
+
+<p style="margin-left:11%; margin-top: 1em">The <b>AS</b>
+keyword can be used to name the fields as well as to give an
+alias to the events, such that the above can be simplified
+even more as:</p>
+
+<p style="margin-left:17%; margin-top: 1em">SELECT
+start.fd, end.ret FROM sys_enter_read AS start JOIN
+sys_exit_read AS end ON start.common_pid =
+end.common_pid</p>
+
+<p style="margin-left:11%; margin-top: 1em">The above
+aliases <i>sys_enter_read</i> as <b>start</b> and
+<i>sys_exit_read</i> as <b>end</b> and uses those aliases to
+reference the event throughout the statement.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Using the
+<b>AS</b> keyword in the selection portion of the SQL
+statement will define what those fields will be called in
+the synthetic event.</p>
+
+<p style="margin-left:17%; margin-top: 1em">SELECT start.fd
+AS filed, end.ret AS return FROM sys_enter_read AS start
+JOIN sys_exit_read AS end <br>
+ON start.common_pid = end.common_pid</p>
+
+<p style="margin-left:11%; margin-top: 1em">The above
+labels the <i>fd</i> of <i>start</i> as <b>filed</b> and the
+<i>ret</i> of <i>end</i> as <b>return</b> where the
+synthetic event that is created will now have the
+fields:</p>
+
+<p style="margin-left:17%; margin-top: 1em">u64 filed; s64
+return;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The fields can
+also be calculated with results passed to the synthetic
+event:</p>
+
+<p style="margin-left:17%; margin-top: 1em">select
+start.truesize, end.len, (start.truesize &minus; end.len) as
+diff from napi_gro_receive_entry as start <br>
+JOIN netif_receive_skb as end ON start.skbaddr =
+end.skbaddr</p>
+
+<p style="margin-left:11%; margin-top: 1em">Which would
+show the <b>truesize</b> of the
+<i>napi_gro_receive_entry</i> event, the actual <i>len</i>
+of the content, shown by the <i>netif_receive_skb</i>, and
+the delta between the two and expressed by the field
+<b>diff</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The code also
+supports recording the timestamps at either event, and
+performing calculations on them. For wakeup latency, you
+have:</p>
+
+<p style="margin-left:17%; margin-top: 1em">select
+start.pid, (end.TIMESTAMP_USECS &minus;
+start.TIMESTAMP_USECS) as lat from sched_waking as start
+<br>
+JOIN sched_switch as end ON start.pid = end.next_pid</p>
+
+<p style="margin-left:11%; margin-top: 1em">The above will
+create a synthetic event that records the <i>pid</i> of the
+task being woken up, and the time difference between the
+<i>sched_waking</i> event and the <i>sched_switch</i> event.
+The <b>TIMESTAMP_USECS</b> will truncate the time down to
+microseconds as the timestamp usually recorded in the
+tracing buffer has nanosecond resolution. If you do not want
+that truncation, use <b>TIMESTAMP</b> instead of
+<b>TIMESTAMP_USECS</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Finally, the
+<b>WHERE</b> clause can be added, that will let you add
+filters on either or both events.</p>
+
+<p style="margin-left:17%; margin-top: 1em">select
+start.pid, (end.TIMESTAMP_USECS &minus;
+start.TIMESTAMP_USECS) as lat from sched_waking as start
+<br>
+JOIN sched_switch as end ON start.pid = end.next_pid <br>
+WHERE start.prio &lt; 100 &amp;&amp; (!(end.prev_pid &lt; 1
+|| end.prev_prio &gt; 100) || end.prev_pid == 0)</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>NOTE</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Although both
+events can be used together in the <b>WHERE</b> clause, they
+must not be mixed outside the top most
+&quot;&amp;&amp;&quot; statements. You can not OR (||) the
+events together, where a filter of one event is OR&rsquo;d
+to a filter of the other event. This does not make sense, as
+the synthetic event requires both events to take place to be
+recorded. If one is filtered out, then the synthetic event
+does not execute.</p>
+
+<p style="margin-left:17%; margin-top: 1em">select
+start.pid, (end.TIMESTAMP_USECS &minus;
+start.TIMESTAMP_USECS) as lat from sched_waking as start
+<br>
+JOIN sched_switch as end ON start.pid = end.next_pid <br>
+WHERE start.prio &lt; 100 &amp;&amp; end.prev_prio &lt;
+100</p>
+
+<p style="margin-left:11%; margin-top: 1em">The above is
+valid.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Where as the
+below is not.</p>
+
+<p style="margin-left:17%; margin-top: 1em">select
+start.pid, (end.TIMESTAMP_USECS &minus;
+start.TIMESTAMP_USECS) as lat from sched_waking as start
+<br>
+JOIN sched_switch as end ON start.pid = end.next_pid <br>
+WHERE start.prio &lt; 100 || end.prev_prio &lt; 100</p>
+
+<h2>KEYWORDS AS EVENT FIELDS
+<a name="KEYWORDS AS EVENT FIELDS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">In some cases,
+an event may have a keyword. For example,
+regcache_drop_region has &quot;from&quot; as a field and the
+following will not work</p>
+
+<p style="margin-left:17%; margin-top: 1em">select from
+from regcache_drop_region</p>
+
+<p style="margin-left:11%; margin-top: 1em">In such cases,
+add a backslash to the conflicting field, and this will tell
+the parser that the &quot;from&quot; is a field and not a
+keyword:</p>
+
+<p style="margin-left:17%; margin-top: 1em">select \from
+from regcache_drop_region</p>
+
+<h2>HISTOGRAMS
+<a name="HISTOGRAMS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Simple SQL
+statements without the <b>JOIN ON</b> may also be used,
+which will create a histogram instead. When doing this, the
+struct tracefs_hist descriptor can be retrieved from the
+returned synthetic event descriptor via the
+<b>tracefs_synth_get_start_hist</b>(3).</p>
+
+<p style="margin-left:11%; margin-top: 1em">In order to
+utilize the histogram types (see xxx) the CAST command of
+SQL can be used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">That is:</p>
+
+<p style="margin-left:17%; margin-top: 1em">select
+CAST(common_pid AS comm), CAST(id AS syscall) FROM
+sys_enter</p>
+
+<p style="margin-left:11%; margin-top: 1em">Which
+produces:</p>
+
+<p style="margin-left:17%; margin-top: 1em"># echo
+'hist:keys=common_pid.execname,id.syscall' &gt;
+events/raw_syscalls/sys_enter/trigger</p>
+
+<p style="margin-left:17%; margin-top: 1em"># cat
+events/raw_syscalls/sys_enter/hist</p>
+
+<p style="margin-left:17%; margin-top: 1em">{ common_pid:
+bash [ 18248], id: sys_setpgid [109] } hitcount: 1 <br>
+{ common_pid: sendmail [ 1812], id: sys_read [ 0] }
+hitcount: 1 <br>
+{ common_pid: bash [ 18247], id: sys_getpid [ 39] }
+hitcount: 1 <br>
+{ common_pid: bash [ 18247], id: sys_dup2 [ 33] } hitcount:
+1 <br>
+{ common_pid: gmain [ 13684], id: sys_inotify_add_watch
+[254] } hitcount: 1 <br>
+{ common_pid: cat [ 18247], id: sys_access [ 21] } hitcount:
+1 <br>
+{ common_pid: bash [ 18248], id: sys_getpid [ 39] }
+hitcount: 1 <br>
+{ common_pid: cat [ 18247], id: sys_fadvise64 [221] }
+hitcount: 1 <br>
+{ common_pid: sendmail [ 1812], id: sys_openat [257] }
+hitcount: 1 <br>
+{ common_pid: less [ 18248], id: sys_munmap [ 11] }
+hitcount: 1 <br>
+{ common_pid: sendmail [ 1812], id: sys_close [ 3] }
+hitcount: 1 <br>
+{ common_pid: gmain [ 1534], id: sys_poll [ 7] } hitcount: 1
+<br>
+{ common_pid: bash [ 18247], id: sys_execve [ 59] }
+hitcount: 1</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note, string
+fields may not be cast.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The possible
+types to cast to are:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>HEX</b>
+&minus; convert the value to use hex and not decimal</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>SYM</b>
+&minus; convert a pointer to symbolic (kallsyms values)</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SYM&minus;OFFSET</b>
+&minus; convert a pointer to symbolic and include the
+offset.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>SYSCALL</b>
+&minus; convert the number to the mapped system call
+name</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>EXECNAME</b>
+or <b>COMM</b> &minus; can only be used with the common_pid
+field. Will show the task name of the process.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>LOG</b> or
+<b>LOG2</b> &minus; bucket the key values in a log 2 values
+(1, 2, 3&minus;4, 5&minus;8, 9&minus;16, 17&minus;32,
+...)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The above
+fields are not case sensitive, and &quot;LOG2&quot; works as
+good as &quot;log&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A special CAST
+to <i>COUNTER</i> or <i>COUNTER</i> will make the field a
+value and not a key. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">SELECT
+common_pid, CAST(bytes_req AS _COUNTER_) FROM kmalloc</p>
+
+<p style="margin-left:11%; margin-top: 1em">Which will
+create</p>
+
+<p style="margin-left:17%; margin-top: 1em">echo
+'hist:keys=common_pid:vals=bytes_req' &gt;
+events/kmem/kmalloc/trigger</p>
+
+<p style="margin-left:17%; margin-top: 1em">cat
+events/kmem/kmalloc/hist</p>
+
+<p style="margin-left:17%; margin-top: 1em">{ common_pid:
+1812 } hitcount: 1 bytes_req: 32 <br>
+{ common_pid: 9111 } hitcount: 2 bytes_req: 272 <br>
+{ common_pid: 1768 } hitcount: 3 bytes_req: 1112 <br>
+{ common_pid: 0 } hitcount: 4 bytes_req: 512 <br>
+{ common_pid: 18297 } hitcount: 11 bytes_req: 2004</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Returns 0 on
+success and &minus;1 on failure. On failure, if <i>err</i>
+is defined, it will be allocated to hold a detailed
+description of what went wrong if it the error was caused by
+a parsing error, or that an event, field does not exist or
+is not compatible with what it was combined with.</p>
+
+<h2>CREATE A TOOL
+<a name="CREATE A TOOL"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The below
+example is a functional program that can be used to parse
+SQL commands into synthetic events.</p>
+
+<p style="margin-left:17%; margin-top: 1em">man tracefs_sql
+| sed &minus;ne '/^EXAMPLE/,/FILES/ { /EXAMPLE/d ; /FILES/d
+; p}' &gt; sqlhist.c <br>
+gcc &minus;o sqlhist sqlhist.c &lsquo;pkg&minus;config
+&minus;&minus;cflags &minus;&minus;libs
+libtracefs&lsquo;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Then you can
+run the above examples:</p>
+
+<p style="margin-left:17%; margin-top: 1em">sudo ./sqlhist
+'select start.pid, (end.TIMESTAMP_USECS &minus;
+start.TIMESTAMP_USECS) as lat from sched_waking as start
+<br>
+JOIN sched_switch as end ON start.pid = end.next_pid <br>
+WHERE start.prio &lt; 100 || end.prev_prio &lt; 100'</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em">#include
+&lt;stdio.h&gt; <br>
+#include &lt;stdlib.h&gt; <br>
+#include &lt;stdarg.h&gt; <br>
+#include &lt;string.h&gt; <br>
+#include &lt;errno.h&gt; <br>
+#include &lt;unistd.h&gt; <br>
+#include &lt;tracefs.h&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">static void
+usage(char **argv) <br>
+{ <br>
+fprintf(stderr, &quot;usage: %s [&minus;ed][&minus;n
+name][&minus;s][&minus;S fields][&minus;m var][&minus;c
+var][&minus;T][&minus;t dir][&minus;f file |
+sql&minus;command&minus;line]\n&quot; <br>
+&quot; &minus;n name &minus; name of synthetic event
+'Anonymous' if left off\n&quot; <br>
+&quot; &minus;t dir &minus; use dir instead of
+/sys/kernel/tracing\n&quot; <br>
+&quot; &minus;e &minus; execute the commands to create the
+synthetic event\n&quot; <br>
+&quot; &minus;m &minus; trigger the action when var is a new
+max.\n&quot; <br>
+&quot; &minus;c &minus; trigger the action when var
+changes.\n&quot; <br>
+&quot; &minus;s &minus; used with &minus;m or &minus;c to do
+a snapshot of the tracing buffer\n&quot; <br>
+&quot; &minus;S &minus; used with &minus;m or &minus;c to
+save fields of the end event (comma deliminated)\n&quot;
+<br>
+&quot; &minus;T &minus; used with &minus;m or &minus;c to do
+both a snapshot and a trace\n&quot; <br>
+&quot; &minus;f file &minus; read sql lines from file
+otherwise from the command line\n&quot; <br>
+&quot; if file is '&minus;' then read from standard
+input.\n&quot;, <br>
+argv[0]); <br>
+exit(&minus;1); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">enum action {
+<br>
+ACTION_DEFAULT = 0, <br>
+ACTION_SNAPSHOT = (1 &lt;&lt; 0), <br>
+ACTION_TRACE = (1 &lt;&lt; 1), <br>
+ACTION_SAVE = (1 &lt;&lt; 2), <br>
+ACTION_MAX = (1 &lt;&lt; 3), <br>
+ACTION_CHANGE = (1 &lt;&lt; 4), <br>
+};</p>
+
+<p style="margin-left:17%; margin-top: 1em">#define ACTIONS
+((ACTION_MAX &minus; 1))</p>
+
+<p style="margin-left:17%; margin-top: 1em">static int
+do_sql(const char *instance_name, <br>
+const char *buffer, const char *name, const char *var, <br>
+const char *trace_dir, bool execute, int action, <br>
+char **save_fields) <br>
+{ <br>
+struct tracefs_synth *synth; <br>
+struct tep_handle *tep; <br>
+struct trace_seq seq; <br>
+enum tracefs_synth_handler handler; <br>
+char *err; <br>
+int ret;</p>
+
+<p style="margin-left:17%; margin-top: 1em">if ((action
+&amp; ACTIONS) &amp;&amp; !var) { <br>
+fprintf(stderr, &quot;Error: &minus;s, &minus;S and &minus;T
+not supported without &minus;m or &minus;c&quot;); <br>
+exit(&minus;1); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">if (!name) <br>
+name = &quot;Anonymous&quot;;</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">trace_seq_init(&amp;seq);
+<br>
+tep = tracefs_local_events(trace_dir); <br>
+if (!tep) { <br>
+if (!trace_dir) <br>
+trace_dir = &quot;tracefs directory&quot;; <br>
+perror(trace_dir); <br>
+exit(&minus;1); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">synth =
+tracefs_sql(tep, name, buffer, &amp;err); <br>
+if (!synth) { <br>
+perror(&quot;Failed creating synthetic event!&quot;); <br>
+if (err) <br>
+fprintf(stderr, &quot;%s&quot;, err); <br>
+free(err); <br>
+exit(&minus;1); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">if
+(tracefs_synth_complete(synth)) { <br>
+if (var) { <br>
+if (action &amp; ACTION_MAX) <br>
+handler = TRACEFS_SYNTH_HANDLE_MAX; <br>
+else <br>
+handler = TRACEFS_SYNTH_HANDLE_CHANGE;</p>
+
+<p style="margin-left:17%; margin-top: 1em">if (action
+&amp; ACTION_SAVE) { <br>
+ret = tracefs_synth_save(synth, handler, var, save_fields);
+<br>
+if (ret &lt; 0) { <br>
+err = &quot;adding save&quot;; <br>
+goto failed_action; <br>
+} <br>
+} <br>
+if (action &amp; ACTION_TRACE) { <br>
+/* <br>
+* By doing the trace before snapshot, it will be included
+<br>
+* in the snapshot. <br>
+*/ <br>
+ret = tracefs_synth_trace(synth, handler, var); <br>
+if (ret &lt; 0) { <br>
+err = &quot;adding trace&quot;; <br>
+goto failed_action; <br>
+} <br>
+} <br>
+if (action &amp; ACTION_SNAPSHOT) { <br>
+ret = tracefs_synth_snapshot(synth, handler, var); <br>
+if (ret &lt; 0) { <br>
+err = &quot;adding snapshot&quot;; <br>
+failed_action: <br>
+perror(err); <br>
+if (errno == ENODEV) <br>
+fprintf(stderr, &quot;ERROR: '%s' is not a variable\n&quot;,
+<br>
+var); <br>
+exit(&minus;1); <br>
+} <br>
+} <br>
+} <br>
+tracefs_synth_echo_cmd(&amp;seq, synth); <br>
+if (execute) { <br>
+ret = tracefs_synth_create(synth); <br>
+if (ret &lt; 0) { <br>
+fprintf(stderr, &quot;%s\n&quot;, tracefs_error_last(NULL));
+<br>
+exit(&minus;1); <br>
+} <br>
+} <br>
+} else { <br>
+struct tracefs_instance *instance = NULL; <br>
+struct tracefs_hist *hist;</p>
+
+<p style="margin-left:17%; margin-top: 1em">hist =
+tracefs_synth_get_start_hist(synth); <br>
+if (!hist) { <br>
+perror(&quot;get_start_hist&quot;); <br>
+exit(&minus;1); <br>
+} <br>
+if (instance_name) { <br>
+if (execute) <br>
+instance = tracefs_instance_create(instance_name); <br>
+else <br>
+instance = tracefs_instance_alloc(trace_dir, <br>
+instance_name); <br>
+if (!instance) { <br>
+perror(&quot;Failed to create instance&quot;); <br>
+exit(&minus;1); <br>
+} <br>
+} <br>
+tracefs_hist_echo_cmd(&amp;seq, instance, hist, 0); <br>
+if (execute) { <br>
+ret = tracefs_hist_start(instance, hist); <br>
+if (ret &lt; 0) { <br>
+fprintf(stderr, &quot;%s\n&quot;,
+tracefs_error_last(instance)); <br>
+exit(&minus;1); <br>
+} <br>
+} <br>
+}</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">tracefs_synth_free(synth);</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">trace_seq_do_printf(&amp;seq);
+<br>
+trace_seq_destroy(&amp;seq); <br>
+return 0; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">int main (int
+argc, char **argv) <br>
+{ <br>
+char *trace_dir = NULL; <br>
+char *buffer = NULL; <br>
+char buf[BUFSIZ]; <br>
+int buffer_size = 0; <br>
+const char *file = NULL; <br>
+const char *instance = NULL; <br>
+bool execute = false; <br>
+char **save_fields = NULL; <br>
+const char *name; <br>
+const char *var; <br>
+int action = 0; <br>
+char *tok; <br>
+FILE *fp; <br>
+size_t r; <br>
+int c; <br>
+int i;</p>
+
+<p style="margin-left:17%; margin-top: 1em">for (;;) { <br>
+c = getopt(argc, argv, &quot;ht:f:en:m:c:sS:TB:&quot;); <br>
+if (c == &minus;1) <br>
+break;</p>
+
+<p style="margin-left:17%; margin-top: 1em">switch(c) {
+<br>
+case 'h': <br>
+usage(argv); <br>
+case 't': <br>
+trace_dir = optarg; <br>
+break; <br>
+case 'f': <br>
+file = optarg; <br>
+break; <br>
+case 'e': <br>
+execute = true; <br>
+break; <br>
+case 'm': <br>
+action |= ACTION_MAX; <br>
+var = optarg; <br>
+break; <br>
+case 'c': <br>
+action |= ACTION_CHANGE; <br>
+var = optarg; <br>
+break; <br>
+case 's': <br>
+action |= ACTION_SNAPSHOT; <br>
+break; <br>
+case 'S': <br>
+action |= ACTION_SAVE; <br>
+tok = strtok(optarg, &quot;,&quot;); <br>
+while (tok) { <br>
+save_fields = tracefs_list_add(save_fields, tok); <br>
+tok = strtok(NULL, &quot;,&quot;); <br>
+} <br>
+if (!save_fields) { <br>
+perror(optarg); <br>
+exit(&minus;1); <br>
+} <br>
+break; <br>
+case 'T': <br>
+action |= ACTION_TRACE | ACTION_SNAPSHOT; <br>
+break; <br>
+case 'B': <br>
+instance = optarg; <br>
+break; <br>
+case 'n': <br>
+name = optarg; <br>
+break; <br>
+} <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">if ((action
+&amp; (ACTION_MAX|ACTION_CHANGE)) ==
+(ACTION_MAX|ACTION_CHANGE)) { <br>
+fprintf(stderr, &quot;Can not use both &minus;m and &minus;c
+together\n&quot;); <br>
+exit(&minus;1); <br>
+} <br>
+if (file) { <br>
+if (!strcmp(file, &quot;&minus;&quot;)) <br>
+fp = stdin; <br>
+else <br>
+fp = fopen(file, &quot;r&quot;); <br>
+if (!fp) { <br>
+perror(file); <br>
+exit(&minus;1); <br>
+} <br>
+while ((r = fread(buf, 1, BUFSIZ, fp)) &gt; 0) { <br>
+buffer = realloc(buffer, buffer_size + r + 1); <br>
+strncpy(buffer + buffer_size, buf, r); <br>
+buffer_size += r; <br>
+} <br>
+fclose(fp); <br>
+if (buffer_size) <br>
+buffer[buffer_size] = '\0'; <br>
+} else if (argc == optind) { <br>
+usage(argv); <br>
+} else { <br>
+for (i = optind; i &lt; argc; i++) { <br>
+r = strlen(argv[i]); <br>
+buffer = realloc(buffer, buffer_size + r + 2); <br>
+if (i != optind) <br>
+buffer[buffer_size++] = ' '; <br>
+strcpy(buffer + buffer_size, argv[i]); <br>
+buffer_size += r; <br>
+} <br>
+}</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">do_sql(instance,
+buffer, name, var, trace_dir, execute, action, save_fields);
+<br>
+free(buffer);</p>
+
+<p style="margin-left:17%; margin-top: 1em">return 0; <br>
+}</p>
+
+<h2>FILES
+<a name="FILES"></a>
+</h2>
+
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>tracefs.h</b>
+<br>
+Header file to include in order to have access to the
+library APIs. <b><br>
+&minus;ltracefs</b> <br>
+Linker switch to add when building a program that uses the
+library.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sqlhist</b>(1),
+<b>libtracefs</b>(3), <b>libtraceevent</b>(3),
+<b>trace&minus;cmd</b>(1), <b>tracefs_synth_init</b>(3),
+<b>tracefs_synth_add_match_field</b>(3),
+<b>tracefs_synth_add_compare_field</b>(3),
+<b>tracefs_synth_add_start_field</b>(3),
+<b>tracefs_synth_add_end_field</b>(3),
+<b>tracefs_synth_append_start_filter</b>(3),
+<b>tracefs_synth_append_end_filter</b>(3),
+<b>tracefs_synth_create</b>(3),
+<b>tracefs_synth_destroy</b>(3),
+<b>tracefs_synth_free</b>(3),
+<b>tracefs_synth_echo_cmd</b>(3),
+<b>tracefs_hist_alloc</b>(3),
+<b>tracefs_hist_alloc_2d</b>(3),
+<b>tracefs_hist_alloc_nd</b>(3),
+<b>tracefs_hist_free</b>(3), <b>tracefs_hist_add_key</b>(3),
+<b>tracefs_hist_add_value</b>(3),
+<b>tracefs_hist_add_name</b>(3),
+<b>tracefs_hist_start</b>(3),
+<b>tracefs_hist_destory</b>(3),
+<b>tracefs_hist_add_sort_key</b>(3),
+<b>tracefs_hist_sort_key_direction</b>(3)</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>Steven
+Rostedt</b>
+&lt;<b><font color="#0000FF">rostedt@goodmis.org</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">&gt; <b><br>
+Tzvetomir Stoyanov</b>
+&lt;</font><b><font color="#0000FF">tz.stoyanov@gmail.com</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">&gt; <b><br>
+sameeruddin shaik</b>
+&lt;</font><b><font color="#0000FF">sameeruddin.shaik8@gmail.com</font></b>
+<small><font color="#000000">[3]</font></small>
+<font color="#000000">&gt;</font></p>
+
+<h2>REPORTING BUGS
+<a name="REPORTING BUGS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Report
+bugs to
+&lt;</font><b><font color="#0000FF">linux&minus;trace&minus;devel@vger.kernel.org</font></b>
+<small><font color="#000000">[4]</font></small>
+<font color="#000000">&gt;</font></p>
+
+<h2>LICENSE
+<a name="LICENSE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">libtracefs
+is Free Software licensed under the GNU LGPL 2.1</font></p>
+
+<h2>RESOURCES
+<a name="RESOURCES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><font color="#0000FF">https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/</font></b></p>
+
+<h2>COPYING
+<a name="COPYING"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Copyright
+(C) 2020 VMware, Inc. Free use of this software is granted
+under the terms of the GNU Public License (GPL).</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="29%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">rostedt@goodmis.org</font></p> </td>
+<td width="54%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:rostedt@goodmis.org</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">2.</font></p> </td>
+<td width="2%"></td>
+<td width="32%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">tz.stoyanov@gmail.com</font></p> </td>
+<td width="51%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:tz.stoyanov@gmail.com</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">3.</font></p> </td>
+<td width="2%"></td>
+<td width="43%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">sameeruddin.shaik8@gmail.com</font></p> </td>
+<td width="40%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:sameeruddin.shaik8@gmail.com</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">4.</font></p> </td>
+<td width="2%"></td>
+<td width="51%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">linux-trace-devel@vger.kernel.org</font></p> </td>
+<td width="32%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:linux-trace-devel@vger.kernel.org</font></p>
+<hr>
+</body>
+</html>

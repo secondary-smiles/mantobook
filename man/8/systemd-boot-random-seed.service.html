@@ -1,0 +1,174 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:08 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SYSTEMD&minus;BOOT&minus;RANDOM&minus;SEED.SERVICE</title>
+
+</head>
+<body>
+<h1>systemd-boot-random-seed.service</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd-boot-random-seed.service
+&minus; Refresh boot loader random seed at boot</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;boot&minus;random&minus;seed.service</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;boot&minus;random&minus;seed.service
+is a system service that automatically refreshes the boot
+loader random seed stored in the EFI System Partition (ESP),
+from the Linux kernel entropy pool. The boot loader random
+seed is primarily consumed and updated by
+<b>systemd-boot</b>(7) from the UEFI environment (or
+<b>systemd-stub</b>(7) if the former is not used, but the
+latter is), and passed as initial RNG seed to the OS. It is
+an effective way to ensure the OS comes up with a random
+pool that is fully initialized.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The service
+also automatically generates a 'system token' to store in an
+EFI variable in the system's NVRAM. The boot loader may then
+combine the on&minus;disk random seed and the system token
+by cryptographic hashing, and pass it to the OS it boots as
+initialization seed for its entropy pool. Note: the random
+seed stored in the ESP is refreshed on <i>every</i> reboot
+ensuring that multiple subsequent boots will boot with
+different seeds. On the other hand, the system token is
+generated randomly <i>once</i>, and then persistently stored
+in the system's EFI variable storage, ensuring the same disk
+image won't result in the same series of boot loader seed
+values if used on multiple systems in parallel.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+systemd&minus;boot&minus;random&minus;seed.service unit
+invokes the <b>bootctl random&minus;seed</b> command, which
+updates the random seed in the ESP, and initializes the
+system token if it's not initialized yet. The service is
+conditionalized so that it is run only when a boot loader is
+used that implements the <b><font color="#0000FF">Boot
+Loader Interface</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">For
+further details see <b>bootctl</b>(1), regarding the command
+this service invokes.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Note
+the relationship between
+systemd&minus;boot&minus;random&minus;seed.service and
+<b>systemd-random-seed</b>(8). The former maintains the
+random seed consumed and updated by the boot environment
+(i.e. by <b>systemd-boot</b>(7) or <b>systemd-stub</b>(7)),
+the latter maintains a random seed consumed and updated by
+the OS itself. The former ensures that the OS has a filled
+entropy pool already during earliest boot when regular disk
+access is not available yet (i.e. when the OS random seed
+cannot be loaded yet). The latter is processed much later,
+once writable disk access is available. Thus it cannot be
+used to seed the initial boot phase, but typically has much
+higher quality of entropy. Both files are consumed and
+updated at boot, but at different times.
+Specifically:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">1.
+In UEFI mode, the systemd&minus;boot or systemd&minus;stub
+components load the boot loader random seed off the ESP,
+hash it with available entropy and the system token, and
+then update it on disk. A derived seed is passed to the
+kernel which writes it to its entropy pool.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">2.
+In userspace the systemd&minus;random&minus;seed.service
+service loads the OS random seed, writes it to the kernel
+entropy pool, and then updates it on disk with a new value
+derived from the kernel entropy pool.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">3.
+In userspace the
+systemd&minus;boot&minus;random&minus;seed.service service
+updates the boot loader random seed with a new value derived
+from the kernel entropy pool.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">This
+logic should ensure that the kernel's entropy pool is seeded
+during earliest bool already, if possible, but the highest
+quality entropy is propagated back to both on&minus;disk
+seeds.</font></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>systemd</b>(1),
+<b>random</b>(4), <b>bootctl</b>(1), <b>systemd-boot</b>(7),
+<b>systemd-stub</b>(7),
+<b>systemd-random-seed.service</b>(8)</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="32%">
+
+
+<p style="margin-top: 1em"><font color="#000000">Boot
+Loader Interface</font></p></td>
+<td width="51%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://systemd.io/BOOT_LOADER_INTERFACE</font></p>
+<hr>
+</body>
+</html>

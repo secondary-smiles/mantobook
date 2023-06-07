@@ -1,0 +1,595 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:09 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SYSTEMD&minus;REPART</title>
+
+</head>
+<body>
+<h1>systemd-repart</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd-repart,
+systemd-repart.service &minus; Automatically grow and add
+partitions</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="71%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;repart</b>
+[OPTIONS...] [<i>[BLOCKDEVICE]</i>...]</p></td>
+<td width="18%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd&minus;repart.service</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd&minus;repart</b>
+grows and adds partitions to a partition table, based on the
+configuration files described in <b>repart.d</b>(5).</p>
+
+<p style="margin-left:11%; margin-top: 1em">If invoked with
+no arguments, it operates on the block device backing the
+root file system partition of the running OS, thus growing
+and adding partitions of the booted OS image itself. If
+<i>&minus;&minus;image=</i> is used it will operate on the
+specified image file. When called in the initrd it operates
+on the block device backing /sysroot/ instead, i.e. on the
+block device the system will soon transition into. The
+systemd&minus;repart.service service is generally run at
+boot in the initrd, in order to augment the partition table
+of the OS before its partitions are mounted.
+<b>systemd&minus;repart</b> (mostly) operates in a purely
+incremental mode: it only grows existing and adds new
+partitions; it does not shrink, delete or move existing
+partitions. The service is intended to be run on every boot,
+but when it detects that the partition table already matches
+the installed repart.d/*.conf configuration files, it
+executes no operation.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd&minus;repart</b>
+is intended to be used when deploying OS images, to
+automatically adjust them to the system they are running on,
+during first boot. This way the deployed image can be
+minimal in size and may be augmented automatically at boot
+when needed, taking possession of disk space available but
+not yet used. Specifically the following use cases are among
+those covered:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The root
+partition may be grown to cover the whole available disk
+space.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A
+/home/, swap or /srv/ partition can be added.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; A second
+(or third, ...) root partition may be added, to cover A/B
+style setups where a second version of the root file system
+is alternatingly used for implementing update schemes. The
+deployed image would carry only a single partition
+(&quot;A&quot;) but on first boot a second partition
+(&quot;B&quot;) for this purpose is automatically
+created.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The algorithm
+executed by <b>systemd&minus;repart</b> is roughly as
+follows:</p>
+
+<p style="margin-left:17%; margin-top: 1em">1. The
+repart.d/*.conf configuration files are loaded and parsed,
+and ordered by filename (without the directory prefix). For
+each configuration file, drop&minus;in files are looked for
+in directories with same name as the configuration file with
+a suffix &quot;.d&quot; added.</p>
+
+<p style="margin-left:17%; margin-top: 1em">2. The
+partition table already existing on the block device is
+loaded and parsed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">3. The existing
+partitions in the partition table are matched up with the
+repart.d/*.conf files by GPT partition type UUID. The first
+existing partition of a specific type is assigned the first
+configuration file declaring the same type. The second
+existing partition of a specific type is then assigned the
+second configuration file declaring the same type, and so
+on. After this iterative assigning is complete any
+left&minus;over existing partitions that have no matching
+configuration file are considered &quot;foreign&quot; and
+left as they are. And any configuration files for which no
+partition currently exists are understood as a request to
+create such a partition.</p>
+
+<p style="margin-left:17%; margin-top: 1em">4. Taking the
+size constraints and weights declared in the configuration
+files into account, all partitions that shall be created are
+now allocated to the disk, taking up all free space, always
+respecting the size and padding requests. Similarly,
+existing partitions that should be grown are grown. New
+partitions are always appended to the end of the partition
+table, taking the first partition table slot whose index is
+greater than the indexes of all existing partitions.
+Partition table slots are never reordered and thus partition
+numbers are ensured to remain stable. Note that this
+allocation happens in memory only, the partition table on
+disk is not updated yet.</p>
+
+<p style="margin-left:17%; margin-top: 1em">5. All existing
+partitions for which configuration files exist and which
+currently have no GPT partition label set will be assigned a
+label, either explicitly configured in the configuration or
+&mdash; if that's missing &mdash; derived automatically from
+the partition type. The same is done for all partitions that
+are newly created. These assignments are done in memory
+only, too, the disk is not updated yet.</p>
+
+<p style="margin-left:17%; margin-top: 1em">6. Similarly,
+all existing partitions for which configuration files exist
+and which currently have an all&minus;zero identifying UUID
+will be assigned a new UUID. This UUID is cryptographically
+hashed from a common seed value together with the partition
+type UUID (and a counter in case multiple partitions of the
+same type are defined), see below. The same is done for all
+partitions that are created anew. These assignments are done
+in memory only, too, the disk is not updated yet.</p>
+
+<p style="margin-left:17%; margin-top: 1em">7. Similarly,
+if the disk's volume UUID is all zeroes it is also
+initialized, also cryptographically hashed from the same
+common seed value. This is done in memory only too.</p>
+
+<p style="margin-left:17%; margin-top: 1em">8. The disk
+space assigned to new partitions (i.e. what was previously
+free space) is now erased. Specifically, all file system
+signatures are removed, and if the device supports it, the
+<b>BLKDISCARD</b> I/O control command is issued to inform
+the hardware that the space is now empty. In addition any
+&quot;padding&quot; between partitions and at the end of the
+device is similarly erased.</p>
+
+<p style="margin-left:17%; margin-top: 1em">9. The new
+partition table is finally written to disk. The kernel is
+asked to reread the partition table.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As exception to
+the normally strictly incremental operation, when called in
+a special &quot;factory reset&quot; mode,
+<b>systemd&minus;repart</b> may also be used to erase
+existing partitions to reset an installation back to vendor
+defaults. This mode of operation is used when either the
+<b>&minus;&minus;factory&minus;reset=yes</b> switch is
+passed on the tool's command line, or the
+<b>systemd.factory_reset=yes</b> option specified on the
+kernel command line, or the <i>FactoryReset</i> EFI variable
+(vendor UUID
+<b>8cf2644b&minus;4b0b&minus;428f&minus;9387&minus;6d876050dc67</b>)
+is set to &quot;yes&quot;. It alters the algorithm above
+slightly: between the 3rd and the 4th step above any
+partition marked explicitly via the <i>FactoryReset=</i>
+boolean is deleted, and the algorithm restarted, thus
+immediately re&minus;creating these partitions anew
+empty.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+<b>systemd&minus;repart</b> only changes partition tables,
+it does not create or resize any file systems within these
+partitions. A separate mechanism should be used for that,
+for example <b>systemd-growfs</b>(8) and
+<b>systemd&minus;makefs</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The UUIDs
+identifying the new partitions created (or assigned to
+existing partitions that have no UUID yet), as well as the
+disk as a whole are hashed cryptographically from a common
+seed value. This seed value is usually the
+<b>machine-id</b>(5) of the system, so that the machine ID
+reproducibly determines the UUIDs assigned to all
+partitions. If the machine ID cannot be read (or the user
+passes <b>&minus;&minus;seed=random</b>, see below) the seed
+is generated randomly instead, so that the partition UUIDs
+are also effectively random. The seed value may also be set
+explicitly, formatted as UUID via the
+<b>&minus;&minus;seed=</b> option. By hashing these UUIDs
+from a common seed images prepared with this tool become
+reproducible and the result of the algorithm above
+deterministic.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The positional
+argument should specify the block device to operate on.
+Instead of a block device node path a regular file may be
+specified too, in which case the command operates on it like
+it would if a loopback block device node was specified with
+the file attached. If <b>&minus;&minus;empty=create</b> is
+specified the specified path is created as regular file,
+which is useful for generating disk images from scratch.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+options are understood:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;dry&minus;run=</b></p>
+
+<p style="margin-left:17%;">Takes a boolean. If this switch
+is not specified <b>&minus;&minus;dry&minus;run=yes</b> is
+the implied default. Controls whether systemd&minus;repart
+executes the requested re&minus;partition operations or
+whether it should only show what it would do. Unless
+<b>&minus;&minus;dry&minus;run=no</b> is specified
+systemd&minus;repart will not actually touch the device's
+partition table.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;empty=</b></p>
+
+<p style="margin-left:17%;">Takes one of
+&quot;refuse&quot;, &quot;allow&quot;, &quot;require&quot;,
+&quot;force&quot; or &quot;create&quot;. Controls how to
+operate on block devices that are entirely empty, i.e. carry
+no partition table/disk label yet. If this switch is not
+specified the implied default is &quot;refuse&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If
+&quot;refuse&quot; <b>systemd&minus;repart</b> requires that
+the block device it shall operate on already carries a
+partition table and refuses operation if none is found. If
+&quot;allow&quot; the command will extend an existing
+partition table or create a new one if none exists. If
+&quot;require&quot; the command will create a new partition
+table if none exists so far, and refuse operation if one
+already exists. If &quot;force&quot; it will create a fresh
+partition table unconditionally, erasing the disk fully in
+effect. If &quot;force&quot; no existing partitions will be
+taken into account or survive the operation. Hence: use with
+care, this is a great way to lose all your data. If
+&quot;create&quot; a new loopback file is create under the
+path passed via the device node parameter, of the size
+indicated with <b>&minus;&minus;size=</b>, see below.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;discard=</b></p>
+
+<p style="margin-left:17%;">Takes a boolean. If this switch
+is not specified <b>&minus;&minus;discard=yes</b> is the
+implied default. Controls whether to issue the
+<b>BLKDISCARD</b> I/O control command on the space taken up
+by any added partitions or on the space in between them.
+Usually, it's a good idea to issue this request since it
+tells the underlying hardware that the covered blocks shall
+be considered empty, improving performance. If operating on
+a regular file instead of a block device node, a sparse file
+is generated.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;size=</b></p>
+
+<p style="margin-left:17%;">Takes a size in bytes, using
+the usual K, M, G, T suffixes, or the special value
+&quot;auto&quot;. If used the specified device node path
+must refer to a regular file, which is then grown to the
+specified size if smaller, before any change is made to the
+partition table. If specified as &quot;auto&quot; the
+minimal size for the disk image is automatically determined
+(i.e. the minimal sizes of all partitions are summed up,
+taking space for additional metadata into account). This
+switch is not supported if the specified node is a block
+device. This switch has no effect if the file is already as
+large as the specified size or larger. The specified size is
+implicitly rounded up to multiples of 4096. When used with
+<b>&minus;&minus;empty=create</b> this specifies the initial
+size of the loopback file to create.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+<b>&minus;&minus;size=auto</b> option takes the sizes of
+pre&minus;existing partitions into account. However, it does
+not accommodate for partition tables that are not tightly
+packed: the configured partitions might still not fit into
+the backing device if empty space exists between
+pre&minus;existing partitions (or before the first
+partition) that cannot be fully filled by partitions to grow
+or create.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Also note that
+the automatic size determination does not take files or
+directories specified with <b>CopyFiles=</b> into account:
+operation might fail if the specified files or directories
+require more disk space then the configured
+per&minus;partition minimal size limit.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;factory&minus;reset=</b></p>
+
+<p style="margin-left:17%;">Takes boolean. If this switch
+is not specified <b>&minus;&minus;factory=reset=no</b> is
+the implied default. Controls whether to operate in
+&quot;factory reset&quot; mode, see above. If set to true
+this will remove all existing partitions marked with
+<i>FactoryReset=</i> set to yes early while executing the
+re&minus;partitioning algorithm. Use with care, this is a
+great way to lose all your data. Note that partition files
+need to explicitly turn <i>FactoryReset=</i> on, as the
+option defaults to off. If no partitions are marked for
+factory reset this switch has no effect. Note that there are
+two other methods to request factory reset operation: via
+the kernel command line and via an EFI variable, see
+above.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;can&minus;factory&minus;reset</b></p>
+
+<p style="margin-left:17%;">If this switch is specified the
+disk is not re&minus;partitioned. Instead it is determined
+if any existing partitions are marked with
+<i>FactoryReset=</i>. If there are the tool will exit with
+exit status zero, otherwise non&minus;zero. This switch may
+be used to quickly determine whether the running system
+supports a factory reset mechanism built on
+<b>systemd&minus;repart</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;root=</b></p>
+
+<p style="margin-left:17%;">Takes a path to a directory to
+use as root file system when searching for repart.d/*.conf
+files, for the machine ID file to use as seed and for the
+<i>CopyFiles=</i> and <i>CopyBlocks=</i> source files and
+directories. By default when invoked on the regular system
+this defaults to the host's root file system /. If invoked
+from the initrd this defaults to /sysroot/, so that the tool
+operates on the configuration and machine ID stored in the
+root file system later transitioned into itself.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;image=</b></p>
+
+<p style="margin-left:17%;">Takes a path to a disk image
+file or device to mount and use in a similar fashion to
+<b>&minus;&minus;root=</b>, see above.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;seed=</b></p>
+
+<p style="margin-left:17%;">Takes a UUID as argument or the
+special value <b>random</b>. If a UUID is specified the
+UUIDs to assign to partitions and the partition table itself
+are derived via cryptographic hashing from it. If not
+specified it is attempted to read the machine ID from the
+host (or more precisely, the root directory configured via
+<b>&minus;&minus;root=</b>) and use it as seed instead,
+falling back to a randomized seed otherwise. Use
+<b>&minus;&minus;seed=random</b> to force a randomized seed.
+Explicitly specifying the seed may be used to generated
+strictly reproducible partition tables.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;pretty=</b></p>
+
+<p style="margin-left:17%;">Takes a boolean argument. If
+this switch is not specified, it defaults to on when called
+from an interactive terminal and off otherwise. Controls
+whether to show a user friendly table and graphic
+illustrating the changes applied.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;definitions=</b></p>
+
+<p style="margin-left:17%;">Takes a file system path. If
+specified the *.conf files are read from the specified
+directory instead of searching in /usr/lib/repart.d/*.conf,
+/etc/repart.d/*.conf, /run/repart.d/*.conf.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This parameter
+can be specified multiple times.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;key&minus;file=</b></p>
+
+<p style="margin-left:17%;">Takes a file system path.
+Configures the encryption key to use when setting up LUKS2
+volumes configured with the <i>Encrypt=key&minus;file</i>
+setting in partition files. Should refer to a regular file
+containing the key, or an <b>AF_UNIX</b> stream socket in
+the file system. In the latter case a connection is made to
+it and the key read from it. If this switch is not specified
+the empty key (i.e. zero length key) is used. This behaviour
+is useful for setting up encrypted partitions during early
+first boot that receive their user&minus;supplied password
+only in a later setup step.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;private&minus;key=</b></p>
+
+<p style="margin-left:17%;">Takes a file system path.
+Configures the signing key to use when creating verity
+signature partitions with the <i>Verity=signature</i>
+setting in partition files.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;certificate=</b></p>
+
+<p style="margin-left:17%;">Takes a file system path.
+Configures the PEM encoded X.509 certificate to use when
+creating verity signature partitions with the
+<i>Verity=signature</i> setting in partition files.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;tpm2&minus;device=</b>,
+<b>&minus;&minus;tpm2&minus;pcrs=</b></p>
+
+<p style="margin-left:17%;">Configures the TPM2 device and
+list of PCRs to use for LUKS2 volumes configured with the
+<i>Encrypt=tpm2</i> option. These options take the same
+parameters as the identically named options to
+<b>systemd-cryptenroll</b>(1) and have the same effect on
+partitions where TPM2 enrollment is requested.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;tpm2&minus;public&minus;key=</b>
+[PATH],
+<b>&minus;&minus;tpm2&minus;public&minus;key&minus;pcrs=</b>
+[PCR...]</p>
+
+<p style="margin-left:17%;">Configures a TPM2 signed PCR
+policy to bind encryption to. See
+<b>systemd-cryptenroll</b>(1) for details on these two
+options.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;split=</b>
+[BOOL]</p>
+
+<p style="margin-left:17%;">Enables generation of split
+artifacts from partitions configured with <i>SplitName=</i>.
+If enabled, for each partition with <i>SplitName=</i> set, a
+separate output file containing just the contents of that
+partition is generated. The output filename consists of the
+loopback filename suffixed with the name configured with
+<i>SplitName=</i>. If the loopback filename ends with
+&quot;.raw&quot;, the suffix is inserted before the
+&quot;.raw&quot; extension instead.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+<b>&minus;&minus;split</b> is independent from
+<b>&minus;&minus;dry&minus;run</b>. Even if
+<b>&minus;&minus;dry&minus;run</b> is enabled, split
+artifacts will still be generated from an existing image if
+<b>&minus;&minus;split</b> is enabled.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;include&minus;partitions=</b>
+[PARTITION...],
+<b>&minus;&minus;exclude&minus;partitions=</b>
+[PARTITION...]</p>
+
+<p style="margin-left:17%;">These options specify which
+partition types <b>systemd&minus;repart</b> should operate
+on. If <b>&minus;&minus;include&minus;partitions=</b> is
+used, all partitions that aren't specified are excluded. If
+<b>&minus;&minus;exclude&minus;partitions=</b> is used, all
+partitions that are specified are excluded. Both options
+take a comma separated list of GPT partition type UUIDs or
+identifiers (see <i>Type=</i> in <b>repart.d</b>(5)).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;defer&minus;partitions=</b>
+[PARTITION...]</p>
+
+<p style="margin-left:17%;">This option specifies for which
+partition types <b>systemd&minus;repart</b> should defer.
+All partitions that are deferred using this option are still
+taken into account when calculating the sizes and offsets of
+other partitions, but aren't actually written to the disk
+image. The net effect of this option is that if you run
+<b>systemd&minus;repart</b> again without these options, the
+missing partitions will be added as if they had not been
+deferred the first time <b>systemd&minus;repart</b> was
+executed.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;sector&minus;size=</b>
+[BYTES]</p>
+
+<p style="margin-left:17%;">This option allows configuring
+the sector size of the image produced by
+<b>systemd&minus;repart</b>. It takes a value that is a
+power of &quot;2&quot; between &quot;512&quot; and
+&quot;4096&quot;. This option is useful when building images
+for disks that use a different sector size as the disk on
+which the image is produced. . <br>
+.RE</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>&minus;h</b>,
+<b>&minus;&minus;help</b></p>
+
+<p style="margin-left:23%;">Print a short help text and
+exit.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>&minus;&minus;version</b></p>
+
+<p style="margin-left:23%;">Print a short version string
+and exit.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>&minus;&minus;no&minus;pager</b></p>
+
+<p style="margin-left:23%;">Do not pipe output into a
+pager.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>&minus;&minus;no&minus;legend</b></p>
+
+<p style="margin-left:23%;">Do not print the legend, i.e.
+column headers and the footer with hints.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>&minus;&minus;json=</b><i>MODE</i></p>
+
+<p style="margin-left:23%;">Shows output formatted as JSON.
+Expects one of &quot;short&quot; (for the shortest possible
+output without any redundant whitespace or line breaks),
+&quot;pretty&quot; (for a pretty version of the same, with
+indentation and line breaks) or &quot;off&quot; (to turn off
+JSON output, the default).</p>
+
+<h2>EXIT STATUS
+<a name="EXIT STATUS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">On success, 0
+is returned, a non&minus;zero failure code otherwise.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>repart.d</b>(5), <b>machine-id</b>(5),
+<b>systemd-cryptenroll</b>(1)</p>
+<hr>
+</body>
+</html>

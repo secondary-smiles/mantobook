@@ -1,0 +1,345 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:53 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GITFORMAT&minus;COMMIT&minus;G</title>
+
+</head>
+<body>
+<h1>gitformat-commit-graph</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">gitformat-commit-graph
+&minus; Git commit&minus;graph format</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">$GIT_DIR/objects/info/commit&minus;graph
+<br>
+$GIT_DIR/objects/info/commit&minus;graphs/*</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The Git
+commit&minus;graph stores a list of commit OIDs and some
+associated metadata, including:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+generation number of the commit.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The root
+tree OID.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+commit date.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+parents of the commit, stored using positional references
+within the graph file.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+Bloom filter of the commit carrying the paths that were
+changed between the commit and its first parent, if
+requested.</p>
+
+<p style="margin-left:11%; margin-top: 1em">These
+positional references are stored as unsigned 32&minus;bit
+integers corresponding to the array position within the list
+of commit OIDs. Due to some special constants we use to
+track parents, we can store at most (1 &lt;&lt; 30) + (1
+&lt;&lt; 29) + (1 &lt;&lt; 28) &minus; 1 (around 1.8
+billion) commits.</p>
+
+<h2>COMMIT&minus;GRAPH FILES HAVE THE FOLLOWING FORMAT:
+<a name="COMMIT&minus;GRAPH FILES HAVE THE FOLLOWING FORMAT:"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">In order to
+allow extensions that add extra data to the graph, we
+organize the body into &quot;chunks&quot; and provide a
+binary lookup table at the beginning of the body. The header
+includes certain values, such as number of chunks and hash
+type.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All
+multi&minus;byte numbers are in network byte order.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>HEADER:</b></p>
+
+<p style="margin-left:17%;">4&minus;byte signature: <br>
+The signature is: {'C', 'G', 'P', 'H'}</p>
+
+<p style="margin-left:17%; margin-top: 1em">1&minus;byte
+version number: <br>
+Currently, the only valid version is 1.</p>
+
+<p style="margin-left:17%; margin-top: 1em">1&minus;byte
+Hash Version <br>
+We infer the hash length (H) from this value: <br>
+1 =&gt; SHA&minus;1 <br>
+2 =&gt; SHA&minus;256 <br>
+If the hash type does not match the repository's hash
+algorithm, the <br>
+commit&minus;graph file should be ignored with a warning
+presented to the <br>
+user.</p>
+
+<p style="margin-left:17%; margin-top: 1em">1&minus;byte
+number (C) of &quot;chunks&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">1&minus;byte
+number (B) of base commit&minus;graphs <br>
+We infer the length (H*B) of the Base Graphs chunk <br>
+from this value.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>CHUNK
+LOOKUP:</b></p>
+
+<p style="margin-left:17%;">(C + 1) * 12 bytes listing the
+table of contents for the chunks: <br>
+First 4 bytes describe the chunk id. Value 0 is a
+terminating label. <br>
+Other 8 bytes provide the byte&minus;offset in current file
+for chunk to <br>
+start. (Chunks are ordered contiguously in the file, so you
+can infer <br>
+the length using the next chunk position if necessary.) Each
+chunk <br>
+ID appears at most once.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The CHUNK
+LOOKUP matches the table of contents from <br>
+the chunk&minus;based file format, see
+linkgit:gitformat&minus;chunk[5]</p>
+
+<p style="margin-left:17%; margin-top: 1em">The remaining
+data in the body is described one chunk at a time, and <br>
+these chunks may be given in any order. Chunks are required
+unless <br>
+otherwise specified.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>CHUNK DATA:
+<big><br>
+OID Fanout (ID: {O, I, D, F}) (256 * 4 bytes)</big></b></p>
+
+<p style="margin-left:23%;">The ith entry, F[i], stores the
+number of OIDs with first <br>
+byte at most i. Thus F[255] stores the total <br>
+number of commits (N).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>OID
+Lookup (ID: {O, I, D, L}) (N * H bytes)</big></b></p>
+
+<p style="margin-left:23%;">The OIDs for all commits in the
+graph, sorted in ascending order.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Commit
+Data (ID: {C, D, A, T }) (N * (H + 16) bytes)</big></b></p>
+
+<p style="margin-left:23%;">&bull; The first H bytes are
+for the OID of the root tree.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull; The next
+8 bytes are for the positions of the first two parents of
+the ith commit. Stores value 0x70000000 if no parent in that
+position. If there are more than two parents, the second
+value has its most&minus;significant bit on and the other
+bits store an array position into the Extra Edge List
+chunk.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull; The next
+8 bytes store the topological level (generation number v1)
+of the commit and the commit time in seconds since EPOCH.
+The generation number uses the higher 30 bits of the first 4
+bytes, while the commit time uses the 32 bits of the second
+4 bytes, along with the lowest 2 bits of the lowest byte,
+storing the 33rd and 34th bit of the commit time.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Generation
+Data (ID: {G, D, A, 2 }) (N * 4 bytes)
+[Optional]</big></b></p>
+
+<p style="margin-left:23%;">&bull; This list of
+4&minus;byte values store corrected commit date offsets for
+the commits, arranged in the same order as commit data
+chunk.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull; If the
+corrected commit date offset cannot be stored within 31
+bits, the value has its most&minus;significant bit on and
+the other bits store the position of corrected commit date
+into the Generation Data Overflow chunk.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+Generation Data chunk is present only when
+commit&minus;graph file is written by compatible versions of
+Git and in case of split commit&minus;graph chains, the
+topmost layer also has Generation Data chunk.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Generation
+Data Overflow (ID: {G, D, O, 2 }) [Optional]</big></b></p>
+
+<p style="margin-left:23%;">&bull; This list of
+8&minus;byte values stores the corrected commit date offsets
+for commits with corrected commit date offsets that cannot
+be stored within 31 bits.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+Generation Data Overflow chunk is present only when
+Generation Data chunk is present and atleast one corrected
+commit date offset cannot be stored within 31 bits.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Extra
+Edge List (ID: {E, D, G, E}) [Optional]</big></b></p>
+
+<p style="margin-left:23%;">This list of 4&minus;byte
+values store the second through nth parents for <br>
+all octopus merges. The second parent value in the commit
+data stores <br>
+an array position within this list along with the
+most&minus;significant bit <br>
+on. Starting at that array position, iterate through this
+list of commit <br>
+positions for the parents until reaching a value with the
+most&minus;significant <br>
+bit on. The other bits correspond to the position of the
+last parent.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Bloom
+Filter Index (ID: {B, I, D, X}) (N * 4 bytes)
+[Optional]</big></b></p>
+
+<p style="margin-left:23%;">&bull; The ith entry, BIDX[i],
+stores the number of bytes in all Bloom filters from commit
+0 to commit i (inclusive) in lexicographic order. The Bloom
+filter for the i&minus;th commit spans from BIDX[i&minus;1]
+to BIDX[i] (plus header length), where BIDX[&minus;1] is
+0.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull; The BIDX
+chunk is ignored if the BDAT chunk is not present.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b><big>Bloom
+Filter Data (ID: {B, D, A, T}) [Optional]</big></b></p>
+
+<p style="margin-left:23%;">&bull; It starts with header
+consisting of three unsigned 32&minus;bit integers:</p>
+
+<p style="margin-left:29%; margin-top: 1em">&bull; Version
+of the hash algorithm being used. We currently only support
+value 1 which corresponds to the 32&minus;bit version of the
+murmur3 hash implemented exactly as described in
+<b><font color="#0000FF">https://en.wikipedia.org/wiki/MurmurHash#Algorithm</font></b>
+<font color="#000000">and the double hashing technique using
+seed values 0x293ae76f and 0x7e646e2 as described in</font>
+<b><font color="#0000FF">https://doi.org/10.1007/978&minus;3&minus;540&minus;30494&minus;4_26</font></b>
+<font color="#000000">&quot;Bloom Filters in Probabilistic
+Verification&quot;</font></p>
+
+
+<p style="margin-left:29%; margin-top: 1em"><font color="#000000">&bull;
+The number of times a path is hashed and hence the number of
+bit positions that cumulatively determine whether a file is
+present in the commit.</font></p>
+
+
+<p style="margin-left:29%; margin-top: 1em"><font color="#000000">&bull;
+The minimum number of bits <i>b</i> per entry in the Bloom
+filter. If the filter contains <i>n</i> entries, then the
+filter size is the minimum number of 64&minus;bit words that
+contain n*b bits.</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+The rest of the chunk is the concatenation of all the
+computed Bloom filters for the commits in lexicographic
+order.</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+Note: Commits with no changes or more than 512 changes have
+Bloom filters of length one, with either all bits set to
+zero or one respectively.</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">&bull;
+The BDAT chunk is present if and only if BIDX is
+present.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b><big>Base
+Graphs List (ID: {B, A, S, E})
+[Optional]</big></b></font></p>
+
+<p style="margin-left:23%;"><font color="#000000">This list
+of H&minus;byte hashes describe a set of B
+commit&minus;graph files that <br>
+form a commit&minus;graph chain. The graph position for the
+ith commit in this <br>
+file's OID Lookup chunk is equal to i plus the number of
+commits in all <br>
+base graphs. If B is non&minus;zero, this chunk must
+exist.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>TRAILER:</b></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">H&minus;byte
+HASH&minus;checksum of all of the above.</font></p>
+
+<h2>HISTORICAL NOTES:
+<a name="HISTORICAL NOTES:"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+Generation Data (GDA2) and Generation Data Overflow (GDO2)
+chunks have the number <i>2</i> in their chunk IDs because a
+previous version of Git wrote possibly erroneous data in
+these chunks with the IDs &quot;GDAT&quot; and
+&quot;GDOV&quot;. By changing the IDs, newer versions of Git
+will silently ignore those older chunks and write the new
+information without trusting the incorrect data.</font></p>
+
+<h2>GIT
+<a name="GIT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Part
+of the <b>git</b>(1) suite</font></p>
+<hr>
+</body>
+</html>

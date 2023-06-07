@@ -1,0 +1,279 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:07 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PAM_SYSTEMD_HOME</title>
+
+</head>
+<body>
+<h1>pam_systemd_home</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">pam_systemd_home
+&minus; Authenticate users and mount home directories via
+systemd&minus;homed.service</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">pam_systemd_home.so</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>pam_systemd_home</b>
+ensures that home directories managed by
+<b>systemd-homed.service</b>(8) are automatically activated
+(mounted) on user login, and are deactivated (unmounted)
+when the last session of the user ends. For such users, it
+also provides authentication (when per&minus;user disk
+encryption is used, the disk encryption key is derived from
+the authentication credential supplied at login time),
+account management (the <b><font color="#0000FF">JSON user
+record</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">embedded in the home store contains
+account details), and implements the updating of the
+encryption password (which is also used for user
+authentication).</font></p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+following options are understood:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>suspend=</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes a
+boolean argument. If true, the home directory of the user
+will be suspended automatically during system suspend; if
+false it will remain active. Automatic suspending of the
+home directory improves security substantially as secret key
+material is automatically removed from memory before the
+system is put to sleep and must be re&minus;acquired
+(through user re&minus;authentication) when coming back from
+suspend. It is recommended to set this parameter for all PAM
+applications that have support for automatically
+re&minus;authenticating via PAM on system resume. If
+multiple sessions of the same user are open in parallel the
+user's home directory will be left unsuspended on system
+suspend as long as at least one of the sessions does not set
+this parameter to on. Defaults to off.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Note
+that TTY logins generally do not support
+re&minus;authentication on system resume.
+Re&minus;authentication on system resume is primarily a
+concept implementable in graphical environments, in the form
+of lock screens brought up automatically when the system
+goes to sleep. This means that if a user concurrently uses
+graphical login sessions that implement the required
+re&minus;authentication mechanism and console logins that do
+not, the home directory is not locked during suspend, due to
+the logic explained above. That said, it is possible to set
+this field for TTY logins too, ignoring the fact that TTY
+logins actually don't support the re&minus;authentication
+mechanism. In that case the TTY sessions will appear hung
+until the user logs in on another virtual terminal
+(regardless if via another TTY session or graphically) which
+will resume the home directory and unblock the original TTY
+session. (Do note that lack of screen locking on TTY
+sessions means even though the TTY session appears hung,
+keypresses can still be queued into it, and the existing
+screen contents be read without re&minus;authentication;
+this limitation is unrelated to the home directory
+management <b>pam_systemd_home</b> and
+systemd&minus;homed.service implement.)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">Turning
+this option on by default is highly recommended for all
+sessions, but only if the service managing these sessions
+correctly implements the aforementioned
+re&minus;authentication. Note that the
+re&minus;authentication must take place from a component
+running outside of the user's context, so that it does not
+require access to the user's home directory for operation.
+Traditionally, most desktop environments do not implement
+screen locking this way, and need to be updated
+accordingly.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">This
+setting may also be controlled via the
+<i>$SYSTEMD_HOME_SUSPEND</i> environment variable (see
+below), which <b>pam_systemd_home</b> reads during
+initialization and sets for sessions. If both the
+environment variable is set and the module parameter
+specified the latter takes precedence.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>debug</i>[=]</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes an
+optional boolean argument. If yes or without the argument,
+the module will log debugging information as it
+operates.</font></p>
+
+<h2>MODULE TYPES PROVIDED
+<a name="MODULE TYPES PROVIDED"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+module implements all four PAM operations: <b>auth</b> (to
+allow authentication using the encrypted data),
+<b>account</b> (because users with
+systemd&minus;homed.service user accounts are described in
+a</font> <b><font color="#0000FF">JSON user
+record</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">and may be configured in more detail
+than in the traditional Linux user database), <b>session</b>
+(because user sessions must be tracked in order to implement
+automatic release when the last session of the user is
+gone), <b>password</b> (to change the encryption password
+&mdash; also used for user authentication &mdash; through
+PAM).</font></p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+following environment variables are initialized by the
+module and available to the processes of the user's
+session:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_HOME=1</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Indicates
+that the user's home directory is managed by
+systemd&minus;homed.service.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><i>$SYSTEMD_HOME_SUSPEND=</i></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Indicates
+whether the session has been registered with the suspend
+mechanism enabled or disabled (see above). The variable's
+value is either &quot;0&quot; or &quot;1&quot;. Note that
+the module both reads the variable when initializing, and
+sets it for sessions.</font></p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Here's
+an example PAM configuration fragment that permits users
+managed by systemd&minus;homed.service to log in:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">#%PAM&minus;1.0
+<br>
+auth sufficient pam_unix.so <b><br>
+&minus;auth sufficient pam_systemd_home.so</b> <br>
+auth required pam_deny.so</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">account
+required pam_nologin.so <b><br>
+&minus;account sufficient pam_systemd_home.so</b> <br>
+account sufficient pam_unix.so <br>
+account required pam_permit.so</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000"><b>&minus;password
+sufficient pam_systemd_home.so</b> <br>
+password sufficient pam_unix.so sha512 shadow try_first_pass
+use_authtok <br>
+password required pam_deny.so</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">&minus;session
+optional pam_keyinit.so revoke <br>
+&minus;session optional pam_loginuid.so <b><br>
+&minus;session optional pam_systemd_home.so</b> <br>
+&minus;session optional pam_systemd.so <br>
+session required pam_unix.so</font></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>systemd</b>(1),
+<b>systemd-homed.service</b>(8), <b>homed.conf</b>(5),
+<b>homectl</b>(1), <b>pam_systemd</b>(8),
+<b>pam.conf</b>(5), <b>pam.d</b>(5),
+<b>pam</b>(8)</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="25%">
+
+
+<p style="margin-top: 1em"><font color="#000000">JSON user
+record</font></p> </td>
+<td width="58%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://systemd.io/USER_RECORD/</font></p>
+<hr>
+</body>
+</html>

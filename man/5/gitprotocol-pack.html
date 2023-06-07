@@ -1,0 +1,1128 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:53 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>GITPROTOCOL&minus;PACK</title>
+
+</head>
+<body>
+<h1>gitprotocol-pack</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">gitprotocol-pack
+&minus; How packs are transferred
+over&minus;the&minus;wire</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;over&minus;the&minus;wire&minus;protocol&gt;</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Git supports
+transferring data in packfiles over the ssh://, git://,
+http:// and file:// transports. There exist two sets of
+protocols, one for pushing data from a client to a server
+and another for fetching data from a server to a client. The
+three transports (ssh, git, file) use the same protocol to
+transfer data. http is documented in
+<b>gitprotocol-http</b>(5).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The processes
+invoked in the canonical Git implementation are
+<i>upload&minus;pack</i> on the server side and
+<i>fetch&minus;pack</i> on the client side for fetching
+data; then <i>receive&minus;pack</i> on the server and
+<i>send&minus;pack</i> on the client for pushing data. The
+protocol functions to have a server tell a client what is
+currently on the server, then for the two to negotiate the
+smallest amount of data to send in order to fully update one
+or the other.</p>
+
+<h2>PKT&minus;LINE FORMAT
+<a name="PKT&minus;LINE FORMAT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+descriptions below build on the pkt&minus;line format
+described in <b>gitprotocol-common</b>(5). When the grammar
+indicate <b>PKT&minus;LINE(...)</b>, unless otherwise noted
+the usual pkt&minus;line LF rules apply: the sender SHOULD
+include a LF, but the receiver MUST NOT complain if it is
+not present.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An error packet
+is a special pkt&minus;line that contains an error
+string.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">error&minus;line
+= PKT&minus;LINE(&quot;ERR&quot; SP
+explanation&minus;text)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Throughout the
+protocol, where <b>PKT&minus;LINE(...)</b> is expected, an
+error packet MAY be sent. Once this packet is sent by a
+client or a server, the data transfer process defined in
+this protocol is terminated.</p>
+
+<h2>TRANSPORTS
+<a name="TRANSPORTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">There are three
+transports over which the packfile protocol is initiated.
+The Git transport is a simple, unauthenticated server that
+takes the command (almost always <i>upload&minus;pack</i>,
+though Git servers can be configured to be globally
+writable, in which <i>receive&minus; pack</i> initiation is
+also allowed) with which the client wishes to communicate
+and executes it and connects it to the requesting
+process.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the SSH
+transport, the client just runs the <i>upload&minus;pack</i>
+or <i>receive&minus;pack</i> process on the server over the
+SSH protocol and then communicates with that invoked process
+over the SSH connection.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The file://
+transport runs the <i>upload&minus;pack</i> or
+<i>receive&minus;pack</i> process locally and communicates
+with it over a pipe.</p>
+
+<h2>EXTRA PARAMETERS
+<a name="EXTRA PARAMETERS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The protocol
+provides a mechanism in which clients can send additional
+information in its first message to the server. These are
+called &quot;Extra Parameters&quot;, and are supported by
+the Git, SSH, and HTTP protocols.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each Extra
+Parameter takes the form of <b>&lt;key&gt;=&lt;value&gt;</b>
+or <b>&lt;key&gt;</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Servers that
+receive any such Extra Parameters MUST ignore all
+unrecognized keys. Currently, the only Extra Parameter
+recognized is &quot;version&quot; with a value of <i>1</i>
+or <i>2</i>. See <b>gitprotocol-v2</b>(5) for more
+information on protocol version 2.</p>
+
+<h2>GIT TRANSPORT
+<a name="GIT TRANSPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The Git
+transport starts off by sending the command and repository
+on the wire using the pkt&minus;line format, followed by a
+NUL byte and a hostname parameter, terminated by a NUL
+byte.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">0033git&minus;upload&minus;pack
+/project.git\0host=myserver.com\0</p>
+
+<p style="margin-left:11%; margin-top: 1em">The transport
+may send Extra Parameters by adding an additional NUL byte,
+and then adding one or more NUL&minus;terminated
+strings:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">003egit&minus;upload&minus;pack
+/project.git\0host=myserver.com\0\0version=1\0</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">git&minus;proto&minus;request
+= request&minus;command SP pathname NUL <br>
+[ host&minus;parameter NUL ] [ NUL extra&minus;parameters ]
+<br>
+request&minus;command =
+&quot;git&minus;upload&minus;pack&quot; /
+&quot;git&minus;receive&minus;pack&quot; / <br>
+&quot;git&minus;upload&minus;archive&quot; ; case sensitive
+<br>
+pathname = *( %x01&minus;ff ) ; exclude NUL <br>
+host&minus;parameter = &quot;host=&quot; hostname [
+&quot;:&quot; port ] <br>
+extra&minus;parameters = 1*extra&minus;parameter <br>
+extra&minus;parameter = 1*( %x01&minus;ff ) NUL</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">host&minus;parameter
+is used for the git&minus;daemon name based virtual hosting.
+See &minus;&minus;interpolated&minus;path option to git
+daemon, with the %H/%CH format characters.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Basically what
+the Git client is doing to connect to an
+<i>upload&minus;pack</i> process on the server side over the
+Git protocol is this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$ echo &minus;e
+&minus;n \ <br>
+&quot;003agit&minus;upload&minus;pack
+/schacon/gitbook.git\0host=example.com\0&quot; | <br>
+nc &minus;v example.com 9418</p>
+
+<h2>SSH TRANSPORT
+<a name="SSH TRANSPORT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Initiating the
+upload&minus;pack or receive&minus;pack processes over SSH
+is executing the binary on the server via SSH remote
+execution. It is basically equivalent to running this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">$ ssh
+git.example.com &quot;git&minus;upload&minus;pack
+'/project.git'&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">For a server to
+support Git pushing and pulling for a given user over SSH,
+that user needs to be able to execute one or both of those
+commands via the SSH shell that they are provided on login.
+On some systems, that shell access is limited to only being
+able to run those two commands, or even just one of
+them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In an ssh://
+format URI, it&rsquo;s absolute in the URI, so the <i>/</i>
+after the host name (or port number) is sent as an argument,
+which is then read by the remote git&minus;upload&minus;pack
+exactly as is, so it&rsquo;s effectively an absolute path in
+the remote filesystem.</p>
+
+<p style="margin-left:17%; margin-top: 1em">git clone
+ssh://user@example.com/project.git <br>
+| <br>
+v <br>
+ssh user@example.com &quot;git&minus;upload&minus;pack
+'/project.git'&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">In a
+&quot;user@host:path&quot; format URI, its relative to the
+user&rsquo;s home directory, because the Git client will
+run:</p>
+
+<p style="margin-left:17%; margin-top: 1em">git clone
+user@example.com:project.git <br>
+| <br>
+v <br>
+ssh user@example.com &quot;git&minus;upload&minus;pack
+'project.git'&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The exception
+is if a <i>~</i> is used, in which case we execute it
+without the leading <i>/</i>.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">ssh://user@example.com/~alice/project.git,
+<br>
+| <br>
+v <br>
+ssh user@example.com &quot;git&minus;upload&minus;pack
+'~alice/project.git'&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Depending on
+the value of the <b>protocol.version</b> configuration
+variable, Git may attempt to send Extra Parameters as a
+colon&minus;separated string in the GIT_PROTOCOL environment
+variable. This is done only if the <b>ssh.variant</b>
+configuration variable indicates that the ssh command
+supports passing environment variables as an argument.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A few things to
+remember here:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+&quot;command name&quot; is spelled with dash (e.g.
+git&minus;upload&minus;pack), but this can be overridden by
+the client;</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; The
+repository path is always quoted with single quotes.</p>
+
+<h2>FETCHING DATA FROM A SERVER
+<a name="FETCHING DATA FROM A SERVER"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When one Git
+repository wants to get data that a second repository has,
+the first can <i>fetch</i> from the second. This operation
+determines what data the server has that the client does not
+then streams that data down to the client in packfile
+format.</p>
+
+<h2>REFERENCE DISCOVERY
+<a name="REFERENCE DISCOVERY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When the client
+initially connects the server will immediately respond with
+a version number (if &quot;version=1&quot; is sent as an
+Extra Parameter), and a listing of each reference it has
+(all branches and tags) along with the object name that each
+reference currently points to.</p>
+
+<p style="margin-left:17%; margin-top: 1em">$ echo &minus;e
+&minus;n &quot;0045git&minus;upload&minus;pack
+/schacon/gitbook.git\0host=example.com\0\0version=1\0&quot;
+| <br>
+nc &minus;v example.com 9418 <br>
+000eversion 1 <br>
+00887217a7c7e582c46cec22a130adf4b9d7d950fba0 HEAD\0multi_ack
+thin&minus;pack <br>
+side&minus;band side&minus;band&minus;64k ofs&minus;delta
+shallow no&minus;progress include&minus;tag <br>
+00441d3fcd5ced445d1abc402225c0b8a1299641f497
+refs/heads/integration <br>
+003f7217a7c7e582c46cec22a130adf4b9d7d950fba0
+refs/heads/master <br>
+003cb88d2441cac0977faf98efc80305012112238d9d refs/tags/v0.9
+<br>
+003c525128480b96c89e6418b1e40909bf6c5b2d580f refs/tags/v1.0
+<br>
+003fe92df48743b7bc7d26bcaabfddde0a1e20cae47c
+refs/tags/v1.0^{} <br>
+0000</p>
+
+<p style="margin-left:11%; margin-top: 1em">The returned
+response is a pkt&minus;line stream describing each ref and
+its current value. The stream MUST be sorted by name
+according to the C locale ordering.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If HEAD is a
+valid ref, HEAD MUST appear as the first advertised ref. If
+HEAD is not a valid ref, HEAD MUST NOT appear in the
+advertisement list at all, but other refs may still
+appear.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The stream MUST
+include capability declarations behind a NUL on the first
+ref. The peeled value of a ref (that is &quot;ref^{}&quot;)
+MUST be immediately after the ref itself, if presented. A
+conforming server MUST peel the ref if it&rsquo;s an
+annotated tag.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">advertised&minus;refs
+= *1(&quot;version 1&quot;) <br>
+(no&minus;refs / list&minus;of&minus;refs) <br>
+*shallow <br>
+flush&minus;pkt</p>
+
+<p style="margin-left:17%; margin-top: 1em">no&minus;refs =
+PKT&minus;LINE(zero&minus;id SP &quot;capabilities^{}&quot;
+<br>
+NUL capability&minus;list)</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">list&minus;of&minus;refs
+= first&minus;ref *other&minus;ref <br>
+first&minus;ref = PKT&minus;LINE(obj&minus;id SP refname
+<br>
+NUL capability&minus;list)</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">other&minus;ref
+= PKT&minus;LINE(other&minus;tip / other&minus;peeled) <br>
+other&minus;tip = obj&minus;id SP refname <br>
+other&minus;peeled = obj&minus;id SP refname
+&quot;^{}&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">shallow =
+PKT&minus;LINE(&quot;shallow&quot; SP obj&minus;id)</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">capability&minus;list
+= capability *(SP capability) <br>
+capability = 1*(LC_ALPHA / DIGIT / &quot;&minus;&quot; /
+&quot;_&quot;) <br>
+LC_ALPHA = %x61&minus;7A</p>
+
+<p style="margin-left:11%; margin-top: 1em">Server and
+client MUST use lowercase for obj&minus;id, both MUST treat
+obj&minus;id as case&minus;insensitive.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+protocol&minus;capabilities.txt for a list of allowed server
+capabilities and descriptions.</p>
+
+<h2>PACKFILE NEGOTIATION
+<a name="PACKFILE NEGOTIATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">After reference
+and capabilities discovery, the client can decide to
+terminate the connection by sending a flush&minus;pkt,
+telling the server it can now gracefully terminate, and
+disconnect, when it does not need any pack data. This can
+happen with the ls&minus;remote command, and also can happen
+when the client already is up to date.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Otherwise, it
+enters the negotiation phase, where the client and server
+determine what the minimal packfile necessary for transport
+is, by telling the server what objects it wants, its shallow
+objects (if any), and the maximum commit depth it wants (if
+any). The client will also send a list of the capabilities
+it wants to be in effect, out of what the server said it
+could do with the first <i>want</i> line.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">upload&minus;request
+= want&minus;list <br>
+*shallow&minus;line <br>
+*1depth&minus;request <br>
+[filter&minus;request] <br>
+flush&minus;pkt</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">want&minus;list
+= first&minus;want <br>
+*additional&minus;want</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">shallow&minus;line
+= PKT&minus;LINE(&quot;shallow&quot; SP obj&minus;id)</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">depth&minus;request
+= PKT&minus;LINE(&quot;deepen&quot; SP depth) / <br>
+PKT&minus;LINE(&quot;deepen&minus;since&quot; SP timestamp)
+/ <br>
+PKT&minus;LINE(&quot;deepen&minus;not&quot; SP ref)</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">first&minus;want
+= PKT&minus;LINE(&quot;want&quot; SP obj&minus;id SP
+capability&minus;list) <br>
+additional&minus;want = PKT&minus;LINE(&quot;want&quot; SP
+obj&minus;id)</p>
+
+<p style="margin-left:17%; margin-top: 1em">depth =
+1*DIGIT</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">filter&minus;request
+= PKT&minus;LINE(&quot;filter&quot; SP
+filter&minus;spec)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Clients MUST
+send all the obj&minus;ids it wants from the reference
+discovery phase as <i>want</i> lines. Clients MUST send at
+least one <i>want</i> command in the request body. Clients
+MUST NOT mention an obj&minus;id in a <i>want</i> command
+which did not appear in the response obtained through ref
+discovery.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The client MUST
+write all obj&minus;ids which it only has shallow copies of
+(meaning that it does not have the parents of a commit) as
+<i>shallow</i> lines so that the server is aware of the
+limitations of the client&rsquo;s history.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The client now
+sends the maximum commit history depth it wants for this
+transaction, which is the number of commits it wants from
+the tip of the history, if any, as a <i>deepen</i> line. A
+depth of 0 is the same as not making a depth request. The
+client does not want to receive any commits beyond this
+depth, nor does it want objects needed only to complete
+those commits. Commits whose parents are not received as a
+result are defined as shallow and marked as such in the
+server. This information is sent back to the client in the
+next step.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The client can
+optionally request that pack&minus;objects omit various
+objects from the packfile using one of several filtering
+techniques. These are intended for use with partial clone
+and partial fetch operations. An object that does not meet a
+filter&minus;spec value is omitted unless explicitly
+requested in a <i>want</i> line. See <b>rev&minus;list</b>
+for possible filter&minus;spec values.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once all the
+<i>want&rsquo;s and 'shallow&rsquo;s (and optional
+'deepen</i>) are transferred, clients MUST send a
+flush&minus;pkt, to tell the server side that it is done
+sending the list.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Otherwise, if
+the client sent a positive depth request, the server will
+determine which commits will and will not be shallow and
+send this information to the client. If the client did not
+request a positive depth, this step is skipped.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">shallow&minus;update
+= *shallow&minus;line <br>
+*unshallow&minus;line <br>
+flush&minus;pkt</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">shallow&minus;line
+= PKT&minus;LINE(&quot;shallow&quot; SP obj&minus;id)</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">unshallow&minus;line
+= PKT&minus;LINE(&quot;unshallow&quot; SP obj&minus;id)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the client
+has requested a positive depth, the server will compute the
+set of commits which are no deeper than the desired depth.
+The set of commits start at the client&rsquo;s wants.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The server
+writes <i>shallow</i> lines for each commit whose parents
+will not be sent as a result. The server writes an
+<i>unshallow</i> line for each commit which the client has
+indicated is shallow, but is no longer shallow at the
+currently requested depth (that is, its parents will now be
+sent). The server MUST NOT mark as unshallow anything which
+the client has not indicated was shallow.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now the client
+will send a list of the obj&minus;ids it has using
+<i>have</i> lines, so the server can make a packfile that
+only contains the objects that the client needs. In
+multi_ack mode, the canonical implementation will send up to
+32 of these at a time, then will send a flush&minus;pkt. The
+canonical implementation will skip ahead and send the next
+32 immediately, so that there is always a block of 32
+&quot;in&minus;flight on the wire&quot; at a time.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">upload&minus;haves
+= have&minus;list <br>
+compute&minus;end</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">have&minus;list
+= *have&minus;line <br>
+have&minus;line = PKT&minus;LINE(&quot;have&quot; SP
+obj&minus;id) <br>
+compute&minus;end = flush&minus;pkt /
+PKT&minus;LINE(&quot;done&quot;)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the server
+reads <i>have</i> lines, it then will respond by ACKing any
+of the obj&minus;ids the client said it had that the server
+also has. The server will ACK obj&minus;ids differently
+depending on which ack mode is chosen by the client.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In multi_ack
+mode:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; the
+server will respond with <i>ACK obj&minus;id continue</i>
+for any common commits.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; once the
+server has found an acceptable common base commit and is
+ready to make a packfile, it will blindly ACK all
+<i>have</i> obj&minus;ids back to the client.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; the
+server will then send a <i>NAK</i> and then wait for another
+response from the client &minus; either a <i>done</i> or
+another list of <i>have</i> lines.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In
+multi_ack_detailed mode:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; the
+server will differentiate the ACKs where it is signaling
+that it is ready to send data with <i>ACK obj&minus;id
+ready</i> lines, and signals the identified common commits
+with <i>ACK obj&minus;id common</i> lines.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Without either
+multi_ack or multi_ack_detailed:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+upload&minus;pack sends &quot;ACK obj&minus;id&quot; on the
+first common object it finds. After that it says nothing
+until the client gives it a &quot;done&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull;
+upload&minus;pack sends &quot;NAK&quot; on a flush&minus;pkt
+if no common object has been found yet. If one has been
+found, and thus an ACK was already sent, it&rsquo;s silent
+on the flush&minus;pkt.</p>
+
+<p style="margin-left:11%; margin-top: 1em">After the
+client has gotten enough ACK responses that it can determine
+that the server has enough information to send an efficient
+packfile (in the canonical implementation, this is
+determined when it has received enough ACKs that it can
+color everything left in the &minus;&minus;date&minus;order
+queue as common with the server, or the
+&minus;&minus;date&minus;order queue is empty), or the
+client determines that it wants to give up (in the canonical
+implementation, this is determined when the client sends 256
+<i>have</i> lines without getting any of them ACKed by the
+server &minus; meaning there is nothing in common and the
+server should just send all of its objects), then the client
+will send a <i>done</i> command. The <i>done</i> command
+signals to the server that the client is ready to receive
+its packfile data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, the
+256 limit <b>only</b> turns on in the canonical client
+implementation if we have received at least one &quot;ACK %s
+continue&quot; during a prior round. This helps to ensure
+that at least one common ancestor is found before we give up
+entirely.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once the
+<i>done</i> line is read from the client, the server will
+either send a final <i>ACK obj&minus;id</i> or it will send
+a <i>NAK</i>. <i>obj&minus;id</i> is the object name of the
+last commit determined to be common. The server only sends
+ACK after <i>done</i> if there is at least one common base
+and multi_ack or multi_ack_detailed is enabled. The server
+always sends NAK after <i>done</i> if there is no common
+base found.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Instead of
+<i>ACK</i> or <i>NAK</i>, the server may send an error
+message (for example, if it does not recognize an object in
+a <i>want</i> line received from the client).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Then the server
+will start sending its packfile data.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">server&minus;response
+= *ack_multi ack / nak <br>
+ack_multi = PKT&minus;LINE(&quot;ACK&quot; SP obj&minus;id
+ack_status) <br>
+ack_status = &quot;continue&quot; / &quot;common&quot; /
+&quot;ready&quot; <br>
+ack = PKT&minus;LINE(&quot;ACK&quot; SP obj&minus;id) <br>
+nak = PKT&minus;LINE(&quot;NAK&quot;)</p>
+
+<p style="margin-left:11%; margin-top: 1em">A simple clone
+may look like this (with no <i>have</i> lines):</p>
+
+<p style="margin-left:17%; margin-top: 1em">C: 0054want
+74730d410fcb6603ace96f1dc55ea6196122532d multi_ack \ <br>
+side&minus;band&minus;64k ofs&minus;delta\n <br>
+C: 0032want 7d1665144a3a975c05f1f43902ddaf084e784dbe\n <br>
+C: 0032want 5a3f6be755bbb7deae50065988cbfa1ffa9ab68a\n <br>
+C: 0032want 7e47fe2bd8d01d481f44d7af0531bd93d3b21c01\n <br>
+C: 0032want 74730d410fcb6603ace96f1dc55ea6196122532d\n <br>
+C: 0000 <br>
+C: 0009done\n</p>
+
+<p style="margin-left:17%; margin-top: 1em">S: 0008NAK\n
+<br>
+S: [PACKFILE]</p>
+
+<p style="margin-left:11%; margin-top: 1em">An incremental
+update (fetch) response might look like this:</p>
+
+<p style="margin-left:17%; margin-top: 1em">C: 0054want
+74730d410fcb6603ace96f1dc55ea6196122532d multi_ack \ <br>
+side&minus;band&minus;64k ofs&minus;delta\n <br>
+C: 0032want 7d1665144a3a975c05f1f43902ddaf084e784dbe\n <br>
+C: 0032want 5a3f6be755bbb7deae50065988cbfa1ffa9ab68a\n <br>
+C: 0000 <br>
+C: 0032have 7e47fe2bd8d01d481f44d7af0531bd93d3b21c01\n <br>
+C: [30 more have lines] <br>
+C: 0032have 74730d410fcb6603ace96f1dc55ea6196122532d\n <br>
+C: 0000</p>
+
+<p style="margin-left:17%; margin-top: 1em">S: 003aACK
+7e47fe2bd8d01d481f44d7af0531bd93d3b21c01 continue\n <br>
+S: 003aACK 74730d410fcb6603ace96f1dc55ea6196122532d
+continue\n <br>
+S: 0008NAK\n</p>
+
+<p style="margin-left:17%; margin-top: 1em">C:
+0009done\n</p>
+
+<p style="margin-left:17%; margin-top: 1em">S: 0031ACK
+74730d410fcb6603ace96f1dc55ea6196122532d\n <br>
+S: [PACKFILE]</p>
+
+<h2>PACKFILE DATA
+<a name="PACKFILE DATA"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Now that the
+client and server have finished negotiation about what the
+minimal amount of data that needs to be sent to the client
+is, the server will construct and send the required data in
+packfile format.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+<b>gitformat-pack</b>(5) for what the packfile itself
+actually looks like.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+<i>side&minus;band</i> or <i>side&minus;band&minus;64k</i>
+capabilities have been specified by the client, the server
+will send the packfile data multiplexed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each packet
+starting with the packet&minus;line length of the amount of
+data that follows, followed by a single byte specifying the
+sideband the following data is coming in on.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In
+<i>side&minus;band</i> mode, it will send up to 999 data
+bytes plus 1 control code, for a total of up to 1000 bytes
+in a pkt&minus;line. In <i>side&minus;band&minus;64k</i>
+mode it will send up to 65519 data bytes plus 1 control
+code, for a total of up to 65520 bytes in a
+pkt&minus;line.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The sideband
+byte will be a <i>1</i>, <i>2</i> or a <i>3</i>. Sideband
+<i>1</i> will contain packfile data, sideband <i>2</i> will
+be used for progress information that the client will
+generally print to stderr and sideband <i>3</i> is used for
+error information.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If no
+<i>side&minus;band</i> capability was specified, the server
+will stream the entire packfile without multiplexing.</p>
+
+<h2>PUSHING DATA TO A SERVER
+<a name="PUSHING DATA TO A SERVER"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Pushing data to
+a server will invoke the <i>receive&minus;pack</i> process
+on the server, which will allow the client to tell it which
+references it should update and then send all the data the
+server will need for those new references to be complete.
+Once all the data is received and validated, the server will
+then update its references to what the client specified.</p>
+
+<h2>AUTHENTICATION
+<a name="AUTHENTICATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The protocol
+itself contains no authentication mechanisms. That is to be
+handled by the transport, such as SSH, before the
+<i>receive&minus;pack</i> process is invoked. If
+<i>receive&minus;pack</i> is configured over the Git
+transport, those repositories will be writable by anyone who
+can access that port (9418) as that transport is
+unauthenticated.</p>
+
+<h2>REFERENCE DISCOVERY
+<a name="REFERENCE DISCOVERY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The reference
+discovery phase is done nearly the same way as it is in the
+fetching protocol. Each reference obj&minus;id and name on
+the server is sent in packet&minus;line format to the
+client, followed by a flush&minus;pkt. The only real
+difference is that the capability listing is different
+&minus; the only possible values are
+<i>report&minus;status</i>,
+<i>report&minus;status&minus;v2</i>,
+<i>delete&minus;refs</i>, <i>ofs&minus;delta</i>,
+<i>atomic</i> and <i>push&minus;options</i>.</p>
+
+<h2>REFERENCE UPDATE REQUEST AND PACKFILE TRANSFER
+<a name="REFERENCE UPDATE REQUEST AND PACKFILE TRANSFER"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Once the client
+knows what references the server is at, it can send a list
+of reference update requests. For each reference on the
+server that it wants to update, it sends a line listing the
+obj&minus;id currently on the server, the obj&minus;id the
+client would like to update it to and the name of the
+reference.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This list is
+followed by a flush&minus;pkt.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">update&minus;requests
+= *shallow ( command&minus;list | push&minus;cert )</p>
+
+<p style="margin-left:17%; margin-top: 1em">shallow =
+PKT&minus;LINE(&quot;shallow&quot; SP obj&minus;id)</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">command&minus;list
+= PKT&minus;LINE(command NUL capability&minus;list) <br>
+*PKT&minus;LINE(command) <br>
+flush&minus;pkt</p>
+
+<p style="margin-left:17%; margin-top: 1em">command =
+create / delete / update <br>
+create = zero&minus;id SP new&minus;id SP name <br>
+delete = old&minus;id SP zero&minus;id SP name <br>
+update = old&minus;id SP new&minus;id SP name</p>
+
+<p style="margin-left:17%; margin-top: 1em">old&minus;id =
+obj&minus;id <br>
+new&minus;id = obj&minus;id</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">push&minus;cert
+= PKT&minus;LINE(&quot;push&minus;cert&quot; NUL
+capability&minus;list LF) <br>
+PKT&minus;LINE(&quot;certificate version 0.1&quot; LF) <br>
+PKT&minus;LINE(&quot;pusher&quot; SP ident LF) <br>
+PKT&minus;LINE(&quot;pushee&quot; SP url LF) <br>
+PKT&minus;LINE(&quot;nonce&quot; SP nonce LF) <br>
+*PKT&minus;LINE(&quot;push&minus;option&quot; SP
+push&minus;option LF) <br>
+PKT&minus;LINE(LF) <br>
+*PKT&minus;LINE(command LF) <br>
+*PKT&minus;LINE(gpg&minus;signature&minus;lines LF) <br>
+PKT&minus;LINE(&quot;push&minus;cert&minus;end&quot; LF)</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">push&minus;option
+= 1*( VCHAR | SP )</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the server
+has advertised the <i>push&minus;options</i> capability and
+the client has specified <i>push&minus;options</i> as part
+of the capability list above, the client then sends its push
+options followed by a flush&minus;pkt.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">push&minus;options
+= *PKT&minus;LINE(push&minus;option) flush&minus;pkt</p>
+
+<p style="margin-left:11%; margin-top: 1em">For backwards
+compatibility with older Git servers, if the client sends a
+push cert and push options, it MUST send its push options
+both embedded within the push cert and after the push cert.
+(Note that the push options within the cert are prefixed,
+but the push options after the cert are not.) Both these
+lists MUST be the same, modulo the prefix.</p>
+
+<p style="margin-left:11%; margin-top: 1em">After that the
+packfile that should contain all the objects that the server
+will need to complete the new references will be sent.</p>
+
+<p style="margin-left:17%; margin-top: 1em">packfile =
+&quot;PACK&quot; 28*(OCTET)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+receiving end does not support delete&minus;refs, the
+sending end MUST NOT ask for delete command.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+receiving end does not support push&minus;cert, the sending
+end MUST NOT send a push&minus;cert command. When a
+push&minus;cert command is sent, command&minus;list MUST NOT
+be sent; the commands recorded in the push certificate is
+used instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The packfile
+MUST NOT be sent if the only command used is
+<i>delete</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A packfile MUST
+be sent if either create or update command is used, even if
+the server already has all the necessary objects. In this
+case the client MUST send an empty packfile. The only time
+this is likely to happen is if the client is creating a new
+branch or a tag that points to an existing obj&minus;id.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The server will
+receive the packfile, unpack it, then validate each
+reference that is being updated that it hasn&rsquo;t changed
+while the request was being processed (the obj&minus;id is
+still the same as the old&minus;id), and it will run any
+update hooks to make sure that the update is acceptable. If
+all of that is fine, the server will then update the
+references.</p>
+
+<h2>PUSH CERTIFICATE
+<a name="PUSH CERTIFICATE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">A push
+certificate begins with a set of header lines. After the
+header and an empty line, the protocol commands follow, one
+per line. Note that the trailing LF in push&minus;cert
+PKT&minus;LINEs is <i>not</i> optional; it must be
+present.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Currently, the
+following header fields are defined:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>pusher</b>
+ident</p>
+
+<p style="margin-left:17%;">Identify the GPG key in
+&quot;Human Readable Name
+&lt;<b><font color="#0000FF">email@address</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">&gt;&quot; format.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>pushee</b>
+url</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">The
+repository URL (anonymized, if the URL contains
+authentication material) the user who ran <b>git push</b>
+intended to push into.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>nonce</b>
+nonce</font></p>
+
+<p style="margin-left:17%;"><font color="#000000">The
+<i>nonce</i> string the receiving repository asked the
+pushing user to include in the certificate, to prevent
+replay attacks.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+GPG signature lines are a detached signature for the
+contents recorded in the push certificate before the
+signature block begins. The detached signature is used to
+certify that the commands were given by the pusher, who must
+be the signer.</font></p>
+
+<h2>REPORT STATUS
+<a name="REPORT STATUS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">After
+receiving the pack data from the sender, the receiver sends
+a report if <i>report&minus;status</i> or
+<i>report&minus;status&minus;v2</i> capability is in effect.
+It is a short listing of what happened in that update. It
+will first list the status of the packfile unpacking as
+either <i>unpack ok</i> or <i>unpack [error]</i>. Then it
+will list the status for each of the references that it
+tried to update. Each line is either <i>ok [refname]</i> if
+the update was successful, or <i>ng [refname] [error]</i> if
+the update was not.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">report&minus;status
+= unpack&minus;status <br>
+1*(command&minus;status) <br>
+flush&minus;pkt</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">unpack&minus;status
+= PKT&minus;LINE(&quot;unpack&quot; SP unpack&minus;result)
+<br>
+unpack&minus;result = &quot;ok&quot; /
+error&minus;msg</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">command&minus;status
+= command&minus;ok / command&minus;fail <br>
+command&minus;ok = PKT&minus;LINE(&quot;ok&quot; SP refname)
+<br>
+command&minus;fail = PKT&minus;LINE(&quot;ng&quot; SP
+refname SP error&minus;msg)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">error&minus;msg
+= 1*(OCTET) ; where not &quot;ok&quot;</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+<i>report&minus;status&minus;v2</i> capability extends the
+protocol by adding new option lines in order to support
+reporting of reference rewritten by the
+<i>proc&minus;receive</i> hook. The
+<i>proc&minus;receive</i> hook may handle a command for a
+pseudo&minus;reference which may create or update one or
+more references, and each reference may have different name,
+different new&minus;oid, and different
+old&minus;oid.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">report&minus;status&minus;v2
+= unpack&minus;status <br>
+1*(command&minus;status&minus;v2) <br>
+flush&minus;pkt</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">unpack&minus;status
+= PKT&minus;LINE(&quot;unpack&quot; SP unpack&minus;result)
+<br>
+unpack&minus;result = &quot;ok&quot; /
+error&minus;msg</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">command&minus;status&minus;v2
+= command&minus;ok&minus;v2 / command&minus;fail <br>
+command&minus;ok&minus;v2 = command&minus;ok <br>
+*option&minus;line</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">command&minus;ok
+= PKT&minus;LINE(&quot;ok&quot; SP refname) <br>
+command&minus;fail = PKT&minus;LINE(&quot;ng&quot; SP
+refname SP error&minus;msg)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">error&minus;msg
+= 1*(OCTET) ; where not &quot;ok&quot;</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">option&minus;line
+= *1(option&minus;refname) <br>
+*1(option&minus;old&minus;oid) <br>
+*1(option&minus;new&minus;oid) <br>
+*1(option&minus;forced&minus;update)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">option&minus;refname
+= PKT&minus;LINE(&quot;option&quot; SP &quot;refname&quot;
+SP refname) <br>
+option&minus;old&minus;oid =
+PKT&minus;LINE(&quot;option&quot; SP
+&quot;old&minus;oid&quot; SP obj&minus;id) <br>
+option&minus;new&minus;oid =
+PKT&minus;LINE(&quot;option&quot; SP
+&quot;new&minus;oid&quot; SP obj&minus;id) <br>
+option&minus;force = PKT&minus;LINE(&quot;option&quot; SP
+&quot;forced&minus;update&quot;)</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Updates
+can be unsuccessful for a number of reasons. The reference
+can have changed since the reference discovery phase was
+originally sent, meaning someone pushed in the meantime. The
+reference being pushed could be a
+non&minus;fast&minus;forward reference and the update hooks
+or configuration could be set to not allow that, etc. Also,
+some references can be updated while others can be
+rejected.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">An
+example client/server communication might look like
+this:</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">S:
+006274730d410fcb6603ace96f1dc55ea6196122532d
+refs/heads/local\0report&minus;status delete&minus;refs
+ofs&minus;delta\n <br>
+S: 003e7d1665144a3a975c05f1f43902ddaf084e784dbe
+refs/heads/debug\n <br>
+S: 003f74730d410fcb6603ace96f1dc55ea6196122532d
+refs/heads/master\n <br>
+S: 003d74730d410fcb6603ace96f1dc55ea6196122532d
+refs/heads/team\n <br>
+S: 0000</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">C:
+00677d1665144a3a975c05f1f43902ddaf084e784dbe
+74730d410fcb6603ace96f1dc55ea6196122532d refs/heads/debug\n
+<br>
+C: 006874730d410fcb6603ace96f1dc55ea6196122532d
+5a3f6be755bbb7deae50065988cbfa1ffa9ab68a refs/heads/master\n
+<br>
+C: 0000 <br>
+C: [PACKDATA]</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">S:
+000eunpack ok\n <br>
+S: 0018ok refs/heads/debug\n <br>
+S: 002ang refs/heads/master
+non&minus;fast&minus;forward\n</font></p>
+
+<h2>GIT
+<a name="GIT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Part
+of the <b>git</b>(1) suite</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="20%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">email@address</font></p> </td>
+<td width="63%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:email@address</font></p>
+<hr>
+</body>
+</html>

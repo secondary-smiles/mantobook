@@ -1,0 +1,1813 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:05 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Getopt::Long</title>
+
+</head>
+<body>
+<h1>Getopt::Long</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Getopt::Long
+&minus; Extended processing of command line options</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">use
+Getopt::Long; <br>
+my $data = &quot;file.dat&quot;; <br>
+my $length = 24; <br>
+my $verbose; <br>
+GetOptions (&quot;length=i&quot; =&gt; \$length, # numeric
+<br>
+&quot;file=s&quot; =&gt; \$data, # string <br>
+&quot;verbose&quot; =&gt; \$verbose) # flag <br>
+or die(&quot;Error in command line arguments\n&quot;);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+Getopt::Long module implements an extended getopt function
+called <b>GetOptions()</b>. It parses the command line from
+@ARGV, recognizing and removing specified options and their
+possible values.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This function
+adheres to the <small>POSIX</small> syntax for command line
+options, with <small>GNU</small> extensions. In general,
+this means that options have long names instead of single
+letters, and are introduced with a double dash
+&quot;&minus;&minus;&quot;. Support for bundling of command
+line options, as was the case with the more traditional
+single-letter approach, is provided but not enabled by
+default.</p>
+
+<h2>Command Line Options, an Introduction
+<a name="Command Line Options, an Introduction"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Command line
+operated programs traditionally take their arguments from
+the command line, for example filenames or other information
+that the program needs to know. Besides arguments, these
+programs often take command line <i>options</i> as well.
+Options are not necessary for the program to work, hence the
+name &rsquo;option&rsquo;, but are used to modify its
+default behaviour. For example, a program could do its job
+quietly, but with a suitable option it could provide verbose
+information about what it did.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Command line
+options come in several flavours. Historically, they are
+preceded by a single dash &quot;&minus;&quot;, and consist
+of a single letter.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;l
+&minus;a &minus;c</p>
+
+<p style="margin-left:11%; margin-top: 1em">Usually, these
+single-character options can be bundled:</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;lac</p>
+
+<p style="margin-left:11%; margin-top: 1em">Options can
+have values, the value is placed after the option character.
+Sometimes with whitespace in between, sometimes not:</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;s 24
+&minus;s24</p>
+
+<p style="margin-left:11%; margin-top: 1em">Due to the very
+cryptic nature of these options, another style was developed
+that used long names. So instead of a cryptic
+&quot;&minus;l&quot; one could use the more descriptive
+&quot;&minus;&minus;long&quot;. To distinguish between a
+bundle of single-character options and a long one, two
+dashes are used to precede the option name. Early
+implementations of long options used a plus &quot;+&quot;
+instead. Also, option values could be specified either
+like</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;size=24</p>
+
+<p style="margin-left:11%; margin-top: 1em">or</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;size
+24</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;+&quot; form is now obsolete and strongly
+deprecated.</p>
+
+<h2>Getting Started with Getopt::Long
+<a name="Getting Started with Getopt::Long"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Getopt::Long is
+the Perl5 successor of &quot;newgetopt.pl&quot;. This was
+the first Perl module that provided support for handling the
+new style of command line options, in particular long option
+names, hence the Perl5 name Getopt::Long. This module also
+supports single-character options and bundling.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To use
+Getopt::Long from a Perl program, you must include the
+following line in your Perl program:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Getopt::Long;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will load
+the core of the Getopt::Long module and prepare your program
+for using it. Most of the actual Getopt::Long code is not
+loaded until you really call one of its functions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the default
+configuration, options names may be abbreviated to
+uniqueness, case does not matter, and a single dash is
+sufficient, even for long option names. Also, options may be
+placed between non-option arguments. See &quot;Configuring
+Getopt::Long&quot; for more details on how to configure
+Getopt::Long.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Simple
+options</b> <br>
+The most simple options are the ones that take no values.
+Their mere presence on the command line enables the option.
+Popular examples are:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;all
+&minus;&minus;verbose &minus;&minus;quiet
+&minus;&minus;debug</p>
+
+<p style="margin-left:11%; margin-top: 1em">Handling simple
+options is straightforward:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $verbose =
+''; # option variable with default value (false) <br>
+my $all = ''; # option variable with default value (false)
+<br>
+GetOptions ('verbose' =&gt; \$verbose, 'all' =&gt;
+\$all);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The call to
+<b>GetOptions()</b> parses the command line arguments that
+are present in @ARGV and sets the option variable to the
+value 1 if the option did occur on the command line.
+Otherwise, the option variable is not touched. Setting the
+option value to true is often called <i>enabling</i> the
+option.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The option name
+as specified to the <b>GetOptions()</b> function is called
+the option <i>specification</i>. Later we&rsquo;ll see that
+this specification can contain more than just the option
+name. The reference to the variable is called the option
+<i>destination</i>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>GetOptions()</b>
+will return a true value if the command line could be
+processed successfully. Otherwise, it will write error
+messages using <b>die()</b> and <b>warn()</b>, and return a
+false result.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>A little bit
+less simple options</b> <br>
+Getopt::Long supports two useful variants of simple options:
+<i>negatable</i> options and <i>incremental</i> options.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A negatable
+option is specified with an exclamation mark &quot;!&quot;
+after the option name:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $verbose =
+''; # option variable with default value (false) <br>
+GetOptions ('verbose!' =&gt; \$verbose);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now, using
+&quot;&minus;&minus;verbose&quot; on the command line will
+enable $verbose, as expected. But it is also allowed to use
+&quot;&minus;&minus;noverbose&quot;, which will disable
+$verbose by setting its value to 0. Using a suitable default
+value, the program can find out whether $verbose is false by
+default, or disabled by using
+&quot;&minus;&minus;noverbose&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An incremental
+option is specified with a plus &quot;+&quot; after the
+option name:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $verbose =
+''; # option variable with default value (false) <br>
+GetOptions ('verbose+' =&gt; \$verbose);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Using
+&quot;&minus;&minus;verbose&quot; on the command line will
+increment the value of $verbose. This way the program can
+keep track of how many times the option occurred on the
+command line. For example, each occurrence of
+&quot;&minus;&minus;verbose&quot; could increase the
+verbosity level of the program.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Mixing
+command line option with other arguments</b> <br>
+Usually programs take command line options as well as other
+arguments, for example, file names. It is good practice to
+always specify the options first, and the other arguments
+last. Getopt::Long will, however, allow the options and
+arguments to be mixed and &rsquo;filter out&rsquo; all the
+options before passing the rest of the arguments to the
+program. To stop Getopt::Long from processing further
+arguments, insert a double dash &quot;&minus;&minus;&quot;
+on the command line:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;size
+24 &minus;&minus; &minus;&minus;all</p>
+
+<p style="margin-left:11%; margin-top: 1em">In this
+example, &quot;&minus;&minus;all&quot; will <i>not</i> be
+treated as an option, but passed to the program unharmed, in
+@ARGV.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Options with
+values</b> <br>
+For options that take values it must be specified whether
+the option value is required or not, and what kind of value
+the option expects.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Three kinds of
+values are supported: integer numbers, floating point
+numbers, and strings.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the option
+value is required, Getopt::Long will take the command line
+argument that follows the option and assign this to the
+option variable. If, however, the option value is specified
+as optional, this will only be done if that value does not
+look like a valid command line option itself.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $tag = ''; #
+option variable with default value <br>
+GetOptions ('tag=s' =&gt; \$tag);</p>
+
+<p style="margin-left:11%; margin-top: 1em">In the option
+specification, the option name is followed by an equals sign
+&quot;=&quot; and the letter &quot;s&quot;. The equals sign
+indicates that this option requires a value. The letter
+&quot;s&quot; indicates that this value is an arbitrary
+string. Other possible value types are &quot;i&quot; for
+integer values, and &quot;f&quot; for floating point values.
+Using a colon &quot;:&quot; instead of the equals sign
+indicates that the option value is optional. In this case,
+if no suitable value is supplied, string valued options get
+an empty string '' assigned, while numeric options are set
+to 0.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Options with
+multiple values</b> <br>
+Options sometimes take several values. For example, a
+program could use multiple directories to search for library
+files:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;library
+lib/stdlib &minus;&minus;library lib/extlib</p>
+
+<p style="margin-left:11%; margin-top: 1em">To accomplish
+this behaviour, simply specify an array reference as the
+destination for the option:</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions
+(&quot;library=s&quot; =&gt; \@libfiles);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+you can specify that the option can have multiple values by
+adding a &quot;@&quot;, and pass a reference to a scalar as
+the destination:</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions
+(&quot;library=s@&quot; =&gt; \$libfiles);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Used with the
+example above, @libfiles c.q. @$libfiles would contain two
+strings upon completion: &quot;lib/stdlib&quot; and
+&quot;lib/extlib&quot;, in that order. It is also possible
+to specify that only integer or floating point numbers are
+acceptable values.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Often it is
+useful to allow comma-separated lists of values as well as
+multiple occurrences of the options. This is easy using
+Perl&rsquo;s <b>split()</b> and <b>join()</b> operators:</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions
+(&quot;library=s&quot; =&gt; \@libfiles); <br>
+@libfiles = split(/,/,join(',',@libfiles));</p>
+
+<p style="margin-left:11%; margin-top: 1em">Of course, it
+is important to choose the right separator string for each
+purpose.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Warning: What
+follows is an experimental feature.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Options can
+take multiple values at once, for example</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;coordinates
+52.2 16.4 &minus;&minus;rgbcolor 255 255 149</p>
+
+<p style="margin-left:11%; margin-top: 1em">This can be
+accomplished by adding a repeat specifier to the option
+specification. Repeat specifiers are very similar to the
+&quot;{...}&quot; repeat specifiers that can be used with
+regular expression patterns. For example, the above command
+line would be handled as follows:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions('coordinates=f{2}'
+=&gt; \@coor, 'rgbcolor=i{3}' =&gt; \@color);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The destination
+for the option must be an array or array reference.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is also
+possible to specify the minimal and maximal number of
+arguments an option takes. &quot;foo=s{2,4}&quot; indicates
+an option that takes at least two and at most 4 arguments.
+&quot;foo=s{1,}&quot; indicates one or more values;
+&quot;foo:s{,}&quot; indicates zero or more option
+values.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Options with
+hash values</b> <br>
+If the option destination is a reference to a hash, the
+option will take, as value, strings of the form
+<i>key</i>&quot;=&quot;<i>value</i>. The value will be
+stored with the specified key in the hash.</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions
+(&quot;define=s&quot; =&gt; \%defines);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively
+you can use:</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions
+(&quot;define=s%&quot; =&gt; \$defines);</p>
+
+<p style="margin-left:11%; margin-top: 1em">When used with
+command line options:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;define
+os=linux &minus;&minus;define vendor=redhat</p>
+
+<p style="margin-left:11%; margin-top: 1em">the hash
+%defines (or %$defines) will contain two keys,
+&quot;os&quot; with value &quot;linux&quot; and
+&quot;vendor&quot; with value &quot;redhat&quot;. It is also
+possible to specify that only integer or floating point
+numbers are acceptable values. The keys are always taken to
+be strings.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>User-defined
+subroutines to handle options</b> <br>
+Ultimate control over what should be done when (actually:
+each time) an option is encountered on the command line can
+be achieved by designating a reference to a subroutine (or
+an anonymous subroutine) as the option destination. When
+<b>GetOptions()</b> encounters the option, it will call the
+subroutine with two or three arguments. The first argument
+is the name of the option. (Actually, it is an object that
+stringifies to the name of the option.) For a scalar or
+array destination, the second argument is the value to be
+stored. For a hash destination, the second argument is the
+key to the hash, and the third argument the value to be
+stored. It is up to the subroutine to store the value, or do
+whatever it thinks is appropriate.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A trivial
+application of this mechanism is to implement options that
+are related to each other. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $verbose =
+''; # option variable with default value (false) <br>
+GetOptions ('verbose' =&gt; \$verbose, <br>
+'quiet' =&gt; sub { $verbose = 0 });</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here
+&quot;&minus;&minus;verbose&quot; and
+&quot;&minus;&minus;quiet&quot; control the same variable
+$verbose, but with opposite values.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the
+subroutine needs to signal an error, it should call
+<b>die()</b> with the desired error message as its argument.
+<b>GetOptions()</b> will catch the <b>die()</b>, issue the
+error message, and record that an error result must be
+returned upon completion.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If the text of
+the error message starts with an exclamation mark
+&quot;!&quot; it is interpreted specially by
+<b>GetOptions()</b>. There is currently one special command
+implemented: &quot;die(&quot;!FINISH&quot;)&quot; will cause
+<b>GetOptions()</b> to stop processing options, as if it
+encountered a double dash &quot;&minus;&minus;&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here is an
+example of how to access the option name and value from
+within a subroutine:</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions
+('opt=i' =&gt; \&amp;handler); <br>
+sub handler { <br>
+my ($opt_name, $opt_value) = @_; <br>
+print(&quot;Option name is $opt_name and value is
+$opt_value\n&quot;); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Options with
+multiple names</b> <br>
+Often it is user friendly to supply alternate mnemonic names
+for options. For example &quot;&minus;&minus;height&quot;
+could be an alternate name for
+&quot;&minus;&minus;length&quot;. Alternate names can be
+included in the option specification, separated by vertical
+bar &quot;|&quot; characters. To implement the above
+example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions
+('length|height=f' =&gt; \$length);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The first name
+is called the <i>primary</i> name, the other names are
+called <i>aliases</i>. When using a hash to store options,
+the key will always be the primary name.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Multiple
+alternate names are possible.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Case and
+abbreviations</b> <br>
+Without additional configuration, <b>GetOptions()</b> will
+ignore the case of option names, and allow the options to be
+abbreviated to uniqueness.</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions
+('length|height=f' =&gt; \$length, &quot;head&quot; =&gt;
+\$head);</p>
+
+<p style="margin-left:11%; margin-top: 1em">This call will
+allow &quot;&minus;&minus;l&quot; and
+&quot;&minus;&minus;L&quot; for the length option, but
+requires a least &quot;&minus;&minus;hea&quot; and
+&quot;&minus;&minus;hei&quot; for the head and height
+options.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Summary of
+Option Specifications</b> <br>
+Each option specifier consists of two parts: the name
+specification and the argument specification.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The name
+specification contains the name of the option, optionally
+followed by a list of alternative names separated by
+vertical bar characters.</p>
+
+<p style="margin-left:11%; margin-top: 1em">length option
+name is &quot;length&quot; <br>
+length|size|l name is &quot;length&quot;, aliases are
+&quot;size&quot; and &quot;l&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The argument
+specification is optional. If omitted, the option is
+considered boolean, a value of 1 will be assigned when the
+option is used on the command line.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The argument
+specification can be</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>!</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The option does not take an argument and may be negated
+by prefixing it with &quot;no&quot; or
+&quot;no&minus;&quot;. E.g. &quot;foo!&quot; will allow
+&quot;&minus;&minus;foo&quot; (a value of 1 will be
+assigned) as well as &quot;&minus;&minus;nofoo&quot; and
+&quot;&minus;&minus;no&minus;foo&quot; (a value of 0 will be
+assigned). If the option has aliases, this applies to the
+aliases as well.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Using negation
+on a single letter option when bundling is in effect is
+pointless and will result in a warning.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">+</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">The option does not take an
+argument and will be incremented by 1 every time it appears
+on the command line. E.g. &quot;more+&quot;, when used with
+&quot;&minus;&minus;more &minus;&minus;more
+&minus;&minus;more&quot;, will increment the value three
+times, resulting in a value of 3 (provided it was 0 or
+undefined at first).</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;+&quot; specifier is ignored if the option destination
+is not a scalar.</p>
+
+<p style="margin-left:11%;">= <i>type</i> [ <i>desttype</i>
+] [ <i>repeat</i> ]</p>
+
+<p style="margin-left:17%;">The option requires an argument
+of the given type. Supported types are:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>s</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>String. An arbitrary sequence of characters. It is valid
+for the argument to start with &quot;&minus;&quot; or
+&quot;&minus;&minus;&quot;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>i</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>Integer. An optional leading plus or minus sign,
+followed by a sequence of digits.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>o</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>Extended integer, Perl style. This can be either an
+optional leading plus or minus sign, followed by a sequence
+of digits, or an octal string (a zero, optionally followed
+by &rsquo;0&rsquo;, &rsquo;1&rsquo;, .. &rsquo;7&rsquo;), or
+a hexadecimal string (&quot;0x&quot; followed by
+&rsquo;0&rsquo; .. &rsquo;9&rsquo;, &rsquo;a&rsquo; ..
+&rsquo;f&rsquo;, case insensitive), or a binary string
+(&quot;0b&quot; followed by a series of &rsquo;0&rsquo; and
+&rsquo;1&rsquo;).</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>f</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>Real number. For example 3.14,
+&quot;&minus;6.23E24&quot; and so on.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The
+<i>desttype</i> can be &quot;@&quot; or &quot;%&quot; to
+specify that the option is list or a hash valued. This is
+only needed when the destination for the option value is not
+otherwise specified. It should be omitted when not
+needed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+<i>repeat</i> specifies the number of values this option
+takes per occurrence on the command line. It has the format
+&quot;{&quot; [ <i>min</i> ] [ &quot;,&quot; [ <i>max</i> ]
+] &quot;}&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><i>min</i>
+denotes the minimal number of arguments. It defaults to 1
+for options with &quot;=&quot; and to 0 for options with
+&quot;:&quot;, see below. Note that <i>min</i> overrules the
+&quot;=&quot; / &quot;:&quot; semantics.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><i>max</i>
+denotes the maximum number of arguments. It must be at least
+<i>min</i>. If <i>max</i> is omitted, <i>but the comma is
+not</i>, there is no upper bound to the number of argument
+values taken.</p>
+
+<p style="margin-left:11%;">: <i>type</i> [ <i>desttype</i>
+]</p>
+
+<p style="margin-left:17%;">Like &quot;=&quot;, but
+designates the argument as optional. If omitted, an empty
+string will be assigned to string values options, and the
+value zero to numeric options.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that if a
+string argument starts with &quot;&minus;&quot; or
+&quot;&minus;&minus;&quot;, it will be considered an option
+on itself.</p>
+
+<p style="margin-left:11%;">: <i>number</i> [
+<i>desttype</i> ]</p>
+
+<p style="margin-left:17%;">Like &quot;:i&quot;, but if the
+value is omitted, the <i>number</i> will be assigned.</p>
+
+<p style="margin-left:11%;">: + [ <i>desttype</i> ]</p>
+
+<p style="margin-left:17%;">Like &quot;:i&quot;, but if the
+value is omitted, the current value for the option will be
+incremented.</p>
+
+<h2>Advanced Possibilities
+<a name="Advanced Possibilities"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Object
+oriented interface</b> <br>
+Getopt::Long can be used in an object oriented way as
+well:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Getopt::Long; <br>
+$p = Getopt::Long::Parser&minus;&gt;new; <br>
+$p&minus;&gt;configure(...configuration options...); <br>
+if ($p&minus;&gt;getoptions(...options descriptions...)) ...
+<br>
+if ($p&minus;&gt;getoptionsfromarray( \@array, ...options
+descriptions...)) ...</p>
+
+<p style="margin-left:11%; margin-top: 1em">Configuration
+options can be passed to the constructor:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$p = new
+Getopt::Long::Parser <br>
+config =&gt; [...configuration options...];</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Callback
+object</b> <br>
+In version 2.37 the first argument to the callback function
+was changed from string to object. This was done to make
+room for extensions and more detailed control. The object
+stringifies to the option name so this change should not
+introduce compatibility problems.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The callback
+object has the following methods: <br>
+name</p>
+
+<p style="margin-left:17%;">The name of the option,
+unabbreviated. For an option with multiple names it return
+the first (canonical) name.</p>
+
+<p style="margin-left:11%;">given</p>
+
+<p style="margin-left:17%;">The name of the option as
+actually used, unabbreveated.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Thread
+Safety</b> <br>
+Getopt::Long is thread safe when using ithreads as of Perl
+5.8. It is <i>not</i> thread safe when using the older
+(experimental and now obsolete) threads implementation that
+was added to Perl 5.005.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Documentation
+and help texts</b> <br>
+Getopt::Long encourages the use of Pod::Usage to produce
+help messages. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Getopt::Long; <br>
+use Pod::Usage; <br>
+my $man = 0; <br>
+my $help = 0; <br>
+GetOptions('help|?' =&gt; \$help, man =&gt; \$man) or
+pod2usage(2); <br>
+pod2usage(1) if $help; <br>
+pod2usage(&minus;exitval =&gt; 0, &minus;verbose =&gt; 2) if
+$man; <br>
+__END__ <br>
+=head1 NAME <br>
+sample &minus; Using Getopt::Long and Pod::Usage <br>
+=head1 SYNOPSIS <br>
+sample [options] [file ...] <br>
+Options: <br>
+&minus;help brief help message <br>
+&minus;man full documentation <br>
+=head1 OPTIONS <br>
+=over 8 <br>
+=item B&lt;&minus;help&gt; <br>
+Print a brief help message and exits. <br>
+=item B&lt;&minus;man&gt; <br>
+Prints the manual page and exits. <br>
+=back <br>
+=head1 DESCRIPTION <br>
+B&lt;This program&gt; will read the given input file(s) and
+do something <br>
+useful with the contents thereof. <br>
+=cut</p>
+
+<p style="margin-left:11%; margin-top: 1em">See Pod::Usage
+for details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Parsing
+options from an arbitrary array</b> <br>
+By default, GetOptions parses the options that are present
+in the global array @ARGV. A special entry
+&quot;GetOptionsFromArray&quot; can be used to parse options
+from an arbitrary array.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Getopt::Long qw(GetOptionsFromArray); <br>
+$ret = GetOptionsFromArray(\@myopts, ...);</p>
+
+<p style="margin-left:11%; margin-top: 1em">When used like
+this, options and their possible values are removed from
+@myopts, the global @ARGV is not touched at all.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+two calls behave identically:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ret =
+GetOptions( ... ); <br>
+$ret = GetOptionsFromArray(\@ARGV, ... );</p>
+
+<p style="margin-left:11%; margin-top: 1em">This also means
+that a first argument hash reference now becomes the second
+argument:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ret =
+GetOptions(\%opts, ... ); <br>
+$ret = GetOptionsFromArray(\@ARGV, \%opts, ... );</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Parsing
+options from an arbitrary string</b> <br>
+A special entry &quot;GetOptionsFromString&quot; can be used
+to parse options from an arbitrary string.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Getopt::Long qw(GetOptionsFromString); <br>
+$ret = GetOptionsFromString($string, ...);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The contents of
+the string are split into arguments using a call to
+&quot;Text::ParseWords::shellwords&quot;. As with
+&quot;GetOptionsFromArray&quot;, the global @ARGV is not
+touched.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is possible
+that, upon completion, not all arguments in the string have
+been processed. &quot;GetOptionsFromString&quot; will, when
+called in list context, return both the return status and an
+array reference to any remaining arguments:</p>
+
+<p style="margin-left:11%; margin-top: 1em">($ret, $args) =
+GetOptionsFromString($string, ... );</p>
+
+<p style="margin-left:11%; margin-top: 1em">If any
+arguments remain, and &quot;GetOptionsFromString&quot; was
+not called in list context, a message will be given and
+&quot;GetOptionsFromString&quot; will return failure.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As with
+GetOptionsFromArray, a first argument hash reference now
+becomes the second argument. See the next section.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Storing
+options values in a hash</b> <br>
+Sometimes, for example when there are a lot of options,
+having a separate variable for each of them can be
+cumbersome. <b>GetOptions()</b> supports, as an alternative
+mechanism, storing options values in a hash.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To obtain this,
+a reference to a hash must be passed <i>as the first
+argument</i> to <b>GetOptions()</b>. For each option that is
+specified on the command line, the option value will be
+stored in the hash with the option name as key. Options that
+are not actually used on the command line will not be put in
+the hash, on other words, &quot;exists($h{option})&quot; (or
+<b>defined()</b>) can be used to test if an option was used.
+The drawback is that warnings will be issued if the program
+runs under &quot;use strict&quot; and uses $h{option}
+without testing with <b>exists()</b> or <b>defined()</b>
+first.</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %h = ();
+<br>
+GetOptions (\%h, 'length=i'); # will store in $h{length}</p>
+
+<p style="margin-left:11%; margin-top: 1em">For options
+that take list or hash values, it is necessary to indicate
+this by appending an &quot;@&quot; or &quot;%&quot; sign
+after the type:</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions
+(\%h, 'colours=s@'); # will push to @{$h{colours}}</p>
+
+<p style="margin-left:11%; margin-top: 1em">To make things
+more complicated, the hash may contain references to the
+actual destinations, for example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $len = 0;
+<br>
+my %h = ('length' =&gt; \$len); <br>
+GetOptions (\%h, 'length=i'); # will store in $len</p>
+
+<p style="margin-left:11%; margin-top: 1em">This example is
+fully equivalent with:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $len = 0;
+<br>
+GetOptions ('length=i' =&gt; \$len); # will store in
+$len</p>
+
+<p style="margin-left:11%; margin-top: 1em">Any mixture is
+possible. For example, the most frequently used options
+could be stored in variables while all other options get
+stored in the hash:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $verbose =
+0; # frequently referred <br>
+my $debug = 0; # frequently referred <br>
+my %h = ('verbose' =&gt; \$verbose, 'debug' =&gt; \$debug);
+<br>
+GetOptions (\%h, 'verbose', 'debug', 'filter', 'size=i');
+<br>
+if ( $verbose ) { ... } <br>
+if ( exists $h{filter} ) { ... option 'filter' was specified
+... }</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Bundling</b>
+<br>
+With bundling it is possible to set several single-character
+options at once. For example if &quot;a&quot;, &quot;v&quot;
+and &quot;x&quot; are all valid options,</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;vax</p>
+
+<p style="margin-left:11%; margin-top: 1em">will set all
+three.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Getopt::Long
+supports three styles of bundling. To enable bundling, a
+call to Getopt::Long::Configure is required.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The simplest
+style of bundling can be enabled with:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Getopt::Long::Configure
+(&quot;bundling&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Configured this
+way, single-character options can be bundled but long
+options (and any of their auto-abbreviated shortened forms)
+<b>must</b> always start with a double dash
+&quot;&minus;&minus;&quot; to avoid ambiguity. For example,
+when &quot;vax&quot;, &quot;a&quot;, &quot;v&quot; and
+&quot;x&quot; are all valid options,</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;vax</p>
+
+<p style="margin-left:11%; margin-top: 1em">will set
+&quot;a&quot;, &quot;v&quot; and &quot;x&quot;, but</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;vax</p>
+
+<p style="margin-left:11%; margin-top: 1em">will set
+&quot;vax&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The second
+style of bundling lifts this restriction. It can be enabled
+with:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Getopt::Long::Configure
+(&quot;bundling_override&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now,
+&quot;&minus;vax&quot; will set the option
+&quot;vax&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In all of the
+above cases, option values may be inserted in the bundle.
+For example:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;h24w80</p>
+
+<p style="margin-left:11%; margin-top: 1em">is equivalent
+to</p>
+
+<p style="margin-left:11%; margin-top: 1em">&minus;h 24
+&minus;w 80</p>
+
+<p style="margin-left:11%; margin-top: 1em">A third style
+of bundling allows only values to be bundled with options.
+It can be enabled with:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Getopt::Long::Configure
+(&quot;bundling_values&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now,
+&quot;&minus;h24&quot; will set the option &quot;h&quot; to
+24, but option bundles like &quot;&minus;vxa&quot; and
+&quot;&minus;h24w80&quot; are flagged as errors.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Enabling
+&quot;bundling_values&quot; will disable the other two
+styles of bundling.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When configured
+for bundling, single-character options are matched case
+sensitive while long options are matched case insensitive.
+To have the single-character options matched case
+insensitive as well, use:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Getopt::Long::Configure
+(&quot;bundling&quot;, &quot;ignorecase_always&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">It goes without
+saying that bundling can be quite confusing.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>The lonesome
+dash</b> <br>
+Normally, a lone dash &quot;&minus;&quot; on the command
+line will not be considered an option. Option processing
+will terminate (unless &quot;permute&quot; is configured)
+and the dash will be left in @ARGV.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is possible
+to get special treatment for a lone dash. This can be
+achieved by adding an option specification with an empty
+name, for example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions (''
+=&gt; \$stdio);</p>
+
+<p style="margin-left:11%; margin-top: 1em">A lone dash on
+the command line will now be a legal option, and using it
+will set variable $stdio.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Argument
+callback</b> <br>
+A special option &rsquo;name&rsquo; &quot;&lt;&gt;&quot; can
+be used to designate a subroutine to handle non-option
+arguments. When <b>GetOptions()</b> encounters an argument
+that does not look like an option, it will immediately call
+this subroutine and passes it one parameter: the argument
+name.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $width = 80;
+<br>
+sub process { ... } <br>
+GetOptions ('width=i' =&gt; \$width, '&lt;&gt;' =&gt;
+\&amp;process);</p>
+
+<p style="margin-left:11%; margin-top: 1em">When applied to
+the following command line:</p>
+
+<p style="margin-left:11%; margin-top: 1em">arg1
+&minus;&minus;width=72 arg2 &minus;&minus;width=60 arg3</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will call
+&quot;process(&quot;arg1&quot;)&quot; while $width is 80,
+&quot;process(&quot;arg2&quot;)&quot; while $width is 72,
+and &quot;process(&quot;arg3&quot;)&quot; while $width is
+60.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This feature
+requires configuration option <b>permute</b>, see section
+&quot;Configuring Getopt::Long&quot;.</p>
+
+<h2>Configuring Getopt::Long
+<a name="Configuring Getopt::Long"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Getopt::Long
+can be configured by calling subroutine
+<b>Getopt::Long::Configure()</b>. This subroutine takes a
+list of quoted strings, each specifying a configuration
+option to be enabled, e.g. &quot;ignore_case&quot;. To
+disable, prefix with &quot;no&quot; or &quot;no_&quot;, e.g.
+&quot;no_ignore_case&quot;. Case does not matter. Multiple
+calls to <b>Configure()</b> are possible.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Alternatively,
+as of version 2.24, the configuration options may be passed
+together with the &quot;use&quot; statement:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Getopt::Long qw(:config no_ignore_case bundling);</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+options are available:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="11%">
+
+
+<p>default</p></td>
+<td width="7%"></td>
+<td width="71%">
+
+
+<p>This option causes all configuration options to be reset
+to their default values.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">posix_default</p>
+
+<p style="margin-left:29%;">This option causes all
+configuration options to be reset to their default values as
+if the environment variable <small>POSIXLY_CORRECT</small>
+had been set.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="17%">
+
+
+<p>auto_abbrev</p></td>
+<td width="1%"></td>
+<td width="71%">
+
+
+<p>Allow option names to be abbreviated to uniqueness.
+Default is enabled unless environment variable
+<small>POSIXLY_CORRECT</small> has been set, in which case
+&quot;auto_abbrev&quot; is disabled.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">getopt_compat</p>
+
+<p style="margin-left:29%;">Allow &quot;+&quot; to start
+options. Default is enabled unless environment variable
+<small>POSIXLY_CORRECT</small> has been set, in which case
+&quot;getopt_compat&quot; is disabled.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="15%">
+
+
+<p>gnu_compat</p></td>
+<td width="3%"></td>
+<td width="71%">
+
+
+<p>&quot;gnu_compat&quot; controls whether
+&quot;&minus;&minus;opt=&quot; is allowed, and what it
+should do. Without &quot;gnu_compat&quot;,
+&quot;&minus;&minus;opt=&quot; gives an error. With
+&quot;gnu_compat&quot;, &quot;&minus;&minus;opt=&quot; will
+give option &quot;opt&quot; and empty value. This is the way
+<small>GNU</small> <b>getopt_long()</b> does it.</p></td></tr>
+</table>
+
+<p style="margin-left:29%; margin-top: 1em">Note that
+&quot;&minus;&minus;opt value&quot; is still accepted, even
+though <small>GNU</small> <b>getopt_long()</b>
+doesn&rsquo;t.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="15%">
+
+
+<p style="margin-top: 1em">gnu_getopt</p></td>
+<td width="3%"></td>
+<td width="71%">
+
+
+<p style="margin-top: 1em">This is a short way of setting
+&quot;gnu_compat&quot; &quot;bundling&quot;
+&quot;permute&quot; &quot;no_getopt_compat&quot;. With
+&quot;gnu_getopt&quot;, command line handling should be
+reasonably compatible with <small>GNU</small>
+<b>getopt_long()</b>.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%;">require_order</p>
+
+<p style="margin-left:29%;">Whether command line arguments
+are allowed to be mixed with options. Default is disabled
+unless environment variable <small>POSIXLY_CORRECT</small>
+has been set, in which case &quot;require_order&quot; is
+enabled.</p>
+
+<p style="margin-left:29%; margin-top: 1em">See also
+&quot;permute&quot;, which is the opposite of
+&quot;require_order&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="11%">
+
+
+<p>permute</p></td>
+<td width="7%"></td>
+<td width="71%">
+
+
+<p>Whether command line arguments are allowed to be mixed
+with options. Default is enabled unless environment variable
+<small>POSIXLY_CORRECT</small> has been set, in which case
+&quot;permute&quot; is disabled. Note that
+&quot;permute&quot; is the opposite of
+&quot;require_order&quot;.</p> </td></tr>
+</table>
+
+<p style="margin-left:29%; margin-top: 1em">If
+&quot;permute&quot; is enabled, this means that</p>
+
+
+<p style="margin-left:29%; margin-top: 1em">&minus;&minus;foo
+arg1 &minus;&minus;bar arg2 arg3</p>
+
+<p style="margin-left:29%; margin-top: 1em">is equivalent
+to</p>
+
+
+<p style="margin-left:29%; margin-top: 1em">&minus;&minus;foo
+&minus;&minus;bar arg1 arg2 arg3</p>
+
+<p style="margin-left:29%; margin-top: 1em">If an argument
+callback routine is specified, @ARGV will always be empty
+upon successful return of <b>GetOptions()</b> since all
+options have been processed. The only exception is when
+&quot;&minus;&minus;&quot; is used:</p>
+
+
+<p style="margin-left:29%; margin-top: 1em">&minus;&minus;foo
+arg1 &minus;&minus;bar arg2 &minus;&minus; arg3</p>
+
+<p style="margin-left:29%; margin-top: 1em">This will call
+the callback routine for arg1 and arg2, and then terminate
+<b>GetOptions()</b> leaving &quot;arg3&quot; in @ARGV.</p>
+
+<p style="margin-left:29%; margin-top: 1em">If
+&quot;require_order&quot; is enabled, options processing
+terminates when the first non-option is encountered.</p>
+
+
+<p style="margin-left:29%; margin-top: 1em">&minus;&minus;foo
+arg1 &minus;&minus;bar arg2 arg3</p>
+
+<p style="margin-left:29%; margin-top: 1em">is equivalent
+to</p>
+
+
+<p style="margin-left:29%; margin-top: 1em">&minus;&minus;foo
+&minus;&minus; arg1 &minus;&minus;bar arg2 arg3</p>
+
+<p style="margin-left:29%; margin-top: 1em">If
+&quot;pass_through&quot; is also enabled, options processing
+will terminate at the first unrecognized option, or
+non-option, whichever comes first.</p>
+
+<p style="margin-left:11%;">bundling (default:
+disabled)</p>
+
+<p style="margin-left:29%;">Enabling this option will allow
+single-character options to be bundled. To distinguish
+bundles from long option names, long options (and any of
+their auto-abbreviated shortened forms) <i>must</i> be
+introduced with &quot;&minus;&minus;&quot; and bundles with
+&quot;&minus;&quot;.</p>
+
+<p style="margin-left:29%; margin-top: 1em">Note that, if
+you have options &quot;a&quot;, &quot;l&quot; and
+&quot;all&quot;, and auto_abbrev enabled, possible arguments
+and option settings are:</p>
+
+<p style="margin-left:29%; margin-top: 1em">using argument
+sets option(s) <br>
+
+&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;&minus;
+<br>
+&minus;a, &minus;&minus;a a <br>
+&minus;l, &minus;&minus;l l <br>
+&minus;al, &minus;la, &minus;ala, &minus;all,... a, l <br>
+&minus;&minus;al, &minus;&minus;all all</p>
+
+<p style="margin-left:29%; margin-top: 1em">The surprising
+part is that &quot;&minus;&minus;a&quot; sets option
+&quot;a&quot; (due to auto completion), not
+&quot;all&quot;.</p>
+
+<p style="margin-left:29%; margin-top: 1em">Note: disabling
+&quot;bundling&quot; also disables
+&quot;bundling_override&quot;.</p>
+
+<p style="margin-left:11%;">bundling_override (default:
+disabled)</p>
+
+<p style="margin-left:29%;">If
+&quot;bundling_override&quot; is enabled, bundling is
+enabled as with &quot;bundling&quot; but now long option
+names override option bundles.</p>
+
+<p style="margin-left:29%; margin-top: 1em">Note: disabling
+&quot;bundling_override&quot; also disables
+&quot;bundling&quot;.</p>
+
+<p style="margin-left:29%; margin-top: 1em"><b>Note:</b>
+Using option bundling can easily lead to unexpected results,
+especially when mixing long options and bundles. Caveat
+emptor.</p>
+
+<p style="margin-left:11%;">ignore_case (default:
+enabled)</p>
+
+<p style="margin-left:29%;">If enabled, case is ignored
+when matching option names. If, however, bundling is enabled
+as well, single character options will be treated
+case-sensitive.</p>
+
+<p style="margin-left:29%; margin-top: 1em">With
+&quot;ignore_case&quot;, option specifications for options
+that only differ in case, e.g., &quot;foo&quot; and
+&quot;Foo&quot;, will be flagged as duplicates.</p>
+
+<p style="margin-left:29%; margin-top: 1em">Note: disabling
+&quot;ignore_case&quot; also disables
+&quot;ignore_case_always&quot;.</p>
+
+<p style="margin-left:11%;">ignore_case_always (default:
+disabled)</p>
+
+<p style="margin-left:29%;">When bundling is in effect,
+case is ignored on single-character options also.</p>
+
+<p style="margin-left:29%; margin-top: 1em">Note: disabling
+&quot;ignore_case_always&quot; also disables
+&quot;ignore_case&quot;.</p>
+
+<p style="margin-left:11%;">auto_version
+(default:disabled)</p>
+
+<p style="margin-left:29%;">Automatically provide support
+for the <b>&minus;&minus;version</b> option if the
+application did not specify a handler for this option
+itself.</p>
+
+<p style="margin-left:29%; margin-top: 1em">Getopt::Long
+will provide a standard version message that includes the
+program name, its version (if $main::VERSION is defined),
+and the versions of Getopt::Long and Perl. The message will
+be written to standard output and processing will
+terminate.</p>
+
+
+<p style="margin-left:29%; margin-top: 1em">&quot;auto_version&quot;
+will be enabled if the calling program explicitly specified
+a version number higher than 2.32 in the &quot;use&quot; or
+&quot;require&quot; statement.</p>
+
+<p style="margin-left:11%;">auto_help
+(default:disabled)</p>
+
+<p style="margin-left:29%;">Automatically provide support
+for the <b>&minus;&minus;help</b> and <b>&minus;?</b>
+options if the application did not specify a handler for
+this option itself.</p>
+
+<p style="margin-left:29%; margin-top: 1em">Getopt::Long
+will provide a help message using module Pod::Usage. The
+message, derived from the <small>SYNOPSIS POD</small>
+section, will be written to standard output and processing
+will terminate.</p>
+
+
+<p style="margin-left:29%; margin-top: 1em">&quot;auto_help&quot;
+will be enabled if the calling program explicitly specified
+a version number higher than 2.32 in the &quot;use&quot; or
+&quot;require&quot; statement.</p>
+
+<p style="margin-left:11%;">pass_through (default:
+disabled)</p>
+
+<p style="margin-left:29%;">With &quot;pass_through&quot;
+anything that is unknown, ambiguous or supplied with an
+invalid option will not be flagged as an error. Instead the
+unknown option(s) will be passed to the catchall
+&quot;&lt;&gt;&quot; if present, otherwise through to @ARGV.
+This makes it possible to write wrapper scripts that process
+only part of the user supplied command line arguments, and
+pass the remaining options to some other program.</p>
+
+<p style="margin-left:29%; margin-top: 1em">If
+&quot;require_order&quot; is enabled, options processing
+will terminate at the first unrecognized option, or
+non-option, whichever comes first and all remaining
+arguments are passed to @ARGV instead of the catchall
+&quot;&lt;&gt;&quot; if present. However, if
+&quot;permute&quot; is enabled instead, results can become
+confusing.</p>
+
+<p style="margin-left:29%; margin-top: 1em">Note that the
+options terminator (default &quot;&minus;&minus;&quot;), if
+present, will also be passed through in @ARGV.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p>prefix</p></td>
+<td width="9%"></td>
+<td width="71%">
+
+
+<p>The string that starts options. If a constant string is
+not sufficient, see &quot;prefix_pattern&quot;.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">prefix_pattern</p>
+
+<p style="margin-left:29%;">A Perl pattern that identifies
+the strings that introduce options. Default is
+&quot;&minus;&minus;|&minus;|\+&quot; unless environment
+variable <small>POSIXLY_CORRECT</small> has been set, in
+which case it is &quot;&minus;&minus;|&minus;&quot;.</p>
+
+<p style="margin-left:11%;">long_prefix_pattern</p>
+
+<p style="margin-left:29%;">A Perl pattern that allows the
+disambiguation of long and short prefixes. Default is
+&quot;&minus;&minus;&quot;.</p>
+
+<p style="margin-left:29%; margin-top: 1em">Typically you
+only need to set this if you are using nonstandard prefixes
+and want some or all of them to have the same semantics as
+&rsquo;&minus;&minus;&rsquo; does under normal
+circumstances.</p>
+
+<p style="margin-left:29%; margin-top: 1em">For example,
+setting prefix_pattern to
+&quot;&minus;&minus;|&minus;|\+|\/&quot; and
+long_prefix_pattern to &quot;&minus;&minus;|\/&quot; would
+add Win32 style argument handling.</p>
+
+<p style="margin-left:11%;">debug (default: disabled)</p>
+
+<p style="margin-left:29%;">Enable debugging output.</p>
+
+<h2>Exportable Methods
+<a name="Exportable Methods"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">VersionMessage</p>
+
+<p style="margin-left:17%;">This subroutine provides a
+standard version message. Its argument can be:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>A string containing the text of a message to print
+<i>before</i> printing the standard message.</p></td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>A numeric value corresponding to the desired exit
+status.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p>A reference to a hash.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If more than
+one argument is given then the entire argument list is
+assumed to be a hash. If a hash is supplied (either as a
+reference or as a list) it should contain one or more
+elements with the following keys: <br>
+&quot;&minus;message&quot; <br>
+&quot;&minus;msg&quot;</p>
+
+<p style="margin-left:23%;">The text of a message to print
+immediately prior to printing the program&rsquo;s usage
+message.</p>
+
+<p style="margin-left:17%;">&quot;&minus;exitval&quot;</p>
+
+<p style="margin-left:23%;">The desired exit status to pass
+to the <b>exit()</b> function. This should be an integer, or
+else the string &quot; <small>NOEXIT&quot;</small> to
+indicate that control should simply be returned without
+terminating the invoking process.</p>
+
+<p style="margin-left:17%;">&quot;&minus;output&quot;</p>
+
+<p style="margin-left:23%;">A reference to a filehandle, or
+the pathname of a file to which the usage message should be
+written. The default is &quot;\*STDERR&quot; unless the exit
+value is less than 2 (in which case the default is
+&quot;\*STDOUT&quot;).</p>
+
+<p style="margin-left:17%; margin-top: 1em">You cannot tie
+this routine directly to an option, e.g.:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">GetOptions(&quot;version&quot;
+=&gt; \&amp;VersionMessage);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Use this
+instead:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">GetOptions(&quot;version&quot;
+=&gt; sub { VersionMessage() });</p>
+
+<p style="margin-left:11%;">HelpMessage</p>
+
+<p style="margin-left:17%;">This subroutine produces a
+standard help message, derived from the program&rsquo;s
+<small>POD</small> section <small>SYNOPSIS</small> using
+Pod::Usage. It takes the same arguments as
+<b>VersionMessage()</b>. In particular, you cannot tie it
+directly to an option, e.g.:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">GetOptions(&quot;help&quot;
+=&gt; \&amp;HelpMessage);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Use this
+instead:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">GetOptions(&quot;help&quot;
+=&gt; sub { HelpMessage() });</p>
+
+<h2>Return values and Errors
+<a name="Return values and Errors"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Configuration
+errors and errors in the option definitions are signalled
+using <b>die()</b> and will terminate the calling program
+unless the call to <b>Getopt::Long::GetOptions()</b> was
+embedded in &quot;eval { ... }&quot;, or <b>die()</b> was
+trapped using $SIG{__DIE__}.</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions
+returns true to indicate success. It returns false when the
+function detected one or more errors during option parsing.
+These errors are signalled using <b>warn()</b> and can be
+trapped with $SIG{__WARN__}.</p>
+
+<h2>Legacy
+<a name="Legacy"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The earliest
+development of &quot;newgetopt.pl&quot; started in 1990,
+with Perl version 4. As a result, its development, and the
+development of Getopt::Long, has gone through several
+stages. Since backward compatibility has always been
+extremely important, the current version of Getopt::Long
+still supports a lot of constructs that nowadays are no
+longer necessary or otherwise unwanted. This section
+describes briefly some of these &rsquo;features&rsquo;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Default
+destinations</b> <br>
+When no destination is specified for an option, GetOptions
+will store the resultant value in a global variable named
+&quot;opt_&quot; <i><small>XXX</small></i> , where
+<i><small>XXX</small></i> is the primary name of this
+option. When a program executes under &quot;use strict&quot;
+(recommended), these variables must be pre-declared with
+<b>our()</b> or &quot;use vars&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">our $opt_length
+= 0; <br>
+GetOptions ('length=i'); # will store in $opt_length</p>
+
+<p style="margin-left:11%; margin-top: 1em">To yield a
+usable Perl variable, characters that are not part of the
+syntax for variables are translated to underscores. For
+example,
+&quot;&minus;&minus;fpp&minus;struct&minus;return&quot; will
+set the variable $opt_fpp_struct_return. Note that this
+variable resides in the namespace of the calling program,
+not necessarily &quot;main&quot;. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions
+(&quot;size=i&quot;, &quot;sizes=i@&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">with command
+line &quot;&minus;size 10 &minus;sizes 24 &minus;sizes
+48&quot; will perform the equivalent of the assignments</p>
+
+<p style="margin-left:11%; margin-top: 1em">$opt_size = 10;
+<br>
+@opt_sizes = (24, 48);</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Alternative
+option starters</b> <br>
+A string of alternative option starter characters may be
+passed as the first argument (or the first argument after a
+leading hash reference argument).</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $len = 0;
+<br>
+GetOptions ('/', 'length=i' =&gt; $len);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now the command
+line may look like:</p>
+
+<p style="margin-left:11%; margin-top: 1em">/length 24
+&minus;&minus; arg</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that to
+terminate options processing still requires a double dash
+&quot;&minus;&minus;&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>GetOptions()</b>
+will not interpret a leading &quot;&lt;&gt;&quot; as option
+starters if the next argument is a reference. To force
+&quot;&lt;&quot; and &quot;&gt;&quot; as option starters,
+use &quot;&gt;&lt;&quot;. Confusing? Well, <b>using a
+starter argument is strongly deprecated</b> anyway.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Configuration
+variables</b> <br>
+Previous versions of Getopt::Long used variables for the
+purpose of configuring. Although manipulating these
+variables still work, it is strongly encouraged to use the
+&quot;Configure&quot; routine that was introduced in version
+2.17. Besides, it is much easier.</p>
+
+<h2>Tips and Techniques
+<a name="Tips and Techniques"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Pushing
+multiple values in a hash option</b> <br>
+Sometimes you want to combine the best of hashes and arrays.
+For example, the command line:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&minus;&minus;list
+add=first &minus;&minus;list add=second &minus;&minus;list
+add=third</p>
+
+<p style="margin-left:11%; margin-top: 1em">where each
+successive &rsquo;list add&rsquo; option will push the value
+of add into array ref $list&minus;&gt;{&rsquo;add&rsquo;}.
+The result would be like</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$list&minus;&gt;{add}
+= [qw(first second third)];</p>
+
+<p style="margin-left:11%; margin-top: 1em">This can be
+accomplished with a destination routine:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">GetOptions('list=s%'
+=&gt; <br>
+sub { push(@{$list{$_[1]}}, $_[2]) });</p>
+
+<h2>Troubleshooting
+<a name="Troubleshooting"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>GetOptions
+does not return a false result when an option is not
+supplied</b> <br>
+That&rsquo;s why they&rsquo;re called
+&rsquo;options&rsquo;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>GetOptions
+does not split the command line correctly</b> <br>
+The command line is not split by GetOptions, but by the
+command line interpreter ( <small>CLI</small> ). On Unix,
+this is the shell. On Windows, it is
+<small>COMMAND.COM</small> or <small>CMD.EXE.</small> Other
+operating systems have other CLIs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is important
+to know that these CLIs may behave different when the
+command line contains special characters, in particular
+quotes or backslashes. For example, with Unix shells you can
+use single quotes (&quot;'&quot;) and double quotes
+(&quot;&quot;&quot;) to group words together. The following
+alternatives are equivalent on Unix:</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;two
+words&quot; <br>
+'two words' <br>
+two\ words</p>
+
+<p style="margin-left:11%; margin-top: 1em">In case of
+doubt, insert the following statement in front of your Perl
+program:</p>
+
+<p style="margin-left:11%; margin-top: 1em">print STDERR
+(join(&quot;|&quot;,@ARGV),&quot;\n&quot;);</p>
+
+<p style="margin-left:11%; margin-top: 1em">to verify how
+your <small>CLI</small> passes the arguments to the
+program.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Undefined
+subroutine &amp;main::GetOptions called</b> <br>
+Are you running Windows, and did you write</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+GetOpt::Long;</p>
+
+<p style="margin-left:11%; margin-top: 1em">(note the
+capital &rsquo;O&rsquo;)?</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>How do I put
+a &quot;&minus;?&quot; option into a Getopt::Long?</b> <br>
+You can only obtain this using an alias, and Getopt::Long of
+at least version 2.13.</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Getopt::Long; <br>
+GetOptions (&quot;help|?&quot;); # &minus;help and &minus;?
+will both set $opt_help</p>
+
+<p style="margin-left:11%; margin-top: 1em">Other
+characters that can&rsquo;t appear in Perl identifiers are
+also supported in aliases with Getopt::Long of at version
+2.39. Note that the characters &quot;!&quot;, &quot;|&quot;,
+&quot;+&quot;, &quot;=&quot;, and &quot;:&quot; can only
+appear as the first (or only) character of an alias.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As of version
+2.32 Getopt::Long provides auto-help, a quick and easy way
+to add the options &minus;&minus;help and &minus;? to your
+program, and handle them.</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+&quot;auto_help&quot; in section &quot;Configuring
+Getopt::Long&quot;.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Johan Vromans
+&lt;jvromans@squirrel.nl&gt;</p>
+
+<h2>COPYRIGHT AND DISCLAIMER
+<a name="COPYRIGHT AND DISCLAIMER"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This program is
+Copyright 1990,2015 by Johan Vromans. This program is free
+software; you can redistribute it and/or modify it under the
+terms of the Perl Artistic License or the <small>GNU</small>
+General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your
+option) any later version.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This program is
+distributed in the hope that it will be useful, but
+<small>WITHOUT ANY WARRANTY</small> ; without even the
+implied warranty of <small>MERCHANTABILITY</small> or
+<small>FITNESS FOR A PARTICULAR PURPOSE.</small> See the
+<small>GNU</small> General Public License for more
+details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you do not
+have a copy of the <small>GNU</small> General Public License
+write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, <small>MA 02139, USA.</small></p>
+<hr>
+</body>
+</html>

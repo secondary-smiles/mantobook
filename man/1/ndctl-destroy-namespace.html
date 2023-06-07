@@ -1,0 +1,200 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:53:54 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>NDCTL&minus;DESTROY&minus;NAMESPACE</title>
+
+</head>
+<body>
+<h1>ndctl-destroy-namespace</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">ndctl-destroy-namespace
+&minus; destroy the given namespace(s)</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>ndctl
+destroy&minus;namespace</i> &lt;namespace&gt;
+[&lt;options&gt;]</p>
+
+<h2>THEORY OF OPERATION
+<a name="THEORY OF OPERATION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The capacity of
+an NVDIMM REGION (contiguous span of persistent memory) is
+accessed via one or more NAMESPACE devices. REGION is the
+Linux term for what ACPI and UEFI call a
+DIMM&minus;interleave&minus;set, or a
+system&minus;physical&minus;address&minus;range that is
+striped (by the memory controller) across one or more memory
+modules.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The UEFI
+specification defines the <i>NVDIMM Label Protocol</i> as
+the combination of label area access methods and a data
+format for provisioning one or more NAMESPACE objects from a
+REGION. Note that label support is optional and if Linux
+does not detect the label capability it will automatically
+instantiate a &quot;label&minus;less&quot; namespace per
+region. Examples of label&minus;less namespaces are the ones
+created by the kernel&rsquo;s <i>memmap=ss!nn</i> command
+line option (see the nvdimm wiki on kernel.org), or NVDIMMs
+without a valid <i>namespace index</i> in their label
+area.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b><big>Note</big></b>
+<br>
+Label&minus;less namespaces lack many of the features of
+their label&minus;rich cousins. For example, their size
+cannot be modified, or they cannot be fully <i>destroyed</i>
+(i.e. the space reclaimed). A destroy operation will zero
+any mode&minus;specific metadata. Finally, for
+create&minus;namespace operations on label&minus;less
+namespaces, ndctl bypasses the region capacity availability
+checks, and always satisfies the request using the full
+region capacity. The only reconfiguration operation
+supported on a label&minus;less namespace is changing its
+<i>mode</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A namespace can
+be provisioned to operate in one of 4 modes, <i>fsdax</i>,
+<i>devdax</i>, <i>sector</i>, and <i>raw</i>. Here are the
+expected usage models for these modes:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; fsdax:
+Filesystem&minus;DAX mode is the default mode of a namespace
+when specifying <i>ndctl create&minus;namespace</i> with no
+options. It creates a block device (/dev/pmemX[.Y]) that
+supports the DAX capabilities of Linux filesystems (xfs and
+ext4 to date). DAX removes the page cache from the I/O path
+and allows mmap(2) to establish direct mappings to
+persistent memory media. The DAX capability enables
+workloads / working&minus;sets that would exceed the
+capacity of the page cache to scale up to the capacity of
+persistent memory. Workloads that fit in page cache or
+perform bulk data transfers may not see benefit from DAX.
+When in doubt, pick this mode.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; devdax:
+Device&minus;DAX mode enables similar mmap(2) DAX mapping
+capabilities as Filesystem&minus;DAX. However, instead of a
+block&minus;device that can support a DAX&minus;enabled
+filesystem, this mode emits a single character device file
+(/dev/daxX.Y). Use this mode to assign persistent memory to
+a virtual&minus;machine, register persistent memory for
+RDMA, or when gigantic mappings are needed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; sector:
+Use this mode to host legacy filesystems that do not
+checksum metadata or applications that are not prepared for
+torn sectors after a crash. Expected usage for this mode is
+for small boot volumes. This mode is compatible with other
+operating systems.</p>
+
+<p style="margin-left:17%; margin-top: 1em">&bull; raw: Raw
+mode is effectively just a memory disk that does not support
+DAX. Typically this indicates a namespace that was created
+by tooling or another operating system that did not know how
+to create a Linux <i>fsdax</i> or <i>devdax</i> mode
+namespace. This mode is compatible with other operating
+systems, but again, does not support DAX operation.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>&lt;namespace&gt;</big></p>
+
+<p style="margin-left:17%;"><big>A <i>namespaceX.Y</i>
+device name. The keyword <i>all</i> can be specified to
+carry out the operation on every namespace in the system,
+optionally filtered by region (see
+&minus;&minus;region=option)</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;r,
+&minus;&minus;region=</big></p>
+
+<p style="margin-left:17%;"><big>A <i>regionX</i> device
+name, or a region id number. Restrict the operation to the
+specified region(s). The keyword <i>all</i> can be specified
+to indicate the lack of any restriction, however this is the
+same as not supplying a &minus;&minus;region option at
+all.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;b,
+&minus;&minus;bus=</big></p>
+
+<p style="margin-left:17%;"><big>A bus id number, or a
+provider string (e.g. &quot;ACPI.NFIT&quot;). Restrict the
+operation to the specified bus(es). The keyword <i>all</i>
+can be specified to indicate the lack of any restriction,
+however this is the same as not supplying a
+&minus;&minus;bus option at all.</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;v,
+&minus;&minus;verbose</big></p>
+
+<p style="margin-left:17%;"><big>Emit debug messages for
+the namespace operation</big></p>
+
+<p style="margin-left:11%; margin-top: 1em"><big>&minus;f,
+&minus;&minus;force</big></p>
+
+<p style="margin-left:17%;"><big>Unless this option is
+specified the <i>destroy namespace</i> operation will fail
+if the namespace is presently active. Specifying
+&minus;&minus;force causes the namespace to be disabled
+before the operation is attempted. However, if the namespace
+is mounted then the <i>disable namespace</i> and <i>destroy
+namespace</i> operations will be aborted. The namespace must
+be unmounted before being destroyed.</big></p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>Copyright
+&copy; 2016 &minus; 2022, Intel Corporation. License GPLv2:
+GNU GPL version 2 &lt;http://gnu.org/licenses/gpl.html&gt;.
+This is free software: you are free to change and
+redistribute it. There is NO WARRANTY, to the extent
+permitted by law.</big></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><big>ndctl&minus;create&minus;namespace(1)</big></p>
+<hr>
+</body>
+</html>

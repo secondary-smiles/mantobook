@@ -1,0 +1,200 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:30 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LIBUNWIND&minus;PTRACE</title>
+
+</head>
+<body>
+<h1>libunwind-ptrace</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">libunwind&minus;ptrace
+&minus;&minus; ptrace() support in libunwind</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;libunwind&minus;ptrace.h&gt;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">unw_accessors_t
+_UPT_accessors;</p>
+
+<p style="margin-left:11%; margin-top: 1em">void
+*_UPT_create(pid_t); <br>
+void _UPT_destroy(void *);</p>
+
+<p style="margin-left:11%; margin-top: 1em">int
+_UPT_find_proc_info(unw_addr_space_t, unw_word_t,
+unw_proc_info_t *, int, void *); <br>
+void _UPT_put_unwind_info(unw_addr_space_t, unw_proc_info_t
+*, void *); <br>
+int _UPT_get_dyn_info_list_addr(unw_addr_space_t, unw_word_t
+*, void *); <br>
+int _UPT_access_mem(unw_addr_space_t, unw_word_t, unw_word_t
+*, int, void *); <br>
+int _UPT_access_reg(unw_addr_space_t, unw_regnum_t,
+unw_word_t *, int, void *); <br>
+int _UPT_access_fpreg(unw_addr_space_t, unw_regnum_t,
+unw_fpreg_t *, int, void *); <br>
+int _UPT_get_proc_name(unw_addr_space_t, unw_word_t, char *,
+size_t, unw_word_t *, void *); <br>
+int _UPT_resume(unw_addr_space_t, unw_cursor_t *, void
+*);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The ptrace(2)
+system&minus;call makes it possible for a process to gain
+access to the machine&minus;state and virtual memory of
+<i>another</i> process. With the right set of
+call&minus;back routines, it is therefore possible to hook
+up libunwind to another process via ptrace(2). While
+it&rsquo;s not very difficult to do so directly, libunwind
+further facilitates this task by providing
+ready&minus;to&minus;use callbacks for this purpose. The
+routines and variables implementing this facility use a
+name&minus;prefix of _UPT, which is stands for
+&lsquo;&lsquo;unwind&minus;via&minus;ptrace&rsquo;&rsquo;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An application
+that wants to use the _UPT&minus;facility first needs to
+create a new libunwind address&minus;space that represents
+the target process. This is done by calling
+unw_create_addr_space(). In many cases, the application will
+simply want to pass the address of _UPT_accessors as the
+first argument to this routine. Doing so will ensure that
+libunwind will be able to properly unwind the target
+process. However, in special circumstances, an application
+may prefer to use only portions of the _UPT&minus;facility.
+For this reason, the individual callback routines
+(_UPT_find_proc_info(), _UPT_put_unwind_info(), etc.) are
+also available for direct use. Of course, the addresses of
+these routines could also be picked up from _UPT_accessors,
+but doing so would prevent static initialization. Also, when
+using _UPT_accessors, <i>all</i> the callback routines will
+be linked into the application, even if they are never
+actually called.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Next, the
+application can turn on ptrace&minus;mode on the target
+process, either by forking a new process, invoking
+PTRACE_TRACEME, and then starting the target program (via
+execve(2)), or by directly attaching to an already running
+process (via PTRACE_ATTACH). Either way, once the
+process&minus;ID (pid) of the target process is known, a
+_UPT&minus;info&minus;structure can be created by calling
+_UPT_create(), passing the pid of the target process as the
+only argument. The returned void&minus;pointer then needs to
+be passed as the &lsquo;&lsquo;argument&rsquo;&rsquo;
+pointer (third argument) to unw_init_remote().</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+_UPT_resume() routine can be used to resume execution of the
+target process. It simply invokes ptrace(2) with a command
+value of PTRACE_CONT.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When the
+application is done using libunwind on the target process,
+_UPT_destroy() needs to be called, passing it the
+void&minus;pointer that was returned by the corresponding
+call to _UPT_create(). This ensures that all memory and
+other resources are freed up.</p>
+
+<h2>AVAILABILITY
+<a name="AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Since ptrace(2)
+works within a single machine only, the _UPT&minus;facility
+by definition is not available in libunwind&minus;versions
+configured for cross&minus;unwinding.</p>
+
+<h2>THREAD SAFETY
+<a name="THREAD SAFETY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+_UPT&minus;facility assumes that a single _UPT&minus;info
+structure is never shared between threads. Because of this,
+no explicit locking is used. As long as only one thread uses
+a _UPT&minus;info structure at any given time, this facility
+is thread&minus;safe.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">_UPT_create()
+may return a NULL pointer if it fails to create the
+_UPT&minus;info&minus;structure for any reason. For the
+current implementation, the only reason this call may fail
+is when the system is out of memory.</p>
+
+<h2>FILES
+<a name="FILES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">libunwind&minus;ptrace.h</p>
+
+<p style="margin-left:22%;">Headerfile to include when
+using the interface defined by this library.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;l</b>unwind&minus;ptrace
+<b>&minus;l</b>unwind&minus;generic</p>
+
+<p style="margin-left:22%;">Linker&minus;switches to add
+when building a program that uses the functions defined by
+this library.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">execve(2),
+libunwind(3), ptrace(2)</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">David
+Mosberger&minus;Tang <br>
+Email: <b>dmosberger@gmail.com</b> <br>
+WWW: <b>http://www.nongnu.org/libunwind/</b>.</p>
+<hr>
+</body>
+</html>

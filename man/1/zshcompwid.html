@@ -1,0 +1,2115 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:05 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>ZSHCOMPWID</title>
+
+</head>
+<body>
+<h1>zshcompwid</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">zshcompwid
+&minus; zsh completion widgets</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+shell&rsquo;s programmable completion mechanism can be
+manipulated in two ways; here the low&minus;level features
+supporting the newer, function&minus;based mechanism are
+defined. A complete set of shell functions based on these
+features is described in <i>zshcompsys</i>(1), and users
+with no interest in adding to that system (or, potentially,
+writing their own &minus;&minus; see dictionary entry for
+&lsquo;hubris&rsquo;) should skip the current section. The
+older system based on the <b>compctl</b> builtin command is
+described in <i>zshcompctl</i>(1).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Completion
+widgets are defined by the <b>&minus;C</b> option to the
+<b>zle</b> builtin command provided by the <b>zsh/zle</b>
+module (see <i>zshzle</i>(1)). For example,</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>zle &minus;C
+complete expand&minus;or&minus;complete completer</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">defines a
+widget named &lsquo;<b>complete</b>&rsquo;. The second
+argument is the name of any of the builtin widgets that
+handle completions: <b>complete&minus;word</b>,
+<b>expand&minus;or&minus;complete</b>,
+<b>expand&minus;or&minus;complete&minus;prefix</b>,
+<b>menu&minus;complete</b>,
+<b>menu&minus;expand&minus;or&minus;complete</b>,
+<b>reverse&minus;menu&minus;complete</b>,
+<b>list&minus;choices</b>, or
+<b>delete&minus;char&minus;or&minus;list</b>. Note that this
+will still work even if the widget in question has been
+re&minus;bound.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When this newly
+defined widget is bound to a key using the <b>bindkey</b>
+builtin command defined in the <b>zsh/zle</b> module (see
+<i>zshzle</i>(1)), typing that key will call the shell
+function &lsquo;<b>completer</b>&rsquo;. This function is
+responsible for generating completion matches using the
+builtins described below. As with other ZLE widgets, the
+function is called with its standard input closed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Once the
+function returns, the completion code takes over control
+again and treats the matches in the same manner as the
+specified builtin widget, in this case
+<b>expand&minus;or&minus;complete</b>.</p>
+
+<h2>COMPLETION SPECIAL PARAMETERS
+<a name="COMPLETION SPECIAL PARAMETERS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The parameters
+<b>ZLE_REMOVE_SUFFIX_CHARS</b> and
+<b>ZLE_SPACE_SUFFIX_CHARS</b> are used by the completion
+mechanism, but are not special. See <i>Parameters Used By
+The Shell</i> in <i>zshparam</i>(1).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Inside
+completion widgets, and any functions called from them, some
+parameters have special meaning; outside these functions
+they are not special to the shell in any way. These
+parameters are used to pass information between the
+completion code and the completion widget. Some of the
+builtin commands and the condition codes use or change the
+current values of these parameters. Any existing values will
+be hidden during execution of completion widgets; except for
+<b>compstate</b>, the parameters are reset on each function
+exit (including nested function calls from within the
+completion widget) to the values they had when the function
+was entered. <b><br>
+CURRENT</b></p>
+
+<p style="margin-left:22%;">This is the number of the
+current word, i.e. the word the cursor is currently on in
+the <b>words</b> array. Note that this value is only correct
+if the <b>ksharrays</b> option is not set.</p>
+
+<p style="margin-left:11%;"><b>IPREFIX</b></p>
+
+<p style="margin-left:22%;">Initially this will be set to
+the empty string. This parameter functions like
+<b>PREFIX</b>; it contains a string which precedes the one
+in <b>PREFIX</b> and is not considered part of the list of
+matches. Typically, a string is transferred from the
+beginning of <b>PREFIX</b> to the end of <b>IPREFIX</b>, for
+example:</p>
+
+
+<p style="margin-left:32%; margin-top: 1em"><b>IPREFIX=${PREFIX%%\=*}=
+<br>
+PREFIX=${PREFIX#*=}</b></p>
+
+<p style="margin-left:22%; margin-top: 1em">causes the part
+of the prefix up to and including the first equal sign not
+to be treated as part of a matched string. This can be done
+automatically by the <b>compset</b> builtin, see below.</p>
+
+<p style="margin-left:11%;"><b>ISUFFIX</b></p>
+
+<p style="margin-left:22%;">As <b>IPREFIX</b>, but for a
+suffix that should not be considered part of the matches;
+note that the <b>ISUFFIX</b> string follows the
+<b>SUFFIX</b> string.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>PREFIX</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>Initially this will be set to the part of the current
+word from the beginning of the word up to the position of
+the cursor; it may be altered to give a common prefix for
+all matches.</p></td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>QIPREFIX</b></p>
+
+<p style="margin-left:22%;">This parameter is
+read&minus;only and contains the quoted string up to the
+word being completed. E.g. when completing
+&lsquo;<b>&quot;foo</b>&rsquo;, this parameter contains the
+double quote. If the <b>&minus;q</b> option of
+<b>compset</b> is used (see below), and the original string
+was &lsquo;<b>&quot;foo bar</b>&rsquo; with the cursor on
+the &lsquo;<b>bar</b>&rsquo;, this parameter contains
+&lsquo;<b>&quot;foo</b> &rsquo;.</p>
+
+<p style="margin-left:11%;"><b>QISUFFIX</b></p>
+
+<p style="margin-left:22%;">Like <b>QIPREFIX</b>, but
+containing the suffix.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p><b>SUFFIX</b></p></td>
+<td width="2%"></td>
+<td width="78%">
+
+
+<p>Initially this will be set to the part of the current
+word from the cursor position to the end; it may be altered
+to give a common suffix for all matches. It is most useful
+when the option <b>COMPLETE_IN_WORD</b> is set, as otherwise
+the whole word on the command line is treated as a
+prefix.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>compstate</b></p>
+
+<p style="margin-left:22%;">This is an associative array
+with various keys and values that the completion code uses
+to exchange information with the completion widget. The keys
+are: <b><br>
+all_quotes</b></p>
+
+<p style="margin-left:32%;">The <b>&minus;q</b> option of
+the <b>compset</b> builtin command (see below) allows a
+quoted string to be broken into separate words; if the
+cursor is on one of those words, that word will be
+completed, possibly invoking &lsquo;<b>compset
+&minus;q</b>&rsquo; recursively. With this key it is
+possible to test the types of quoted strings which are
+currently broken into parts in this fashion. Its value
+contains one character for each quoting level. The
+characters are a single quote or a double quote for strings
+quoted with these characters, a dollars sign for strings
+quoted with <b>$&rsquo;</b><i>...</i><b>&rsquo;</b> and a
+backslash for strings not starting with a quote character.
+The first character in the value always corresponds to the
+innermost quoting level.</p>
+
+<p style="margin-left:22%;"><b>context</b></p>
+
+<p style="margin-left:32%;">This will be set by the
+completion code to the overall context in which completion
+is attempted. Possible values are: <b><br>
+array_value</b></p>
+
+<p style="margin-left:43%;">when completing inside the
+value of an array parameter assignment; in this case the
+<b>words</b> array contains the words inside the
+parentheses.</p>
+
+<p style="margin-left:32%;"><b>brace_parameter</b></p>
+
+<p style="margin-left:43%;">when completing the name of a
+parameter in a parameter expansion beginning with <b>${</b>.
+This context will also be set when completing parameter
+flags following <b>${(</b>; the full command line argument
+is presented and the handler must test the value to be
+completed to ascertain that this is the case.</p>
+
+<p style="margin-left:32%;"><b>assign_parameter</b></p>
+
+<p style="margin-left:43%;">when completing the name of a
+parameter in a parameter assignment.</p>
+
+<p style="margin-left:32%;"><b>command</b></p>
+
+<p style="margin-left:43%;">when completing for a normal
+command (either in command position or for an argument of
+the command).</p>
+
+<p style="margin-left:32%;"><b>condition</b></p>
+
+<p style="margin-left:43%;">when completing inside a
+&lsquo;<b>[[</b>...<b>]]</b>&rsquo; conditional expression;
+in this case the <b>words</b> array contains only the words
+inside the conditional expression.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="32%"></td>
+<td width="6%">
+
+
+<p><b>math</b></p></td>
+<td width="5%"></td>
+<td width="57%">
+
+
+<p>when completing in a mathematical environment such as a
+&lsquo;<b>((</b>...<b>))</b>&rsquo; construct.</p></td></tr>
+</table>
+
+<p style="margin-left:32%;"><b>parameter</b></p>
+
+<p style="margin-left:43%;">when completing the name of a
+parameter in a parameter expansion beginning with <b>$</b>
+but not <b>${</b>.</p>
+
+<p style="margin-left:32%;"><b>redirect</b></p>
+
+<p style="margin-left:43%;">when completing after a
+redirection operator.</p>
+
+<p style="margin-left:32%;"><b>subscript</b></p>
+
+<p style="margin-left:43%;">when completing inside a
+parameter subscript.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="18%">
+
+
+<p><b>value</b></p></td>
+<td width="3%"></td>
+<td width="57%">
+
+
+<p>when completing the value of a parameter assignment.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="18%">
+
+
+<p><b>exact</b></p></td>
+<td width="3%"></td>
+<td width="57%">
+</td></tr>
+</table>
+
+<p style="margin-left:32%; margin-top: 1em">Controls the
+behaviour when the <b>REC_EXACT</b> option is set. It will
+be set to <b>accept</b> if an exact match would be accepted,
+and will be unset otherwise.</p>
+
+<p style="margin-left:32%; margin-top: 1em">If it was set
+when at least one match equal to the string on the line was
+generated, the match is accepted.</p>
+
+<p style="margin-left:22%;"><b>exact_string</b></p>
+
+<p style="margin-left:32%;">The string of an exact match if
+one was found, otherwise unset.</p>
+
+<p style="margin-left:22%;"><b>ignored</b></p>
+
+<p style="margin-left:32%;">The number of completions that
+were ignored because they matched one of the patterns given
+with the <b>&minus;F</b> option to the <b>compadd</b>
+builtin command.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="9%">
+
+
+<p><b>insert</b></p></td>
+<td width="1%"></td>
+<td width="68%">
+
+
+<p>This controls the manner in which a match is inserted
+into the command line. On entry to the widget function, if
+it is unset the command line is not to be changed; if set to
+<b>unambiguous</b>, any prefix common to all matches is to
+be inserted; if set to <b>automenu&minus;unambiguous</b>,
+the common prefix is to be inserted and the next invocation
+of the completion code may start menu completion (due to the
+<b>AUTO_MENU</b> option being set); if set to <b>menu</b> or
+<b>automenu</b> menu completion will be started for the
+matches currently generated (in the latter case this will
+happen because the <b>AUTO_MENU</b> is set). The value may
+also contain the string &lsquo;<b>tab</b>&rsquo; when the
+completion code would normally not really do completion, but
+only insert the TAB character.</p></td></tr>
+</table>
+
+<p style="margin-left:32%; margin-top: 1em">On exit it may
+be set to any of the values above (where setting it to the
+empty string is the same as unsetting it), or to a number,
+in which case the match whose number is given will be
+inserted into the command line. Negative numbers count
+backward from the last match (with
+&lsquo;<b>&minus;1</b>&rsquo; selecting the last match) and
+out&minus;of&minus;range values are wrapped around, so that
+a value of zero selects the last match and a value one more
+than the maximum selects the first. Unless the value of this
+key ends in a space, the match is inserted as in a menu
+completion, i.e. without automatically appending a
+space.</p>
+
+<p style="margin-left:32%; margin-top: 1em">Both
+<b>menu</b> and <b>automenu</b> may also specify the number
+of the match to insert, given after a colon. For example,
+&lsquo;<b>menu:2</b>&rsquo; says to start menu completion,
+beginning with the second match.</p>
+
+<p style="margin-left:32%; margin-top: 1em">Note that a
+value containing the substring &lsquo;<b>tab</b>&rsquo;
+makes the matches generated be ignored and only the TAB be
+inserted.</p>
+
+<p style="margin-left:32%; margin-top: 1em">Finally, it may
+also be set to <b>all</b>, which makes all matches generated
+be inserted into the line.</p>
+
+<p style="margin-left:22%;"><b>insert_positions</b></p>
+
+<p style="margin-left:32%;">When the completion system
+inserts an unambiguous string into the line, there may be
+multiple places where characters are missing or where the
+character inserted differs from at least one match. The
+value of this key contains a colon separated list of all
+these positions, as indexes into the command line.</p>
+
+<p style="margin-left:22%;"><b>last_prompt</b></p>
+
+<p style="margin-left:32%;">If this is set to a
+non&minus;empty string for every match added, the completion
+code will move the cursor back to the previous prompt after
+the list of completions has been displayed. Initially this
+is set or unset according to the <b>ALWAYS_LAST_PROMPT</b>
+option.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="6%">
+
+
+<p><b>list</b></p></td>
+<td width="4%"></td>
+<td width="68%">
+
+
+<p>This controls whether or how the list of matches will be
+displayed. If it is unset or empty they will never be
+listed; if its value begins with <b>list</b>, they will
+always be listed; if it begins with <b>autolist</b> or
+<b>ambiguous</b>, they will be listed when the
+<b>AUTO_LIST</b> or <b>LIST_AMBIGUOUS</b> options
+respectively would normally cause them to be.</p></td></tr>
+</table>
+
+<p style="margin-left:32%; margin-top: 1em">If the
+substring <b>force</b> appears in the value, this makes the
+list be shown even if there is only one match. Normally, the
+list would be shown only if there are at least two
+matches.</p>
+
+<p style="margin-left:32%; margin-top: 1em">The value
+contains the substring <b>packed</b> if the
+<b>LIST_PACKED</b> option is set. If this substring is given
+for all matches added to a group, this group will show the
+<b>LIST_PACKED</b> behavior. The same is done for the
+<b>LIST_ROWS_FIRST</b> option with the substring
+<b>rows</b>.</p>
+
+<p style="margin-left:32%; margin-top: 1em">Finally, if the
+value contains the string <b>explanations</b>, only the
+explanation strings, if any, will be listed and if it
+contains <b>messages</b>, only the messages (added with the
+<b>&minus;x</b> option of <b>compadd</b>) will be listed. If
+it contains both <b>explanations</b> and <b>messages</b>
+both kinds of explanation strings will be listed. It will be
+set appropriately on entry to a completion widget and may be
+changed there.</p>
+
+<p style="margin-left:22%;"><b>list_lines</b></p>
+
+<p style="margin-left:32%;">This gives the number of lines
+that are needed to display the full list of completions.
+Note that to calculate the total number of lines to display
+you need to add the number of lines needed for the command
+line to this value, this is available as the value of the
+<b>BUFFERLINES</b> special parameter.</p>
+
+<p style="margin-left:22%;"><b>list_max</b></p>
+
+<p style="margin-left:32%;">Initially this is set to the
+value of the <b>LISTMAX</b> parameter. It may be set to any
+other value; when the widget exits this value will be used
+in the same way as the value of <b>LISTMAX</b>.</p>
+
+<p style="margin-left:22%;"><b>nmatches</b></p>
+
+<p style="margin-left:32%;">The number of matches added by
+the completion code so far.</p>
+
+<p style="margin-left:22%;"><b>old_insert</b></p>
+
+<p style="margin-left:32%;">On entry to the widget this
+will be set to the number of the match of an old list of
+completions that is currently inserted into the command
+line. If no match has been inserted, this is unset.</p>
+
+<p style="margin-left:32%; margin-top: 1em">As with
+<b>old_list</b>, the value of this key will only be used if
+it is the string <b>keep</b>. If it was set to this value by
+the widget and there was an old match inserted into the
+command line, this match will be kept and if the value of
+the <b>insert</b> key specifies that another match should be
+inserted, this will be inserted after the old one.</p>
+
+<p style="margin-left:22%;"><b>old_list</b></p>
+
+<p style="margin-left:32%;">This is set to <b>yes</b> if
+there is still a valid list of completions from a previous
+completion at the time the widget is invoked. This will
+usually be the case if and only if the previous editing
+operation was a completion widget or one of the builtin
+completion functions. If there is a valid list and it is
+also currently shown on the screen, the value of this key is
+<b>shown</b>.</p>
+
+<p style="margin-left:32%; margin-top: 1em">After the
+widget has exited the value of this key is only used if it
+was set to <b>keep</b>. In this case the completion code
+will continue to use this old list. If the widget generated
+new matches, they will not be used.</p>
+
+<p style="margin-left:22%;"><b>parameter</b></p>
+
+<p style="margin-left:32%;">The name of the parameter when
+completing in a subscript or in the value of a parameter
+assignment.</p>
+
+<p style="margin-left:22%;"><b>pattern_insert</b></p>
+
+<p style="margin-left:32%;">Normally this is set to
+<b>menu</b>, which specifies that menu completion will be
+used whenever a set of matches was generated using
+<b>pattern_match</b> (see below). If it is set to any other
+non&minus;empty string by the user and menu completion is
+not selected by other option settings, the code will instead
+insert any common prefix for the generated matches as with
+normal completion.</p>
+
+<p style="margin-left:22%;"><b>pattern_match</b></p>
+
+<p style="margin-left:32%;">Locally controls the behaviour
+given by the <b>GLOB_COMPLETE</b> option. Initially it is
+set to &lsquo;<b>*</b>&rsquo; if and only if the option is
+set. The completion widget may set it to this value, to an
+empty string (which has the same effect as unsetting it), or
+to any other non&minus;empty string. If it is
+non&minus;empty, unquoted metacharacters on the command line
+will be treated as patterns; if it is
+&lsquo;<b>*</b>&rsquo;, then additionally a wildcard
+&lsquo;<b>*</b>&rsquo; is assumed at the cursor position; if
+it is empty or unset, metacharacters will be treated
+literally.</p>
+
+<p style="margin-left:32%; margin-top: 1em">Note that the
+match specifications given to the <b>compadd</b> builtin
+command are not used if this is set to a non&minus;empty
+string.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="7%">
+
+
+<p><b>quote</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>When completing inside quotes, this contains the
+quotation character (i.e. either a single quote, a double
+quote, or a backtick). Otherwise it is unset.</p></td></tr>
+</table>
+
+<p style="margin-left:22%;"><b>quoting</b></p>
+
+<p style="margin-left:32%;">When completing inside single
+quotes, this is set to the string <b>single</b>; inside
+double quotes, the string <b>double</b>; inside backticks,
+the string <b>backtick</b>. Otherwise it is unset.</p>
+
+<p style="margin-left:22%;"><b>redirect</b></p>
+
+<p style="margin-left:32%;">The redirection operator when
+completing in a redirection position, i.e. one of
+<b>&lt;</b>, <b>&gt;</b>, etc.</p>
+
+<p style="margin-left:22%;"><b>restore</b></p>
+
+<p style="margin-left:32%;">This is set to <b>auto</b>
+before a function is entered, which forces the special
+parameters mentioned above (<b>words</b>, <b>CURRENT</b>,
+<b>PREFIX</b>, <b>IPREFIX</b>, <b>SUFFIX</b>, and
+<b>ISUFFIX</b>) to be restored to their previous values when
+the function exits. If a function unsets it or sets it to
+any other string, they will not be restored.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="9%">
+
+
+<p><b>to_end</b></p></td>
+<td width="1%"></td>
+<td width="68%">
+
+
+<p>Specifies the occasions on which the cursor is moved to
+the end of a string when a match is inserted. On entry to a
+widget function, it may be <b>single</b> if this will happen
+when a single unambiguous match was inserted or <b>match</b>
+if it will happen any time a match is inserted (for example,
+by menu completion; this is likely to be the effect of the
+<b>ALWAYS_TO_END</b> option).</p></td></tr>
+</table>
+
+<p style="margin-left:32%; margin-top: 1em">On exit, it may
+be set to <b>single</b> as above. It may also be set to
+<b>always</b>, or to the empty string or unset; in those
+cases the cursor will be moved to the end of the string
+always or never respectively. Any other string is treated as
+<b>match</b>.</p>
+
+<p style="margin-left:22%;"><b>unambiguous</b></p>
+
+<p style="margin-left:32%;">This key is read&minus;only and
+will always be set to the common (unambiguous) prefix the
+completion code has generated for all matches added so
+far.</p>
+
+<p style="margin-left:22%;"><b>unambiguous_cursor</b></p>
+
+<p style="margin-left:32%;">This gives the position the
+cursor would be placed at if the common prefix in the
+<b>unambiguous</b> key were inserted, relative to the value
+of that key. The cursor would be placed before the character
+whose index is given by this key.</p>
+
+
+<p style="margin-left:22%;"><b>unambiguous_positions</b></p>
+
+<p style="margin-left:32%;">This contains all positions
+where characters in the unambiguous string are missing or
+where the character inserted differs from at least one of
+the matches. The positions are given as indexes into the
+string given by the value of the <b>unambiguous</b> key.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="18%">
+
+
+<p><b>vared</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p>If completion is called while editing a line using the
+<b>vared</b> builtin, the value of this key is set to the
+name of the parameter given as an argument to <b>vared</b>.
+This key is only set while a <b>vared</b> command is
+active.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="18%">
+
+
+<p><b>words</b></p></td>
+<td width="3%"></td>
+<td width="68%">
+</td></tr>
+</table>
+
+<p style="margin-left:22%; margin-top: 1em">This array
+contains the words present on the command line currently
+being edited.</p>
+
+<h2>COMPLETION BUILTIN COMMANDS
+<a name="COMPLETION BUILTIN COMMANDS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>compadd</b>
+[ <b>&minus;akqQfenUl12C</b> ] [ <b>&minus;F</b>
+<i>array</i> ] <br>
+[<b>&minus;P</b> <i>prefix</i> ] [ <b>&minus;S</b>
+<i>suffix</i> ] <br>
+[<b>&minus;p</b> <i>hidden&minus;prefix</i> ] [
+<b>&minus;s</b> <i>hidden&minus;suffix</i> ] <br>
+[<b>&minus;i</b> <i>ignored&minus;prefix</i> ] [
+<b>&minus;I</b> <i>ignored&minus;suffix</i> ] <br>
+[<b>&minus;W</b> <i>file&minus;prefix</i> ] [
+<b>&minus;d</b> <i>array</i> ] <br>
+[<b>&minus;J</b> <i>group&minus;name</i> ] [ <b>&minus;X</b>
+<i>explanation</i> ] [ <b>&minus;x</b> <i>message</i> ] <br>
+[<b>&minus;V</b> <i>group&minus;name</i> ] [ <b>&minus;o</b>
+[ <i>order</i> ] ] <br>
+[<b>&minus;r</b> <i>remove&minus;chars</i> ] [
+<b>&minus;R</b> <i>remove&minus;func</i> ] <br>
+[<b>&minus;D</b> <i>array</i> ] [ <b>&minus;O</b>
+<i>array</i> ] [ <b>&minus;A</b> <i>array</i> ] <br>
+[<b>&minus;E</b> <i>number</i> ] <br>
+[<b>&minus;M</b> <i>match&minus;spec</i> ] [
+<b>&minus;&minus;</b> ] [ <i>completions</i> ... ]</p>
+
+<p style="margin-left:22%; margin-top: 1em">This builtin
+command can be used to add matches directly and control all
+the information the completion code stores with each
+possible completion. The return status is zero if at least
+one match was added and non&minus;zero if no matches were
+added.</p>
+
+<p style="margin-left:22%; margin-top: 1em">The completion
+code breaks each match into seven fields in the order:</p>
+
+
+<p style="margin-left:32%; margin-top: 1em"><i>&lt;ipre&gt;&lt;apre&gt;&lt;hpre&gt;&lt;body&gt;&lt;hsuf&gt;&lt;asuf&gt;&lt;isuf&gt;</i></p>
+
+<p style="margin-left:22%; margin-top: 1em">The first field
+is an ignored prefix taken from the command line, the
+contents of the <b>IPREFIX</b> parameter plus the string
+given with the <b>&minus;i</b> option. With the
+<b>&minus;U</b> option, only the string from the
+<b>&minus;i</b> option is used. The field
+<i>&lt;apre&gt;</i> is an optional prefix string given with
+the <b>&minus;P</b> option. The <i>&lt;hpre&gt;</i> field is
+a string that is considered part of the match but that
+should not be shown when listing completions, given with the
+<b>&minus;p</b> option; for example, functions that do
+filename generation might specify a common path prefix this
+way. <i>&lt;body&gt;</i> is the part of the match that
+should appear in the list of matches shown to the user. The
+suffixes <i>&lt;hsuf&gt;</i>, <i>&lt;asuf&gt;</i> and
+<i>&lt;isuf&gt;</i> correspond to the prefixes
+<i>&lt;hpre&gt;</i>, <i>&lt;apre&gt;</i> and
+<i>&lt;ipre&gt;</i> and are given by the options
+<b>&minus;s</b>, <b>&minus;S</b> and <b>&minus;I</b>,
+respectively.</p>
+
+<p style="margin-left:22%; margin-top: 1em">The supported
+flags are: <b><br>
+&minus;P</b> <i>prefix</i></p>
+
+<p style="margin-left:32%;">This gives a string to be
+inserted before each match. The string given is not
+considered as part of the match and any shell metacharacters
+in it will not be quoted when the string is inserted.</p>
+
+<p style="margin-left:22%;"><b>&minus;S</b>
+<i>suffix</i></p>
+
+<p style="margin-left:32%;">Like <b>&minus;P</b>, but gives
+a string to be inserted after each match.</p>
+
+<p style="margin-left:22%;"><b>&minus;p</b>
+<i>hidden&minus;prefix</i></p>
+
+<p style="margin-left:32%;">This gives a string that should
+be inserted before each match but that should not appear in
+the list of matches. Unless the <b>&minus;U</b> option is
+given, this string must be matched as part of the string on
+the command line.</p>
+
+<p style="margin-left:22%;"><b>&minus;s</b>
+<i>hidden&minus;suffix</i></p>
+
+<p style="margin-left:32%;">Like
+&lsquo;<b>&minus;p</b>&rsquo;, but gives a string to insert
+after each match.</p>
+
+<p style="margin-left:22%;"><b>&minus;i</b>
+<i>ignored&minus;prefix</i></p>
+
+<p style="margin-left:32%;">This gives a string to insert
+just before any string given with the
+&lsquo;<b>&minus;P</b>&rsquo; option. Without
+&lsquo;<b>&minus;P</b>&rsquo; the string is inserted before
+the string given with &lsquo;<b>&minus;p</b>&rsquo; or
+directly before each match.</p>
+
+<p style="margin-left:22%;"><b>&minus;I</b>
+<i>ignored&minus;suffix</i></p>
+
+<p style="margin-left:32%;">Like <b>&minus;i</b>, but gives
+an ignored suffix.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;a</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>With this flag the <i>completions</i> are taken as names
+of arrays and the actual completions are their values. If
+only some elements of the arrays are needed, the
+<i>completions</i> may also contain subscripts, as in
+&lsquo;<b>foo[2,&minus;1]</b>&rsquo;.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;k</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>With this flag the <i>completions</i> are taken as names
+of associative arrays and the actual completions are their
+keys. As for <b>&minus;a</b>, the <i>words</i> may also
+contain subscripts, as in
+&lsquo;<b>foo[(R)*bar*]</b>&rsquo;.</p> </td></tr>
+</table>
+
+<p style="margin-left:22%;"><b>&minus;d</b>
+<i>array</i></p>
+
+<p style="margin-left:32%;">This adds per&minus;completion
+display strings. The <i>array</i> should contain one element
+per <i>completion</i> given. The completion code will then
+display the first element instead of the first
+<i>completion</i>, and so on. The <i>array</i> may be given
+as the name of an array parameter or directly as a
+space&minus;separated list of words in parentheses.</p>
+
+<p style="margin-left:32%; margin-top: 1em">If there are
+fewer display strings than <i>completions</i>, the leftover
+<i>completions</i> will be displayed unchanged and if there
+are more display strings than <i>completions</i>, the
+leftover display strings will be silently ignored.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;l</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>This option only has an effect if used together with the
+<b>&minus;d</b> option. If it is given, the display strings
+are listed one per line, not arrayed in columns.</p></td></tr>
+</table>
+
+<p style="margin-left:22%;"><b>&minus;o</b> [ <i>order</i>
+]</p>
+
+<p style="margin-left:32%;">This controls the order in
+which matches are sorted. <i>order</i> is a
+comma&minus;separated list comprising the following possible
+values. These values can be abbreviated to their initial two
+or three characters. Note that the order forms part of the
+group name space so matches with different orderings will
+not be in the same group.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="32%"></td>
+<td width="10%">
+
+
+<p><b>match</b></p></td>
+<td width="1%"></td>
+<td width="57%">
+
+
+<p>If given, the order of the output is determined by the
+match strings; otherwise it is determined by the display
+strings (i.e. the strings given by the <b>&minus;d</b>
+option). This is the default if
+&lsquo;<b>&minus;o</b>&rsquo; is specified but the
+<i>order</i> argument is omitted.</p></td></tr>
+<tr valign="top" align="left">
+<td width="32%"></td>
+<td width="10%">
+
+
+<p><b>nosort</b></p></td>
+<td width="1%"></td>
+<td width="57%">
+
+
+<p>This specifies that the <i>completions</i> are
+pre&minus;sorted and their order should be preserved. This
+value only makes sense alone and cannot be combined with any
+others.</p> </td></tr>
+</table>
+
+<p style="margin-left:32%;"><b>numeric</b></p>
+
+<p style="margin-left:43%;">If the matches include numbers,
+sort them numerically rather than lexicographically.</p>
+
+<p style="margin-left:32%;"><b>reverse</b></p>
+
+<p style="margin-left:43%;">Arrange the matches backwards
+by reversing the sort ordering.</p>
+
+<p style="margin-left:22%;"><b>&minus;J</b>
+<i>group&minus;name</i></p>
+
+<p style="margin-left:32%;">Gives the name of the group
+that the matches should be stored in.</p>
+
+<p style="margin-left:22%;"><b>&minus;V</b>
+<i>group&minus;name</i></p>
+
+<p style="margin-left:32%;">Like <b>&minus;J</b> but naming
+an unsorted group. This option is identical to the
+combination of <b>&minus;J</b> and <b>&minus;o
+nosort</b>.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;1</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>If given together with the <b>&minus;V</b> option, makes
+only consecutive duplicates in the group be removed. If
+combined with the <b>&minus;J</b> option, this has no
+visible effect. Note that groups with and without this flag
+are in different name spaces.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;2</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>If given together with the <b>&minus;J</b> or
+<b>&minus;V</b> option, makes all duplicates be kept. Again,
+groups with and without this flag are in different name
+spaces.</p> </td></tr>
+</table>
+
+<p style="margin-left:22%;"><b>&minus;X</b>
+<i>explanation</i></p>
+
+<p style="margin-left:32%;">The <i>explanation</i> string
+will be printed with the list of matches, above the group
+currently selected.</p>
+
+<p style="margin-left:32%; margin-top: 1em">Within the
+<i>explanation</i>, the following sequences may be used to
+specify output attributes as described in the section
+EXPANSION OF PROMPT SEQUENCES in <i>zshmisc</i>(1):
+&lsquo;<b>%B</b>&rsquo;, &lsquo;<b>%S</b>&rsquo;,
+&lsquo;<b>%U</b>&rsquo;, &lsquo;<b>%F</b>&rsquo;,
+&lsquo;<b>%K</b>&rsquo; and their lower case counterparts,
+as well as &lsquo;<b>%{</b>...<b>%}</b>&rsquo;.
+&lsquo;<b>%F</b>&rsquo;, &lsquo;<b>%K</b>&rsquo; and
+&lsquo;<b>%{</b>...<b>%}</b>&rsquo; take arguments in the
+same form as prompt expansion. (Note that the sequence
+&lsquo;<b>%G</b>&rsquo; is not available; an argument to
+&lsquo;<b>%{</b>&rsquo; should be used instead.) The
+sequence &lsquo;<b>%%</b>&rsquo; produces a literal
+&lsquo;<b>%</b>&rsquo;.</p>
+
+<p style="margin-left:32%; margin-top: 1em">These sequences
+are most often employed by users when customising the
+<b>format</b> style (see <i>zshcompsys</i>(1)), but they
+must also be taken into account when writing completion
+functions, as passing descriptions with unescaped
+&lsquo;<b>%</b>&rsquo; characters to utility functions such
+as <b>_arguments</b> and <b>_message</b> may produce
+unexpected results. If arbitrary text is to be passed in a
+description, it can be escaped using e.g.
+<b>${my_str//\%/%%}</b>.</p>
+
+<p style="margin-left:22%;"><b>&minus;x</b>
+<i>message</i></p>
+
+<p style="margin-left:32%;">Like <b>&minus;X</b>, but the
+<i>message</i> will be printed even if there are no matches
+in the group.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;q</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>The suffix given with <b>&minus;S</b> will be
+automatically removed if the next character typed is a blank
+or does not insert anything, or if the suffix consists of
+only one character and the next character typed is the same
+character.</p> </td></tr>
+</table>
+
+<p style="margin-left:22%;"><b>&minus;r</b>
+<i>remove&minus;chars</i></p>
+
+<p style="margin-left:32%;">This is a more versatile form
+of the <b>&minus;q</b> option. The suffix given with
+<b>&minus;S</b> or the slash automatically added after
+completing directories will be automatically removed if the
+next character typed inserts one of the characters given in
+the <i>remove&minus;chars</i>. This string is parsed as a
+characters class and understands the backslash sequences
+used by the <b>print</b> command. For example,
+&lsquo;<b>&minus;r &quot;a&minus;z\t&quot;</b>&rsquo;
+removes the suffix if the next character typed inserts a
+lower case character or a TAB, and &lsquo;<b>&minus;r
+&quot;^0&minus;9&quot;</b>&rsquo; removes the suffix if the
+next character typed inserts anything but a digit. One extra
+backslash sequence is understood in this string:
+&lsquo;<b>\&minus;</b>&rsquo; stands for all characters that
+insert nothing. Thus &lsquo;<b>&minus;S &quot;=&quot;
+&minus;q</b>&rsquo; is the same as &lsquo;<b>&minus;S
+&quot;=&quot; &minus;r &quot;=
+\t\n\&minus;&quot;</b>&rsquo;.</p>
+
+<p style="margin-left:32%; margin-top: 1em">This option may
+also be used without the <b>&minus;S</b> option; then any
+automatically added space will be removed when one of the
+characters in the list is typed.</p>
+
+<p style="margin-left:22%;"><b>&minus;R</b>
+<i>remove&minus;func</i></p>
+
+<p style="margin-left:32%;">This is another form of the
+<b>&minus;r</b> option. When a match has been accepted and a
+suffix has been inserted, the function
+<i>remove&minus;func</i> will be called after the next
+character typed. It is passed the length of the suffix as an
+argument and can use the special parameters available in
+ordinary (non&minus;completion) zle widgets (see
+<i>zshzle</i>(1)) to analyse and modify the command
+line.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;f</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>If this flag is given, all of the matches built from the
+<i>completions</i> are marked as being the names of files.
+They are not required to be actual filenames, but if they
+are, and the option <b>LIST_TYPES</b> is set, the characters
+describing the types of the files in the completion lists
+will be shown. This also forces a slash to be added when the
+name of a directory is completed.</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;e</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>This flag can be used to tell the completion code that
+the matches added are parameter names for a parameter
+expansion. This will make the <b>AUTO_PARAM_SLASH</b> and
+<b>AUTO_PARAM_KEYS</b> options be used for the matches.</p></td></tr>
+</table>
+
+<p style="margin-left:22%;"><b>&minus;W</b>
+<i>file&minus;prefix</i></p>
+
+<p style="margin-left:32%;">This string is a pathname that
+will be prepended to each match together with any prefix
+specified by the <b>&minus;p</b> option to form a complete
+filename for testing. Hence it is only useful if combined
+with the <b>&minus;f</b> flag, as the tests will not
+otherwise be performed.</p>
+
+<p style="margin-left:22%;"><b>&minus;F</b>
+<i>array</i></p>
+
+<p style="margin-left:32%;">Specifies an array containing
+patterns. <i>completions</i> that match one of these
+patterns are ignored, that is, not considered to be
+matches.</p>
+
+<p style="margin-left:32%; margin-top: 1em">The
+<i>array</i> may be the name of an array parameter or a list
+of literal patterns enclosed in parentheses and quoted, as
+in &lsquo;<b>&minus;F &quot;(*?.o *?.h)&quot;</b>&rsquo;. If
+the name of an array is given, the elements of the array are
+taken as the patterns.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;Q</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>This flag instructs the completion code not to quote any
+metacharacters in the matches when inserting them into the
+command line.</p></td></tr>
+</table>
+
+<p style="margin-left:22%;"><b>&minus;M</b>
+<i>match&minus;spec</i></p>
+
+<p style="margin-left:32%;">This gives local match
+specifications as described below in the section
+&lsquo;Completion Matching Control&rsquo;. This option may
+be given more than once. In this case all
+<i>match&minus;spec</i>s given are concatenated with spaces
+between them to form the specification string to use. Note
+that they will only be used if the <b>&minus;U</b> option is
+not given.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;n</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>Specifies that matching <i>completions</i> are to be
+added to the set of matches, but are not to be listed to the
+user.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;U</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>If this flag is given, all <i>completions</i> are added
+to the set of matches and no matching will be done by the
+completion code. Normally this is used in functions that do
+the matching themselves.</p></td></tr>
+</table>
+
+<p style="margin-left:22%;"><b>&minus;O</b>
+<i>array</i></p>
+
+<p style="margin-left:32%;">If this option is given, the
+<i>completions</i> are <i>not</i> added to the set of
+matches. Instead, matching is done as usual and all of the
+<i>completions</i> that match will be stored in the array
+parameter whose name is given as <i>array</i>.</p>
+
+<p style="margin-left:22%;"><b>&minus;A</b>
+<i>array</i></p>
+
+<p style="margin-left:32%;">As the <b>&minus;O</b> option,
+except that instead of those of the <i>completions</i> which
+match being stored in <i>array</i>, the strings generated
+internally by the completion code are stored. For example,
+with a match specification of &lsquo;<b>&minus;M
+&quot;L:|no=&quot;</b>&rsquo;, a current word of
+&lsquo;<b>nof</b>&rsquo; and <i>completions</i> of
+&lsquo;<b>foo</b>&rsquo;, this option stores the string
+&lsquo;<b>nofoo</b>&rsquo; in the array, whereas the
+<b>&minus;O</b> option stores the &lsquo;<b>foo</b>&rsquo;
+originally given.</p>
+
+<p style="margin-left:22%;"><b>&minus;D</b>
+<i>array</i></p>
+
+<p style="margin-left:32%;">As with <b>&minus;O</b>, the
+<i>completions</i> are not added to the set of matches.
+Instead, whenever the <i>n</i>th <i>completion</i> does not
+match, the <i>n</i>th element of the <i>array</i> is
+removed. Elements for which the corresponding
+<i>completion</i> matches are retained. This option can be
+used more than once to remove elements from multiple
+arrays.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;C</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>This option adds a special match which expands to all
+other matches when inserted into the line, even those that
+are added after this option is used. Together with the
+<b>&minus;d</b> option it is possible to specify a string
+that should be displayed in the list for this special match.
+If no string is given, it will be shown as a string
+containing the strings that would be inserted for the other
+matches, truncated to the width of the screen.</p></td></tr>
+</table>
+
+<p style="margin-left:22%;"><b>&minus;E</b>
+<i>number</i></p>
+
+<p style="margin-left:32%;">This option adds <i>number</i>
+empty matches after matching <i>completions</i> have been
+added. An empty match takes up space in completion listings
+but will never be inserted in the line and can&rsquo;t be
+selected with menu completion or menu selection. This makes
+empty matches only useful to format completion lists and to
+make explanatory string be shown in completion lists (since
+empty matches can be given display strings with the
+<b>&minus;d</b> option). And because all but one empty
+string would otherwise be removed, this option implies the
+<b>&minus;V</b> and <b>&minus;2</b> options (even if an
+explicit <b>&minus;J</b> option is given). This can be
+important to note as it affects the name space into which
+matches are added.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;&minus;</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>This flag ends the list of flags and options. All
+arguments after it will be taken as the <i>completions</i>
+even if they begin with hyphens.</p></td></tr>
+</table>
+
+<p style="margin-left:22%; margin-top: 1em">Except for the
+<b>&minus;M</b> flag, if any of these flags is given more
+than once, the first one (and its argument) will be
+used.</p>
+
+<p style="margin-left:11%;"><b>compset &minus;p</b>
+<i>number</i> <b><br>
+compset &minus;P</b> [ <i>number</i> ] <i>pattern</i>
+<b><br>
+compset &minus;s</b> <i>number</i> <b><br>
+compset &minus;S</b> [ <i>number</i> ] <i>pattern</i>
+<b><br>
+compset &minus;n</b> <i>begin</i> [ <i>end</i> ] <b><br>
+compset &minus;N</b> <i>beg&minus;pat</i> [
+<i>end&minus;pat</i> ] <b><br>
+compset &minus;q</b></p>
+
+<p style="margin-left:22%;">This command simplifies
+modification of the special parameters, while its return
+status allows tests on them to be carried out.</p>
+
+<p style="margin-left:22%; margin-top: 1em">The options
+are: <b><br>
+&minus;p</b> <i>number</i></p>
+
+<p style="margin-left:32%;">If the value of the
+<b>PREFIX</b> parameter is at least <i>number</i> characters
+long, the first <i>number</i> characters are removed from it
+and appended to the contents of the <b>IPREFIX</b>
+parameter.</p>
+
+<p style="margin-left:22%;"><b>&minus;P</b> [ <i>number</i>
+] <i>pattern</i></p>
+
+<p style="margin-left:32%;">If the value of the
+<b>PREFIX</b> parameter begins with anything that matches
+the <i>pattern</i>, the matched portion is removed from
+<b>PREFIX</b> and appended to <b>IPREFIX</b>.</p>
+
+<p style="margin-left:32%; margin-top: 1em">Without the
+optional <i>number</i>, the longest match is taken, but if
+<i>number</i> is given, anything up to the <i>number</i>th
+match is moved. If the <i>number</i> is negative, the
+<i>number</i>th longest match is moved. For example, if
+<b>PREFIX</b> contains the string
+&lsquo;<b>a=b=c</b>&rsquo;, then <b>compset &minus;P
+&rsquo;*\=&rsquo;</b> will move the string
+&lsquo;<b>a=b=</b>&rsquo; into the <b>IPREFIX</b> parameter,
+but <b>compset &minus;P 1 &rsquo;*\=&rsquo;</b> will move
+only the string &lsquo;<b>a=</b>&rsquo;.</p>
+
+<p style="margin-left:22%;"><b>&minus;s</b>
+<i>number</i></p>
+
+<p style="margin-left:32%;">As <b>&minus;p</b>, but
+transfer the last <i>number</i> characters from the value of
+<b>SUFFIX</b> to the front of the value of
+<b>ISUFFIX</b>.</p>
+
+<p style="margin-left:22%;"><b>&minus;S</b> [ <i>number</i>
+] <i>pattern</i></p>
+
+<p style="margin-left:32%;">As <b>&minus;P</b>, but match
+the last portion of <b>SUFFIX</b> and transfer the matched
+portion to the front of the value of <b>ISUFFIX</b>.</p>
+
+<p style="margin-left:22%;"><b>&minus;n</b> <i>begin</i> [
+<i>end</i> ]</p>
+
+<p style="margin-left:32%;">If the current word position as
+specified by the parameter <b>CURRENT</b> is greater than or
+equal to <i>begin</i>, anything up to the <i>begin</i>th
+word is removed from the <b>words</b> array and the value of
+the parameter <b>CURRENT</b> is decremented by
+<i>begin</i>.</p>
+
+<p style="margin-left:32%; margin-top: 1em">If the optional
+<i>end</i> is given, the modification is done only if the
+current word position is also less than or equal to
+<i>end</i>. In this case, the words from position <i>end</i>
+onwards are also removed from the <b>words</b> array.</p>
+
+<p style="margin-left:32%; margin-top: 1em">Both
+<i>begin</i> and <i>end</i> may be negative to count
+backwards from the last element of the <b>words</b>
+array.</p>
+
+<p style="margin-left:22%;"><b>&minus;N</b>
+<i>beg&minus;pat</i> [ <i>end&minus;pat</i> ]</p>
+
+<p style="margin-left:32%;">If one of the elements of the
+<b>words</b> array before the one at the index given by the
+value of the parameter <b>CURRENT</b> matches the pattern
+<i>beg&minus;pat</i>, all elements up to and including the
+matching one are removed from the <b>words</b> array and the
+value of <b>CURRENT</b> is changed to point to the same word
+in the changed array.</p>
+
+<p style="margin-left:32%; margin-top: 1em">If the optional
+pattern <i>end&minus;pat</i> is also given, and there is an
+element in the <b>words</b> array matching this pattern, the
+parameters are modified only if the index of this word is
+higher than the one given by the <b>CURRENT</b> parameter
+(so that the matching word has to be after the cursor). In
+this case, the words starting with the one matching
+<b>end&minus;pat</b> are also removed from the <b>words</b>
+array. If <b>words</b> contains no word matching
+<i>end&minus;pat</i>, the testing and modification is
+performed as if it were not given.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="3%">
+
+
+<p><b>&minus;q</b></p></td>
+<td width="7%"></td>
+<td width="68%">
+
+
+<p>The word currently being completed is split on spaces
+into separate words, respecting the usual shell quoting
+conventions. The resulting words are stored in the
+<b>words</b> array, and <b>CURRENT</b>, <b>PREFIX</b>,
+<b>SUFFIX</b>, <b>QIPREFIX</b>, and <b>QISUFFIX</b> are
+modified to reflect the word part that is completed.</p></td></tr>
+</table>
+
+<p style="margin-left:22%; margin-top: 1em">In all the
+above cases the return status is zero if the test succeeded
+and the parameters were modified and non&minus;zero
+otherwise. This allows one to use this builtin in tests such
+as:</p>
+
+<p style="margin-left:32%; margin-top: 1em"><b>if compset
+&minus;P &rsquo;*\=&rsquo;; then ...</b></p>
+
+<p style="margin-left:22%; margin-top: 1em">This forces
+anything up to and including the last equal sign to be
+ignored by the completion code.</p>
+
+<p style="margin-left:11%;"><b>compcall</b> [
+<b>&minus;TD</b> ]</p>
+
+<p style="margin-left:22%;">This allows the use of
+completions defined with the <b>compctl</b> builtin from
+within completion widgets. The list of matches will be
+generated as if one of the non&minus;widget completion
+functions (<b>complete&minus;word</b>, etc.) had been
+called, except that only <b>compctl</b>s given for specific
+commands are used. To force the code to try completions
+defined with the <b>&minus;T</b> option of <b>compctl</b>
+and/or the default completion (whether defined by <b>compctl
+&minus;D</b> or the builtin default) in the appropriate
+places, the <b>&minus;T</b> and/or <b>&minus;D</b> flags can
+be passed to <b>compcall</b>.</p>
+
+<p style="margin-left:22%; margin-top: 1em">The return
+status can be used to test if a matching <b>compctl</b>
+definition was found. It is non&minus;zero if a
+<b>compctl</b> was found and zero otherwise.</p>
+
+<p style="margin-left:22%; margin-top: 1em">Note that this
+builtin is defined by the <b>zsh/compctl</b> module.</p>
+
+<h2>COMPLETION CONDITION CODES
+<a name="COMPLETION CONDITION CODES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+additional condition codes for use within the <b>[[</b>
+<i>...</i> <b>]]</b> construct are available in completion
+widgets. These work on the special parameters. All of these
+tests can also be performed by the <b>compset</b> builtin,
+but in the case of the condition codes the contents of the
+special parameters are not modified. <b><br>
+&minus;prefix</b> [ <i>number</i> ] <i>pattern</i></p>
+
+<p style="margin-left:22%;">true if the test for the
+<b>&minus;P</b> option of <b>compset</b> would succeed.</p>
+
+<p style="margin-left:11%;"><b>&minus;suffix</b> [
+<i>number</i> ] <i>pattern</i></p>
+
+<p style="margin-left:22%;">true if the test for the
+<b>&minus;S</b> option of <b>compset</b> would succeed.</p>
+
+<p style="margin-left:11%;"><b>&minus;after</b>
+<i>beg&minus;pat</i></p>
+
+<p style="margin-left:22%;">true if the test of the
+<b>&minus;N</b> option with only the <i>beg&minus;pat</i>
+given would succeed.</p>
+
+<p style="margin-left:11%;"><b>&minus;between</b>
+<i>beg&minus;pat end&minus;pat</i></p>
+
+<p style="margin-left:22%;">true if the test for the
+<b>&minus;N</b> option with both patterns would succeed.</p>
+
+<h2>COMPLETION MATCHING CONTROL
+<a name="COMPLETION MATCHING CONTROL"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">When the user
+invokes completion, the current <i>word</i> on the command
+line (that is, the word the cursor is currently on) is used
+to generate a <i>match pattern</i>. Only those
+<i>completions</i> that match the pattern are offered to the
+user as <i>matches</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default
+match pattern is generated from the current word by
+either</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="78%">
+
+
+<p>appending a &lsquo;<b>*</b>&rsquo; (matching any number
+of characters in a completion) <i>or,</i></p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="78%">
+
+
+<p>if the shell option <b>COMPLETE_IN_WORD</b> is set,
+inserting a &lsquo;<b>*</b>&rsquo; at the cursor
+position.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">This narrow
+pattern can be broadened selectively by passing a <i>match
+specification</i> to the <b>compadd</b> builtin command
+through its <b>&minus;M</b> option (see &lsquo;Completion
+Builtin Commands&rsquo; above). A match specification
+consists of one or more <i>matchers</i> separated by
+whitespace. Matchers in a match specification are applied
+one at a time, from left to right. Once all matchers have
+been applied, completions are compared to the final match
+pattern and non&minus;matching ones are discarded.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="10%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">Note that the <b>&minus;M</b>
+option is ignored if the current word contains a glob
+pattern and the shell option <b>GLOB_COMPLETE</b> is set or
+if the <b>pattern_match</b> key of the special associative
+array <b>compstate</b> is set to a non&minus;empty value
+(see &lsquo;Completion Special Parameters&rsquo; above).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="78%">
+
+
+<p>Users of the completion system (see
+<i>zshcompsys</i>(1)) should generally not use the
+<b>&minus;M</b> option directly, but rather use the
+<b>matcher&minus;list</b> and <b>matcher</b> styles (see the
+subsection <i>Standard Styles</i> in the documentation for
+COMPLETION SYSTEM CONFIGURATION in
+<i>zshcompsys</i>(1)).</p> </td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">Each matcher
+consists of</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="10%"></td>
+<td width="70%">
+
+
+<p style="margin-top: 1em">a case&minus;sensitive
+letter</p> </td>
+<td width="8%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="70%">
+
+
+<p>a &lsquo;<b>:</b>&rsquo;,</p></td>
+<td width="8%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="70%">
+
+
+<p>one or more patterns separated by pipes
+(&lsquo;<b>|</b>&rsquo;),</p> </td>
+<td width="8%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="70%">
+
+
+<p>an equals sign (&lsquo;<b>=</b>&rsquo;), and</p></td>
+<td width="8%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="70%">
+
+
+<p>another pattern.</p></td>
+<td width="8%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">The patterns
+before the &lsquo;<b>=</b>&rsquo; are used to match
+substrings of the current word. For each matched substring,
+the corresponding part of the match pattern is broadened
+with the pattern after the &lsquo;<b>=</b>&rsquo;, by means
+of a logical <b>OR</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each pattern in
+a matcher cosists of either</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="10%"></td>
+<td width="29%">
+
+
+<p style="margin-top: 1em">the empty string or</p></td>
+<td width="49%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="29%">
+
+
+<p>a sequence of</p></td>
+<td width="49%">
+</td></tr>
+</table>
+
+<p style="margin-left:22%;">&bull;</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%"></td>
+<td width="9%"></td>
+<td width="68%">
+
+
+<p style="margin-top: 1em">literal characters (which may be
+quoted with a &lsquo;<b>\</b>&rsquo;),</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="9%"></td>
+<td width="68%">
+
+
+<p>question marks (&lsquo;<b>?</b>&rsquo;),</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="9%"></td>
+<td width="68%">
+
+
+<p>bracket expressions (&lsquo;<b>[...]</b>&rsquo;; see the
+subsection <i>Glob Operators</i> in the documentation for
+GLOB OPERATORS in <i>zshexpn</i>(1)), and/or</p></td></tr>
+<tr valign="top" align="left">
+<td width="22%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="9%"></td>
+<td width="68%">
+
+
+<p>brace expressions (see below).</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">Other shell
+patterns are not allowed.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A brace
+expression, like a bracket expression, consists of a list
+of</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="10%"></td>
+<td width="47%">
+
+
+<p style="margin-top: 1em">literal characters,</p></td>
+<td width="31%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="47%">
+
+
+<p>ranges (&lsquo;<b>0&minus;9</b>&rsquo;), and/or</p></td>
+<td width="31%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="47%">
+
+
+<p>character classes
+(&lsquo;<b>[:</b><i>name</i><b>:]</b>&rsquo;).</p> </td>
+<td width="31%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">However, they
+differ from each other as follows:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="10%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">A brace expression is delimited
+by a pair of braces (&lsquo;<b>{...}</b>&rsquo;).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="78%">
+
+
+<p>Brace expressions do not support negations. That is, an
+initial &lsquo;<b>!</b>&rsquo; or &lsquo;<b>^</b>&rsquo; has
+no special meaning and will be interpreted as a literal
+character.</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="10%"></td>
+<td width="78%">
+
+
+<p>When a character in the current word matches the
+<i>n</i>th pattern in a brace expression, the corresponding
+part of the match pattern is broadened only with the
+<i>n</i>th pattern of the brace expression on the other side
+of the &lsquo;<b>=</b>&rsquo;, if there is one; if there is
+no brace expression on the other side, then this pattern is
+the empty string. However, if either brace expression has
+more elements than the other, then the excess entries are
+simply ignored. When comparing indexes, each literal
+character or character class counts as one element, but each
+range is instead expanded to the full list of literal
+characters it represents. Additionally, if on <i>both</i>
+sides of the &lsquo;<b>=</b>&rsquo;, the <i>n</i>th pattern
+is &lsquo;<b>[:upper:]</b>&rsquo; or
+&lsquo;<b>[:lower:]</b>&rsquo;, then these are expanded as
+ranges, too.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">Note that,
+although the matching system does not yet handle multibyte
+characters, this is likely to be a future extension. Hence,
+using &lsquo;<b>[:upper:]</b>&rsquo; and
+&lsquo;<b>[:lower:]</b>&rsquo; is recommended over
+&lsquo;<b>A&minus;Z</b>&rsquo; and
+&lsquo;<b>a&minus;z</b>&rsquo;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Below are the
+different forms of matchers supported. Each <i>uppercase</i>
+form behaves exactly like its lowercase counterpart, but
+adds an additional step <i>after</i> the match pattern has
+filtered out non&minus;matching completions: Each of a
+match&rsquo;s substrings that was matched by a subpattern
+from an uppercase matcher is replaced with the corresponding
+substring of the current word. However, patterns from
+<i>lowercase</i> matchers have higher weight: If a substring
+of the current word was matched by patterns from both a
+lowercase and an uppercase matcher, then the lowercase
+matcher&rsquo;s pattern wins and the corresponding part of
+the match is not modified.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unless
+indicated otherwise, each example listed assumes
+<b>COMPLETE_IN_WORD</b> to be unset (as it is by default).
+<b><br>
+m:</b><i>word&minus;pat</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+
+M:</b><i>word&minus;pat</i><b>=</b><i>match&minus;pat</i></p>
+
+<p style="margin-left:22%; margin-top: 1em">For each
+substring of the current word that matches
+<i>word&minus;pat</i>, broaden the corresponding part of the
+match pattern to additionally match <i>match&minus;pat</i>.
+<br>
+Examples:</p>
+
+
+<p style="margin-left:32%; margin-top: 1em"><b>m:{[:lower:]}={[:upper:]}</b>
+lets any lower case character in the current word be
+completed to itself or its uppercase counterpart. So, the
+completions &lsquo;<b>foo</b>&rsquo;,
+&lsquo;<b>FOO</b>&rsquo; and &lsquo;<b>Foo</b>&rsquo; will
+are be considered matches for the word
+&lsquo;<b>fo</b>&rsquo;.</p>
+
+<p style="margin-left:32%; margin-top: 1em"><b>M:_=</b>
+inserts every underscore from the current word into each
+match, in the same relative position, determined by matching
+the substrings around it. So, given a completion
+&lsquo;<b>foo</b>&rsquo;, the word &lsquo;<b>f_o</b>&rsquo;
+will be completed to the match &lsquo;<b>f_oo</b>&rsquo;,
+even though the latter was not present as a completion.</p>
+
+
+<p style="margin-left:11%;"><b>b:</b><i>word&minus;pat</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+B:</b><i>word&minus;pat</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+e:</b><i>word&minus;pat</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+
+E:</b><i>word&minus;pat</i><b>=</b><i>match&minus;pat</i></p>
+
+<p style="margin-left:22%; margin-top: 1em">For each
+consecutive substring at the <b>b:</b>eginning or
+<b>e:</b>nd of the current word that matches
+<i>word&minus;pat</i>, broaden the corresponding part of the
+match pattern to additionally match <i>match&minus;pat</i>.
+<br>
+Examples:</p>
+
+
+<p style="margin-left:32%; margin-top: 1em">&lsquo;<b>b:&minus;=+</b>&rsquo;
+lets any number of minuses at the start of the current word
+be completed to a minus or a plus.</p>
+
+
+<p style="margin-left:32%; margin-top: 1em">&lsquo;<b>B:0=</b>&rsquo;
+adds all zeroes at the beginning of the current word to the
+beginning of each match.</p>
+
+
+<p style="margin-left:11%;"><b>l:|</b><i>word&minus;pat</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+L:|</b><i>word&minus;pat</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+R:</b><i>word&minus;pat</i><b>|=</b><i>match&minus;pat</i>
+<b><br>
+
+r:</b><i>word&minus;pat</i><b>|=</b><i>match&minus;pat</i></p>
+
+<p style="margin-left:22%; margin-top: 1em">If there is a
+substring at the <b>l:</b>eft or <b>r:</b>ight edge of the
+current word that matches <i>word&minus;pat</i>, then
+broaden the corresponding part of the match pattern to
+additionally match <i>match&minus;pat</i>.</p>
+
+<p style="margin-left:22%; margin-top: 1em">For each
+<b>l:</b>, <b>L:</b>, <b>r:</b> and <b>R:</b> matcher
+(including the ones below), the pattern
+<i>match&minus;pat</i> may also be a &lsquo;<b>*</b>&rsquo;.
+This matches any number of characters in a completion. <br>
+Examples:</p>
+
+
+<p style="margin-left:32%; margin-top: 1em">&lsquo;<b>r:|=*</b>&rsquo;
+appends a &lsquo;<b>*</b>&rsquo; to the match pattern, even
+when <b>COMPLETE_IN_WORD</b> is set and the cursor is not at
+the end of the current word.</p>
+
+<p style="margin-left:32%; margin-top: 1em">If the current
+word starts with a minus, then
+&lsquo;<b>L:|&minus;=</b>&rsquo; will prepend it to each
+match.</p>
+
+
+<p style="margin-left:11%;"><b>l:</b><i>anchor</i><b>|</b><i>word&minus;pat</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+
+L:</b><i>anchor</i><b>|</b><i>word&minus;pat</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+
+r:</b><i>word&minus;pat</i><b>|</b><i>anchor</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+
+R:</b><i>word&minus;pat</i><b>|</b><i>anchor</i><b>=</b><i>match&minus;pat</i></p>
+
+<p style="margin-left:22%; margin-top: 1em">For each
+substring of the current word that matches
+<i>word&minus;pat</i> and has on its <b>l:</b>eft or
+<b>r:</b>ight another substring matching <i>anchor</i>,
+broaden the corresponding part of the match pattern to
+additionally match <i>match&minus;pat</i>.</p>
+
+<p style="margin-left:22%; margin-top: 1em">Note that these
+matchers (and the ones below) modify only what is matched by
+<i>word&minus;pat</i>; they do not change the matching
+behavior of what is matched by <i>anchor</i> (or
+<i>coanchor</i>; see the matchers below). Thus, unless its
+corresponding part of the match pattern has been modified,
+the anchor in the current word has to match literally in
+each completion, just like any other substring of the
+current word.</p>
+
+<p style="margin-left:22%; margin-top: 1em">If a matcher
+includes at least one anchor (which includes the matchers
+with two anchors, below), then <i>match&minus;pat</i> may
+also be &lsquo;<b>*</b>&rsquo; or &lsquo;<b>**</b>&rsquo;.
+&lsquo;<b>*</b>&rsquo; can match any part of a completion
+that does not contain any substrings matching <i>anchor</i>,
+whereas a &lsquo;<b>**</b>&rsquo; can match any part of a
+completion, period. (Note that this is different from the
+behavior of &lsquo;<b>*</b>&rsquo; in the anchorless forms
+of &lsquo;<b>l:</b>&rsquo; and &lsquo;<b>r:</b>&rsquo; and
+and also different from &lsquo;<b>*</b>&rsquo; and
+&lsquo;<b>**</b>&rsquo; in glob expressions.) <br>
+Examples:</p>
+
+
+<p style="margin-left:32%; margin-top: 1em">&lsquo;<b>r:|.=*</b>&rsquo;
+makes the completion &lsquo;<b>comp.sources.unix</b>&rsquo;
+a match for the word &lsquo;<b>..u</b>&rsquo; &minus;&minus;
+but <i>not</i> for the word &lsquo;<b>.u</b>&rsquo;.</p>
+
+<p style="margin-left:32%; margin-top: 1em">Given a
+completion &lsquo;<b>&minus;&minus;foo</b>&rsquo;, the
+matcher &lsquo;<b>L:&minus;&minus;|no&minus;=</b>&rsquo;
+will complete the word
+&lsquo;<b>&minus;&minus;no&minus;</b>&rsquo; to the match
+&lsquo;<b>&minus;&minus;no&minus;foo</b>&rsquo;.</p>
+
+
+<p style="margin-left:11%;"><b>l:</b><i>anchor</i><b>||</b><i>coanchor</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+
+L:</b><i>anchor</i><b>||</b><i>coanchor</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+
+r:</b><i>coanchor</i><b>||</b><i>anchor</i><b>=</b><i>match&minus;pat</i>
+<b><br>
+
+R:</b><i>coanchor</i><b>||</b><i>anchor</i><b>=</b><i>match&minus;pat</i></p>
+
+<p style="margin-left:22%; margin-top: 1em">For any two
+consecutive substrings of the current word that match
+<i>anchor</i> and <i>coanchor</i>, in the order given,
+insert the pattern <i>match&minus;pat</i> between their
+corresponding parts in the match pattern.</p>
+
+<p style="margin-left:22%; margin-top: 1em">Note that,
+unlike <i>anchor</i>, the pattern <i>coanchor</i> does not
+change what &lsquo;<b>*</b>&rsquo; can match. <br>
+Examples:</p>
+
+
+<p style="margin-left:32%; margin-top: 1em">&lsquo;<b>r:?||[[:upper:]]=*</b>&rsquo;
+will complete the current word &lsquo;<b>fB</b>&rsquo; to
+&lsquo;<b>fooBar</b>&rsquo;, but it will not complete it to
+&lsquo;<b>fooHooBar</b>&rsquo; (because
+&lsquo;<b>*</b>&rsquo; here cannot match anything that
+includes a match for &lsquo;<b>[[:upper:]]</b>), nor will it
+complete &lsquo;<b>B</b>&rsquo; to
+&lsquo;<b>fooBar</b>&rsquo; (because there is no character
+in the current word to match <i>coanchor</i>).</p>
+
+<p style="margin-left:32%; margin-top: 1em">Given the
+current word &lsquo;<b>pass.n</b>&rsquo; and a completion
+&lsquo;<b>pass.byname</b>&rsquo;, the matcher
+&lsquo;<b>L:.||[[:alpha:]]=by</b>&rsquo; will produce the
+match &lsquo;<b>pass.name</b>&rsquo;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>x:</b></p></td>
+<td width="8%"></td>
+<td width="76%">
+
+
+<p>Ignore this matcher and all matchers to its right.</p></td>
+<td width="2%">
+</td></tr>
+</table>
+
+<p style="margin-left:22%; margin-top: 1em">This matcher is
+used to mark the end of a match specification. In a single
+standalone list of matchers, this has no use, but where
+match specifications are concatenated, as is often the case
+when using the completion system (see <i>zshcompsys</i>(1)),
+it can allow one match specification to override
+another.</p>
+
+<h2>COMPLETION WIDGET EXAMPLE
+<a name="COMPLETION WIDGET EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The first step
+is to define the widget:</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>zle &minus;C
+complete complete&minus;word complete&minus;files</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Then the widget
+can be bound to a key using the <b>bindkey</b> builtin
+command:</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>bindkey
+&rsquo;^X\t&rsquo; complete</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">After that the
+shell function <b>complete&minus;files</b> will be invoked
+after typing control&minus;X and TAB. The function should
+then generate the matches, e.g.:</p>
+
+
+<p style="margin-left:22%; margin-top: 1em"><b>complete&minus;files
+() { compadd &minus; * }</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">This function
+will complete files in the current directory matching the
+current word.</p>
+<hr>
+</body>
+</html>

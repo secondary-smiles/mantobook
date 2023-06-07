@@ -1,0 +1,206 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:58 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>EVP_PKEY_SIGN</title>
+
+</head>
+<body>
+<h1>EVP_PKEY_sign_init</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">EVP_PKEY_sign_init,
+EVP_PKEY_sign_init_ex, EVP_PKEY_sign &minus; sign using a
+public key algorithm</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;openssl/evp.h&gt; <br>
+int EVP_PKEY_sign_init(EVP_PKEY_CTX *ctx); <br>
+int EVP_PKEY_sign_init_ex(EVP_PKEY_CTX *ctx, const
+OSSL_PARAM params[]); <br>
+int EVP_PKEY_sign(EVP_PKEY_CTX *ctx, <br>
+unsigned char *sig, size_t *siglen, <br>
+const unsigned char *tbs, size_t tbslen);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>EVP_PKEY_sign_init()</b>
+initializes a public key algorithm context <i>ctx</i> for
+signing using the algorithm given when the context was
+created using <b>EVP_PKEY_CTX_new</b>(3) or variants
+thereof. The algorithm is used to fetch a
+<b><small>EVP_SIGNATURE</small></b> method implicitly, see
+&quot;Implicit fetch&quot; in <b>provider</b>(7) for more
+information about implicit fetches.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>EVP_PKEY_sign_init_ex()</b>
+is the same as <b>EVP_PKEY_sign_init()</b> but additionally
+sets the passed parameters <i>params</i> on the context
+before returning.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>EVP_PKEY_sign()</b> function performs a public key
+signing operation using <i>ctx</i>. The data to be signed is
+specified using the <i>tbs</i> and <i>tbslen</i> parameters.
+If <i>sig</i> is <small>NULL</small> then the maximum size
+of the output buffer is written to the <i>siglen</i>
+parameter. If <i>sig</i> is not <small>NULL</small> then
+before the call the <i>siglen</i> parameter should contain
+the length of the <i>sig</i> buffer, if the call is
+successful the signature is written to <i>sig</i> and the
+amount of data written to <i>siglen</i>.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>EVP_PKEY_sign()</b>
+does not hash the data to be signed, and therefore is
+normally used to sign digests. For signing arbitrary
+messages, see the <b>EVP_DigestSignInit</b>(3) and
+<b>EVP_SignInit</b>(3) signing interfaces instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">After the call
+to <b>EVP_PKEY_sign_init()</b> algorithm specific control
+operations can be performed to set any appropriate
+parameters for the operation (see
+<b>EVP_PKEY_CTX_ctrl</b>(3)).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The function
+<b>EVP_PKEY_sign()</b> can be called more than once on the
+same context if several operations are performed using the
+same parameters.</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>EVP_PKEY_sign_init()</b>
+and <b>EVP_PKEY_sign()</b> return 1 for success and 0 or a
+negative value for failure. In particular a return value of
+&minus;2 indicates the operation is not supported by the
+public key algorithm.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Sign data using
+<small>RSA</small> with PKCS#1 padding and
+<small>SHA256</small> digest:</p>
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;openssl/evp.h&gt; <br>
+#include &lt;openssl/rsa.h&gt; <br>
+EVP_PKEY_CTX *ctx; <br>
+/* md is a SHA&minus;256 digest in this example. */ <br>
+unsigned char *md, *sig; <br>
+size_t mdlen = 32, siglen; <br>
+EVP_PKEY *signing_key; <br>
+/* <br>
+* NB: assumes signing_key and md are set up before the next
+<br>
+* step. signing_key must be an RSA private key and md must
+<br>
+* point to the SHA&minus;256 digest to be signed. <br>
+*/ <br>
+ctx = EVP_PKEY_CTX_new(signing_key, NULL /* no engine */);
+<br>
+if (!ctx) <br>
+/* Error occurred */ <br>
+if (EVP_PKEY_sign_init(ctx) &lt;= 0) <br>
+/* Error */ <br>
+if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING)
+&lt;= 0) <br>
+/* Error */ <br>
+if (EVP_PKEY_CTX_set_signature_md(ctx, EVP_sha256()) &lt;=
+0) <br>
+/* Error */ <br>
+/* Determine buffer length */ <br>
+if (EVP_PKEY_sign(ctx, NULL, &amp;siglen, md, mdlen) &lt;=
+0) <br>
+/* Error */ <br>
+sig = OPENSSL_malloc(siglen); <br>
+if (!sig) <br>
+/* malloc failure */ <br>
+if (EVP_PKEY_sign(ctx, sig, &amp;siglen, md, mdlen) &lt;= 0)
+<br>
+/* Error */ <br>
+/* Signature is siglen bytes written to buffer sig */</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>EVP_PKEY_CTX_new</b>(3),
+<b>EVP_PKEY_CTX_ctrl</b>(3), <b>EVP_PKEY_encrypt</b>(3),
+<b>EVP_PKEY_decrypt</b>(3), <b>EVP_PKEY_verify</b>(3),
+<b>EVP_PKEY_verify_recover</b>(3),
+<b>EVP_PKEY_derive</b>(3)</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>EVP_PKEY_sign_init()</b> and <b>EVP_PKEY_sign()</b>
+functions were added in OpenSSL 1.0.0.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>EVP_PKEY_sign_init_ex()</b> function was added in OpenSSL
+3.0.</p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2006&minus;2021 The OpenSSL Project Authors. All Rights
+Reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Licensed under
+the Apache License 2.0 (the &quot;License&quot;). You may
+not use this file except in compliance with the License. You
+can obtain a copy in the file <small>LICENSE</small> in the
+source distribution or at
+&lt;https://www.openssl.org/source/license.html&gt;.</p>
+<hr>
+</body>
+</html>

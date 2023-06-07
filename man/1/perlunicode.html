@@ -1,0 +1,3660 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:00 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>PERLUNICODE</title>
+
+</head>
+<body>
+<h1>perlunicode</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perlunicode
+&minus; Unicode support in Perl</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">If you
+haven&rsquo;t already, before reading this document, you
+should become familiar with both perlunitut and
+perluniintro.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unicode aims to
+<b><small>UNI</small></b> &minus;fy the en&minus;
+<b><small>CODE</small></b> &minus;ings of all the
+world&rsquo;s character sets into a single Standard. For
+quite a few of the various coding standards that existed
+when Unicode was first created, converting from each to
+Unicode essentially meant adding a constant to each code
+point in the original standard, and converting back meant
+just subtracting that same constant. For
+<small>ASCII</small> and
+<small>ISO&minus;8859&minus;1,</small> the constant is 0.
+For <small>ISO&minus;8859&minus;5,</small> (Cyrillic) the
+constant is 864; for Hebrew (
+<small>ISO&minus;8859&minus;8</small> ), it&rsquo;s 1488;
+Thai ( <small>ISO&minus;8859&minus;11</small> ), 3424; and
+so forth. This made it easy to do the conversions, and
+facilitated the adoption of Unicode.</p>
+
+<p style="margin-left:11%; margin-top: 1em">And it worked;
+nowadays, those legacy standards are rarely used. Most
+everyone uses Unicode.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unicode is a
+comprehensive standard. It specifies many things outside the
+scope of Perl, such as how to display sequences of
+characters. For a full discussion of all aspects of Unicode,
+see &lt;https://www.unicode.org&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Important
+Caveats</b> <br>
+Even though some of this section may not be understandable
+to you on first reading, we think it&rsquo;s important
+enough to highlight some of the gotchas before delving
+further, so here goes:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unicode support
+is an extensive requirement. While Perl does not implement
+the Unicode standard or the accompanying technical reports
+from cover to cover, Perl does support many Unicode
+features.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also, the use
+of Unicode may present security issues that aren&rsquo;t
+obvious, see &quot;Security Implications of Unicode&quot;
+below. <br>
+Safest if you &quot;use feature 'unicode_strings'&quot;</p>
+
+<p style="margin-left:17%;">In order to preserve backward
+compatibility, Perl does not turn on full internal Unicode
+support unless the pragma
+&quot;use&nbsp;feature&nbsp;'unicode_strings'&quot; is
+specified. (This is automatically selected if you
+&quot;use&nbsp;v5.12&quot; or higher.) Failure to do this
+can trigger unexpected surprises. See &quot;The
+&quot;Unicode Bug&quot;&quot; below.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This pragma
+doesn&rsquo;t affect I/O. Nor does it change the internal
+representation of strings, only their interpretation. There
+are still several places where Unicode isn&rsquo;t fully
+supported, such as in filenames.</p>
+
+<p style="margin-left:11%;">Input and Output Layers</p>
+
+<p style="margin-left:17%;">Use the
+&quot;:encoding(...)&quot; layer to read from and write to
+filehandles using the specified encoding. (See open.)</p>
+
+<p style="margin-left:11%;">You must convert your
+non-ASCII, non&minus;UTF&minus;8 Perl scripts to be
+<small>UTF&minus;8.</small></p>
+
+<p style="margin-left:17%;">The encoding module has been
+deprecated since perl 5.18 and the perl internals it
+requires have been removed with perl 5.26.</p>
+
+<p style="margin-left:11%;">&quot;use utf8&quot; still
+needed to enable <small>UTF&minus;8</small> in scripts</p>
+
+<p style="margin-left:17%;">If your Perl script is itself
+encoded in <small>UTF&minus;8</small> , the
+&quot;use&nbsp;utf8&quot; pragma must be explicitly included
+to enable recognition of that (in string or regular
+expression literals, or in identifier names). <b>This is the
+only time when an explicit &quot;use&nbsp;utf8&quot; is
+needed.</b> (See utf8).</p>
+
+<p style="margin-left:17%; margin-top: 1em">If a Perl
+script begins with the bytes that form the
+<small>UTF&minus;8</small> encoding of the Unicode
+<small>BYTE ORDER MARK</small> (&quot;BOM&quot;, see
+&quot;Unicode Encodings&quot;), those bytes are completely
+ignored.</p>
+
+<p style="margin-left:11%;"><small>UTF&minus;16</small>
+scripts autodetected</p>
+
+<p style="margin-left:17%;">If a Perl script begins with
+the Unicode &quot;BOM&quot; ( <small>UTF&minus;16LE,
+UTF16&minus;BE</small> ), or if the script looks like
+non&minus;&quot;BOM&quot;&minus;marked
+<small>UTF&minus;16</small> of either endianness, Perl will
+correctly read in the script as the appropriate Unicode
+encoding.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Byte and
+Character Semantics</b> <br>
+Before Unicode, most encodings used 8 bits (a single byte)
+to encode each character. Thus a character was a byte, and a
+byte was a character, and there could be only 256 or fewer
+possible characters. &quot;Byte Semantics&quot; in the title
+of this section refers to this behavior. There was no need
+to distinguish between &quot;Byte&quot; and
+&quot;Character&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Then along
+comes Unicode which has room for over a million characters
+(and Perl allows for even more). This means that a character
+may require more than a single byte to represent it, and so
+the two terms are no longer equivalent. What matter are the
+characters as whole entities, and not usually the bytes that
+comprise them. That&rsquo;s what the term &quot;Character
+Semantics&quot; in the title of this section refers to.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl had to
+change internally to decouple &quot;bytes&quot; from
+&quot;characters&quot;. It is important that you too change
+your ideas, if you haven&rsquo;t already, so that
+&quot;byte&quot; and &quot;character&quot; no longer mean
+the same thing in your mind.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The basic
+building block of Perl strings has always been a
+&quot;character&quot;. The changes basically come down to
+that the implementation no longer thinks that a character is
+always just a single byte.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are
+various things to note:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>String handling functions, for the most part, continue
+to operate in terms of characters. &quot;length()&quot;, for
+example, returns the number of characters in a string, just
+as before. But that number no longer is necessarily the same
+as the number of bytes in the string (there may be more
+bytes than characters). The other such functions include
+&quot;chop()&quot;, &quot;chomp()&quot;,
+&quot;substr()&quot;, &quot;pos()&quot;,
+&quot;index()&quot;, &quot;rindex()&quot;,
+&quot;sort()&quot;, &quot;sprintf()&quot;, and
+&quot;write()&quot;.</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The exceptions
+are:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="68%">
+
+
+<p style="margin-top: 1em">the bit-oriented &quot;vec&quot;
+&nbsp;</p> </td>
+<td width="9%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="68%">
+
+
+<p>the byte-oriented &quot;pack&quot;/&quot;unpack&quot;
+&quot;C&quot; format</p></td>
+<td width="9%">
+</td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">However, the
+&quot;W&quot; specifier does operate on whole characters, as
+does the &quot;U&quot; specifier.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em">some operators that interact
+with the platform&rsquo;s operating system</p></td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">Operators
+dealing with filenames are examples.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="17%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em">when the functions are called
+from within the scope of the &quot;use&nbsp;bytes&quot;
+pragma</p> </td></tr>
+</table>
+
+<p style="margin-left:23%; margin-top: 1em">Likely, you
+should use this only for debugging anyway.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Strings--including hash
+keys--and regular expression patterns may contain characters
+that have ordinal values larger than 255.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If you use a
+Unicode editor to edit your program, Unicode characters may
+occur directly within the literal strings in
+<small>UTF&minus;8</small> encoding, or
+<small>UTF&minus;16.</small> (The former requires a
+&quot;use utf8&quot;, the latter may require a
+&quot;BOM&quot;.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">&quot;Creating
+Unicode&quot; in perluniintro gives other ways to place
+non-ASCII characters in your strings.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">The &quot;chr()&quot; and
+&quot;ord()&quot; functions work on whole characters.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Regular expressions match whole characters. For example,
+&quot;.&quot; matches a whole character instead of only a
+single byte.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The &quot;tr///&quot; operator translates whole
+characters. (Note that the &quot;tr///CU&quot; functionality
+has been removed. For similar functionality to that, see
+&quot;pack('U0', ...)&quot; and &quot;pack('C0',
+...)&quot;).</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;scalar reverse()&quot; reverses by character
+rather than by byte.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>The bit string operators, &quot;&amp; | ^ ~&quot; and
+(starting in v5.22) &quot;&amp;. |. ^. ~.&quot; can operate
+on bit strings encoded in <small>UTF&minus;8,</small> but
+this can give unexpected results if any of the strings
+contain code points above 0xFF. Starting in v5.28, it is a
+fatal error to have such an operand. Otherwise, the
+operation is performed on a non&minus;UTF&minus;8 copy of
+the operand. If you&rsquo;re not sure about the encoding of
+a string, downgrade it before using any of these operators;
+you can use &quot;utf8::utf8_downgrade()&quot;.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">The bottom line
+is that Perl has always practiced &quot;Character
+Semantics&quot;, but with the advent of Unicode, that is now
+different than &quot;Byte Semantics&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>ASCII</small>
+Rules versus Unicode Rules</b> <br>
+Before Unicode, when a character was a byte was a character,
+Perl knew only about the 128 characters defined by
+<small>ASCII,</small> code points 0 through 127 (except for
+under &quot;use&nbsp;locale&quot;). That left the code
+points 128 to 255 as unassigned, and available for whatever
+use a program might want. The only semantics they have is
+their ordinal numbers, and that they are members of none of
+the non-negative character classes. None are considered to
+match &quot;\w&quot; for example, but all match
+&quot;\W&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unicode, of
+course, assigns each of those code points a particular
+meaning (along with ones above 255). To preserve backward
+compatibility, Perl only uses the Unicode meanings when
+there is some indication that Unicode is what is intended;
+otherwise the non-ASCII code points remain treated as if
+they are unassigned.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here are the
+ways that Perl knows that a string should be treated as
+Unicode:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="46%">
+
+
+<p style="margin-top: 1em">Within the scope of
+&quot;use&nbsp;utf8&quot;</p> </td>
+<td width="37%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">If the whole
+program is Unicode (signified by using 8&minus;bit
+<b>U</b>nicode <b>T</b>ransformation <b>F</b>ormat), then
+all literal strings within it must be Unicode.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="78%">
+
+
+<p style="margin-top: 1em">Within the scope of
+&quot;use&nbsp;feature&nbsp;'unicode_strings'&quot;</p> </td>
+<td width="5%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This pragma was
+created so you can explicitly tell Perl that operations
+executed within its scope are to use Unicode rules. More
+operations are affected with newer perls. See &quot;The
+&quot;Unicode Bug&quot;&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="63%">
+
+
+<p style="margin-top: 1em">Within the scope of
+&quot;use&nbsp;v5.12&quot; or higher</p></td>
+<td width="20%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">This implicitly
+turns on
+&quot;use&nbsp;feature&nbsp;'unicode_strings'&quot;.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Within the scope of
+&quot;use&nbsp;locale&nbsp;'not_characters'&quot;, or
+&quot;use&nbsp;locale&quot; and the current locale is a
+<small>UTF&minus;8</small> locale.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The former is
+defined to imply Unicode handling; and the latter indicates
+a Unicode locale, hence a Unicode interpretation of all
+strings within it.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em">When the string contains a
+Unicode-only code point</p></td>
+<td width="6%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Perl has never
+accepted code points above 255 without them being Unicode,
+so their use implies Unicode for the whole string.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">When the string contains a
+Unicode named code point &quot;\N{...}&quot;</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;\N{...}&quot; construct explicitly refers to a Unicode
+code point, even if it is one that is also in
+<small>ASCII.</small> Therefore the string containing it
+must be Unicode.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">When the string has come from an
+external source marked as Unicode</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;&minus;C&quot; command line option can specify that
+certain inputs to the program are Unicode, and the values of
+this can be read by your Perl code, see
+&quot;${^UNICODE}&quot; in perlvar.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="65%">
+
+
+<p style="margin-top: 1em">When the string has been
+upgraded to <small>UTF&minus;8</small></p></td>
+<td width="18%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The function
+&quot;utf8::utf8_upgrade()&quot; can be explicitly used to
+permanently (unless a subsequent
+&quot;utf8::utf8_downgrade()&quot; is called) cause a string
+to be treated as Unicode.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">There are additional methods for
+regular expression patterns</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">A pattern that
+is compiled with the &quot;/u&quot; or &quot;/a&quot;
+modifiers is treated as Unicode (though there are some
+restrictions with &quot;/a&quot;). Under the &quot;/d&quot;
+and &quot;/l&quot; modifiers, there are several other
+indications for Unicode; see &quot;Character set
+modifiers&quot; in perlre.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that all
+of the above are overridden within the scope of &quot;use
+bytes&quot;; but you should be using this pragma only for
+debugging.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note also that
+some interactions with the platform&rsquo;s operating system
+never use Unicode rules.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When Unicode
+rules are in effect:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Case translation operators use
+the Unicode case translation tables.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+&quot;uc()&quot;, or &quot;\U&quot; in interpolated strings,
+translates to uppercase, while &quot;ucfirst&quot;, or
+&quot;\u&quot; in interpolated strings, translates to
+titlecase in languages that make the distinction (which is
+equivalent to uppercase in languages without the
+distinction).</p>
+
+<p style="margin-left:17%; margin-top: 1em">There is a
+<small>CPAN</small> module, &quot;Unicode::Casing&quot;,
+which allows you to define your own mappings to be used in
+&quot;lc()&quot;, &quot;lcfirst()&quot;, &quot;uc()&quot;,
+&quot;ucfirst()&quot;, and &quot;fc&quot; (or their
+double-quoted string inlined versions such as
+&quot;\U&quot;). (Prior to Perl 5.16, this functionality was
+partially provided in the Perl core, but suffered from a
+number of insurmountable drawbacks, so the
+<small>CPAN</small> module was written instead.)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Character classes in regular
+expressions match based on the character properties
+specified in the Unicode properties database.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">&quot;\w&quot;
+can be used to match a Japanese ideograph, for instance; and
+&quot;[[:digit:]]&quot; a Bengali number.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Named Unicode properties,
+scripts, and block ranges may be used (like bracketed
+character classes) by using the &quot;\p{}&quot;
+&quot;matches property&quot; construct and the
+&quot;\P{}&quot; negation, &quot;doesn&rsquo;t match
+property&quot;.</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">See
+&quot;Unicode Character Properties&quot; for more
+details.</p>
+
+<p style="margin-left:17%; margin-top: 1em">You can define
+your own character properties and use them in the regular
+expression with the &quot;\p{}&quot; or &quot;\P{}&quot;
+construct. See &quot;User-Defined Character Properties&quot;
+for more details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Extended
+Grapheme Clusters (Logical characters)</b> <br>
+Consider a character, say &quot;H&quot;. It could appear
+with various marks around it, such as an acute accent, or a
+circumflex, or various hooks, circles, arrows, <i>etc.</i>,
+above, below, to one side or the other, <i>etc</i>. There
+are many possibilities among the world&rsquo;s languages.
+The number of combinations is astronomical, and if there
+were a character for each combination, it would soon exhaust
+Unicode&rsquo;s more than a million possible characters. So
+Unicode took a different approach: there is a character for
+the base &quot;H&quot;, and a character for each of the
+possible marks, and these can be variously combined to get a
+final logical character. So a logical character--what
+appears to be a single character--can be a sequence of more
+than one individual characters. The Unicode standard calls
+these &quot;extended grapheme clusters&quot; (which is an
+improved version of the no-longer much used &quot;grapheme
+cluster&quot;); Perl furnishes the &quot;\X&quot; regular
+expression construct to match such sequences in their
+entirety.</p>
+
+<p style="margin-left:11%; margin-top: 1em">But
+Unicode&rsquo;s intent is to unify the existing character
+set standards and practices, and several pre-existing
+standards have single characters that mean the same thing as
+some of these combinations, like
+<small>ISO&minus;8859&minus;1,</small> which has quite a few
+of them. For example, &quot;LATIN CAPITAL LETTER E WITH
+ACUTE&quot; was already in this standard when Unicode came
+along. Unicode therefore added it to its repertoire as that
+single character. But this character is considered by
+Unicode to be equivalent to the sequence consisting of the
+character &quot;LATIN CAPITAL LETTER E&quot; followed by the
+character &quot;COMBINING ACUTE ACCENT&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;LATIN
+CAPITAL LETTER E WITH ACUTE&quot; is called a
+&quot;pre-composed&quot; character, and its equivalence with
+the &quot;E&quot; and the &quot; <small>COMBINING
+ACCENT&quot;</small> sequence is called canonical
+equivalence. All pre-composed characters are said to have a
+decomposition (into the equivalent sequence), and the
+decomposition type is also called canonical. A string may be
+comprised as much as possible of precomposed characters, or
+it may be comprised of entirely decomposed characters.
+Unicode calls these respectively, &quot;Normalization Form
+Composed&quot; ( <small>NFC</small> ) and
+&quot;Normalization Form Decomposed&quot;. The
+&quot;Unicode::Normalize&quot; module contains functions
+that convert between the two. A string may also have both
+composed characters and decomposed characters; this module
+can be used to make it all one or the other.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You may be
+presented with strings in any of these equivalent forms.
+There is currently nothing in Perl 5 that ignores the
+differences. So you&rsquo;ll have to specially handle it.
+The usual advice is to convert your inputs to
+&quot;NFD&quot; before processing further.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For more
+detailed information, see
+&lt;http://unicode.org/reports/tr15/&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Unicode
+Character Properties</b> <br>
+(The only time that Perl considers a sequence of individual
+code points as a single logical character is in the
+&quot;\X&quot; construct, already mentioned above. Therefore
+&quot;character&quot; in this discussion means a single
+Unicode code point.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Very nearly all
+Unicode character properties are accessible through regular
+expressions by using the &quot;\p{}&quot; &quot;matches
+property&quot; construct and the &quot;\P{}&quot;
+&quot;doesn&rsquo;t match property&quot; for its
+negation.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For instance,
+&quot;\p{Uppercase}&quot; matches any single character with
+the Unicode &quot;Uppercase&quot; property, while
+&quot;\p{L}&quot; matches any character with a
+&quot;General_Category&quot; of &quot;L&quot; (letter)
+property (see &quot;General_Category&quot; below). Brackets
+are not required for single letter property names, so
+&quot;\p{L}&quot; is equivalent to &quot;\pL&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">More formally,
+&quot;\p{Uppercase}&quot; matches any single character whose
+Unicode &quot;Uppercase&quot; property value is
+&quot;True&quot;, and &quot;\P{Uppercase}&quot; matches any
+character whose &quot;Uppercase&quot; property value is
+&quot;False&quot;, and they could have been written as
+&quot;\p{Uppercase=True}&quot; and
+&quot;\p{Uppercase=False}&quot;, respectively.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This formality
+is needed when properties are not binary; that is, if they
+can take on more values than just &quot;True&quot; and
+&quot;False&quot;. For example, the &quot;Bidi_Class&quot;
+property (see &quot;Bidirectional Character Types&quot;
+below), can take on several different values, such as
+&quot;Left&quot;, &quot;Right&quot;, &quot;Whitespace&quot;,
+and others. To match these, one needs to specify both the
+property name (&quot;Bidi_Class&quot;), <small>AND</small>
+the value being matched against (&quot;Left&quot;,
+&quot;Right&quot;, <i>etc.</i>). This is done, as in the
+examples above, by having the two components separated by an
+equal sign (or interchangeably, a colon), like
+&quot;\p{Bidi_Class: Left}&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">All
+Unicode-defined character properties may be written in these
+compound forms of
+&quot;\p{<i>property</i>=<i>value</i>}&quot; or
+&quot;\p{<i>property</i>:<i>value</i>}&quot;, but Perl
+provides some additional properties that are written only in
+the single form, as well as single-form short-cuts for all
+binary properties and certain others described below, in
+which you may omit the property name and the equals or colon
+separator.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Most Unicode
+character properties have at least two synonyms (or aliases
+if you prefer): a short one that is easier to type and a
+longer one that is more descriptive and hence easier to
+understand. Thus the &quot;L&quot; and &quot;Letter&quot;
+properties above are equivalent and can be used
+interchangeably. Likewise, &quot;Upper&quot; is a synonym
+for &quot;Uppercase&quot;, and we could have written
+&quot;\p{Uppercase}&quot; equivalently as
+&quot;\p{Upper}&quot;. Also, there are typically various
+synonyms for the values the property can be. For binary
+properties, &quot;True&quot; has 3 synonyms: &quot;T&quot;,
+&quot;Yes&quot;, and &quot;Y&quot;; and &quot;False&quot;
+has correspondingly &quot;F&quot;, &quot;No&quot;, and
+&quot;N&quot;. But be careful. A short form of a value for
+one property may not mean the same thing as the short form
+spelled the same for another. Thus, for the
+&quot;General_Category&quot; property, &quot;L&quot; means
+&quot;Letter&quot;, but for the &quot;Bidi_Class&quot;
+property, &quot;L&quot; means &quot;Left&quot;. A complete
+list of properties and synonyms is in perluniprops.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Upper/lower
+case differences in property names and values are
+irrelevant; thus &quot;\p{Upper}&quot; means the same thing
+as &quot;\p{upper}&quot; or even &quot;\p{UpPeR}&quot;.
+Similarly, you can add or subtract underscores anywhere in
+the middle of a word, so that these are also equivalent to
+&quot;\p{U_p_p_e_r}&quot;. And white space is generally
+irrelevant adjacent to non-word characters, such as the
+braces and the equals or colon separators, so &quot;\p{
+Upper }&quot; and &quot;\p{ Upper_case : Y }&quot; are
+equivalent to these as well. In fact, white space and even
+hyphens can usually be added or deleted anywhere. So even
+&quot;\p{ Up&minus;per case = Yes}&quot; is equivalent. All
+this is called &quot;loose-matching&quot; by Unicode. The
+&quot;name&quot; property has some restrictions on this due
+to a few outlier names. Full details are given in
+&lt;https://www.unicode.org/reports/tr44/tr44&minus;24.html#UAX44&minus;LM2&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The few places
+where stricter matching is used is in the middle of numbers,
+the &quot;name&quot; property, and in the Perl extension
+properties that begin or end with an underscore. Stricter
+matching cares about white space (except adjacent to
+non-word characters), hyphens, and non-interior
+underscores.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+use negation in both &quot;\p{}&quot; and &quot;\P{}&quot;
+by introducing a caret (&quot;^&quot;) between the first
+brace and the property name: &quot;\p{^Tamil}&quot; is equal
+to &quot;\P{Tamil}&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Almost all
+properties are immune to case-insensitive matching. That is,
+adding a &quot;/i&quot; regular expression modifier does not
+change what they match. There are two sets that are
+affected. The first set is &quot;Uppercase_Letter&quot;,
+&quot;Lowercase_Letter&quot;, and
+&quot;Titlecase_Letter&quot;, all of which match
+&quot;Cased_Letter&quot; under &quot;/i&quot; matching. And
+the second set is &quot;Uppercase&quot;,
+&quot;Lowercase&quot;, and &quot;Titlecase&quot;, all of
+which match &quot;Cased&quot; under &quot;/i&quot; matching.
+This set also includes its subsets &quot;PosixUpper&quot;
+and &quot;PosixLower&quot; both of which under
+&quot;/i&quot; match &quot;PosixAlpha&quot;. (The difference
+between these sets is that some things, such as Roman
+numerals, come in both upper and lower case so they are
+&quot;Cased&quot;, but aren&rsquo;t considered letters, so
+they aren&rsquo;t &quot;Cased_Letter&quot;&rsquo;s.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">See
+&quot;Beyond Unicode code points&quot; for special
+considerations when matching Unicode properties against
+non-Unicode code points.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><i>General_Category</i></b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Every Unicode
+character is assigned a general category, which is the
+&quot;most usual categorization of a character&quot; (from
+&lt;https://www.unicode.org/reports/tr44&gt;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The compound
+way of writing these is like
+&quot;\p{General_Category=Number}&quot; (short:
+&quot;\p{gc:n}&quot;). But Perl furnishes shortcuts in which
+everything up through the equal or colon separator is
+omitted. So you can instead just write &quot;\pN&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here are the
+short and long forms of the values the &quot;General
+Category&quot; property can have:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Short Long <br>
+L Letter <br>
+LC, L&amp; Cased_Letter (that is: [\p{Ll}\p{Lu}\p{Lt}]) <br>
+Lu Uppercase_Letter <br>
+Ll Lowercase_Letter <br>
+Lt Titlecase_Letter <br>
+Lm Modifier_Letter <br>
+Lo Other_Letter <br>
+M Mark <br>
+Mn Nonspacing_Mark <br>
+Mc Spacing_Mark <br>
+Me Enclosing_Mark <br>
+N Number <br>
+Nd Decimal_Number (also Digit) <br>
+Nl Letter_Number <br>
+No Other_Number <br>
+P Punctuation (also Punct) <br>
+Pc Connector_Punctuation <br>
+Pd Dash_Punctuation <br>
+Ps Open_Punctuation <br>
+Pe Close_Punctuation <br>
+Pi Initial_Punctuation <br>
+(may behave like Ps or Pe depending on usage) <br>
+Pf Final_Punctuation <br>
+(may behave like Ps or Pe depending on usage) <br>
+Po Other_Punctuation <br>
+S Symbol <br>
+Sm Math_Symbol <br>
+Sc Currency_Symbol <br>
+Sk Modifier_Symbol <br>
+So Other_Symbol <br>
+Z Separator <br>
+Zs Space_Separator <br>
+Zl Line_Separator <br>
+Zp Paragraph_Separator <br>
+C Other <br>
+Cc Control (also Cntrl) <br>
+Cf Format <br>
+Cs Surrogate <br>
+Co Private_Use <br>
+Cn Unassigned</p>
+
+<p style="margin-left:11%; margin-top: 1em">Single-letter
+properties match all characters in any of the two-letter
+sub-properties starting with the same letter. &quot;LC&quot;
+and &quot;L&amp;&quot; are special: both are aliases for the
+set consisting of everything matched by &quot;Ll&quot;,
+&quot;Lu&quot;, and &quot;Lt&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><i>Bidirectional
+Character Types</i></b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Because scripts
+differ in their directionality (Hebrew and Arabic are
+written right to left, for example) Unicode supplies a
+&quot;Bidi_Class&quot; property. Some of the values this
+property can have are:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Value Meaning
+<br>
+L Left&minus;to&minus;Right <br>
+LRE Left&minus;to&minus;Right Embedding <br>
+LRO Left&minus;to&minus;Right Override <br>
+R Right&minus;to&minus;Left <br>
+AL Arabic Letter <br>
+RLE Right&minus;to&minus;Left Embedding <br>
+RLO Right&minus;to&minus;Left Override <br>
+PDF Pop Directional Format <br>
+EN European Number <br>
+ES European Separator <br>
+ET European Terminator <br>
+AN Arabic Number <br>
+CS Common Separator <br>
+NSM Non&minus;Spacing Mark <br>
+BN Boundary Neutral <br>
+B Paragraph Separator <br>
+S Segment Separator <br>
+WS Whitespace <br>
+ON Other Neutrals</p>
+
+<p style="margin-left:11%; margin-top: 1em">This property
+is always written in the compound form. For example,
+&quot;\p{Bidi_Class:R}&quot; matches characters that are
+normally written right to left. Unlike the
+&quot;General_Category&quot; property, this property can
+have more values added in a future Unicode release. Those
+listed above comprised the complete set for many Unicode
+releases, but others were added in Unicode 6.3; you can
+always find what the current ones are in perluniprops. And
+&lt;https://www.unicode.org/reports/tr9/&gt; describes how
+to use them.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><i>Scripts</i></b></p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+world&rsquo;s languages are written in many different
+scripts. This sentence (unless you&rsquo;re reading it in
+translation) is written in Latin, while Russian is written
+in Cyrillic, and Greek is written in, well, Greek; Japanese
+mainly in Hiragana or Katakana. There are many more.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The Unicode
+&quot;Script&quot; and &quot;Script_Extensions&quot;
+properties give what script a given character is in. The
+&quot;Script_Extensions&quot; property is an improved
+version of &quot;Script&quot;, as demonstrated below. Either
+property can be specified with the compound form like
+&quot;\p{Script=Hebrew}&quot; (short:
+&quot;\p{sc=hebr}&quot;), or
+&quot;\p{Script_Extensions=Javanese}&quot; (short:
+&quot;\p{scx=java}&quot;). In addition, Perl furnishes
+shortcuts for all &quot;Script_Extensions&quot; property
+names. You can omit everything up through the equals (or
+colon), and simply write &quot;\p{Latin}&quot; or
+&quot;\P{Cyrillic}&quot;. (This is not true for
+&quot;Script&quot;, which is required to be written in the
+compound form. Prior to Perl v5.26, the single form returned
+the plain old &quot;Script&quot; version, but was changed
+because &quot;Script_Extensions&quot; gives better
+results.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The difference
+between these two properties involves characters that are
+used in multiple scripts. For example the digits
+&rsquo;0&rsquo; through &rsquo;9&rsquo; are used in many
+parts of the world. These are placed in a script named
+&quot;Common&quot;. Other characters are used in just a few
+scripts. For example, the &quot;KATAKANA&minus;HIRAGANA
+DOUBLE HYPHEN&quot; is used in both Japanese scripts,
+Katakana and Hiragana, but nowhere else. The
+&quot;Script&quot; property places all characters that are
+used in multiple scripts in the &quot;Common&quot; script,
+while the &quot;Script_Extensions&quot; property places
+those that are used in only a few scripts into each of those
+scripts; while still using &quot;Common&quot; for those used
+in many scripts. Thus both these match:</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;0&quot;
+=~ /\p{sc=Common}/ # Matches <br>
+&quot;0&quot; =~ /\p{scx=Common}/ # Matches</p>
+
+<p style="margin-left:11%; margin-top: 1em">and only the
+first of these match:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;\N{KATAKANA&minus;HIRAGANA
+DOUBLE HYPHEN}&quot; =~ /\p{sc=Common} # Matches <br>
+&quot;\N{KATAKANA&minus;HIRAGANA DOUBLE HYPHEN}&quot; =~
+/\p{scx=Common} # No match</p>
+
+<p style="margin-left:11%; margin-top: 1em">And only the
+last two of these match:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;\N{KATAKANA&minus;HIRAGANA
+DOUBLE HYPHEN}&quot; =~ /\p{sc=Hiragana} # No match <br>
+&quot;\N{KATAKANA&minus;HIRAGANA DOUBLE HYPHEN}&quot; =~
+/\p{sc=Katakana} # No match <br>
+&quot;\N{KATAKANA&minus;HIRAGANA DOUBLE HYPHEN}&quot; =~
+/\p{scx=Hiragana} # Matches <br>
+&quot;\N{KATAKANA&minus;HIRAGANA DOUBLE HYPHEN}&quot; =~
+/\p{scx=Katakana} # Matches</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Script_Extensions&quot;
+is thus an improved &quot;Script&quot;, in which there are
+fewer characters in the &quot;Common&quot; script, and
+correspondingly more in other scripts. It is new in Unicode
+version 6.0, and its data are likely to change significantly
+in later releases, as things get sorted out. New code should
+probably be using &quot;Script_Extensions&quot; and not
+plain &quot;Script&quot;. If you compile perl with a Unicode
+release that doesn&rsquo;t have
+&quot;Script_Extensions&quot;, the single form Perl
+extensions will instead refer to the plain
+&quot;Script&quot; property. If you compile with a version
+of Unicode that doesn&rsquo;t have the &quot;Script&quot;
+property, these extensions will not be defined at all.</p>
+
+<p style="margin-left:11%; margin-top: 1em">(Actually,
+besides &quot;Common&quot;, the &quot;Inherited&quot;
+script, contains characters that are used in multiple
+scripts. These are modifier characters which inherit the
+script value of the controlling character. Some of these are
+used in many scripts, and so go into &quot;Inherited&quot;
+in both &quot;Script&quot; and
+&quot;Script_Extensions&quot;. Others are used in just a few
+scripts, so are in &quot;Inherited&quot; in
+&quot;Script&quot;, but not in
+&quot;Script_Extensions&quot;.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is worth
+stressing that there are several different sets of digits in
+Unicode that are equivalent to 0&minus;9 and are matchable
+by &quot;\d&quot; in a regular expression. If they are used
+in a single language only, they are in that language&rsquo;s
+&quot;Script&quot; and &quot;Script_Extensions&quot;. If
+they are used in more than one script, they will be in
+&quot;sc=Common&quot;, but only if they are used in many
+scripts should they be in &quot;scx=Common&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The explanation
+above has omitted some detail; refer to UAX#24 &quot;Unicode
+Script Property&quot;:
+&lt;https://www.unicode.org/reports/tr24&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A complete list
+of scripts and their shortcuts is in perluniprops.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b><i>Use of
+the</i></b> <b>&quot;Is&quot;</b> <b><i>Prefix</i></b></p>
+
+<p style="margin-left:11%; margin-top: 1em">For backward
+compatibility (with ancient Perl 5.6), all properties
+writable without using the compound form mentioned so far
+may have &quot;Is&quot; or &quot;Is_&quot; prepended to
+their name, so &quot;\P{Is_Lu}&quot;, for example, is equal
+to &quot;\P{Lu}&quot;, and &quot;\p{IsScript:Arabic}&quot;
+is equal to &quot;\p{Arabic}&quot;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><i>Blocks</i></b></p>
+
+<p style="margin-left:11%; margin-top: 1em">In addition to
+<b>scripts</b>, Unicode also defines <b>blocks</b> of
+characters. The difference between scripts and blocks is
+that the concept of scripts is closer to natural languages,
+while the concept of blocks is more of an artificial
+grouping based on groups of Unicode characters with
+consecutive ordinal values. For example, the &quot;Basic
+Latin&quot; block is all the characters whose ordinals are
+between 0 and 127, inclusive; in other words, the
+<small>ASCII</small> characters. The &quot;Latin&quot;
+script contains some letters from this as well as several
+other blocks, like &quot;Latin&minus;1 Supplement&quot;,
+&quot;Latin Extended&minus;A&quot;, <i>etc.</i>, but it does
+not contain all the characters from those blocks. It does
+not, for example, contain the digits 0&minus;9, because
+those digits are shared across many scripts, and hence are
+in the &quot;Common&quot; script.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For more about
+scripts versus blocks, see UAX#24 &quot;Unicode Script
+Property&quot;:
+&lt;https://www.unicode.org/reports/tr24&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;Script_Extensions&quot; or &quot;Script&quot;
+properties are likely to be the ones you want to use when
+processing natural language; the &quot;Block&quot; property
+may occasionally be useful in working with the nuts and
+bolts of Unicode.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Block names are
+matched in the compound form, like &quot;\p{Block:
+Arrows}&quot; or &quot;\p{Blk=Hebrew}&quot;. Unlike most
+other properties, only a few block names have a
+Unicode-defined short name.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl also
+defines single form synonyms for the block property in cases
+where these do not conflict with something else. But
+don&rsquo;t use any of these, because they are unstable.
+Since these are Perl extensions, they are subordinate to
+official Unicode property names; Unicode doesn&rsquo;t know
+nor care about Perl&rsquo;s extensions. It may happen that a
+name that currently means the Perl extension will later be
+changed without warning to mean a different Unicode property
+in a future version of the perl interpreter that uses a
+later Unicode release, and your code would no longer work.
+The extensions are mentioned here for completeness: Take the
+block name and prefix it with one of: &quot;In&quot; (for
+example &quot;\p{Blk=Arrows}&quot; can currently be written
+as &quot;\p{In_Arrows}&quot;); or sometimes &quot;Is&quot;
+(like &quot;\p{Is_Arrows}&quot;); or sometimes no prefix at
+all (&quot;\p{Arrows}&quot;). As of this writing (Unicode
+9.0) there are no conflicts with using the &quot;In_&quot;
+prefix, but there are plenty with the other two forms. For
+example, &quot;\p{Is_Hebrew}&quot; and
+&quot;\p{Hebrew}&quot; mean
+&quot;\p{Script_Extensions=Hebrew}&quot; which is
+<small>NOT</small> the same thing as
+&quot;\p{Blk=Hebrew}&quot;. Our advice used to be to use the
+&quot;In_&quot; prefix as a single form way of specifying a
+block. But Unicode 8.0 added properties whose names begin
+with &quot;In&quot;, and it&rsquo;s now clear that
+it&rsquo;s only luck that&rsquo;s so far prevented a
+conflict. Using &quot;In&quot; is only marginally less
+typing than &quot;Blk:&quot;, and the latter&rsquo;s meaning
+is clearer anyway, and guaranteed to never conflict. So
+don&rsquo;t take chances. Use &quot;\p{Blk=foo}&quot; for
+new code. And be sure that block is what you really really
+want to do. In most cases scripts are what you want
+instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">A complete list
+of blocks is in perluniprops.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b><i>Other
+Properties</i></b></p>
+
+<p style="margin-left:11%; margin-top: 1em">There are many
+more properties than the very basic ones described here. A
+complete list is in perluniprops.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unicode defines
+all its properties in the compound form, so all single-form
+properties are Perl extensions. Most of these are just
+synonyms for the Unicode ones, but some are genuine
+extensions, including several that are in the compound form.
+And quite a few of these are actually recommended by Unicode
+(in &lt;https://www.unicode.org/reports/tr18&gt;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">This section
+gives some details on all extensions that aren&rsquo;t just
+synonyms for compound-form Unicode properties (for those
+properties, you&rsquo;ll have to refer to the Unicode
+Standard &lt;https://www.unicode.org/reports/tr44&gt;.
+<b><br>
+&quot;\p{All}&quot;</b></p>
+
+<p style="margin-left:17%;">This matches every possible
+code point. It is equivalent to &quot;qr/./s&quot;. Unlike
+all the other non-user-defined &quot;\p{}&quot; property
+matches, no warning is ever generated if this is property is
+matched against a non-Unicode code point (see &quot;Beyond
+Unicode code points&quot; below).</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{Alnum}&quot;</b></p>
+
+<p style="margin-left:17%;">This matches any
+&quot;\p{Alphabetic}&quot; or &quot;\p{Decimal_Number}&quot;
+character.</p>
+
+<p style="margin-left:11%;"><b>&quot;\p{Any}&quot;</b></p>
+
+<p style="margin-left:17%;">This matches any of the
+1_114_112 Unicode code points. It is a synonym for
+&quot;\p{Unicode}&quot;.</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{ASCII}&quot;</b></p>
+
+<p style="margin-left:17%;">This matches any of the 128
+characters in the US-ASCII character set, which is a subset
+of Unicode.</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{Assigned}&quot;</b></p>
+
+<p style="margin-left:17%;">This matches any assigned code
+point; that is, any code point whose general category is not
+&quot;Unassigned&quot; (or equivalently, not
+&quot;Cn&quot;).</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{Blank}&quot;</b></p>
+
+<p style="margin-left:17%;">This is the same as
+&quot;\h&quot; and &quot;\p{HorizSpace}&quot;: A character
+that changes the spacing horizontally.</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{Decomposition_Type:
+Non_Canonical}&quot;</b> (Short:
+&quot;\p{Dt=NonCanon}&quot;)</p>
+
+<p style="margin-left:17%;">Matches a character that has
+any of the non-canonical decomposition types. Canonical
+decompositions are introduced in the &quot;Extended Grapheme
+Clusters (Logical characters)&quot; section above. However,
+many more characters have a different type of decomposition,
+generically called &quot;compatible&quot; decompositions, or
+&quot;non-canonical&quot;. The sequences that form these
+decompositions are not considered canonically equivalent to
+the pre-composed character. An example is the
+&quot;SUPERSCRIPT ONE&quot;. It is somewhat like a regular
+digit 1, but not exactly; its decomposition into the digit 1
+is called a &quot;compatible&quot; decomposition,
+specifically a &quot;super&quot; (for
+&quot;superscript&quot;) decomposition. There are several
+such compatibility decompositions (see
+&lt;https://www.unicode.org/reports/tr44&gt;).
+&quot;\p{Dt:&nbsp;Non_Canon}&quot; is a Perl extension that
+uses just one name to refer to the union of all of them.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Most Unicode
+characters don&rsquo;t have a decomposition, so their
+decomposition type is &quot;None&quot;. Hence,
+&quot;Non_Canonical&quot; is equivalent to</p>
+
+<p style="margin-left:17%; margin-top: 1em">qr/(?[
+\P{DT=Canonical} &minus; \p{DT=None} ])/</p>
+
+<p style="margin-left:17%; margin-top: 1em">(Note that one
+of the non-canonical decompositions is named
+&quot;compat&quot;, which could perhaps have been better
+named &quot;miscellaneous&quot;. It includes just the things
+that Unicode couldn&rsquo;t figure out a better generic name
+for.)</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{Graph}&quot;</b></p>
+
+<p style="margin-left:17%;">Matches any character that is
+graphic. Theoretically, this means a character that on a
+printer would cause ink to be used.</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{HorizSpace}&quot;</b></p>
+
+<p style="margin-left:17%;">This is the same as
+&quot;\h&quot; and &quot;\p{Blank}&quot;: a character that
+changes the spacing horizontally.</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{In=*}&quot;</b></p>
+
+<p style="margin-left:17%;">This is a synonym for
+&quot;\p{Present_In=*}&quot;</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{PerlSpace}&quot;</b></p>
+
+<p style="margin-left:17%;">This is the same as
+&quot;\s&quot;, restricted to <small>ASCII,</small> namely
+&quot;[&nbsp;\f\n\r\t]&quot; and starting in Perl v5.18, a
+vertical tab.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Mnemonic:
+Perl&rsquo;s (original) space</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{PerlWord}&quot;</b></p>
+
+<p style="margin-left:17%;">This is the same as
+&quot;\w&quot;, restricted to <small>ASCII,</small> namely
+&quot;[A&minus;Za&minus;z0&minus;9_]&quot;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Mnemonic:
+Perl&rsquo;s (original) word.</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{Posix...}&quot;</b></p>
+
+<p style="margin-left:17%;">There are several of these,
+which are equivalents, using the &quot;\p{}&quot; notation,
+for Posix classes and are described in &quot;
+<small>POSIX</small> Character Classes&quot; in
+perlrecharclass.</p>
+
+<p style="margin-left:11%;"><b>&quot;\p{Present_In:
+*}&quot;</b> (Short: &quot;\p{In=*}&quot;)</p>
+
+<p style="margin-left:17%;">This property is used when you
+need to know in what Unicode version(s) a character is.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The
+&quot;*&quot; above stands for some Unicode version number,
+such as 1.1 or 12.0; or the &quot;*&quot; can also be
+&quot;Unassigned&quot;. This property will match the code
+points whose final disposition has been settled as of the
+Unicode release given by the version number;
+&quot;\p{Present_In: Unassigned}&quot; will match those code
+points whose meaning has yet to be assigned.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For example,
+&quot;U+0041&quot; &quot;LATIN CAPITAL LETTER A&quot; was
+present in the very first Unicode release available, which
+is 1.1, so this property is true for all valid &quot;*&quot;
+versions. On the other hand, &quot;U+1EFF&quot; was not
+assigned until version 5.1 when it became &quot;LATIN SMALL
+LETTER Y WITH LOOP&quot;, so the only &quot;*&quot; that
+would match it are 5.1, 5.2, and later.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Unicode
+furnishes the &quot;Age&quot; property from which this is
+derived. The problem with Age is that a strict
+interpretation of it (which Perl takes) has it matching the
+precise release a code point&rsquo;s meaning is introduced
+in. Thus &quot;U+0041&quot; would match only 1.1; and
+&quot;U+1EFF&quot; only 5.1. This is not usually what you
+want.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Some non-Perl
+implementations of the Age property may change its meaning
+to be the same as the Perl &quot;Present_In&quot; property;
+just be aware of that.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Another
+confusion with both these properties is that the definition
+is not that the code point has been <i>assigned</i>, but
+that the meaning of the code point has been
+<i>determined</i>. This is because 66 code points will
+always be unassigned, and so the &quot;Age&quot; for them is
+the Unicode version in which the decision to make them so
+was made. For example, &quot;U+FDD0&quot; is to be
+permanently unassigned to a character, and the decision to
+do that was made in version 3.1, so &quot;\p{Age=3.1}&quot;
+matches this character, as also does &quot;\p{Present_In:
+3.1}&quot; and up.</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{Print}&quot;</b></p>
+
+<p style="margin-left:17%;">This matches any character that
+is graphical or blank, except controls.</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{SpacePerl}&quot;</b></p>
+
+<p style="margin-left:17%;">This is the same as
+&quot;\s&quot;, including beyond <small>ASCII.</small></p>
+
+<p style="margin-left:17%; margin-top: 1em">Mnemonic:
+Space, as modified by Perl. (It doesn&rsquo;t include the
+vertical tab until v5.18, which both the Posix standard and
+Unicode consider white space.)</p>
+
+<p style="margin-left:11%;"><b>&quot;\p{Title}&quot;</b>
+and <b>&quot;\p{Titlecase}&quot;</b></p>
+
+<p style="margin-left:17%;">Under case-sensitive matching,
+these both match the same code points as &quot;\p{General
+Category=Titlecase_Letter}&quot; (&quot;\p{gc=lt}&quot;).
+The difference is that under &quot;/i&quot; caseless
+matching, these match the same as &quot;\p{Cased}&quot;,
+whereas &quot;\p{gc=lt}&quot; matches
+&quot;\p{Cased_Letter&quot;).</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{Unicode}&quot;</b></p>
+
+<p style="margin-left:17%;">This matches any of the
+1_114_112 Unicode code points. &quot;\p{Any}&quot;.</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{VertSpace}&quot;</b></p>
+
+<p style="margin-left:17%;">This is the same as
+&quot;\v&quot;: A character that changes the spacing
+vertically.</p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{Word}&quot;</b></p>
+
+<p style="margin-left:17%;">This is the same as
+&quot;\w&quot;, including over 100_000 characters beyond
+<small>ASCII.</small></p>
+
+
+<p style="margin-left:11%;"><b>&quot;\p{XPosix...}&quot;</b></p>
+
+<p style="margin-left:17%;">There are several of these,
+which are the standard Posix classes extended to the full
+Unicode range. They are described in &quot;
+<small>POSIX</small> Character Classes&quot; in
+perlrecharclass.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Comparison
+of &quot;\N{...}&quot; and &quot;\p{name=...}&quot;</b> <br>
+Starting in Perl 5.32, you can specify a character by its
+name in regular expression patterns using
+&quot;\p{name=...}&quot;. This is in addition to the
+longstanding method of using &quot;\N{...}&quot;. The
+following summarizes the differences between these two:</p>
+
+<p style="margin-left:11%; margin-top: 1em">\N{...}
+\p{Name=...} <br>
+can interpolate only with eval yes [1] <br>
+custom names yes no [2] <br>
+name aliases yes yes [3] <br>
+named sequences yes yes [4] <br>
+name value parsing exact Unicode loose [5]</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[1]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>The ability to interpolate means you can do something
+like</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">qr/\p{na=latin
+capital letter $which}/</p>
+
+<p style="margin-left:17%; margin-top: 1em">and specify
+$which elsewhere.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">[2]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">You can create your own names
+for characters, and override official ones when using
+&quot;\N{...}&quot;. See &quot; <small>CUSTOM
+ALIASES&quot;</small> in charnames.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[3]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Some characters have multiple names (synonyms).</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[4]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Some particular sequences of characters are given a
+single name, in addition to their individual ones.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[5]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Exact name value matching means you have to specify
+case, hyphens, underscores, and spaces precisely in the name
+you want. Loose matching follows the Unicode rules
+&lt;https://www.unicode.org/reports/tr44/tr44&minus;24.html#UAX44&minus;LM2&gt;,
+where these are mostly irrelevant. Except for a few outlier
+character names, these are the same rules as are already
+used for any other &quot;\p{...}&quot; property.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Wildcards in
+Property Values</b> <br>
+Starting in Perl 5.30, it is possible to do something like
+this:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">qr!\p{numeric_value=/\A[0&minus;5]\z/}!</p>
+
+<p style="margin-left:11%; margin-top: 1em">or, by
+abbreviating and adding &quot;/x&quot;,</p>
+
+<p style="margin-left:11%; margin-top: 1em">qr! \p{nv=
+/(?x) \A [0&minus;5] \z / }!</p>
+
+<p style="margin-left:11%; margin-top: 1em">This matches
+all code points whose numeric value is one of 0, 1, 2, 3, 4,
+or 5. This particular example could instead have been
+written as</p>
+
+<p style="margin-left:11%; margin-top: 1em">qr! \A [
+\p{nv=0}\p{nv=1}\p{nv=2}\p{nv=3}\p{nv=4}\p{nv=5} ] \z
+!xx</p>
+
+<p style="margin-left:11%; margin-top: 1em">in earlier
+perls, so in this case this feature just makes things easier
+and shorter to write. If we hadn&rsquo;t included the
+&quot;\A&quot; and &quot;\z&quot;, these would have matched
+things like &quot;1/2&quot; because that contains a 1 (as
+well as a 2). As written, it matches things like subscripts
+that have these numeric values. If we only wanted the
+decimal digits with those numeric values, we could say,</p>
+
+<p style="margin-left:11%; margin-top: 1em">qr! (?[ \d
+&amp; \p{nv=/[0&minus;5]/ ]) }!x</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+&quot;\d&quot; gets rid of needing to anchor the pattern,
+since it forces the result to only match
+&quot;[0&minus;9]&quot;, and the &quot;[0&minus;5]&quot;
+further restricts it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The text in the
+above examples enclosed between the &quot;/&quot; characters
+can be just about any regular expression. It is independent
+of the main pattern, so doesn&rsquo;t share any capturing
+groups, <i>etc</i>. The delimiters for it must be
+<small>ASCII</small> punctuation, but it may
+<small>NOT</small> be delimited by &quot;{&quot;, nor
+&quot;}&quot; nor contain a literal &quot;}&quot;, as that
+delimits the end of the enclosing &quot;\p{}&quot;. Like any
+pattern, certain other delimiters are terminated by their
+mirror images. These are &quot;(&quot;,
+&quot;&quot;[&quot;&quot;, and &quot;&lt;&quot;. If the
+delimiter is any of &quot;&minus;&quot;, &quot;_&quot;,
+&quot;+&quot;, or &quot;\&quot;, or is the same delimiter as
+is used for the enclosing pattern, it must be preceded by a
+backslash escape, both fore and aft.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Beware of using
+&quot;$&quot; to indicate to match the end of the string. It
+can too easily be interpreted as being a punctuation
+variable, like $/.</p>
+
+<p style="margin-left:11%; margin-top: 1em">No modifiers
+may follow the final delimiter. Instead, use
+&quot;(?adlupimnsx&minus;imnsx)&quot; in perlre and/or
+&quot;(?adluimnsx&minus;imnsx:pattern)&quot; in perlre to
+specify modifiers. However, certain modifiers are illegal in
+your wildcard subpattern. The only character set modifier
+specifiable is &quot;/aa&quot;; any other character set, and
+&quot;&minus;m&quot;, and &quot;p&quot;, and &quot;s&quot;
+are all illegal. Specifying modifiers like
+&quot;qr/.../gc&quot; that aren&rsquo;t legal in the
+&quot;(?...)&quot; notation normally raise a warning, but
+with wildcard subpatterns, their use is an error. The
+&quot;m&quot; modifier is ineffective; everything that
+matches will be a single line.</p>
+
+<p style="margin-left:11%; margin-top: 1em">By default,
+your pattern is matched case-insensitively, as if
+&quot;/i&quot; had been specified. You can change this by
+saying &quot;(?&minus;i)&quot; in your pattern.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are also
+certain operations that are illegal. You can&rsquo;t nest
+&quot;\p{...}&quot; and &quot;\P{...}&quot; calls within a
+wildcard subpattern, and &quot;\G&quot; doesn&rsquo;t make
+sense, so is also prohibited.</p>
+
+<p style="margin-left:11%; margin-top: 1em">And the
+&quot;*&quot; quantifier (or its equivalent
+&quot;(0,}&quot;) is illegal.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This feature is
+not available when the left-hand side is prefixed by
+&quot;Is_&quot;, nor for any form that is marked as
+&quot;Discouraged&quot; in &quot;Discouraged&quot; in
+perluniprops.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This
+experimental feature has been added to begin to implement
+&lt;https://www.unicode.org/reports/tr18/#Wildcard_Properties&gt;.
+Using it will raise a (default-on) warning in the
+&quot;experimental::uniprop_wildcards&quot; category. We
+reserve the right to change its operation as we gain
+experience.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Your subpattern
+can be just about anything, but for it to have some utility,
+it should match when called with either or both of a) the
+full name of the property value with underscores (and/or
+spaces in the Block property) and some things uppercase; or
+b) the property value in all lowercase with spaces and
+underscores squeezed out. For example,</p>
+
+<p style="margin-left:11%; margin-top: 1em">qr!\p{Blk=/Old
+I.*/}! <br>
+qr!\p{Blk=/oldi.*/}!</p>
+
+<p style="margin-left:11%; margin-top: 1em">would match the
+same things.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Another example
+that shows that within &quot;\p{...}&quot;, &quot;/x&quot;
+isn&rsquo;t needed to have spaces:</p>
+
+<p style="margin-left:11%; margin-top: 1em">qr!\p{scx=
+/Hebrew|Greek/ }!</p>
+
+<p style="margin-left:11%; margin-top: 1em">To be safe, we
+should have anchored the above example, to prevent matches
+for something like &quot;Hebrew_Braille&quot;, but there
+aren&rsquo;t any script names like that, so far. A warning
+is issued if none of the legal values for a property are
+matched by your pattern. It&rsquo;s likely that a future
+release will raise a warning if your pattern ends up causing
+every possible code point to match.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Starting in
+5.32, the Name, Name Aliases, and Named Sequences properties
+are allowed to be matched. They are considered to be a
+single combination property, just as has long been the case
+for &quot;\N{}&quot;. Loose matching doesn&rsquo;t work in
+exactly the same way for these as it does for the values of
+other properties. The rules are given in
+&lt;https://www.unicode.org/reports/tr44/tr44&minus;24.html#UAX44&minus;LM2&gt;.
+As a result, Perl doesn&rsquo;t try loose matching for you,
+like it does in other properties. All letters in names are
+uppercase, but you can add &quot;(?i)&quot; to your
+subpattern to ignore case. If you&rsquo;re uncertain where a
+blank is, you can use &quot; ?&quot; in your subpattern. No
+character name contains an underscore, so don&rsquo;t bother
+trying to match one. The use of hyphens is particularly
+problematic; refer to the above link. But note that, as of
+Unicode 13.0, the only script in modern usage which has
+weirdnesses with these is Tibetan; also the two Korean
+characters U+116C <small>HANGUL JUNGSEONG OE</small> and
+U+1180 <small>HANGUL JUNGSEONG O&minus;E.</small> Unicode
+makes no promises to not add hyphen-problematic names in the
+future.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Using wildcards
+on these is resource intensive, given the hundreds of
+thousands of legal names that must be checked against.</p>
+
+<p style="margin-left:11%; margin-top: 1em">An example of
+using Name property wildcards is</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">qr!\p{name=/(SMILING|GRINNING)
+FACE/}!</p>
+
+<p style="margin-left:11%; margin-top: 1em">Another is</p>
+
+<p style="margin-left:11%; margin-top: 1em">qr/(?[
+\p{name=\/CJK\/} &minus; \p{ideographic} ])/</p>
+
+<p style="margin-left:11%; margin-top: 1em">which is the
+200&minus;ish (as of Unicode 13.0) <small>CJK</small>
+characters that aren&rsquo;t ideographs.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are
+certain properties that wildcard subpatterns don&rsquo;t
+currently work with. These are:</p>
+
+<p style="margin-left:11%; margin-top: 1em">Bidi Mirroring
+Glyph <br>
+Bidi Paired Bracket <br>
+Case Folding <br>
+Decomposition Mapping <br>
+Equivalent Unified Ideograph <br>
+Lowercase Mapping <br>
+NFKC Case Fold <br>
+Titlecase Mapping <br>
+Uppercase Mapping</p>
+
+<p style="margin-left:11%; margin-top: 1em">Nor is the
+&quot;@<i>unicode_property</i>@&quot; form implemented.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Here&rsquo;s a
+complete example of matching <small>IPV4</small> internet
+protocol addresses in any (single) script</p>
+
+<p style="margin-left:11%; margin-top: 1em">no warnings
+'experimental::uniprop_wildcards'; <br>
+# Can match a substring, so this intermediate regex needs to
+have <br>
+# context or anchoring in its final use. Using nt=de yields
+decimal <br>
+# digits. When specifying a subset of these, we must include
+\d to <br>
+# prevent things like U+00B2 SUPERSCRIPT TWO from matching
+<br>
+my $zero_through_255 = <br>
+qr/ \b (*sr: # All from same sript <br>
+(?[ \p{nv=0} &amp; \d ])* # Optional leading zeros <br>
+( # Then one of: <br>
+\d{1,2} # 0 &minus; 99 <br>
+| (?[ \p{nv=1} &amp; \d ]) \d{2} # 100 &minus; 199 <br>
+| (?[ \p{nv=2} &amp; \d ]) <br>
+( (?[ \p{nv=:[0&minus;4]:} &amp; \d ]) \d # 200 &minus; 249
+<br>
+| (?[ \p{nv=5} &amp; \d ]) <br>
+(?[ \p{nv=:[0&minus;5]:} &amp; \d ]) # 250 &minus; 255 <br>
+) <br>
+) <br>
+) <br>
+\b <br>
+/x; <br>
+my $ipv4 = qr/ \A (*sr: $zero_through_255 <br>
+(?: [.] $zero_through_255 ) {3} <br>
+) <br>
+\z <br>
+/x;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>User-Defined
+Character Properties</b> <br>
+You can define your own binary character properties by
+defining subroutines whose names begin with &quot;In&quot;
+or &quot;Is&quot;. (The regex sets feature &quot;(?[
+])&quot; in perlre provides an alternative which allows more
+complex definitions.) The subroutines can be defined in any
+package. They override any Unicode properties expressed as
+the same names. The user-defined properties can be used in
+the regular expression &quot;\p{}&quot; and &quot;\P{}&quot;
+constructs; if you are using a user-defined property from a
+package other than the one you are in, you must specify its
+package in the &quot;\p{}&quot; or &quot;\P{}&quot;
+construct.</p>
+
+<p style="margin-left:11%; margin-top: 1em"># assuming
+property IsForeign defined in Lang:: <br>
+package main; # property package name required <br>
+if ($txt =~ /\p{Lang::IsForeign}+/) { ... } <br>
+package Lang; # property package name not required <br>
+if ($txt =~ /\p{IsForeign}+/) { ... }</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+effect is compile-time and immutable once defined. However,
+the subroutines are passed a single parameter, which is 0 if
+case-sensitive matching is in effect and non-zero if
+caseless matching is in effect. The subroutine may return
+different values depending on the value of the flag, and one
+set of values will immutably be in effect for all
+case-sensitive matches, and the other set for all
+case-insensitive matches.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that if
+the regular expression is tainted, then Perl will die rather
+than calling the subroutine when the name of the subroutine
+is determined by the tainted data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The subroutines
+must return a specially-formatted string, with one or more
+newline-separated lines. Each line must be one of the
+following:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">A single hexadecimal number
+denoting a code point to include.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Two hexadecimal numbers separated by horizontal
+whitespace (space or tabular characters) denoting a range of
+code points to include. The second number must not be
+smaller than the first.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Something to include, prefixed by &quot;+&quot;: a
+built-in character property (prefixed by &quot;utf8::&quot;)
+or a fully qualified (including package name) user-defined
+character property, to represent all the characters in that
+property; two hexadecimal code points for a range; or a
+single hexadecimal code point.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Something to exclude, prefixed by &quot;&minus;&quot;:
+an existing character property (prefixed by
+&quot;utf8::&quot;) or a fully qualified (including package
+name) user-defined character property, to represent all the
+characters in that property; two hexadecimal code points for
+a range; or a single hexadecimal code point.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Something to negate, prefixed &quot;!&quot;: an existing
+character property (prefixed by &quot;utf8::&quot;) or a
+fully qualified (including package name) user-defined
+character property, to represent all the characters in that
+property; two hexadecimal code points for a range; or a
+single hexadecimal code point.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>Something to intersect with, prefixed by
+&quot;&amp;&quot;: an existing character property (prefixed
+by &quot;utf8::&quot;) or a fully qualified (including
+package name) user-defined character property, for all the
+characters except the characters in the property; two
+hexadecimal code points for a range; or a single hexadecimal
+code point.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">For example, to
+define a property that covers both the Japanese syllabaries
+(hiragana and katakana), you can define</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub InKana {
+<br>
+return &lt;&lt;END; <br>
+3040\t309F <br>
+30A0\t30FF <br>
+END <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Imagine that
+the here-doc end marker is at the beginning of the line. Now
+you can use &quot;\p{InKana}&quot; and
+&quot;\P{InKana}&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You could also
+have used the existing block property names:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub InKana {
+<br>
+return &lt;&lt;'END'; <br>
++utf8::InHiragana <br>
++utf8::InKatakana <br>
+END <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Suppose you
+wanted to match only the allocated characters, not the raw
+block ranges: in other words, you want to remove the
+unassigned characters:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub InKana {
+<br>
+return &lt;&lt;'END'; <br>
++utf8::InHiragana <br>
++utf8::InKatakana <br>
+&minus;utf8::IsCn <br>
+END <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The negation is
+useful for defining (surprise!) negated classes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub InNotKana {
+<br>
+return &lt;&lt;'END'; <br>
+!utf8::InHiragana <br>
+&minus;utf8::InKatakana <br>
++utf8::IsCn <br>
+END <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">This will match
+all non-Unicode code points, since every one of them is not
+in Kana. You can use intersection to exclude these, if
+desired, as this modified example shows:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub InNotKana {
+<br>
+return &lt;&lt;'END'; <br>
+!utf8::InHiragana <br>
+&minus;utf8::InKatakana <br>
++utf8::IsCn <br>
+&amp;utf8::Any <br>
+END <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">&amp;utf8::Any
+must be the last line in the definition.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Intersection is
+used generally for getting the common characters matched by
+two (or more) classes. It&rsquo;s important to remember not
+to use &quot;&amp;&quot; for the first set; that would be
+intersecting with nothing, resulting in an empty set.
+(Similarly using &quot;&minus;&quot; for the first set does
+nothing).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unlike
+non-user-defined &quot;\p{}&quot; property matches, no
+warning is ever generated if these properties are matched
+against a non-Unicode code point (see &quot;Beyond Unicode
+code points&quot; below).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>User-Defined
+Case Mappings (for serious hackers only) <br>
+This feature has been removed as of Perl 5.16.</b> The
+<small>CPAN</small> module &quot;Unicode::Casing&quot;
+provides better functionality without the drawbacks that
+this feature had. If you are using a Perl earlier than 5.16,
+this feature was most fully documented in the 5.14 version
+of this pod:
+&lt;http://perldoc.perl.org/5.14.0/perlunicode.html#User&minus;Defined&minus;Case&minus;Mappings&minus;%28for&minus;serious&minus;hackers&minus;only%29&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Character
+Encodings for Input and Output</b> <br>
+See Encode.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Unicode
+Regular Expression Support Level</b> <br>
+The following list of Unicode supported features for regular
+expressions describes all features currently directly
+supported by core Perl. The references to &quot;Level
+<i>N</i>&quot; and the section numbers refer to UTS#18
+&quot;Unicode Regular Expressions&quot;
+&lt;https://www.unicode.org/reports/tr18&gt;, version 18,
+October 2016.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Level 1
+&minus; Basic Unicode Support</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">RL1.1 Hex
+Notation &minus; Done [1] <br>
+RL1.2 Properties &minus; Done [2] <br>
+RL1.2a Compatibility Properties &minus; Done [3] <br>
+RL1.3 Subtraction and Intersection &minus; Done [4] <br>
+RL1.4 Simple Word Boundaries &minus; Done [5] <br>
+RL1.5 Simple Loose Matches &minus; Done [6] <br>
+RL1.6 Line Boundaries &minus; Partial [7] <br>
+RL1.7 Supplementary Code Points &minus; Done [8] <br>
+[1] &quot;\N{U+...}&quot; and &quot;\x{...}&quot; <br>
+[2] &quot;\p{...}&quot; &quot;\P{...}&quot;. This
+requirement is for a minimal list of <br>
+properties. Perl supports these. See R2.7 for other
+properties.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[3]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Perl has &quot;\d&quot; &quot;\D&quot; &quot;\s&quot;
+&quot;\S&quot; &quot;\w&quot; &quot;\W&quot; &quot;\X&quot;
+&quot;[:<i>prop</i>:]&quot; &quot;[:^<i>prop</i>:]&quot;,
+plus all the properties specified by
+&lt;https://www.unicode.org/reports/tr18/#Compatibility_Properties&gt;.
+These are described above in &quot;Other
+Properties&quot;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[4]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>The regex sets feature &quot;(?[...])&quot; starting in
+v5.18 accomplishes this. See &quot;(?[ ])&quot; in
+perlre.</p> </td></tr>
+</table>
+
+<p style="margin-left:11%;">[5] &quot;\b&quot;
+&quot;\B&quot; meet most, but not all, the details of this
+requirement, <br>
+but &quot;\b{wb}&quot; and &quot;\B{wb}&quot; do, as well as
+the stricter R2.3.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p>[6]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p>Note that Perl does Full case-folding in matching, not
+Simple:</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">For example
+&quot;U+1F88&quot; is equivalent to &quot;U+1F00
+U+03B9&quot;, instead of just &quot;U+1F80&quot;. This
+difference matters mainly for certain Greek capital letters
+with certain modifiers: the Full case-folding decomposes the
+letter, while the Simple case-folding would map it to a
+single character.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="4%">
+
+
+<p style="margin-top: 1em">[7]</p></td>
+<td width="2%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">The reason this is considered to
+be only partially implemented is that Perl has
+&quot;qr/\b{lb}/&quot; and &quot;Unicode::LineBreak&quot;
+that are conformant with UAX#14 &quot;Unicode Line Breaking
+Algorithm&quot;
+&lt;https://www.unicode.org/reports/tr14&gt;. The regular
+expression construct provides default behavior, while the
+heavier-weight module provides customizable line
+breaking.</p> </td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">But Perl treats
+&quot;\n&quot; as the start&minus; and end-line delimiter,
+whereas Unicode specifies more characters that should be
+so-interpreted.</p>
+
+<p style="margin-left:17%; margin-top: 1em">These are:</p>
+
+<p style="margin-left:17%; margin-top: 1em">VT U+000B (\v
+in C) <br>
+FF U+000C (\f) <br>
+CR U+000D (\r) <br>
+NEL U+0085 <br>
+LS U+2028 <br>
+PS U+2029</p>
+
+<p style="margin-left:17%; margin-top: 1em">&quot;^&quot;
+and &quot;$&quot; in regular expression patterns are
+supposed to match all these, but don&rsquo;t. These
+characters also don&rsquo;t, but should, affect
+&quot;&lt;&gt;&quot; $., and script line numbers.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Also, lines
+should not be split within &quot;CRLF&quot; (i.e. there is
+no empty line between &quot;\r&quot; and &quot;\n&quot;).
+For &quot;CRLF&quot;, try the &quot;:crlf&quot; layer (see
+PerlIO).</p>
+
+<p style="margin-left:11%;">[8]
+<small>UTF&minus;8/UTF&minus;EBDDIC</small> used in Perl
+allows not only &quot;U+10000&quot; to <br>
+&quot;U+10FFFF&quot; but also beyond
+&quot;U+10FFFF&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Level 2
+&minus; Extended Unicode Support</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">RL2.1 Canonical
+Equivalents &minus; Retracted [9] <br>
+by Unicode <br>
+RL2.2 Extended Grapheme Clusters and &minus; Partial [10]
+<br>
+Character Classes with Strings <br>
+RL2.3 Default Word Boundaries &minus; Done [11] <br>
+RL2.4 Default Case Conversion &minus; Done <br>
+RL2.5 Name Properties &minus; Done <br>
+RL2.6 Wildcards in Property Values &minus; Partial [12] <br>
+RL2.7 Full Properties &minus; Partial [13] <br>
+RL2.8 Optional Properties &minus; Partial [14] <br>
+[9] Unicode has rewritten this portion of UTS#18 to say that
+getting <br>
+canonical equivalence (see UAX#15 &quot;Unicode
+Normalization Forms&quot; <br>
+&lt;https://www.unicode.org/reports/tr15&gt;) is basically
+to be done at the <br>
+programmer level. Use <small>NFD</small> to write both your
+regular expressions and <br>
+text to match them against (you can use Unicode::Normalize).
+<br>
+[10] Perl has &quot;\X&quot; and &quot;\b{gcb}&quot;.
+Unicode has retracted their <br>
+&quot;Grapheme Cluster Mode&quot;, and recently added string
+properties, which <br>
+Perl does not yet support. <br>
+[11] see UAX#29 &quot;Unicode Text Segmentation&quot; <br>
+&lt;https://www.unicode.org/reports/tr29&gt;, <br>
+[12] see &quot;Wildcards in Property Values&quot; above.
+<br>
+[13] Perl supports all the properties in the Unicode
+Character Database <br>
+( <small>UCD</small> ). It does not yet support the listed
+properties that come from <br>
+other Unicode sources. <br>
+[14] The only optional property that Perl supports is Named
+Sequence. <br>
+None of these properties are in the <small>UCD.</small></p>
+
+<p style="margin-left:11%; margin-top: 1em"><i>Level 3
+&minus; Tailored Support</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">This has been
+retracted by Unicode.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Unicode
+Encodings</b> <br>
+Unicode characters are assigned to <i>code points</i>, which
+are abstract numbers. To use these numbers, various
+encodings are needed.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p><small>UTF&minus;8</small></p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>UTF&minus;8</small>
+is a variable-length (1 to 4 bytes), byte-order independent
+encoding. In most of Perl&rsquo;s documentation, including
+elsewhere in this document, the term &quot;
+<small>UTF&minus;8&quot;</small> means also
+&quot;UTF-EBCDIC&quot;. But in this section, &quot;
+<small>UTF&minus;8&quot;</small> refers only to the encoding
+used on <small>ASCII</small> platforms. It is a superset of
+7&minus;bit US-ASCII, so anything encoded in
+<small>ASCII</small> has the identical representation when
+encoded in <small>UTF&minus;8.</small></p>
+
+<p style="margin-left:17%; margin-top: 1em">The following
+table is from Unicode 3.2.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Code Points 1st
+Byte 2nd Byte 3rd Byte 4th Byte <br>
+U+0000..U+007F 00..7F <br>
+U+0080..U+07FF * C2..DF 80..BF <br>
+U+0800..U+0FFF E0 * A0..BF 80..BF <br>
+U+1000..U+CFFF E1..EC 80..BF 80..BF <br>
+U+D000..U+D7FF ED 80..9F 80..BF <br>
+U+D800..U+DFFF +++++ utf16 surrogates, not legal utf8 +++++
+<br>
+U+E000..U+FFFF EE..EF 80..BF 80..BF <br>
+U+10000..U+3FFFF F0 * 90..BF 80..BF 80..BF <br>
+U+40000..U+FFFFF F1..F3 80..BF 80..BF 80..BF <br>
+U+100000..U+10FFFF F4 80..8F 80..BF 80..BF</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note the gaps
+marked by &quot;*&quot; before several of the byte entries
+above. These are caused by legal <small>UTF&minus;8</small>
+avoiding non-shortest encodings: it is technically possible
+to UTF&minus;8&minus;encode a single code point in different
+ways, but that is explicitly forbidden, and the shortest
+possible encoding should always be used (and that is what
+Perl does).</p>
+
+<p style="margin-left:17%; margin-top: 1em">Another way to
+look at it is via bits:</p>
+
+<p style="margin-left:17%; margin-top: 1em">Code Points 1st
+Byte 2nd Byte 3rd Byte 4th Byte <br>
+0aaaaaaa 0aaaaaaa <br>
+00000bbbbbaaaaaa 110bbbbb 10aaaaaa <br>
+ccccbbbbbbaaaaaa 1110cccc 10bbbbbb 10aaaaaa <br>
+00000dddccccccbbbbbbaaaaaa 11110ddd 10cccccc 10bbbbbb
+10aaaaaa</p>
+
+<p style="margin-left:17%; margin-top: 1em">As you can see,
+the continuation bytes all begin with &quot;10&quot;, and
+the leading bits of the start byte tell how many bytes there
+are in the encoded character.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The original
+<small>UTF&minus;8</small> specification allowed up to 6
+bytes, to allow encoding of numbers up to
+&quot;0x7FFF_FFFF&quot;. Perl continues to allow those, and
+has extended that up to 13 bytes to encode code points up to
+what can fit in a 64&minus;bit word. However, Perl will warn
+if you output any of these as being non-portable; and under
+strict <small>UTF&minus;8</small> input protocols, they are
+forbidden. In addition, it is now illegal to use a code
+point larger than what a signed integer variable on your
+system can hold. On 32&minus;bit <small>ASCII</small>
+systems, this means &quot;0x7FFF_FFFF&quot; is the legal
+maximum (much higher on 64&minus;bit systems).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="15%">
+
+
+<p style="margin-top: 1em">UTF-EBCDIC</p></td>
+<td width="68%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Like
+<small>UTF&minus;8,</small> but EBCDIC-safe, in the way that
+<small>UTF&minus;8</small> is ASCII-safe. This means that
+all the basic characters (which includes all those that have
+<small>ASCII</small> equivalents (like &quot;A&quot;,
+&quot;0&quot;, &quot;%&quot;, <i>etc.</i>) are the same in
+both <small>EBCDIC</small> and UTF-EBCDIC.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">UTF-EBCDIC is
+used on <small>EBCDIC</small> platforms. It generally
+requires more bytes to represent a given code point than
+<small>UTF&minus;8</small> does; the largest Unicode code
+points take 5 bytes to represent (instead of 4 in
+<small>UTF&minus;8</small> ), and, extended for 64&minus;bit
+words, it uses 14 bytes instead of 13 bytes in
+<small>UTF&minus;8.</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em"><small>UTF&minus;16,
+UTF&minus;16BE, UTF&minus;16LE,</small> Surrogates, and
+&quot;BOM&quot;&rsquo;s (Byte Order Marks)</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The followings
+items are mostly for reference and general Unicode
+knowledge, Perl doesn&rsquo;t use these constructs
+internally.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Like
+<small>UTF&minus;8, UTF&minus;16</small> is a variable-width
+encoding, but where <small>UTF&minus;8</small> uses
+8&minus;bit code units, <small>UTF&minus;16</small> uses
+16&minus;bit code units. All code points occupy either 2 or
+4 bytes in <small>UTF&minus;16:</small> code points
+&quot;U+0000..U+FFFF&quot; are stored in a single
+16&minus;bit unit, and code points
+&quot;U+10000..U+10FFFF&quot; in two 16&minus;bit units. The
+latter case is using <i>surrogates</i>, the first
+16&minus;bit unit being the <i>high surrogate</i>, and the
+second being the <i>low surrogate</i>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Surrogates are
+code points set aside to encode the
+&quot;U+10000..U+10FFFF&quot; range of Unicode code points
+in pairs of 16&minus;bit units. The <i>high surrogates</i>
+are the range &quot;U+D800..U+DBFF&quot; and the <i>low
+surrogates</i> are the range &quot;U+DC00..U+DFFF&quot;. The
+surrogate encoding is</p>
+
+<p style="margin-left:17%; margin-top: 1em">$hi = ($uni
+&minus; 0x10000) / 0x400 + 0xD800; <br>
+$lo = ($uni &minus; 0x10000) % 0x400 + 0xDC00;</p>
+
+<p style="margin-left:17%; margin-top: 1em">and the
+decoding is</p>
+
+<p style="margin-left:17%; margin-top: 1em">$uni = 0x10000
++ ($hi &minus; 0xD800) * 0x400 + ($lo &minus; 0xDC00);</p>
+
+<p style="margin-left:17%; margin-top: 1em">Because of the
+16&minus;bitness, <small>UTF&minus;16</small> is byte-order
+dependent. <small>UTF&minus;16</small> itself can be used
+for in-memory computations, but if storage or transfer is
+required either <small>UTF&minus;16BE</small> (big-endian)
+or <small>UTF&minus;16LE</small> (little-endian) encodings
+must be chosen.</p>
+
+<p style="margin-left:17%; margin-top: 1em">This introduces
+another problem: what if you just know that your data is
+<small>UTF&minus;16,</small> but you don&rsquo;t know which
+endianness? Byte Order Marks, or &quot;BOM&quot;&rsquo;s,
+are a solution to this. A special character has been
+reserved in Unicode to function as a byte order marker: the
+character with the code point &quot;U+FEFF&quot; is the
+&quot;BOM&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The trick is
+that if you read a &quot;BOM&quot;, you will know the byte
+order, since if it was written on a big-endian platform, you
+will read the bytes &quot;0xFE 0xFF&quot;, but if it was
+written on a little-endian platform, you will read the bytes
+&quot;0xFF 0xFE&quot;. (And if the originating platform was
+writing in <small>ASCII</small> platform
+<small>UTF&minus;8,</small> you will read the bytes
+&quot;0xEF 0xBB 0xBF&quot;.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">The way this
+trick works is that the character with the code point
+&quot;U+FFFE&quot; is not supposed to be in input streams,
+so the sequence of bytes &quot;0xFF 0xFE&quot; is
+unambiguously &quot;&quot;BOM&quot;, represented in
+little-endian format&quot; and cannot be &quot;U+FFFE&quot;,
+represented in big-endian format&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Surrogates have
+no meaning in Unicode outside their use in pairs to
+represent other code points. However, Perl allows them to be
+represented individually internally, for example by saying
+&quot;chr(0xD801)&quot;, so that all code points, not just
+those valid for open interchange, are representable. Unicode
+does define semantics for them, such as their
+&quot;General_Category&quot; is &quot;Cs&quot;. But because
+their use is somewhat dangerous, Perl will warn (using the
+warning category &quot;surrogate&quot;, which is a
+sub-category of &quot;utf8&quot;) if an attempt is made to
+do things like take the lower case of one, or match
+case-insensitively, or to output them. (But don&rsquo;t try
+this on Perls before 5.14.)</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="40%">
+
+
+<p style="margin-top: 1em"><small>UTF&minus;32,
+UTF&minus;32BE, UTF&minus;32LE</small></p></td>
+<td width="43%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">The
+<small>UTF&minus;32</small> family is pretty much like the
+<small>UTF&minus;16</small> family, except that the units
+are 32&minus;bit, and therefore the surrogate scheme is not
+needed. <small>UTF&minus;32</small> is a fixed-width
+encoding. The &quot;BOM&quot; signatures are &quot;0x00 0x00
+0xFE 0xFF&quot; for <small>BE</small> and &quot;0xFF 0xFE
+0x00 0x00&quot; for <small>LE.</small></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="18%">
+
+
+<p style="margin-top: 1em"><small>UCS&minus;2,
+UCS&minus;4</small></p> </td>
+<td width="65%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Legacy,
+fixed-width encodings defined by the <small>ISO
+10646</small> standard. <small>UCS&minus;2</small> is a
+16&minus;bit encoding. Unlike <small>UTF&minus;16,
+UCS&minus;2</small> is not extensible beyond
+&quot;U+FFFF&quot;, because it does not use surrogates.
+<small>UCS&minus;4</small> is a 32&minus;bit encoding,
+functionally identical to <small>UTF&minus;32</small> (the
+difference being that <small>UCS&minus;4</small> forbids
+neither surrogates nor code points larger than
+&quot;0x10_FFFF&quot;).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="8%">
+
+
+<p style="margin-top: 1em"><small>UTF&minus;7</small></p></td>
+<td width="75%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">A seven-bit
+safe (non-eight-bit) encoding, which is useful if the
+transport or storage is not eight-bit safe. Defined by
+<small>RFC 2152.</small></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Noncharacter
+code points</b> <br>
+66 code points are set aside in Unicode as
+&quot;noncharacter code points&quot;. These all have the
+&quot;Unassigned&quot; (&quot;Cn&quot;)
+&quot;General_Category&quot;, and no character will ever be
+assigned to any of them. They are the 32 code points between
+&quot;U+FDD0&quot; and &quot;U+FDEF&quot; inclusive, and the
+34 code points:</p>
+
+<p style="margin-left:11%; margin-top: 1em">U+FFFE U+FFFF
+<br>
+U+1FFFE U+1FFFF <br>
+U+2FFFE U+2FFFF <br>
+... <br>
+U+EFFFE U+EFFFF <br>
+U+FFFFE U+FFFFF <br>
+U+10FFFE U+10FFFF</p>
+
+<p style="margin-left:11%; margin-top: 1em">Until Unicode
+7.0, the noncharacters were &quot;<b>forbidden</b> for use
+in open interchange of Unicode text data&quot;, so that code
+that processed those streams could use these code points as
+sentinels that could be mixed in with character data, and
+would always be distinguishable from that data. (Emphasis
+above and in the next paragraph are added in this
+document.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unicode 7.0
+changed the wording so that they are &quot;<b>not
+recommended</b> for use in open interchange of Unicode text
+data&quot;. The 7.0 Standard goes on to say:</p>
+
+<p style="margin-left:17%; margin-top: 1em">&quot;If a
+noncharacter is received in open interchange, an application
+is not required to interpret it in any way. It is good
+practice, however, to recognize it as a noncharacter and to
+take appropriate action, such as replacing it with
+&quot;U+FFFD&quot; replacement character, to indicate the
+problem in the text. It is not recommended to simply delete
+noncharacter code points from such text, because of the
+potential security issues caused by deleting uninterpreted
+characters. (See conformance clause C7 in Section 3.2,
+Conformance Requirements, and Unicode Technical Report #36,
+&quot;Unicode Security Considerations&quot;
+&lt;https://www.unicode.org/reports/tr36/#Substituting_for_Ill_Formed_Subsequences&gt;).&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">This change was
+made because it was found that various commercial tools like
+editors, or for things like source code control, had been
+written so that they would not handle program files that
+used these code points, effectively precluding their use
+almost entirely! And that was never the intent.
+They&rsquo;ve always been meant to be usable within an
+application, or cooperating set of applications, at
+will.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;re
+writing code, such as an editor, that is supposed to be able
+to handle any Unicode text data, then you shouldn&rsquo;t be
+using these code points yourself, and instead allow them in
+the input. If you need sentinels, they should instead be
+something that isn&rsquo;t legal Unicode. For
+<small>UTF&minus;8</small> data, you can use the bytes 0xC1
+and 0xC2 as sentinels, as they never appear in well-formed
+<small>UTF&minus;8.</small> (There are equivalents for
+UTF-EBCDIC). You can also store your Unicode code points in
+integer variables and use negative values as sentinels.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you&rsquo;re
+not writing such a tool, then whether you accept
+noncharacters as input is up to you (though the Standard
+recommends that you not). If you do strict input stream
+checking with Perl, these code points continue to be
+forbidden. This is to maintain backward compatibility
+(otherwise potential security holes could open up, as an
+unsuspecting application that was written assuming the
+noncharacters would be filtered out before getting to it,
+could now, without warning, start getting them). To do
+strict checking, you can use the layer
+&quot;:encoding('UTF&minus;8')&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl continues
+to warn (using the warning category &quot;nonchar&quot;,
+which is a sub-category of &quot;utf8&quot;) if an attempt
+is made to output noncharacters.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Beyond
+Unicode code points</b> <br>
+The maximum Unicode code point is &quot;U+10FFFF&quot;, and
+Unicode only defines operations on code points up through
+that. But Perl works on code points up to the maximum
+permissible signed number available on the platform.
+However, Perl will not accept these from input streams
+unless lax rules are being used, and will warn (using the
+warning category &quot;non_unicode&quot;, which is a
+sub-category of &quot;utf8&quot;) if any are output.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since Unicode
+rules are not defined on these code points, if a
+Unicode-defined operation is done on them, Perl uses what we
+believe are sensible rules, while generally warning, using
+the &quot;non_unicode&quot; category. For example,
+&quot;uc(&quot;\x{11_0000}&quot;)&quot; will generate such a
+warning, returning the input parameter as its result, since
+Perl defines the uppercase of every non-Unicode code point
+to be the code point itself. (All the case changing
+operations, not just uppercasing, work this way.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">The situation
+with matching Unicode properties in regular expressions, the
+&quot;\p{}&quot; and &quot;\P{}&quot; constructs, against
+these code points is not as clear cut, and how these are
+handled has changed as we&rsquo;ve gained experience.</p>
+
+<p style="margin-left:11%; margin-top: 1em">One possibility
+is to treat any match against these code points as
+undefined. But since Perl doesn&rsquo;t have the concept of
+a match being undefined, it converts this to failing or
+&quot;FALSE&quot;. This is almost, but not quite, what Perl
+did from v5.14 (when use of these code points became
+generally reliable) through v5.18. The difference is that
+Perl treated all &quot;\p{}&quot; matches as failing, but
+all &quot;\P{}&quot; matches as succeeding.</p>
+
+<p style="margin-left:11%; margin-top: 1em">One problem
+with this is that it leads to unexpected, and confusing
+results in some cases:</p>
+
+<p style="margin-left:11%; margin-top: 1em">chr(0x110000)
+=~ \p{ASCII_Hex_Digit=True} # Failed on &lt;= v5.18 <br>
+chr(0x110000) =~ \p{ASCII_Hex_Digit=False} # Failed! on
+&lt;= v5.18</p>
+
+<p style="margin-left:11%; margin-top: 1em">That is, it
+treated both matches as undefined, and converted that to
+false (raising a warning on each). The first case is the
+expected result, but the second is likely counterintuitive:
+&quot;How could both be false when they are
+complements?&quot; Another problem was that the
+implementation optimized many Unicode property matches down
+to already existing simpler, faster operations, which
+don&rsquo;t raise the warning. We chose to not forgo those
+optimizations, which help the vast majority of matches, just
+to generate a warning for the unlikely event that an
+above-Unicode code point is being matched against.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As a result of
+these problems, starting in v5.20, what Perl does is to
+treat non-Unicode code points as just typical unassigned
+Unicode characters, and matches accordingly. (Note: Unicode
+has atypical unassigned code points. For example, it has
+noncharacter code points, and ones that, when they do get
+assigned, are destined to be written Right-to-left, as
+Arabic and Hebrew are. Perl assumes that no non-Unicode code
+point has any atypical properties.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Perl, in most
+cases, will raise a warning when matching an above-Unicode
+code point against a Unicode property when the result is
+&quot;TRUE&quot; for &quot;\p{}&quot;, and &quot;FALSE&quot;
+for &quot;\P{}&quot;. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">chr(0x110000)
+=~ \p{ASCII_Hex_Digit=True} # Fails, no warning <br>
+chr(0x110000) =~ \p{ASCII_Hex_Digit=False} # Succeeds, with
+warning</p>
+
+<p style="margin-left:11%; margin-top: 1em">In both these
+examples, the character being matched is non-Unicode, so
+Unicode doesn&rsquo;t define how it should match. It clearly
+isn&rsquo;t an <small>ASCII</small> hex digit, so the first
+example clearly should fail, and so it does, with no
+warning. But it is arguable that the second example should
+have an undefined, hence &quot;FALSE&quot;, result. So a
+warning is raised for it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Thus the
+warning is raised for many fewer cases than in earlier
+Perls, and only when what the result is could be arguable.
+It turns out that none of the optimizations made by Perl (or
+are ever likely to be made) cause the warning to be skipped,
+so it solves both problems of Perl&rsquo;s earlier approach.
+The most commonly used property that is affected by this
+change is &quot;\p{Unassigned}&quot; which is a short form
+for &quot;\p{General_Category=Unassigned}&quot;. Starting in
+v5.20, all non-Unicode code points are considered
+&quot;Unassigned&quot;. In earlier releases the matches
+failed because the result was considered undefined.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The only place
+where the warning is not raised when it might ought to have
+been is if optimizations cause the whole pattern match to
+not even be attempted. For example, Perl may figure out that
+for a string to match a certain regular expression pattern,
+the string has to contain the substring &quot;foobar&quot;.
+Before attempting the match, Perl may look for that
+substring, and if not found, immediately fail the match
+without actually trying it; so no warning gets generated
+even if the string contains an above-Unicode code point.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This behavior
+is more &quot;Do what I mean&quot; than in earlier Perls for
+most applications. But it catches fewer issues for code that
+needs to be strictly Unicode compliant. Therefore there is
+an additional mode of operation available to accommodate
+such code. This mode is enabled if a regular expression
+pattern is compiled within the lexical scope where the
+&quot;non_unicode&quot; warning class has been made fatal,
+say by:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use warnings
+FATAL =&gt; &quot;non_unicode&quot;</p>
+
+<p style="margin-left:11%; margin-top: 1em">(see warnings).
+In this mode of operation, Perl will raise the warning for
+all matches against a non-Unicode code point (not just the
+arguable ones), and it skips the optimizations that might
+cause the warning to not be output. (It currently still
+won&rsquo;t warn if the match isn&rsquo;t even attempted,
+like in the &quot;foobar&quot; example above.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">In summary,
+Perl now normally treats non-Unicode code points as typical
+Unicode unassigned code points for regular expression
+matches, raising a warning only when it is arguable what the
+result should be. However, if this warning has been made
+fatal, it isn&rsquo;t skipped.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There is one
+exception to all this. &quot;\p{All}&quot; looks like a
+Unicode property, but it is a Perl extension that is defined
+to be true for all possible code points, Unicode or not, so
+no warning is ever generated when matching this against a
+non-Unicode code point. (Prior to v5.20, it was an exact
+synonym for &quot;\p{Any}&quot;, matching code points 0
+through 0x10FFFF.)</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Security
+Implications of Unicode</b> <br>
+First, read Unicode Security Considerations
+&lt;https://www.unicode.org/reports/tr36&gt;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also, note the
+following:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="23%">
+
+
+<p style="margin-top: 1em">Malformed
+<small>UTF&minus;8</small></p> </td>
+<td width="60%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%; margin-top: 1em"><small>UTF&minus;8</small>
+is very structured, so many combinations of bytes are
+invalid. In the past, Perl tried to soldier on and make some
+sense of invalid combinations, but this can lead to security
+holes, so now, if the Perl core needs to process an invalid
+combination, it will either raise a fatal error, or will
+replace those bytes by the sequence that forms the Unicode
+<small>REPLACEMENT CHARACTER,</small> for which purpose
+Unicode created it.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Every code
+point can be represented by more than one possible
+syntactically valid <small>UTF&minus;8</small> sequence.
+Early on, both Unicode and Perl considered any of these to
+be valid, but now, all sequences longer than the shortest
+possible one are considered to be malformed.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Unicode
+considers many code points to be illegal, or to be avoided.
+Perl generally accepts them, once they have passed through
+any input filters that may try to exclude them. These have
+been discussed above (see &quot;Surrogates&quot; under
+<small>UTF&minus;16</small> in &quot;Unicode
+Encodings&quot;, &quot;Noncharacter code points&quot;, and
+&quot;Beyond Unicode code points&quot;).</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Regular expression pattern
+matching may surprise you if you&rsquo;re not accustomed to
+Unicode. Starting in Perl 5.14, several pattern modifiers
+are available to control this, called the character set
+modifiers. Details are given in &quot;Character set
+modifiers&quot; in perlre.</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">As discussed
+elsewhere, Perl has one foot (two hooves?) planted in each
+of two worlds: the old world of <small>ASCII</small> and
+single-byte locales, and the new world of Unicode, upgrading
+when necessary. If your legacy code does not explicitly use
+Unicode, no automatic switch-over to Unicode should
+happen.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Unicode in
+Perl on <small>EBCDIC</small></b> <br>
+Unicode is supported on <small>EBCDIC</small> platforms. See
+perlebcdic.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unless
+<small>ASCII</small> vs. <small>EBCDIC</small> issues are
+specifically being discussed, references to
+<small>UTF&minus;8</small> encoding in this document and
+elsewhere should be read as meaning UTF-EBCDIC on
+<small>EBCDIC</small> platforms. See &quot;Unicode and
+<small>UTF&quot;</small> in perlebcdic.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Because
+UTF-EBCDIC is so similar to <small>UTF&minus;8,</small> the
+differences are mostly hidden from you;
+&quot;use&nbsp;utf8&quot; (and <small>NOT</small> something
+like &quot;use&nbsp;utfebcdic&quot;) declares the script is
+in the platform&rsquo;s &quot;native&quot; 8&minus;bit
+encoding of Unicode. (Similarly for the &quot;:utf8&quot;
+layer.)</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Locales</b>
+<br>
+See &quot;Unicode and <small>UTF&minus;8&quot;</small> in
+perllocale</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>When Unicode
+Does Not Happen</b> <br>
+There are still many places where Unicode (in some encoding
+or another) could be given as arguments or received as
+results, or both in Perl, but it is not, in spite of Perl
+having extensive ways to input and output in Unicode, and a
+few other &quot;entry points&quot; like the @ARGV array
+(which can sometimes be interpreted as
+<small>UTF&minus;8</small> ).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+are such interfaces. Also, see &quot;The &quot;Unicode
+Bug&quot;&quot;. For all of these interfaces Perl currently
+(as of v5.16.0) simply assumes byte strings both as
+arguments and results, or <small>UTF&minus;8</small> strings
+if the (deprecated) &quot;encoding&quot; pragma has been
+used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">One reason that
+Perl does not attempt to resolve the role of Unicode in
+these situations is that the answers are highly dependent on
+the operating system and the file system(s). For example,
+whether filenames can be in Unicode and in exactly what kind
+of encoding, is not exactly a portable concept. Similarly
+for &quot;qx&quot; and &quot;system&quot;: how well will the
+&quot;command-line interface&quot; (and which of them?)
+handle Unicode?</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">&quot;chdir&quot;,
+&quot;chmod&quot;, &quot;chown&quot;, &quot;chroot&quot;,
+&quot;exec&quot;, &quot;link&quot;, &quot;lstat&quot;,
+&quot;mkdir&quot;, &quot;rename&quot;, &quot;rmdir&quot;,
+&quot;stat&quot;, &quot;symlink&quot;, &quot;truncate&quot;,
+&quot;unlink&quot;, &quot;utime&quot;,
+&quot;&minus;X&quot;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>%ENV</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;glob&quot; (aka the &quot;&lt;*&gt;&quot;)</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;open&quot;, &quot;opendir&quot;,
+&quot;sysopen&quot;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;qx&quot; (aka the backtick operator),
+&quot;system&quot;</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p>&quot;readdir&quot;, &quot;readlink&quot;</p></td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em"><b>The
+&quot;Unicode Bug&quot;</b> <br>
+The term, &quot;Unicode bug&quot; has been applied to an
+inconsistency with the code points in the
+&quot;Latin&minus;1 Supplement&quot; block, that is, between
+128 and 255. Without a locale specified, unlike all other
+characters or code points, these characters can have very
+different semantics depending on the rules in effect.
+(Characters whose code points are above 255 force Unicode
+rules; whereas the rules for <small>ASCII</small> characters
+are the same under both <small>ASCII</small> and Unicode
+rules.)</p>
+
+<p style="margin-left:11%; margin-top: 1em">Under Unicode
+rules, these upper&minus;Latin1 characters are interpreted
+as Unicode code points, which means they have the same
+semantics as Latin&minus;1 (
+<small>ISO&minus;8859&minus;1</small> ) and C1 controls.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As explained in
+&quot; <small>ASCII</small> Rules versus Unicode
+Rules&quot;, under <small>ASCII</small> rules, they are
+considered to be unassigned characters.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This can lead
+to unexpected results. For example, a string&rsquo;s
+semantics can suddenly change if a code point above 255 is
+appended to it, which changes the rules from
+<small>ASCII</small> to Unicode. As an example, consider the
+following program and its output:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$ perl
+&minus;le' <br>
+no feature &quot;unicode_strings&quot;; <br>
+$s1 = &quot;\xC2&quot;; <br>
+$s2 = &quot;\x{2660}&quot;; <br>
+for ($s1, $s2, $s1.$s2) { <br>
+print /\w/ || 0; <br>
+} <br>
+' <br>
+0 <br>
+0 <br>
+1</p>
+
+<p style="margin-left:11%; margin-top: 1em">If
+there&rsquo;s no &quot;\w&quot; in &quot;s1&quot; nor in
+&quot;s2&quot;, why does their concatenation have one?</p>
+
+<p style="margin-left:11%; margin-top: 1em">This anomaly
+stems from Perl&rsquo;s attempt to not disturb older
+programs that didn&rsquo;t use Unicode, along with
+Perl&rsquo;s desire to add Unicode support seamlessly. But
+the result turned out to not be seamless. (By the way, you
+can choose to be warned when things like this happen. See
+&quot;encoding::warnings&quot;.)</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;use&nbsp;feature&nbsp;'unicode_strings'&quot;
+was added, starting in Perl v5.12, to address this problem.
+It affects these things:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Changing the case of a scalar,
+that is, using &quot;uc()&quot;, &quot;ucfirst()&quot;,
+&quot;lc()&quot;, and &quot;lcfirst()&quot;, or
+&quot;\L&quot;, &quot;\U&quot;, &quot;\u&quot; and
+&quot;\l&quot; in double-quotish contexts, such as regular
+expression substitutions.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Under
+&quot;unicode_strings&quot; starting in Perl 5.12.0, Unicode
+rules are generally used. See &quot;lc&quot; in perlfunc for
+details on how this works in combination with various other
+pragmas.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="77%">
+
+
+<p style="margin-top: 1em">Using caseless (&quot;/i&quot;)
+regular expression matching.</p></td>
+<td width="6%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Starting in
+Perl 5.14.0, regular expressions compiled within the scope
+of &quot;unicode_strings&quot; use Unicode rules even when
+executed or compiled into larger regular expressions outside
+the scope.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">Matching any of several
+properties in regular expressions.</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">These
+properties are &quot;\b&quot; (without braces),
+&quot;\B&quot; (without braces), &quot;\s&quot;,
+&quot;\S&quot;, &quot;\w&quot;, &quot;\W&quot;, and all the
+Posix character classes <i>except</i>
+&quot;[[:ascii:]]&quot;.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Starting in
+Perl 5.14.0, regular expressions compiled within the scope
+of &quot;unicode_strings&quot; use Unicode rules even when
+executed or compiled into larger regular expressions outside
+the scope.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="69%">
+
+
+<p style="margin-top: 1em">In &quot;quotemeta&quot; or its
+inline equivalent &quot;\Q&quot;.</p></td>
+<td width="14%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Starting in
+Perl 5.16.0, consistent quoting rules are used within the
+scope of &quot;unicode_strings&quot;, as described in
+&quot;quotemeta&quot; in perlfunc. Prior to that, or outside
+its scope, no code points above 127 are quoted in
+<small>UTF&minus;8</small> encoded strings, but in byte
+encoded strings, code points between 128&minus;255 are
+always quoted.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="46%">
+
+
+<p style="margin-top: 1em">In the &quot;..&quot; or range
+operator.</p> </td>
+<td width="37%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Starting in
+Perl 5.26.0, the range operator on strings treats their
+lengths consistently within the scope of
+&quot;unicode_strings&quot;. Prior to that, or outside its
+scope, it could produce strings whose length in characters
+exceeded that of the right-hand side, where the right-hand
+side took up more bytes than the correct range endpoint.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="72%">
+
+
+<p style="margin-top: 1em">In &quot;split&quot;&rsquo;s
+special-case whitespace splitting.</p></td>
+<td width="11%">
+</td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">Starting in
+Perl 5.28.0, the &quot;split&quot; function with a pattern
+specified as a string containing a single space handles
+whitespace characters consistently within the scope of
+&quot;unicode_strings&quot;. Prior to that, or outside its
+scope, characters that are whitespace according to Unicode
+rules but not according to <small>ASCII</small> rules were
+treated as field contents rather than field separators when
+they appear in byte-encoded strings.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can see
+from the above that the effect of
+&quot;unicode_strings&quot; increased over several Perl
+releases. (And Perl&rsquo;s support for Unicode continues to
+improve; it&rsquo;s best to use the latest available release
+in order to get the most complete and accurate results
+possible.) Note that &quot;unicode_strings&quot; is
+automatically chosen if you &quot;use&nbsp;v5.12&quot; or
+higher.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For Perls
+earlier than those described above, or when a string is
+passed to a function outside the scope of
+&quot;unicode_strings&quot;, see the next section.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Forcing
+Unicode in Perl (Or Unforcing Unicode in Perl)</b> <br>
+Sometimes (see &quot;When Unicode Does Not Happen&quot; or
+&quot;The &quot;Unicode Bug&quot;&quot;) there are
+situations where you simply need to force a byte string into
+<small>UTF&minus;8,</small> or vice versa. The standard
+module Encode can be used for this, or the low-level calls
+&quot;utf8::upgrade($bytestring)&quot; and
+&quot;utf8::downgrade($utf8string[, FAIL_OK])&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+&quot;utf8::downgrade()&quot; can fail if the string
+contains characters that don&rsquo;t fit into a byte.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Calling either
+function on a string that already is in the desired state is
+a no-op.</p>
+
+<p style="margin-left:11%; margin-top: 1em">&quot;
+<small>ASCII</small> Rules versus Unicode Rules&quot; gives
+all the ways that a string is made to use Unicode rules.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Using
+Unicode in <small>XS</small></b> <br>
+See &quot;Unicode Support&quot; in perlguts for an
+introduction to Unicode at the <small>XS</small> level, and
+&quot;Unicode Support&quot; in perlapi for the
+<small>API</small> details.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Hacking Perl
+to work on earlier Unicode versions (for very serious
+hackers only)</b> <br>
+Perl by default comes with the latest supported Unicode
+version built-in, but the goal is to allow you to change to
+use any earlier one. In Perls v5.20 and v5.22, however, the
+earliest usable version is Unicode 5.1. Perl v5.18 and v5.24
+are able to handle all earlier versions.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Download the
+files in the desired version of Unicode from the Unicode web
+site &lt;https://www.unicode.org&gt;). These should replace
+the existing files in <i>lib/unicore</i> in the Perl source
+tree. Follow the instructions in <i><small>README</small>
+.perl</i> in that directory to change some of their names,
+and then build perl (see <small>INSTALL</small> ).</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Porting code
+from perl&minus;5.6.X</b> <br>
+Perls starting in 5.8 have a different Unicode model from
+5.6. In 5.6 the programmer was required to use the
+&quot;utf8&quot; pragma to declare that a given scope
+expected to deal with Unicode data and had to make sure that
+only Unicode data were reaching that scope. If you have code
+that is working with 5.6, you will need some of the
+following adjustments to your code. The examples are written
+such that the code will continue to work under 5.6, so you
+should be safe to try them out.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="3%"></td>
+<td width="68%">
+
+
+<p style="margin-top: 1em">A filehandle that should read or
+write <small>UTF&minus;8</small></p></td>
+<td width="17%">
+</td></tr>
+</table>
+
+<p style="margin-left:15%; margin-top: 1em">if ($] &gt;
+5.008) { <br>
+binmode $fh, &quot;:encoding(UTF&minus;8)&quot;; <br>
+}</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="3%"></td>
+<td width="82%">
+
+
+<p style="margin-top: 1em">A scalar that is going to be
+passed to some extension</p></td>
+<td width="3%">
+</td></tr>
+</table>
+
+<p style="margin-left:15%; margin-top: 1em">Be it
+&quot;Compress::Zlib&quot;, &quot;Apache::Request&quot; or
+any extension that has no mention of Unicode in the manpage,
+you need to make sure that the <small>UTF8</small> flag is
+stripped off. Note that at the time of this writing (January
+2012) the mentioned modules are not UTF&minus;8&minus;aware.
+Please check the documentation to verify if this is still
+true.</p>
+
+<p style="margin-left:15%; margin-top: 1em">if ($] &gt;
+5.008) { <br>
+require Encode; <br>
+$val = Encode::encode(&quot;UTF&minus;8&quot;, $val); # make
+octets <br>
+}</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="3%"></td>
+<td width="59%">
+
+
+<p style="margin-top: 1em">A scalar we got back from an
+extension</p> </td>
+<td width="26%">
+</td></tr>
+</table>
+
+<p style="margin-left:15%; margin-top: 1em">If you believe
+the scalar comes back as <small>UTF&minus;8,</small> you
+will most likely want the <small>UTF8</small> flag
+restored:</p>
+
+<p style="margin-left:15%; margin-top: 1em">if ($] &gt;
+5.008) { <br>
+require Encode; <br>
+$val = Encode::decode(&quot;UTF&minus;8&quot;, $val); <br>
+}</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="3%"></td>
+<td width="71%">
+
+
+<p style="margin-top: 1em">Same thing, if you are really
+sure it is <small>UTF&minus;8</small></p></td>
+<td width="14%">
+</td></tr>
+</table>
+
+<p style="margin-left:15%; margin-top: 1em">if ($] &gt;
+5.008) { <br>
+require Encode; <br>
+Encode::_utf8_on($val); <br>
+}</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="3%"></td>
+<td width="85%">
+
+
+<p style="margin-top: 1em">A wrapper for <small>DBI</small>
+&quot;fetchrow_array&quot; and
+&quot;fetchrow_hashref&quot;</p> </td></tr>
+</table>
+
+<p style="margin-left:15%; margin-top: 1em">When the
+database contains only <small>UTF&minus;8,</small> a wrapper
+function or method is a convenient way to replace all your
+&quot;fetchrow_array&quot; and &quot;fetchrow_hashref&quot;
+calls. A wrapper function will also make it easier to adapt
+to future enhancements in your database driver. Note that at
+the time of this writing (January 2012), the
+<small>DBI</small> has no standardized way to deal with
+<small>UTF&minus;8</small> data. Please check the
+<small>DBI</small> documentation to verify if that is still
+true.</p>
+
+<p style="margin-left:15%; margin-top: 1em">sub fetchrow {
+<br>
+# $what is one of fetchrow_{array,hashref} <br>
+my($self, $sth, $what) = @_; <br>
+if ($] &lt; 5.008) { <br>
+return $sth&minus;&gt;$what; <br>
+} else { <br>
+require Encode; <br>
+if (wantarray) { <br>
+my @arr = $sth&minus;&gt;$what; <br>
+for (@arr) { <br>
+defined &amp;&amp; /[^\000&minus;\177]/ &amp;&amp;
+Encode::_utf8_on($_); <br>
+} <br>
+return @arr; <br>
+} else { <br>
+my $ret = $sth&minus;&gt;$what; <br>
+if (ref $ret) { <br>
+for my $k (keys %$ret) { <br>
+defined <br>
+&amp;&amp; /[^\000&minus;\177]/ <br>
+&amp;&amp; Encode::_utf8_on($_) for $ret&minus;&gt;{$k};
+<br>
+} <br>
+return $ret; <br>
+} else { <br>
+defined &amp;&amp; /[^\000&minus;\177]/ &amp;&amp;
+Encode::_utf8_on($_) for $ret; <br>
+return $ret; <br>
+} <br>
+} <br>
+} <br>
+}</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="3%"></td>
+<td width="79%">
+
+
+<p style="margin-top: 1em">A large scalar that you know can
+only contain <small>ASCII</small></p></td>
+<td width="6%">
+</td></tr>
+</table>
+
+<p style="margin-left:15%; margin-top: 1em">Scalars that
+contain only <small>ASCII</small> and are marked as
+<small>UTF&minus;8</small> are sometimes a drag to your
+program. If you recognize such a situation, just remove the
+<small>UTF8</small> flag:</p>
+
+
+<p style="margin-left:15%; margin-top: 1em">utf8::downgrade($val)
+if $] &gt; 5.008;</p>
+
+<h2>BUGS
+<a name="BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">See also
+&quot;The &quot;Unicode Bug&quot;&quot; above.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Interaction
+with Extensions</b> <br>
+When Perl exchanges data with an extension, the extension
+should be able to understand the <small>UTF8</small> flag
+and act accordingly. If the extension doesn&rsquo;t
+recognize that flag, it&rsquo;s likely that the extension
+will return incorrectly-flagged data.</p>
+
+<p style="margin-left:11%; margin-top: 1em">So if
+you&rsquo;re working with Unicode data, consult the
+documentation of every module you&rsquo;re using if there
+are any issues with Unicode data exchange. If the
+documentation does not talk about Unicode at all, suspect
+the worst and probably look at the source to learn how the
+module is implemented. Modules written completely in Perl
+shouldn&rsquo;t cause problems. Modules that directly or
+indirectly access code written in other programming
+languages are at risk.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For affected
+functions, the simple strategy to avoid data corruption is
+to always make the encoding of the exchanged data explicit.
+Choose an encoding that you know the extension can handle.
+Convert arguments passed to the extensions to that encoding
+and convert results back from that encoding. Write wrapper
+functions that do the conversions for you, so you can later
+change the functions when the extension catches up.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To provide an
+example, let&rsquo;s say the popular
+&quot;Foo::Bar::escape_html&quot; function doesn&rsquo;t
+deal with Unicode data yet. The wrapper function would
+convert the argument to raw <small>UTF&minus;8</small> and
+convert the result back to Perl&rsquo;s internal
+representation like so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub
+my_escape_html ($) { <br>
+my($what) = shift; <br>
+return unless defined $what; <br>
+Encode::decode(&quot;UTF&minus;8&quot;,
+Foo::Bar::escape_html( <br>
+Encode::encode(&quot;UTF&minus;8&quot;, $what))); <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Sometimes, when
+the extension does not convert data but just stores and
+retrieves it, you will be able to use the otherwise
+dangerous &quot;Encode::_utf8_on()&quot; function.
+Let&rsquo;s say the popular &quot;Foo::Bar&quot; extension,
+written in C, provides a &quot;param&quot; method that lets
+you store and retrieve data according to these
+prototypes:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$self&minus;&gt;param($name,
+$value); # set a scalar <br>
+$value = $self&minus;&gt;param($name); # retrieve a
+scalar</p>
+
+<p style="margin-left:11%; margin-top: 1em">If it does not
+yet provide support for any encoding, one could write a
+derived class with such a &quot;param&quot; method:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub param {
+<br>
+my($self,$name,$value) = @_; <br>
+utf8::upgrade($name); # make sure it is UTF&minus;8 encoded
+<br>
+if (defined $value) { <br>
+utf8::upgrade($value); # make sure it is UTF&minus;8 encoded
+<br>
+return $self&minus;&gt;SUPER::param($name,$value); <br>
+} else { <br>
+my $ret = $self&minus;&gt;SUPER::param($name); <br>
+Encode::_utf8_on($ret); # we know, it is UTF&minus;8 encoded
+<br>
+return $ret; <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Some extensions
+provide filters on data entry/exit points, such as
+&quot;DB_File::filter_store_key&quot; and family. Look out
+for such filters in the documentation of your extensions;
+they can make the transition to Unicode data much
+easier.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Speed</b>
+<br>
+Some functions are slower when working on
+<small>UTF&minus;8</small> encoded strings than on byte
+encoded strings. All functions that need to hop over
+characters such as &quot;length()&quot;,
+&quot;substr()&quot; or &quot;index()&quot;, or matching
+regular expressions can work <b>much</b> faster when the
+underlying data are byte-encoded.</p>
+
+<p style="margin-left:11%; margin-top: 1em">In Perl 5.8.0
+the slowness was often quite spectacular; in Perl 5.8.1 a
+caching scheme was introduced which improved the situation.
+In general, operations with <small>UTF&minus;8</small>
+encoded strings are still slower. As an example, the Unicode
+properties (character classes) like &quot;\p{Nd}&quot; are
+known to be quite a bit slower (5&minus;20 times) than their
+simpler counterparts like &quot;[0&minus;9]&quot; (then
+again, there are hundreds of Unicode characters matching
+&quot;Nd&quot; compared with the 10 <small>ASCII</small>
+characters matching &quot;[0&minus;9]&quot;).</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">perlunitut,
+perluniintro, perluniprops, Encode, open, utf8, bytes,
+perlretut, &quot;${^UNICODE}&quot; in perlvar,
+&lt;https://www.unicode.org/reports/tr44&gt;).</p>
+<hr>
+</body>
+</html>

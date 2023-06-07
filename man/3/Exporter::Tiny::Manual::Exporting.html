@@ -1,0 +1,372 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:59 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Exporter::Tiny::Manual::Exporting</title>
+
+</head>
+<body>
+<h1>Exporter::Tiny::Manual::Exporting</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">Exporter::Tiny::Manual::Exporting
+&minus; creating an exporter using Exporter::Tiny</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Read
+Exporter::Tiny::Manual::QuickStart first!</b></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Simple
+configuration works the same as Exporter; inherit from
+Exporter::Tiny, and use the @EXPORT, @EXPORT_OK, and
+%EXPORT_TAGS package variables to list subs to export.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Unlike
+Exporter, Exporter::Tiny performs most of its internal
+duties (including resolution of tag names to sub names,
+resolution of sub names to coderefs, and installation of
+coderefs into the target package) as <b>method calls</b>,
+which means that your module (which is a subclass of
+Exporter::Tiny) can override them to provide interesting
+behaviour.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Advanced Tag
+Stuff</b> <br>
+You can define tags using other tags:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Exporter::Shiny qw( <br>
+black white red green blue cyan magenta yellow <br>
+); <br>
+our %EXPORT_TAGS = ( <br>
+rgb =&gt; [qw( red green blue )], <br>
+cym =&gt; [qw( cyan magenta yellow )], <br>
+cymk =&gt; [qw( black :cym )], <br>
+monochrome =&gt; [qw( black white )], <br>
+all =&gt; [qw( :rgb :cymk :monochrome )], <br>
+);</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>CAVEAT:</small></b>
+If you create a cycle in the tags, this could put
+Exporter::Tiny into an infinite loop expanding the tags.
+Don&rsquo;t do that.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>More on
+Generators</b> <br>
+Exporter::Tiny has always allowed exported subs to be
+generated (like Sub::Exporter), but until version 0.025 did
+not have an especially nice <small>API</small> for it.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Now, it&rsquo;s
+easy. If you want to generate a sub &quot;foo&quot; to
+export, list it in @EXPORT or @EXPORT_OK as usual, and then
+simply give your exporter module a class method called
+&quot;_generate_foo&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em">push
+@EXPORT_OK, 'foo'; <br>
+sub _generate_foo { <br>
+my $class = shift; <br>
+my ($name, $args, $globals) = @_; <br>
+return sub { <br>
+...; <br>
+} <br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">We showed how
+to do that in Exporter::Tiny::Manual::QuickStart, but one
+thing we didn&rsquo;t show was that $globals gets passed in
+there. This is the global options hash, as described in
+Exporter::Tiny::Manual::Importing. It can often be useful.
+In particular it will tell you what package the generated
+sub is destined to be installed into.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To generate
+non-code symbols, name your generators like this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">sub
+_generateScalar_Foo { ... } # generate a symbol $Foo <br>
+sub _generateArray_Bar { ... } # generate a symbol @Bar <br>
+sub _generateHash_Baz { ... } # generate a symbol %Baz</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can also
+generate tags:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my %constants;
+<br>
+BEGIN { <br>
+%constants = (FOO =&gt; 1, BAR =&gt; 2); <br>
+} <br>
+use constant \%constants; <br>
+$EXPORT_TAGS{constants} = sub { <br>
+my $class = shift; <br>
+my ($name, $args, $globals) = @_; <br>
+return keys(%constants); <br>
+};</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Hooks</b>
+<br>
+Sometimes as well as exporting stuff, you want to do some
+setup or something.</p>
+
+<p style="margin-left:11%; margin-top: 1em">You can define
+a couple of class methods in your package, and they&rsquo;ll
+get called at the appropriate time:</p>
+
+<p style="margin-left:11%; margin-top: 1em">package
+MyUtils; <br>
+...; <br>
+sub _exporter_validate_opts { <br>
+my $class = shift; <br>
+my ($globals) = @_; <br>
+...; # do stuff here <br>
+$class&minus;&gt;SUPER::_exporter_validate_opts(@_); <br>
+} <br>
+sub _exporter_validate_unimport_opts { <br>
+my $class = shift; <br>
+my ($globals) = @_; <br>
+...; # do stuff here <br>
+
+$class&minus;&gt;SUPER::_exporter_validate_unimport_opts(@_);
+<br>
+}</p>
+
+<p style="margin-left:11%; margin-top: 1em">The $globals
+variable is that famous global options hash. In particular,
+&quot;$globals&minus;&gt;{into}&quot; is useful because it
+tells you what package has imported you.</p>
+
+<p style="margin-left:11%; margin-top: 1em">As you might
+have guessed, these methods were originally intended to
+validate the global options hash, but can be used to perform
+any general duties before the real exporting work is
+done.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Overriding
+Internals</b> <br>
+An important difference between Exporter and Exporter::Tiny
+is that the latter calls all its internal functions as
+<i>class methods</i>. This means that your subclass can
+<i>override them</i> to alter their behaviour.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The following
+methods are available to be overridden. Despite being named
+with a leading underscore, they are considered public
+methods. (The underscore is there to avoid accidentally
+colliding with any of your own function names.) <br>
+&quot;_exporter_validate_opts($globals)&quot;</p>
+
+<p style="margin-left:17%;">Documented above.</p>
+
+
+<p style="margin-left:11%;">&quot;_exporter_validate_unimport_opts($globals)&quot;</p>
+
+<p style="margin-left:17%;">Documented above.</p>
+
+
+<p style="margin-left:11%;">&quot;_exporter_merge_opts($tag_opts,
+$globals, @exports)&quot;</p>
+
+<p style="margin-left:17%;">Called to merge options which
+have been provided for a tag into the options provided for
+the exports that the tag expanded to.</p>
+
+
+<p style="margin-left:11%;">&quot;_exporter_expand_tag($name,
+$args, $globals)&quot;</p>
+
+<p style="margin-left:17%;">This method is called to expand
+an import tag (e.g. &quot;:constants&quot;). It is passed
+the tag name (minus the leading &quot;:&quot;), an optional
+hashref of options (like &quot;{ &minus;prefix =&gt;
+&quot;foo_&quot; }&quot;), and the global options
+hashref.</p>
+
+<p style="margin-left:17%; margin-top: 1em">It is expected
+to return a list of ($name, $args) arrayref pairs. These
+names can be sub names to export, or further tag names
+(which must have their &quot;:&quot;). If returning tag
+names, be careful to avoid creating a tag expansion
+loop!</p>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+implementation uses %EXPORT_TAGS to expand tags, and
+provides fallbacks for the &quot;:default&quot; and
+&quot;:all&quot; tags.</p>
+
+
+<p style="margin-left:11%;">&quot;_exporter_expand_regexp($regexp,
+$args, $globals)&quot;</p>
+
+<p style="margin-left:17%;">Like
+&quot;_exporter_expand_regexp&quot;, but given a regexp-like
+string instead of a tag name.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+implementation greps through @EXPORT_OK for imports, and the
+list of already-imported functions for exports.</p>
+
+
+<p style="margin-left:11%;">&quot;_exporter_expand_sub($name,
+$args, $globals)&quot;</p>
+
+<p style="margin-left:17%;">This method is called to
+translate a sub name to a hash of name =&gt; coderef pairs
+for exporting to the caller. In general, this would just be
+a hash with one key and one value, but, for example,
+Type::Library overrides this method so that &quot;+Foo&quot;
+gets expanded to:</p>
+
+<p style="margin-left:17%; margin-top: 1em">( <br>
+Foo =&gt; sub { $type }, <br>
+is_Foo =&gt; sub { $type&minus;&gt;check(@_) }, <br>
+to_Foo =&gt; sub { $type&minus;&gt;assert_coerce(@_) }, <br>
+assert_Foo =&gt; sub { $type&minus;&gt;assert_return(@_) },
+<br>
+)</p>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+implementation checks that the name is allowed to be
+exported (using the &quot;_exporter_permitted_regexp&quot;
+method), gets the coderef using the generator if there is
+one (or by calling &quot;can&quot; on your exporter
+otherwise) and calls &quot;_exporter_fail&quot; if
+it&rsquo;s unable to generate or retrieve a coderef.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Despite the
+name, is also called for non-code symbols.</p>
+
+
+<p style="margin-left:11%;">&quot;_exporter_permitted_regexp($globals)&quot;</p>
+
+<p style="margin-left:17%;">This method is called to
+retrieve a regexp for validating the names of exportable
+subs. If a sub doesn&rsquo;t match the regexp, then the
+default implementation of &quot;_exporter_expand_sub&quot;
+will refuse to export it. (Of course, you may override the
+default &quot;_exporter_expand_sub&quot;.)</p>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+implementation of this method assembles the regexp from
+@EXPORT and @EXPORT_OK.</p>
+
+<p style="margin-left:11%;">&quot;_exporter_fail($name,
+$args, $globals)&quot;</p>
+
+<p style="margin-left:17%;">Called by
+&quot;_exporter_expand_sub&quot; if it can&rsquo;t find a
+coderef to export.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+implementation just throws an exception. But you could emit
+a warning instead, or just ignore the failed export.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If you
+don&rsquo;t throw an exception then you should be aware that
+this method is called in list context, and any list it
+returns will be treated as an
+&quot;_exporter_expand_sub&quot;&minus;style hash of names
+and coderefs for export.</p>
+
+
+<p style="margin-left:11%;">&quot;_exporter_install_sub($name,
+$args, $globals, $coderef)&quot;</p>
+
+<p style="margin-left:17%;">This method actually installs
+the exported sub into its new destination. Its return value
+is ignored.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+implementation handles sub renaming (i.e. the
+&quot;&minus;as&quot;, &quot;&minus;prefix&quot; and
+&quot;&minus;suffix&quot; functions. This method does a lot
+of stuff; if you need to override it, it&rsquo;s probably a
+good idea to just pre-process the arguments and then call
+the super method rather than trying to handle all of it
+yourself.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Despite the
+name, is also called for non-code symbols.</p>
+
+
+<p style="margin-left:11%;">&quot;_exporter_uninstall_sub($name,
+$args, $globals)&quot;</p>
+
+<p style="margin-left:17%;">The opposite of
+&quot;_exporter_install_sub&quot;.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">&lt;https://exportertiny.github.io/&gt;.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">Exporter::Shiny,
+Exporter::Tiny.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Toby Inkster
+&lt;tobyink@cpan.org&gt;.</p>
+
+<h2>COPYRIGHT AND LICENCE
+<a name="COPYRIGHT AND LICENCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is copyright (c) 2013&minus;2014, 2017, 2022&minus;2023 by
+Toby Inkster.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This is free
+software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system
+itself.</p>
+
+<h2>DISCLAIMER OF WARRANTIES
+<a name="DISCLAIMER OF WARRANTIES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><small>THIS
+PACKAGE IS PROVIDED &quot;AS IS&quot; AND WITHOUT ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, WITHOUT
+LIMITATION, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND
+FITNESS FOR A PARTICULAR PURPOSE.</small></p>
+<hr>
+</body>
+</html>

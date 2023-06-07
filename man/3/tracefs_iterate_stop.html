@@ -1,0 +1,433 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:21 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LIBTRACEFS</title>
+
+</head>
+<body>
+<h1>tracefs_iterate_stop</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">tracefs_iterate_raw_events,
+tracefs_iterate_stop, tracefs_follow_event,
+tracefs_follow_missed_events &minus; Iterate over events in
+the ring buffer</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;tracefs.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">int
+<b>tracefs_iterate_raw_events</b>(struct tep_handle
+*<i>tep</i>, struct tracefs_instance *<i>instance</i>, <br>
+cpu_set_t *<i>cpus</i>, int <i>cpu_size</i>, <br>
+int (*<i>callback</i>)(struct tep_event *, struct tep_record
+*, int, void *), <br>
+void *<i>callback_context</i>); <br>
+void <b>tracefs_iterate_stop</b>(struct tracefs_instance
+*<i>instance</i>);</p>
+
+<p style="margin-left:11%; margin-top: 1em">int
+<b>tracefs_follow_event</b>(struct tep_handle *<i>tep</i>,
+struct tracefs_instance *<i>instance</i>, <br>
+const char *<i>system</i>, const char *<i>event_name</i>,
+<br>
+int (*<i>callback</i>)(struct tep_event *, <br>
+struct tep_record *, <br>
+int, void *), <br>
+void *<i>callback_data</i>); <br>
+int <b>tracefs_follow_missed_events</b>(struct
+tracefs_instance *<i>instance</i>, <br>
+int (*<i>callback</i>)(struct tep_event *, <br>
+struct tep_record *, <br>
+int, void *), <br>
+void *<i>callback_data</i>);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Trace iterator
+over raw events.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>tracefs_iterate_raw_events()</b> function will read the
+tracefs raw data buffers and call the specified
+<i>callback</i> function for every event it encounters.
+Events are iterated in sorted order: oldest first. An
+initialized <i>tep</i> handler is required (See
+<b>tracefs_local_events</b>(3)). If <i>instance</i> is NULL,
+then the toplevel tracefs buffer is used, otherwise the
+buffer for the corresponding <i>instance</i> is read. To
+filter only on a subset of CPUs, <i>cpus</i> and
+<i>cpu_size</i> may be set to only call <i>callback</i> with
+events that occurred on the CPUs specified, otherwise if
+<i>cpus</i> is NULL then the <i>callback</i> function will
+be called for all events, and <i>cpu_size</i> is ignored.
+The <i>callback</i> function will be called with the
+following parameters: A pointer to a struct tep_event that
+corresponds to the type of event the record is; The record
+representing the event; The CPU that the event occurred on;
+and a pointer to user specified <i>callback_context</i>. If
+the <i>callback</i> returns non&minus;zero, the iteration
+stops.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Use
+<b>tracefs_iterate_stop()</b> to force a executing
+<b>tracefs_iterate_raw_events()</b> to halt. This can be
+called from either a callback that is called by the iterator
+(even though a return of non&minus;zero will stop it), or
+from another thread.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>tracefs_follow_event()</b> is used with
+<b>tracefs_iterate_raw_events()</b> but intead of the
+callback being called for every event, it is only called for
+the specified <i>system</i> / <i>event_name</i> given to the
+function. The <i>callback</i> is the same as for
+<b>tracefs_iterate_raw_events()</b>, and the passed in
+<i>callback_context</i> will be passed to the
+<i>callback</i> as well. Note, if it returns something other
+than 0, it will stop the loop before the <i>callback</i> of
+<b>tracefs_iterate_raw_events()</b> is called.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>tracefs_follow_missed_events()</b> will call the
+<i>callback</i> when missed events are detected. It will set
+the <i>record</i> parameter of the callback to the record
+that came after the missed events and <i>event</i> will be
+of the type of event <i>record</i> is. <i>cpu</i> will be
+set to the CPU that missed the events, and
+<i>callback_data</i> will be the content that was passed in
+to the function.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>tracefs_iterate_raw_events()</b> function returns
+&minus;1 in case of an error or 0 otherwise.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em">#include
+&lt;unistd.h&gt; <br>
+#include &lt;tracefs.h&gt; <br>
+#include &lt;stdbool.h&gt; <br>
+#include &lt;signal.h&gt;</p>
+
+<p style="margin-left:17%; margin-top: 1em">struct
+my_struct { <br>
+bool stopped; <br>
+};</p>
+
+<p style="margin-left:17%; margin-top: 1em">#define
+MAX_COUNT 500000 <br>
+static int counter;</p>
+
+<p style="margin-left:17%; margin-top: 1em">static int
+callback(struct tep_event *event, struct tep_record *record,
+<br>
+int cpu, void *data) <br>
+{ <br>
+struct my_struct *my_data = data; <br>
+static struct trace_seq seq;</p>
+
+<p style="margin-left:17%; margin-top: 1em">if (counter++
+&gt; MAX_COUNT) { <br>
+my_data&minus;&gt;stopped = true; <br>
+return 1; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">if
+(!seq.buffer) <br>
+trace_seq_init(&amp;seq);</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">tep_print_event(event&minus;&gt;tep,
+&amp;seq, record, &quot;%16s&minus;%&minus;5d [%03d]
+%6.1000d %s: %s\n&quot;, <br>
+TEP_PRINT_COMM, TEP_PRINT_PID, TEP_PRINT_CPU, <br>
+TEP_PRINT_TIME, TEP_PRINT_NAME, TEP_PRINT_INFO); <br>
+trace_seq_terminate(&amp;seq); <br>
+trace_seq_do_printf(&amp;seq); <br>
+trace_seq_reset(&amp;seq); <br>
+return 0; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">static int
+sched_callback(struct tep_event *event, struct tep_record
+*record, <br>
+int cpu, void *data) <br>
+{ <br>
+static struct tep_format_field *prev_pid; <br>
+static struct tep_format_field *next_pid; <br>
+unsigned long long pid; <br>
+int this_pid = *(int *)data;</p>
+
+<p style="margin-left:17%; margin-top: 1em">if (!prev_pid)
+{ <br>
+prev_pid = tep_find_field(event, &quot;prev_pid&quot;); <br>
+next_pid = tep_find_field(event, &quot;next_pid&quot;); <br>
+if (!prev_pid || !next_pid) { <br>
+fprintf(stderr, &quot;No pid fields??\n&quot;); <br>
+return &minus;1; <br>
+} <br>
+}</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">tep_read_number_field(prev_pid,
+record&minus;&gt;data, &amp;pid); <br>
+if (pid == this_pid) <br>
+printf(&quot;WE ARE LEAVING!\n&quot;); <br>
+tep_read_number_field(next_pid, record&minus;&gt;data,
+&amp;pid); <br>
+if (pid == this_pid) <br>
+printf(&quot;WE ARE ARRIVING!\n&quot;); <br>
+return 0; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">static int
+missed_callback(struct tep_event *event, struct tep_record
+*record, <br>
+int cpu, void *data) <br>
+{ <br>
+printf(&quot;OOPS! cpu %d dropped &quot;, cpu); <br>
+if (record&minus;&gt;missed_events &gt; 0) <br>
+printf(&quot;%lld &quot;, record&minus;&gt;missed_events);
+<br>
+printf(&quot;events\n&quot;); <br>
+return 0; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">static struct
+tracefs_instance *instance; <br>
+static struct my_struct my_data;</p>
+
+<p style="margin-left:17%; margin-top: 1em">static void
+sig(int s) <br>
+{ <br>
+tracefs_iterate_stop(instance); <br>
+my_data.stopped = true; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">int main (int
+argc, char **argv, char **env) <br>
+{ <br>
+struct tep_handle *tep; <br>
+int this_pid = getpid();</p>
+
+<p style="margin-left:17%; margin-top: 1em">instance =
+tracefs_instance_create(&quot;my&minus;buffer&quot;); <br>
+if (!instance) <br>
+return &minus;1;</p>
+
+<p style="margin-left:17%; margin-top: 1em">signal(SIGINT,
+sig);</p>
+
+
+<p style="margin-left:17%; margin-top: 1em">tracefs_event_enable(instance,
+NULL, NULL); <br>
+sleep(1); <br>
+tracefs_event_disable(instance, NULL, NULL); <br>
+tep = tracefs_local_events(NULL); <br>
+tep_load_plugins(tep); <br>
+tracefs_follow_missed_events(instance, missed_callback,
+NULL); <br>
+tracefs_follow_event(tep, instance, &quot;sched&quot;,
+&quot;sched_switch&quot;, sched_callback, &amp;this_pid);
+<br>
+tracefs_iterate_raw_events(tep, instance, NULL, 0, callback,
+&amp;my_data); <br>
+tracefs_instance_destroy(instance);</p>
+
+<p style="margin-left:17%; margin-top: 1em">if
+(my_data.stopped) { <br>
+if (counter &gt; MAX_COUNT) <br>
+printf(&quot;Finished max count\n&quot;); <br>
+else <br>
+printf(&quot;Finished via signal\n&quot;); <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">return 0; <br>
+}</p>
+
+<h2>FILES
+<a name="FILES"></a>
+</h2>
+
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>tracefs.h</b>
+<br>
+Header file to include in order to have access to the
+library APIs. <b><br>
+&minus;ltracefs</b> <br>
+Linker switch to add when building a program that uses the
+library.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>libtracefs</b>(3),
+<b>libtraceevent</b>(3), <b>trace&minus;cmd</b>(1)</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>Steven
+Rostedt</b>
+&lt;<b><font color="#0000FF">rostedt@goodmis.org</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">&gt; <b><br>
+Tzvetomir Stoyanov</b>
+&lt;</font><b><font color="#0000FF">tz.stoyanov@gmail.com</font></b>
+<small><font color="#000000">[2]</font></small>
+<font color="#000000">&gt;</font></p>
+
+<h2>REPORTING BUGS
+<a name="REPORTING BUGS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Report
+bugs to
+&lt;</font><b><font color="#0000FF">linux&minus;trace&minus;devel@vger.kernel.org</font></b>
+<small><font color="#000000">[3]</font></small>
+<font color="#000000">&gt;</font></p>
+
+<h2>LICENSE
+<a name="LICENSE"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">libtracefs
+is Free Software licensed under the GNU LGPL 2.1</font></p>
+
+<h2>RESOURCES
+<a name="RESOURCES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><font color="#0000FF">https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/</font></b></p>
+
+<h2>COPYING
+<a name="COPYING"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Copyright
+(C) 2020 VMware, Inc. Free use of this software is granted
+under the terms of the GNU Public License (GPL).</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="29%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">rostedt@goodmis.org</font></p> </td>
+<td width="54%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:rostedt@goodmis.org</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">2.</font></p> </td>
+<td width="2%"></td>
+<td width="32%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">tz.stoyanov@gmail.com</font></p> </td>
+<td width="51%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:tz.stoyanov@gmail.com</font></p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">3.</font></p> </td>
+<td width="2%"></td>
+<td width="51%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">linux-trace-devel@vger.kernel.org</font></p> </td>
+<td width="32%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">mailto:linux-trace-devel@vger.kernel.org</font></p>
+<hr>
+</body>
+</html>

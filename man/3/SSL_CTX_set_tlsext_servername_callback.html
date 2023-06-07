@@ -1,0 +1,290 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:07 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SSL_CTX_SET_TLSEXT_SERVERNAME_CALLBACK</title>
+
+</head>
+<body>
+<h1>SSL_CTX_set_tlsext_servername_callback</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">SSL_CTX_set_tlsext_servername_callback,
+SSL_CTX_set_tlsext_servername_arg, SSL_get_servername_type,
+SSL_get_servername, SSL_set_tlsext_host_name &minus; handle
+server name indication (SNI)</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;openssl/ssl.h&gt; <br>
+long SSL_CTX_set_tlsext_servername_callback(SSL_CTX *ctx,
+<br>
+int (*cb)(SSL *s, int *al, void *arg)); <br>
+long SSL_CTX_set_tlsext_servername_arg(SSL_CTX *ctx, void
+*arg); <br>
+const char *SSL_get_servername(const SSL *s, const int
+type); <br>
+int SSL_get_servername_type(const SSL *s); <br>
+int SSL_set_tlsext_host_name(const SSL *s, const char
+*name);</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+functionality provided by the servername callback is mostly
+superseded by the ClientHello callback, which can be set
+using <b>SSL_CTX_set_client_hello_cb()</b>. However, even
+where the ClientHello callback is used, the servername
+callback is still necessary in order to acknowledge the
+servername requested by the client.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_CTX_set_tlsext_servername_callback()</b>
+sets the application callback <b>cb</b> used by a server to
+perform any actions or configuration required based on the
+servername extension received in the incoming connection.
+When <b>cb</b> is <small>NULL, SNI</small> is not used.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The servername
+callback should return one of the following values:
+<small><br>
+SSL_TLSEXT_ERR_OK</small></p>
+
+<p style="margin-left:17%;">This is used to indicate that
+the servername requested by the client has been accepted.
+Typically a server will call <b>SSL_set_SSL_CTX()</b> in the
+callback to set up a different configuration for the
+selected servername in this case.</p>
+
+
+<p style="margin-left:11%;"><small>SSL_TLSEXT_ERR_ALERT_FATAL</small></p>
+
+<p style="margin-left:17%;">In this case the servername
+requested by the client is not accepted and the handshake
+will be aborted. The value of the alert to be used should be
+stored in the location pointed to by the <b>al</b> parameter
+to the callback. By default this value is initialised to
+<small>SSL_AD_UNRECOGNIZED_NAME.</small></p>
+
+
+<p style="margin-left:11%;"><small>SSL_TLSEXT_ERR_ALERT_WARNING</small></p>
+
+<p style="margin-left:17%;">If this value is returned then
+the servername is not accepted by the server. However, the
+handshake will continue and send a warning alert instead.
+The value of the alert should be stored in the location
+pointed to by the <b>al</b> parameter as for
+<small>SSL_TLSEXT_ERR_ALERT_FATAL</small> above. Note that
+TLSv1.3 does not support warning alerts, so if TLSv1.3 has
+been negotiated then this return value is treated the same
+way as <small>SSL_TLSEXT_ERR_NOACK.</small></p>
+
+
+<p style="margin-left:11%;"><small>SSL_TLSEXT_ERR_NOACK</small></p>
+
+<p style="margin-left:17%;">This return value indicates
+that the servername is not accepted by the server. No alerts
+are sent and the server will not acknowledge the requested
+servername.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_CTX_set_tlsext_servername_arg()</b>
+sets a context-specific argument to be passed into the
+callback (via the <b>arg</b> parameter) for this
+<b><small>SSL_CTX</small></b> .</p>
+
+<p style="margin-left:11%; margin-top: 1em">The behaviour
+of <b>SSL_get_servername()</b> depends on a number of
+different factors. In particular note that in TLSv1.3 the
+servername is negotiated in every handshake. In TLSv1.2 the
+servername is only negotiated on initial handshakes and not
+on resumption handshakes. <br>
+On the client, before the handshake</p>
+
+<p style="margin-left:17%;">If a servername has been set
+via a call to <b>SSL_set_tlsext_host_name()</b> then it will
+return that servername.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If one has not
+been set, but a TLSv1.2 resumption is being attempted and
+the session from the original handshake had a servername
+accepted by the server then it will return that
+servername.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Otherwise it
+returns <small>NULL.</small></p>
+
+<p style="margin-left:11%;">On the client, during or after
+the handshake and a TLSv1.2 (or below) <br>
+resumption occurred</p>
+
+<p style="margin-left:17%;">If the session from the
+original handshake had a servername accepted by the server
+then it will return that servername.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Otherwise it
+returns the servername set via
+<b>SSL_set_tlsext_host_name()</b> or <small>NULL</small> if
+it was not called.</p>
+
+<p style="margin-left:11%;">On the client, during or after
+the handshake and a TLSv1.2 (or below) <br>
+resumption did not occur</p>
+
+<p style="margin-left:17%;">It will return the servername
+set via <b>SSL_set_tlsext_host_name()</b> or
+<small>NULL</small> if it was not called.</p>
+
+<p style="margin-left:11%;">On the server, before the
+handshake</p>
+
+<p style="margin-left:17%;">The function will always return
+<small>NULL</small> before the handshake</p>
+
+<p style="margin-left:11%;">On the server, after the
+servername extension has been processed and a <br>
+TLSv1.2 (or below) resumption occurred</p>
+
+<p style="margin-left:17%;">If a servername was accepted by
+the server in the original handshake then it will return
+that servername, or <small>NULL</small> otherwise.</p>
+
+<p style="margin-left:11%;">On the server, after the
+servername extension has been processed and a <br>
+TLSv1.2 (or below) resumption did not occur</p>
+
+<p style="margin-left:17%;">The function will return the
+servername requested by the client in this handshake or
+<small>NULL</small> if none was requested.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+ClientHello callback occurs before a servername extension
+from the client is processed. The servername, certificate
+and <small>ALPN</small> callbacks occur after a servername
+extension from the client is processed.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_get_servername_type()</b>
+returns the servername type or &minus;1 if no servername is
+present. Currently the only supported type (defined in
+<small>RFC3546</small> ) is
+<b>TLSEXT_NAMETYPE_host_name</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_set_tlsext_host_name()</b>
+sets the server name indication ClientHello extension to
+contain the value <b>name</b>. The type of server name
+indication extension is set to
+<b>TLSEXT_NAMETYPE_host_name</b> (defined in
+<small>RFC3546</small> ).</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Several
+callbacks are executed during ClientHello processing,
+including the ClientHello, <small>ALPN,</small> and
+servername callbacks. The ClientHello callback is executed
+first, then the servername callback, followed by the
+<small>ALPN</small> callback.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>SSL_set_tlsext_host_name()</b> function should only be
+called on <small>SSL</small> objects that will act as
+clients; otherwise the configured <b>name</b> will be
+ignored.</p>
+
+<h2>RETURN VALUES
+<a name="RETURN VALUES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_CTX_set_tlsext_servername_callback()</b>
+and <b>SSL_CTX_set_tlsext_servername_arg()</b> both always
+return 1 indicating success.
+<b>SSL_set_tlsext_host_name()</b> returns 1 on success, 0 in
+case of error.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ssl</b>(7),
+<b>SSL_CTX_set_alpn_select_cb</b>(3),
+<b>SSL_get0_alpn_selected</b>(3),
+<b>SSL_CTX_set_client_hello_cb</b>(3)</p>
+
+<h2>HISTORY
+<a name="HISTORY"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SSL_get_servername()</b>
+historically provided some unexpected results in certain
+corner cases. This has been fixed from OpenSSL 1.1.1e.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Prior to
+1.1.1e, when the client requested a servername in an initial
+TLSv1.2 handshake, the server accepted it, and then the
+client successfully resumed but set a different explicit
+servername in the second handshake then when called by the
+client it returned the servername from the second handshake.
+This has now been changed to return the servername requested
+in the original handshake.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Also prior to
+1.1.1e, if the client sent a servername in the first
+handshake but the server did not accept it, and then a
+second handshake occurred where TLSv1.2 resumption was
+successful then when called by the server it returned the
+servername requested in the original handshake. This has now
+been changed to <small>NULL.</small></p>
+
+<h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+2017&minus;2020 The OpenSSL Project Authors. All Rights
+Reserved.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Licensed under
+the Apache License 2.0 (the &quot;License&quot;). You may
+not use this file except in compliance with the License. You
+can obtain a copy in the file <small>LICENSE</small> in the
+source distribution or at
+&lt;https://www.openssl.org/source/license.html&gt;.</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:00 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LIBOPENCL</title>
+
+</head>
+<body>
+<h1>libOpenCL</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">libOpenCL,
+libOpenCL.so &minus; OCL&minus;ICD implementation of OpenCL
+ICD loader</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">libOpenCL.so is
+the library linked by OpenCL programs. It does not contains
+any OpenCL implementation itself, but merely act as a
+dispatcher to real OpenCL implementations provided as OpenCL
+Installable Client Driver (ICD). An ICD loader should be
+able to load ICDs provided by any vendors.</p>
+
+<p style="margin-left:11%; margin-top: 1em">According to
+OpenCL specifications from Khronos (see [Khronos]), the ICD
+Loader looks for files into <i>/etc/OpenCL/vendors</i>
+directory and, for each file whose name ends with
+<i>.icd</i>, the ICD Loader loads with <b>dlopen</b>(3) the
+shared library whose name is on the first line of the
+<i>.icd</i> file.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Each shared
+library name in &quot;.icd&quot; files can have its path, or
+it can be a plain filename. In the latter case, the ICD
+shared library will be looked for into the standard dynamic
+library loader paths.</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Some
+environment variables can be used modify the default
+behavior of libOpenCL.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OPENCL_VENDOR_PATH</b></p>
+
+<p style="margin-left:17%;">This variable allows one to
+modify the default <i>/etc/OpenCL/vendors</i> path. It is
+compatible with some other ICD loaders (but not all of them,
+as the variable is not part of the standard). Note that
+<b>$OCL_ICD_VENDORS</b> (see below) is used in priority if
+defined and not empty.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OCL_ICD_VENDORS</b></p>
+
+<p style="margin-left:17%;">This variable allows one to
+change the way ICD are searched on the system. Several cases
+are considered:</p>
+
+<p style="margin-left:23%; margin-top: 1em">1. if
+<b>$OCL_ICD_VENDORS</b> is a directory path, then this path
+replaces the &quot;/etc/OpenCL/vendors&quot; path in the
+standard behavior: the loader will use the <i>.icd</i> files
+in this directory;</p>
+
+<p style="margin-left:23%; margin-top: 1em">2. else, if
+<b>$OCL_ICD_VENDORS</b> ends with <i>.icd</i>, libOpenCL.so
+will only load the ICD whose shared library name is wrote
+into the specified &quot;.icd&quot; file;</p>
+
+<p style="margin-left:23%; margin-top: 1em">If there is no
+slashes into <b>$OCL_ICD_VENDORS</b>, libOpenCL.so will
+first try to use
+<i>/etc/OpenCL/vendors/</i><b>$OCL_ICD_VENDORS</b> (or
+<b>$OPENCL_VENDOR_PATH</b><i>/</i><b>$OCL_ICD_VENDORS</b> if
+<b>OPENCL_VENDOR_PATH</b> is defined). If this fail or if
+there are shashes, it uses <b>$OCL_ICD_VENDORS</b> (as a
+relative or absolute file name path).</p>
+
+<p style="margin-left:23%; margin-top: 1em">3. else
+libOpenCL.so will try to load <b>$OCL_ICD_VENDORS</b> as the
+ICD shared library itself (i.e. to load it directly with
+<b>dlopen</b>(3)).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OPENCL_LAYERS</b></p>
+
+<p style="margin-left:17%;">This variable allows one to
+specify a colon separated list of layers to load, specifying
+their path. This support is experimental.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OCL_ICD_ASSUME_ICD_EXTENSION</b></p>
+
+<p style="margin-left:17%;">If set to an non&minus;empty
+value, contrary the Khronos specification, the loader will
+not check that the loaded ICDs declare the cl_khr_icd
+extension. It will also use the clGetPlatformInfo from the
+dispatch table if no such function is globally available.
+You may need to define this environment variable if you are
+using not (fully) compliant ICD, or if you are using the
+Intel ICD together with <b>optirun</b>(1). In the latter
+case, a bug into the Intel ICD will make the application
+crash.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If set to the
+<i>debug</i> value, some additional messages will be printed
+in debug mode (see <b>OCL_ICD_DEBUG</b> below).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OCL_ICD_PLATFORM_SORT</b></p>
+
+<p style="margin-left:17%;">Allows one to choose the way
+platforms are sorted when presented to programs through
+<b>clGetPlatformIDs</b>(3). Current provided algorithms
+are:</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+<b>devices</b>: first, list platforms that support most GPU,
+then most CPU then most accelerators. If
+<b>OCL_ICD_PLATFORM_SORT</b> is not set or set to an unknown
+value, this algorithm is used.</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+<b>none</b>: no sort is done and the order can change at
+each run.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OCL_ICD_DEFAULT_PLATFORM</b></p>
+
+<p style="margin-left:17%;">Number of the platform to
+choose as default platform. Note that using this environment
+variable without ensuring the use of a sort algorithm for
+platforms is not really useful.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>OCL_ICD_DEBUG</b></p>
+
+<p style="margin-left:17%;">If ocl&minus;icd has been
+compiled with debug support, you can set this environment
+variable to a value where each bit display some kind of
+informations. Defined values are:</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+<b>1</b>: warnings (enabled by default if debug support is
+present and <b>OCL_ICD_DEBUG</b> is not set)</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+<b>2</b>: informative messages</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+<b>4</b>: entering/exiting for some OpenCL functions</p>
+
+<p style="margin-left:23%; margin-top: 1em">&bull;
+<b>8</b>: dump of the internal structure of loaded ICDs</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>OCL_ICD_DEBUG</b>
+is mainly useful for ocl&minus;icd development itself and/or
+for ICD development.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Khronos OpenCL
+registry website</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Vincent
+Danjean</b> &lt;Vincent.Danjean@ens&minus;lyon.org&gt;</p>
+ 
+<p style="margin-left:17%;">Author.</p>
+<hr>
+</body>
+</html>

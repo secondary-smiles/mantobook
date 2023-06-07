@@ -1,0 +1,1204 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:08 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SFDISK</title>
+
+</head>
+<body>
+<h1>sfdisk</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">sfdisk &minus;
+display or manipulate a disk partition table</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sfdisk</b>
+[options] <i>device</i> [<b>&minus;N</b>
+<i>partition&minus;number</i>]</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>sfdisk</b>
+[options] <i>command</i></p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i><b>sfdisk</b></i>
+is a script&minus;oriented tool for partitioning any block
+device. It runs in interactive mode if executed on a
+terminal (stdin refers to a terminal).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since version
+2.26 <b>sfdisk</b> supports MBR (DOS), GPT, SUN and SGI disk
+labels, but no longer provides any functionality for CHS
+(Cylinder&minus;Head&minus;Sector) addressing. CHS has never
+been important for Linux, and this addressing concept does
+not make any sense for new devices.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>sfdisk</b>
+protects the first disk sector when create a new disk label.
+The option <b>&minus;&minus;wipe always</b> disables this
+protection. Note that <b>fdisk</b>(8) and <b>cfdisk</b>(8)
+completely erase this area by default.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>sfdisk</b>
+(since version 2.26) <b>aligns the start and end of
+partitions</b> to block&minus;device I/O limits when
+relative sizes are specified, when the default values are
+used or when multiplicative suffixes (e.g., MiB) are used
+for sizes. It is possible that partition size will be
+optimized (reduced or enlarged) due to alignment if the
+start offset is specified exactly in sectors and partition
+size relative or by multiplicative suffixes.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The recommended
+way is not to specify start offsets at all and specify
+partition size in MiB, GiB (or so). In this case
+<b>sfdisk</b> aligns all partitions to block&minus;device
+I/O limits (or when I/O limits are too small then to
+megabyte boundary to keep disk layout portable). If this
+default behaviour is unwanted (usually for very small
+partitions) then specify offsets and sizes in sectors. In
+this case <b>sfdisk</b> entirely follows specified numbers
+without any optimization.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>sfdisk</b>
+does not create the standard system partitions for SGI and
+SUN disk labels like <b>fdisk</b>(8) does. It is necessary
+to explicitly create all partitions including
+whole&minus;disk system partitions.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>sfdisk</b>
+uses <b>BLKRRPART</b> (reread partition table) ioctl to make
+sure that the device is not used by system or other tools
+(see also <b>&minus;&minus;no&minus;reread</b>). It&rsquo;s
+possible that this feature or another <b>sfdisk</b> activity
+races with <b>systemd&minus;udevd</b>(8). The recommended
+way how to avoid possible collisions is to use
+<b>&minus;&minus;lock</b> option. The exclusive lock will
+cause <b>systemd&minus;udevd</b> to skip the event handling
+on the device.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>sfdisk</b> prompt is only a hint for users and a
+displayed partition number does not mean that the same
+partition table entry will be created (if <b>&minus;N</b>
+not specified), especially for tables with gaps.</p>
+
+<h2>COMMANDS
+<a name="COMMANDS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The commands
+are mutually exclusive.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">[<b>&minus;N</b>
+<i>partition&minus;number</i>] <i>device</i></p>
+
+<p style="margin-left:17%;">The default <b>sfdisk</b>
+command is to read the specification for the desired
+partitioning of <i>device</i> from standard input, and then
+create a partition table according to the specification. See
+below for the description of the input format. If standard
+input is a terminal, then <b>sfdisk</b> starts an
+interactive session.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the option
+<b>&minus;N</b> is specified, then the changes are applied
+to the partition addressed by <i>partition&minus;number</i>.
+The unspecified fields of the partition are not
+modified.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+it&rsquo;s possible to address an unused partition with
+<b>&minus;N</b>. For example, an MBR always contains 4
+partitions, but the number of used partitions may be
+smaller. In this case <b>sfdisk</b> follows the default
+values from the partition table and does not use
+built&minus;in defaults for the unused partition given with
+<b>&minus;N</b>. See also <b>&minus;&minus;append</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;A</b>,
+<b>&minus;&minus;activate</b> <i>device</i>
+[<i>partition&minus;number</i>...]</p>
+
+<p style="margin-left:17%;">Switch on the bootable flag for
+the specified partitions and switch off the bootable flag on
+all unspecified partitions. The special placeholder
+'&minus;' may be used instead of the partition numbers to
+switch off the bootable flag on all partitions.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The activation
+command is supported for MBR and PMBR only. If a GPT label
+is detected, then <b>sfdisk</b> prints warning and
+automatically enters PMBR.</p>
+
+<p style="margin-left:17%; margin-top: 1em">If no
+<i>partition&minus;number</i> is specified, then list the
+partitions with an enabled flag.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;backup&minus;pt&minus;sectors</b>
+<i>device</i></p>
+
+<p style="margin-left:17%;">Back up the current partition
+table sectors in binary format and exit. See the <b>BACKING
+UP THE PARTITION TABLE</b> section.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;delete</b>
+<i>device</i> [<i>partition&minus;number</i>...]</p>
+
+<p style="margin-left:17%;">Delete all or the specified
+partitions.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;d</b>,
+<b>&minus;&minus;dump</b> <i>device</i></p>
+
+<p style="margin-left:17%;">Dump the partitions of a device
+in a format that is usable as input to <b>sfdisk</b>. See
+the <b>BACKING UP THE PARTITION TABLE</b> section.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;g</b>,
+<b>&minus;&minus;show&minus;geometry</b>
+[<i>device</i>...]</p>
+
+<p style="margin-left:17%;">List the geometry of all or the
+specified devices. For backward compatibility the deprecated
+option <b>&minus;&minus;show&minus;pt&minus;geometry</b>
+have the same meaning as this one.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;J</b>,
+<b>&minus;&minus;json</b> <i>device</i></p>
+
+<p style="margin-left:17%;">Dump the partitions of a device
+in JSON format. Note that <b>sfdisk</b> is not able to use
+JSON as input format.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;l</b>,
+<b>&minus;&minus;list</b> [<i>device</i>...]</p>
+
+<p style="margin-left:17%;">List the partitions of all or
+the specified devices. This command can be used together
+with <b>&minus;&minus;verify</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;F</b>,
+<b>&minus;&minus;list&minus;free</b> [<i>device</i>...]</p>
+
+<p style="margin-left:17%;">List the free unpartitioned
+areas on all or the specified devices.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;part&minus;attrs</b>
+<i>device partition&minus;number</i> [<i>attributes</i>]</p>
+
+<p style="margin-left:17%;">Change the GPT partition
+attribute bits. If <i>attributes</i> is not specified, then
+print the current partition settings. The <i>attributes</i>
+argument is a comma&minus; or space&minus;delimited list of
+bits numbers or bit names. For example, the string
+&quot;RequiredPartition,50,51&quot; sets three bits. The
+currently supported attribute bits are:</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Bit 0
+(RequiredPartition)</b></p>
+
+<p style="margin-left:23%;">If this bit is set, the
+partition is required for the platform to function. The
+creator of the partition indicates that deletion or
+modification of the contents can result in loss of platform
+features or failure for the platform to boot or operate. The
+system cannot function normally if this partition is
+removed, and it should be considered part of the hardware of
+the system.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Bit 1
+(NoBlockIOProtocol)</b></p>
+
+<p style="margin-left:23%;">EFI firmware should ignore the
+content of the partition and not try to read from it.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Bit 2
+(LegacyBIOSBootable)</b></p>
+
+<p style="margin-left:23%;">The partition may be bootable
+by legacy BIOS firmware.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Bits
+3&minus;47</b></p>
+
+<p style="margin-left:23%;">Undefined and must be zero.
+Reserved for expansion by future versions of the UEFI
+specification.</p>
+
+<p style="margin-left:17%; margin-top: 1em"><b>Bits
+48&minus;63</b></p>
+
+<p style="margin-left:23%;">Reserved for GUID specific use.
+The use of these bits will vary depending on the partition
+type. For example Microsoft uses bit 60 to indicate
+read&minus;only, 61 for shadow copy of another partition, 62
+for hidden partitions and 63 to disable automount.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;part&minus;label</b>
+<i>device partition&minus;number</i> [<i>label</i>]</p>
+
+<p style="margin-left:17%;">Change the GPT partition name
+(label). If <i>label</i> is not specified, then print the
+current partition label.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;part&minus;type</b>
+<i>device partition&minus;number</i> [<i>type</i>]</p>
+
+<p style="margin-left:17%;">Change the partition type. If
+<i>type</i> is not specified, then print the current
+partition type.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The <i>type</i>
+argument is hexadecimal for MBR, GUID for GPT, type alias
+(e.g. &quot;linux&quot;) or type shortcut (e.g. 'L'). For
+backward compatibility the options <b>&minus;c</b> and
+<b>&minus;&minus;id</b> have the same meaning as this
+one.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;part&minus;uuid</b>
+<i>device partition&minus;number</i> [<i>uuid</i>]</p>
+
+<p style="margin-left:17%;">Change the GPT partition UUID.
+If <i>uuid</i> is not specified, then print the current
+partition UUID.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;disk&minus;id</b>
+<i>device</i> [<i>id</i>]</p>
+
+<p style="margin-left:17%;">Change the disk identifier. If
+<i>id</i> is not specified, then print the current
+identifier. The identifier is UUID for GPT or unsigned
+integer for MBR.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;r</b>,
+<b>&minus;&minus;reorder</b> <i>device</i></p>
+
+<p style="margin-left:17%;">Renumber the partitions,
+ordering them by their start offset.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;s</b>,
+<b>&minus;&minus;show&minus;size</b> [<i>device</i>...]</p>
+
+<p style="margin-left:17%;">List the sizes of all or the
+specified devices in units of 1024 byte size. This command
+is DEPRECATED in favour of <b>blockdev</b>(8).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;T</b>,
+<b>&minus;&minus;list&minus;types</b></p>
+
+<p style="margin-left:17%;">Print all supported types for
+the current disk label or the label specified by
+<b>&minus;&minus;label</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;V</b>,
+<b>&minus;&minus;verify</b> [<i>device</i>...]</p>
+
+<p style="margin-left:17%;">Test whether the partition
+table and partitions seem correct.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;relocate</b>
+<i>oper device</i></p>
+
+<p style="margin-left:17%;">Relocate partition table
+header. This command is currently supported for GPT header
+only. The argument <i>oper</i> can be:</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>gpt&minus;bak&minus;std</b></p>
+
+<p style="margin-left:23%;">Move GPT backup header to the
+standard location at the end of the device.</p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><b>gpt&minus;bak&minus;mini</b></p>
+
+<p style="margin-left:23%;">Move GPT backup header behind
+the last partition. Note that UEFI standard requires the
+backup header at the end of the device and partitioning
+tools can automatically relocate the header to follow the
+standard.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;a</b>,
+<b>&minus;&minus;append</b></p>
+
+<p style="margin-left:17%;">Don&rsquo;t create a new
+partition table, but only append the specified
+partitions.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that
+unused partition maybe be re&minus;used in this case
+although it is not the last partition in the partition
+table. See also <b>&minus;N</b> to specify entry in the
+partition table.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;b</b>,
+<b>&minus;&minus;backup</b></p>
+
+<p style="margin-left:17%;">Back up the current partition
+table sectors before starting the partitioning. The default
+backup file name is
+<i>~/sfdisk&minus;&lt;device&gt;&minus;&lt;offset&gt;.bak</i>;
+to use another name see option <b>&minus;O</b>,
+<b>&minus;&minus;backup&minus;file</b>. See section
+<b>BACKING UP THE PARTITION TABLE</b> for more details.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;color</b>[<b>=</b><i>when</i>]</p>
+
+<p style="margin-left:17%;">Colorize the output. The
+optional argument <i>when</i> can be <b>auto</b>,
+<b>never</b> or <b>always</b>. If the <i>when</i> argument
+is omitted, it defaults to <b>auto</b>. The colors can be
+disabled; for the current built&minus;in default see the
+<b>&minus;&minus;help</b> output. See also the <b>COLORS</b>
+section.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;f</b>,
+<b>&minus;&minus;force</b></p>
+
+<p style="margin-left:17%;">Disable all consistency
+checking.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;Linux</b></p>
+
+<p style="margin-left:17%;">Deprecated and ignored option.
+Partitioning that is compatible with Linux (and other modern
+operating systems) is the default.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;lock</b>[=<i>mode</i>]</p>
+
+<p style="margin-left:17%;">Use exclusive BSD lock for
+device or file it operates. The optional argument
+<i>mode</i> can be <b>yes</b>, <b>no</b> (or 1 and 0) or
+<b>nonblock</b>. If the <i>mode</i> argument is omitted, it
+defaults to <b>yes</b>. This option overwrites environment
+variable <b>$LOCK_BLOCK_DEVICE</b>. The default is not to
+use any lock at all, but it&rsquo;s recommended to avoid
+collisions with <b>systemd&minus;udevd</b>(8) or other
+tools.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;n</b>,
+<b>&minus;&minus;no&minus;act</b></p>
+
+<p style="margin-left:17%;">Do everything except writing to
+the device.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;no&minus;reread</b></p>
+
+<p style="margin-left:17%;">Do not check through the
+re&minus;read&minus;partition&minus;table ioctl whether the
+device is in use.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;no&minus;tell&minus;kernel</b></p>
+
+<p style="margin-left:17%;">Don&rsquo;t tell the kernel
+about partition changes. This option is recommended together
+with <b>&minus;&minus;no&minus;reread</b> to modify a
+partition on used disk. The modified partition should not be
+used (e.g., mounted).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;O</b>,
+<b>&minus;&minus;backup&minus;file</b> <i>path</i></p>
+
+<p style="margin-left:17%;">Override the default backup
+file name. Note that the device name and offset are always
+appended to the file name.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;move&minus;data</b>[<b>=</b><i>path</i>]</p>
+
+<p style="margin-left:17%;">Move data after partition
+relocation, for example when moving the beginning of a
+partition to another place on the disk. The size of the
+partition has to remain the same, the new and old location
+may overlap. This option requires option <b>&minus;N</b> in
+order to be processed on one specific partition only.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The optional
+<i>path</i> specifies log file name. The log file contains
+information about all read/write operations on the partition
+data. The word &quot;@default&quot; as a <i>path</i> forces
+<b>sfdisk</b> to use
+<i>~/sfdisk&minus;&lt;devname&gt;.move</i> for the log. The
+log is optional since v2.35.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that this
+operation is risky and not atomic. <b>Don&rsquo;t forget to
+backup your data!</b></p>
+
+<p style="margin-left:17%; margin-top: 1em">See also
+<b>&minus;&minus;move&minus;use&minus;fsync</b>.</p>
+
+<p style="margin-left:17%; margin-top: 1em">In the example
+below, the first command creates a 100MiB free area before
+the first partition and moves the data it contains (e.g., a
+filesystem), the next command creates a new partition from
+the free space (at offset 2048), and the last command
+reorders partitions to match disk order (the original sdc1
+will become sdc2).</p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>echo
+'+100M,' | sfdisk &minus;&minus;move&minus;data /dev/sdc
+&minus;N 1</b></p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>echo '2048,'
+| sfdisk /dev/sdc &minus;&minus;append</b></p>
+
+<p style="margin-left:22%; margin-top: 1em"><b>sfdisk
+/dev/sdc &minus;&minus;reorder</b></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;&minus;move&minus;use&minus;fsync</b></p>
+
+<p style="margin-left:17%;">Use the <b>fsync</b>(2) system
+call after each write when moving data to a new location by
+<b>&minus;&minus;move&minus;data</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;o</b>,
+<b>&minus;&minus;output</b> <i>list</i></p>
+
+<p style="margin-left:17%;">Specify which output columns to
+print. Use <b>&minus;&minus;help</b> to get a list of all
+supported columns.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The default
+list of columns may be extended if <i>list</i> is specified
+in the format <i>+list</i> (e.g., <b>&minus;o
++UUID</b>).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;q</b>,
+<b>&minus;&minus;quiet</b></p>
+
+<p style="margin-left:17%;">Suppress extra info
+messages.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;u</b>,
+<b>&minus;&minus;unit S</b></p>
+
+<p style="margin-left:17%;">Deprecated option. Only the
+sector unit is supported. This option is not supported when
+using the <b>&minus;&minus;show&minus;size</b> command.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;X</b>,
+<b>&minus;&minus;label</b> <i>type</i></p>
+
+<p style="margin-left:17%;">Specify the disk label type
+(e.g., <b>dos</b>, <b>gpt</b>, ...). If this option is not
+given, then <b>sfdisk</b> defaults to the existing label,
+but if there is no label on the device yet, then the type
+defaults to <b>dos</b>. The default or the current label may
+be overwritten by the &quot;label: &lt;name&gt;&quot; script
+header line. The option <b>&minus;&minus;label</b> does not
+force <b>sfdisk</b> to create empty disk label (see the
+<b>EMPTY DISK LABEL</b> section below).</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;Y</b>,
+<b>&minus;&minus;label&minus;nested</b> <i>type</i></p>
+
+<p style="margin-left:17%;">Force editing of a nested disk
+label. The primary disk label has to exist already. This
+option allows editing for example a hybrid/protective MBR on
+devices with GPT.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;w</b>,
+<b>&minus;&minus;wipe</b> <i>when</i></p>
+
+<p style="margin-left:17%;">Wipe filesystem, RAID and
+partition&minus;table signatures from the device, in order
+to avoid possible collisions. The argument <i>when</i> can
+be <b>auto</b>, <b>never</b> or <b>always</b>. When this
+option is not given, the default is <b>auto</b>, in which
+case signatures are wiped only when in interactive mode;
+except the old partition&minus;table signatures which are
+always wiped before create a new partition&minus;table if
+the argument <i>when</i> is not <b>never</b>. The
+<b>auto</b> mode also does not wipe the first sector (boot
+sector), it is necessary to use the <b>always</b> mode to
+wipe this area. In all cases detected signatures are
+reported by warning messages before a new partition table is
+created. See also the <b>wipefs</b>(8) command.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;W</b>,
+<b>&minus;&minus;wipe&minus;partitions</b> <i>when</i></p>
+
+<p style="margin-left:17%;">Wipe filesystem, RAID and
+partition&minus;table signatures from a newly created
+partition, in order to avoid possible collisions. The
+argument <i>when</i> can be <b>auto</b>, <b>never</b> or
+<b>always</b>. When this option is not given, the default is
+<b>auto</b>, in which case signatures are wiped only when in
+interactive mode and after confirmation by user. In all
+cases detected signatures are reported by warning messages
+after a new partition is created. See also <b>wipefs</b>(8)
+command.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;v</b>,
+<b>&minus;&minus;version</b></p>
+
+<p style="margin-left:17%;">Display version information and
+exit.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;h</b>,
+<b>&minus;&minus;help</b></p>
+
+<p style="margin-left:17%;">Display help text and exit.</p>
+
+<h2>INPUT FORMATS
+<a name="INPUT FORMATS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sfdisk</b>
+supports two input formats and generic header lines.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Header
+lines</b> <br>
+The optional header lines specify generic information that
+apply to the partition table. The header&minus;line format
+is:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&lt;name&gt;:
+&lt;value&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">The currently
+recognized headers are:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>unit</b></p>
+
+<p style="margin-left:17%;">Specify the partitioning unit.
+The only supported unit is <b>sectors</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>label</b></p>
+
+<p style="margin-left:17%;">Specify the partition table
+type. For example <b>dos</b> or <b>gpt</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>label&minus;id</b></p>
+
+<p style="margin-left:17%;">Specify the partition table
+identifier. It should be a hexadecimal number (with a 0x
+prefix) for MBR and a UUID for GPT.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>first&minus;lba</b></p>
+
+<p style="margin-left:17%;">Specify the first usable sector
+for GPT partitions. This header is ignored if the script and
+device sector size differ. In this case <b>sfdisk</b> uses
+label specific default.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>last&minus;lba</b></p>
+
+<p style="margin-left:17%;">Specify the last usable sector
+for GPT partitions. This header is ignored if the script and
+device sector size differ. In this case <b>sfdisk</b> uses
+label specific default.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>table&minus;length</b></p>
+
+<p style="margin-left:17%;">Specify the maximal number of
+GPT partitions.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>grain</b></p>
+
+<p style="margin-left:17%;">Specify minimal size in bytes
+used to calculate partitions alignment. The default is 1MiB
+and it&rsquo;s strongly recommended to use the default. Do
+not modify this variable if you&rsquo;re not sure.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sector&minus;size</b></p>
+
+<p style="margin-left:17%;">Specify sector size.
+<b>sfdisk</b> always uses device sector size. Since version
+2.39 <b>sfdisk</b> recalculates sizes from dump if the
+script and device sector size differ.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that it is
+only possible to use header lines before the first partition
+is specified in the input.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Unnamed&minus;fields
+format</b></p>
+
+<p style="margin-left:15%;"><i>start size type
+bootable</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">where each line
+fills one partition descriptor.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Fields are
+separated by whitespace, comma (recommended) or semicolon
+possibly followed by whitespace; initial and trailing
+whitespace is ignored. Numbers can be octal, decimal or
+hexadecimal; decimal is the default. When a field is absent,
+empty or specified as '&minus;' a default value is used. But
+when the <b>&minus;N</b> option (change a single partition)
+is given, the default for each field is its previous
+value.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default
+value of <i>start</i> is the first non&minus;assigned sector
+aligned according to device I/O limits. The default start
+offset for the first partition is 1 MiB. If the offset is
+followed by the multiplicative suffixes (KiB, MiB, GiB, TiB,
+PiB, EiB, ZiB and YiB), then the number is interpreted as
+offset in bytes. Since v2.38 when the <b>&minus;N</b> option
+(change a single partition) is given, a '+' can be used to
+enlarge partition by move start of the partition if there is
+a free space before the partition.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default
+value of <i>size</i> indicates &quot;as much as
+possible&quot;; i.e., until the next partition or
+end&minus;of&minus;device. A numerical argument is by
+default interpreted as a number of sectors, however if the
+size is followed by one of the multiplicative suffixes (KiB,
+MiB, GiB, TiB, PiB, EiB, ZiB and YiB) then the number is
+interpreted as the size of the partition in bytes and it is
+then aligned according to the device I/O limits. A '+' can
+be used instead of a number to enlarge the partition as much
+as possible. Note '+' is equivalent to the default behaviour
+for a new partition; existing partitions will be resized as
+required.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The partition
+<i>type</i> is given in hex for MBR (DOS) where 0x prefix is
+optional; a GUID string for GPT; a shortcut or an alias.
+It&rsquo;s recommended to use two letters for MBR hex codes
+to avoid collision between deprecated shortcut 'E' and '0E'
+MBR hex code. For backward compatibility <b>sfdisk</b> tries
+to interpret <i>type</i> as a shortcut as a first
+possibility in partitioning scripts although on other places
+(e.g. <b>&minus;&minus;part&minus;type</b> command) it tries
+shortcuts as the last possibility.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since v2.36
+libfdisk supports partition type aliases as extension to
+shortcuts. The alias is a simple human readable word (e.g.
+&quot;linux&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since v2.37
+libfdisk supports partition type names on input, ignoring
+the case of the characters and all non&minus;alphanumeric
+and non&minus;digit characters in the name (e.g. &quot;Linux
+/usr x86&quot; is the same as &quot;linux
+usr&minus;x86&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Supported
+shortcuts and aliases:</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>L &minus;
+alias 'linux'</b></p>
+
+<p style="margin-left:17%;">Linux; means 83 for MBR and
+0FC63DAF&minus;8483&minus;4772&minus;8E79&minus;3D69D8477DE4
+for GPT.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>S &minus;
+alias 'swap'</b></p>
+
+<p style="margin-left:17%;">swap area; means 82 for MBR and
+0657FD6D&minus;A4AB&minus;43C4&minus;84E5&minus;0933C84B4F4F
+for GPT</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Ex &minus;
+alias 'extended'</b></p>
+
+<p style="margin-left:17%;">MBR extended partition; means
+05 for MBR. The original shortcut 'E' is deprecated due to
+collision with 0x0E MBR partition type.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>H &minus;
+alias 'home'</b></p>
+
+<p style="margin-left:17%;">home partition; means
+933AC7E1&minus;2EB4&minus;4F13&minus;B844&minus;0E14E2AEF915
+for GPT</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>U &minus;
+alias 'uefi'</b></p>
+
+<p style="margin-left:17%;">EFI System partition, means EF
+for MBR and
+C12A7328&minus;F81F&minus;11D2&minus;BA4B&minus;00A0C93EC93B
+for GPT</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>R &minus;
+alias 'raid'</b></p>
+
+<p style="margin-left:17%;">Linux RAID; means FD for MBR
+and
+A19D880F&minus;05FC&minus;4D3B&minus;A006&minus;743F0F84911E
+for GPT</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>V &minus;
+alias 'lvm'</b></p>
+
+<p style="margin-left:17%;">LVM; means 8E for MBR and
+E6D6D379&minus;F507&minus;44C2&minus;A23C&minus;238F2A3DF928
+for GPT</p>
+
+<p style="margin-left:11%; margin-top: 1em">The default
+<i>type</i> value is <i>linux</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The shortcut
+'X' for Linux extended partition (85) is deprecated in
+favour of 'Ex'.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>bootable</i>
+is specified as [<b>*</b>|<b>&minus;</b>], with as default
+not&minus;bootable. The value of this field is irrelevant
+for Linux &minus; when Linux runs it has been booted already
+&minus; but it might play a role for certain boot loaders
+and for other operating systems.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Named&minus;fields
+format</b> <br>
+This format is more readable, robust, extensible and allows
+specifying additional information (e.g., a UUID). It is
+recommended to use this format to keep your scripts more
+readable.</p>
+
+<p style="margin-left:15%; margin-top: 1em">[<i>device</i>
+<b>:</b>] <i>name</i>[<b>=</b><i>value</i>], ...</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>device</i> field is optional. <b>sfdisk</b> extracts the
+partition number from the device name. It allows specifying
+the partitions in random order. This functionality is mostly
+used by <b>&minus;&minus;dump</b>. Don&rsquo;t use it if you
+are not sure.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+<i>value</i> can be between quotation marks (e.g.,
+name=&quot;This is partition name&quot;). The fields
+<b>start=</b> and <b>size=</b> support '+' and '&minus;' in
+the same way as <b>Unnamed&minus;fields format</b>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The currently
+supported fields are:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>start=</b><i>number</i></p>
+
+<p style="margin-left:17%;">The first non&minus;assigned
+sector aligned according to device I/O limits. The default
+start offset for the first partition is 1 MiB. If the offset
+is followed by the multiplicative suffixes (KiB, MiB, GiB,
+TiB, PiB, EiB, ZiB and YiB), then the number is interpreted
+as offset in bytes.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>size=</b><i>number</i></p>
+
+<p style="margin-left:17%;">Specify the partition size in
+sectors. The number may be followed by the multiplicative
+suffixes (KiB, MiB, GiB, TiB, PiB, EiB, ZiB and YiB), then
+it&rsquo;s interpreted as size in bytes and the size is
+aligned according to device I/O limits.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>bootable</b></p>
+
+<p style="margin-left:17%;">Mark the partition as
+bootable.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>attrs=</b><i>string</i></p>
+
+<p style="margin-left:17%;">Partition attributes, usually
+GPT partition attribute bits. See
+<b>&minus;&minus;part&minus;attrs</b> for more details about
+the GPT&minus;bits string format.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>uuid=</b><i>string</i></p>
+
+<p style="margin-left:17%;">GPT partition UUID.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>name=</b><i>string</i></p>
+
+<p style="margin-left:17%;">GPT partition name.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>type=</b><i>code</i></p>
+
+<p style="margin-left:17%;">A hexadecimal number (without
+0x) for an MBR partition, a GUID for a GPT partition, a
+shortcut as for unnamed&minus;fields format or a type name
+(e.g. type=&quot;Linux /usr (x86)&quot;). See above the
+section about the unnamed&minus;fields format for more
+details. For backward compatibility the <b>Id=</b> field has
+the same meaning.</p>
+
+<h2>EMPTY DISK LABEL
+<a name="EMPTY DISK LABEL"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sfdisk</b>
+does not create partition table without partitions by
+default. The lines with partitions are expected in the
+script by default. The empty partition table has to be
+explicitly requested by &quot;label: &lt;name&gt;&quot;
+script header line without any partitions lines. For
+example:</p>
+
+<p style="margin-left:15%; margin-top: 1em"><b>echo 'label:
+gpt' | sfdisk /dev/sdb</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">creates empty
+GPT partition table. Note that the
+<b>&minus;&minus;append</b> disables this feature.</p>
+
+<h2>BACKING UP THE PARTITION TABLE
+<a name="BACKING UP THE PARTITION TABLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">It is
+recommended to save the layout of your devices.
+<b>sfdisk</b> supports two ways.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Dump in
+sfdisk compatible format</b> <br>
+Use the <b>&minus;&minus;dump</b> command to save a
+description of the device layout to a text file. The dump
+format is suitable for later <b>sfdisk</b> input. For
+example:</p>
+
+<p style="margin-left:15%; margin-top: 1em"><b>sfdisk
+&minus;&minus;dump /dev/sda &gt; sda.dump</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">This can later
+be restored by:</p>
+
+<p style="margin-left:15%; margin-top: 1em"><b>sfdisk
+/dev/sda &lt; sda.dump</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Full binary
+backup</b> <br>
+If you want to do a full binary backup of all sectors where
+the partition table is stored, then use the
+<b>&minus;&minus;backup&minus;pt&minus;sectors</b> command.
+It writes the sectors to
+<i>~/sfdisk&minus;&lt;device&gt;&minus;&lt;offset&gt;.bak</i>
+files. The default name of the backup file can be changed
+with the <b>&minus;&minus;backup&minus;file</b> option. The
+backup files contain only raw data from the <i>device</i>.
+For example:</p>
+
+<p style="margin-left:15%; margin-top: 1em"><b>sfdisk
+&minus;&minus;backup&minus;pt&minus;sectors /dev/sda</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">The GPT header
+can later be restored by:</p>
+
+<p style="margin-left:15%; margin-top: 1em"><b>dd
+if=~/sfdisk&minus;sda&minus;0x00000200.bak of=/dev/sda
+seek=$((0x00000200)) bs=1 conv=notrunc</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">It&rsquo;s also
+possible to use the <b>&minus;&minus;backup</b> option to
+create the same backup immediately after startup for other
+<b>sfdisk</b> commands. For example, backup partition table
+before deleting all partitions from partition table:</p>
+
+<p style="margin-left:15%; margin-top: 1em"><b>sfdisk
+&minus;&minus;backup &minus;&minus;delete /dev/sda</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">The same
+concept of backup files is used by <b>wipefs</b>(8).</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+<b>sfdisk</b> since version 2.26 no longer provides the
+<b>&minus;I</b> option to restore sectors. <b>dd</b>(1)
+provides all necessary functionality.</p>
+
+<h2>COLORS
+<a name="COLORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The output
+colorization is implemented by
+<b>terminal&minus;colors.d</b>(5) functionality. Implicit
+coloring can be disabled by an empty file</p>
+
+
+<p style="margin-left:15%; margin-top: 1em"><i>/etc/terminal&minus;colors.d/sfdisk.disable</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">for the
+<b>sfdisk</b> command or for all tools by</p>
+
+
+<p style="margin-left:15%; margin-top: 1em"><i>/etc/terminal&minus;colors.d/disable</i></p>
+
+<p style="margin-left:11%; margin-top: 1em">The
+user&minus;specific
+<i>$XDG_CONFIG_HOME/terminal&minus;colors.d</i> or
+<i>$HOME/.config/terminal&minus;colors.d</i> overrides the
+global setting.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+output colorization may be enabled by default, and in this
+case <i>terminal&minus;colors.d</i> directories do not have
+to exist yet.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The logical
+color names supported by <b>sfdisk</b> are:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>header</b></p>
+
+<p style="margin-left:17%;">The header of the output
+tables.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>warn</b></p>
+
+<p style="margin-left:17%;">The warning messages.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>welcome</b></p>
+
+<p style="margin-left:17%;">The welcome message.</p>
+
+<h2>ENVIRONMENT
+<a name="ENVIRONMENT"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>SFDISK_DEBUG</b>=all</p>
+
+<p style="margin-left:17%;">enables <b>sfdisk</b> debug
+output.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>LIBFDISK_DEBUG</b>=all</p>
+
+<p style="margin-left:17%;">enables libfdisk debug
+output.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>LIBBLKID_DEBUG</b>=all</p>
+
+<p style="margin-left:17%;">enables libblkid debug
+output.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>LIBSMARTCOLS_DEBUG</b>=all</p>
+
+<p style="margin-left:17%;">enables libsmartcols debug
+output.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>LOCK_BLOCK_DEVICE</b>=&lt;mode&gt;</p>
+
+<p style="margin-left:17%;">use exclusive BSD lock. The
+mode is &quot;1&quot; or &quot;0&quot;. See
+<b>&minus;&minus;lock</b> for more details.</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Since version
+2.26 <b>sfdisk</b> no longer provides the <b>&minus;R</b> or
+<b>&minus;&minus;re&minus;read</b> option to force the
+kernel to reread the partition table. Use <b>blockdev
+&minus;&minus;rereadpt</b> instead.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Since version
+2.26 <b>sfdisk</b> does not provide the
+<b>&minus;&minus;DOS</b>, <b>&minus;&minus;IBM</b>,
+<b>&minus;&minus;DOS&minus;extended</b>,
+<b>&minus;&minus;unhide</b>,
+<b>&minus;&minus;show&minus;extended</b>,
+<b>&minus;&minus;cylinders</b>, <b>&minus;&minus;heads</b>,
+<b>&minus;&minus;sectors</b>,
+<b>&minus;&minus;inside&minus;outer</b>,
+<b>&minus;&minus;not&minus;inside&minus;outer</b>
+options.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>sfdisk
+&minus;&minus;list &minus;&minus;label&minus;nested=mbr
+/dev/sda</b></p>
+
+<p style="margin-left:17%;">Print protective MBR on device
+with GPT disk label.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>echo
+&minus;e ',10M,L\n,10M,L\n,+,\n' | sfdisk /dev/sdc</b></p>
+
+<p style="margin-left:17%;">Create three Linux partitions,
+with the default start, the size of the first two partitions
+is 10MiB, and the last partition fills all available space
+on the device.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>echo
+&minus;e 'size=10M, type=L\n size=10M, type=L\n size=+\n' |
+sfdisk /dev/sdc</b></p>
+
+<p style="margin-left:17%;">The same as the previous
+example, but in named&minus;fields format.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>echo
+&minus;e 'type=swap' | sfdisk &minus;N 3 /dev/sdc</b></p>
+
+<p style="margin-left:17%;">Set type of the 3rd partition
+to 'swap'.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>sfdisk
+&minus;&minus;part&minus;type /dev/sdc 3 swap</b></p>
+
+<p style="margin-left:17%;">The same as the previous
+example, but without script use.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>sfdisk
+&minus;&minus;delete /dev/sdc 2</b></p>
+
+<p style="margin-left:17%;">Delete 2nd partition.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>echo
+&quot;+,+&quot; | sfdisk &minus;N 3
+&minus;&minus;move&minus;data /dev/sdc</b></p>
+
+<p style="margin-left:17%;">Enlarge 3rd partition in both
+directions, move start to use free space before the
+partition and enlarge the size to use all free space after
+to the partition, and move partition data too.</p>
+
+<h2>AUTHORS
+<a name="AUTHORS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>Karel
+Zak</i> &lt;kzak@redhat.com&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The current
+<b>sfdisk</b> implementation is based on the original
+<b>sfdisk</b> from Andries E. Brouwer.</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>fdisk</b>(8),
+<b>cfdisk</b>(8), <b>parted</b>(8), <b>partprobe</b>(8),
+<b>partx</b>(8)</p>
+
+<h2>REPORTING BUGS
+<a name="REPORTING BUGS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">For bug
+reports, use the issue tracker at
+&lt;https://github.com/util&minus;linux/util&minus;linux/issues&gt;.</p>
+
+<h2>AVAILABILITY
+<a name="AVAILABILITY"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>sfdisk</b> command is part of the util&minus;linux
+package which can be downloaded from <i>Linux Kernel
+Archive</i>
+&lt;https://www.kernel.org/pub/linux/utils/util&minus;linux/&gt;.</p>
+<hr>
+</body>
+</html>

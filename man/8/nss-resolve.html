@@ -1,0 +1,188 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:57:07 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>NSS&minus;RESOLVE</title>
+
+</head>
+<body>
+<h1>nss-resolve</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">nss-resolve,
+libnss_resolve.so.2 &minus; Hostname resolution via
+systemd&minus;resolved.service</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">libnss_resolve.so.2</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>nss&minus;resolve</b>
+is a plug&minus;in module for the GNU Name Service Switch
+(NSS) functionality of the GNU C Library (<b>glibc</b>)
+enabling it to resolve hostnames via the
+<b>systemd-resolved</b>(8) local network name resolution
+service. It replaces the <b>nss&minus;dns</b> plug&minus;in
+module that traditionally resolves hostnames via DNS.</p>
+
+<p style="margin-left:11%; margin-top: 1em">To activate the
+NSS module, add &quot;resolve&nbsp;[!UNAVAIL=return]&quot;
+to the line starting with &quot;hosts:&quot; in
+/etc/nsswitch.conf. Specifically, it is recommended to place
+&quot;resolve&quot; early in /etc/nsswitch.conf's
+&quot;hosts:&quot; line. It should be before the
+&quot;files&quot; entry, since systemd&minus;resolved
+supports /etc/hosts internally, but with caching. To the
+contrary, it should be after &quot;mymachines&quot;, to give
+hostnames given to local VMs and containers precedence over
+names received over DNS. Finally, we recommend placing
+&quot;dns&quot; somewhere after &quot;resolve&quot;, to fall
+back to <b>nss&minus;dns</b> if
+systemd&minus;resolved.service is not available.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that
+<b>systemd&minus;resolved</b> will synthesize DNS resource
+records in a few cases, for example for
+&quot;localhost&quot; and the current local hostname, see
+<b>systemd-resolved</b>(8) for the full list. This
+duplicates the functionality of <b>nss-myhostname</b>(8),
+but it is still recommended (see examples below) to keep
+<b>nss&minus;myhostname</b> configured in
+/etc/nsswitch.conf, to keep those names resolveable if
+<b>systemd&minus;resolved</b> is not running.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Please keep in
+mind that <b>nss&minus;myhostname</b> (and
+<b>nss&minus;resolve</b>) also resolve in the other
+direction &mdash; from locally attached IP addresses to
+hostnames. If you rely on that lookup being provided by DNS,
+you might want to order things differently.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Communication
+between <b>nss&minus;resolve</b> and
+systemd&minus;resolved.service takes place via the
+/run/systemd/resolve/io.systemd.Resolve <b>AF_UNIX</b>
+socket.</p>
+
+<h2>ENVIRONMENT VARIABLES
+<a name="ENVIRONMENT VARIABLES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$SYSTEMD_NSS_RESOLVE_VALIDATE</i></p>
+
+<p style="margin-left:17%;">Takes a boolean argument. When
+false, cryptographic validation of resource records via
+DNSSEC will be disabled. This may be useful for testing, or
+when system time is known to be unreliable.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$SYSTEMD_NSS_RESOLVE_SYNTHESIZE</i></p>
+
+<p style="margin-left:17%;">Takes a boolean argument. When
+false, synthetic records, e.g. for the local host name, will
+not be returned. See section SYNTHETIC RECORDS in
+<b>systemd-resolved.service</b>(8) for more information.
+This may be useful to query the &quot;public&quot; resource
+records, independent of the configuration of the local
+machine.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$SYSTEMD_NSS_RESOLVE_CACHE</i></p>
+
+<p style="margin-left:17%;">Takes a boolean argument. When
+false, the cache of previously queried records will not be
+used by <b>systemd&minus;resolved</b>.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$SYSTEMD_NSS_RESOLVE_ZONE</i></p>
+
+<p style="margin-left:17%;">Takes a boolean argument. When
+false, answers using locally registered public LLMNR/mDNS
+resource records will not be returned.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$SYSTEMD_NSS_RESOLVE_TRUST_ANCHOR</i></p>
+
+<p style="margin-left:17%;">Takes a boolean argument. When
+false, answers using locally configured trust anchors will
+not be used.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><i>$SYSTEMD_NSS_RESOLVE_NETWORK</i></p>
+
+<p style="margin-left:17%;">Takes a boolean argument. When
+false, answers will be returned without using the network,
+i.e. either from local sources or the cache in
+<b>systemd&minus;resolved</b>.</p>
+
+<h2>EXAMPLE
+<a name="EXAMPLE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Here is an
+example /etc/nsswitch.conf file that enables
+<b>nss&minus;resolve</b> correctly:</p>
+
+<p style="margin-left:17%; margin-top: 1em">passwd: compat
+systemd <br>
+group: compat [SUCCESS=merge] systemd <br>
+shadow: compat systemd <br>
+gshadow: files systemd</p>
+
+<p style="margin-left:17%; margin-top: 1em">hosts:
+mymachines <b>resolve [!UNAVAIL=return]</b> files myhostname
+dns <br>
+networks: files</p>
+
+<p style="margin-left:17%; margin-top: 1em">protocols: db
+files <br>
+services: db files <br>
+ethers: db files <br>
+rpc: db files</p>
+
+<p style="margin-left:17%; margin-top: 1em">netgroup:
+nis</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>systemd</b>(1),
+<b>systemd-resolved</b>(8), <b>nss-systemd</b>(8),
+<b>nss-myhostname</b>(8), <b>nss-mymachines</b>(8),
+<b>nsswitch.conf</b>(5), <b>systemd.syntax</b>(5)</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,623 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:54:02 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>SYSTEMD&minus;DISSECT</title>
+
+</head>
+<body>
+<h1>systemd-dissect</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em">systemd-dissect
+&minus; Dissect Discoverable Disk Images (DDIs)</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;dissect
+[OPTIONS...]</b> <i>IMAGE</i></p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;dissect
+[OPTIONS...] &minus;&minus;mount</b> <i>IMAGE PATH</i></p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;dissect
+[OPTIONS...] &minus;&minus;umount</b> <i>PATH</i></p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;dissect
+[OPTIONS...] &minus;&minus;list</b> <i>IMAGE</i></p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;dissect
+[OPTIONS...] &minus;&minus;mtree</b> <i>IMAGE</i></p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;dissect
+[OPTIONS...] &minus;&minus;with</b> <i>IMAGE</i>
+<b>[</b><i>COMMAND</i>...]</p> </td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;dissect
+[OPTIONS...] &minus;&minus;copy&minus;from</b> <i>IMAGE
+PATH</i> <b>[</b><i>TARGET</i>]</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="89%">
+
+
+<p style="margin-top: 1em"><b>systemd&minus;dissect
+[OPTIONS...] &minus;&minus;copy&minus;to</b> <i>IMAGE</i>
+<b>[</b><i>SOURCE</i>] <i>PATH</i></p></td></tr>
+</table>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><i><b>systemd&minus;dissect</b></i>
+is a tool for introspecting and interacting with file system
+OS disk images, specifically Discoverable Disk Images
+(DDIs). It supports four different operations:</p>
+
+<p style="margin-left:17%; margin-top: 1em">1. Show general
+OS image information, including the image's
+<b>os-release</b>(5) data, machine ID, partition information
+and more.</p>
+
+<p style="margin-left:17%; margin-top: 1em">2. Mount an OS
+image to a local directory. In this mode it will dissect the
+OS image and mount the included partitions according to
+their designation onto a directory and possibly
+sub&minus;directories.</p>
+
+<p style="margin-left:17%; margin-top: 1em">3. Unmount an
+OS image from a local directory. In this mode it will
+recursively unmount the mounted partitions and remove the
+underlying loop device, including all the partition
+sub&minus;devices.</p>
+
+<p style="margin-left:17%; margin-top: 1em">4. Copy files
+and directories in and out of an OS image.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The tool may
+operate on three types of OS images:</p>
+
+<p style="margin-left:17%; margin-top: 1em">1. OS disk
+images containing a GPT partition table envelope, with
+partitions marked according to the
+<b><font color="#0000FF">Discoverable Partitions
+Specification</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">2.
+OS disk images containing just a plain file&minus;system
+without an enveloping partition table. (This file system is
+assumed to be the root file system of the OS.)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">3.
+OS disk images containing a GPT or MBR partition table, with
+a single partition only. (This partition is assumed to
+contain the root file system of the OS.)</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">OS
+images may use any kind of Linux&minus;supported file
+systems. In addition they may make use of LUKS disk
+encryption, and contain Verity integrity information. Note
+that qualifying OS images may be booted with
+<b>systemd-nspawn</b>(1)'s <b>&minus;&minus;image=</b>
+switch, and be used as root file system for system service
+using the <i>RootImage=</i> unit file setting, see
+<b>systemd.exec</b>(5).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">Note
+that the partition table shown when invoked without command
+switch (as listed below) does not necessarily show all
+partitions included in the image, but just the partitions
+that are understood and considered part of an OS disk image.
+Specifically, partitions of unknown types are ignored, as
+well as duplicate partitions (i.e. more than one per
+partition type), as are root and /usr/ partitions of
+architectures not compatible with the local system. In other
+words: this tool will display what it operates with when
+mounting the image. To display the complete list of
+partitions use a tool such as <b>fdisk</b>(8).</font></p>
+
+<h2>COMMANDS
+<a name="COMMANDS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">If
+neither of the command switches listed below are passed the
+specified disk image is opened and general information about
+the image and the contained partitions and their use is
+shown.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;mount</b>,
+<b>&minus;m</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Mount the
+specified OS image to the specified directory. This will
+dissect the image, determine the OS root file system &mdash;
+as well as possibly other partitions &mdash; and mount them
+to the specified directory. If the OS image contains
+multiple partitions marked with the</font>
+<b><font color="#0000FF">Discoverable Partitions
+Specification</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">multiple nested mounts are
+established. This command expects two arguments: a path to
+an image file and a path to a directory where to mount the
+image.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">To
+unmount an OS image mounted like this use the
+<b>&minus;&minus;umount</b> operation.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">When
+the OS image contains LUKS encrypted or Verity integrity
+protected file systems appropriate volumes are automatically
+set up and marked for automatic disassembly when the image
+is unmounted.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">The
+OS image may either be specified as path to an OS image
+stored in a regular file or may refer to block device node
+(in the latter case the block device must be the
+&quot;whole&quot; device, i.e. not a partition device). (The
+other supported commands described here support this,
+too.)</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">All
+mounted file systems are checked with the appropriate
+<b>fsck</b>(8) implementation in automatic fixing mode,
+unless explicitly turned off (<b>&minus;&minus;fsck=no</b>)
+or read&minus;only operation is requested
+(<b>&minus;&minus;read&minus;only</b>).</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;M</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This is a
+shortcut for <b>&minus;&minus;mount
+&minus;&minus;mkdir</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;umount</b>,
+<b>&minus;u</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Unmount
+an OS image from the specified directory. This command
+expects one argument: a directory where an OS image was
+mounted.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">All
+mounted partitions will be recursively unmounted, and the
+underlying loop device will be removed, along with all its
+partition sub&minus;devices.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;U</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">This is a
+shortcut for <b>&minus;&minus;umount
+&minus;&minus;rmdir</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;list</b>,
+<b>&minus;l</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Prints
+the paths of all the files and directories in the specified
+OS image to standard output.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;mtree</b>,
+<b>&minus;l</b></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Generates
+a BSD <b>mtree</b>(8) compatible file manifest of the
+specified disk image. This is useful for comparing disk
+image contents in detail, including inode information and
+other metadata. While the generated manifest will contain
+detailed inode information, it currently excludes extended
+attributes, file system capabilities, MAC labels,
+<b>chattr</b>(1) file flags, btrfs subvolume information,
+and various other file metadata. File content information is
+shown via a SHA256 digest. Additional fields might be added
+in future. Note that inode information such as link counts,
+inode numbers and timestamps is excluded from the output on
+purpose, as it typically complicates
+reproducibility.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;with</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Runs the
+specified command with the specified OS image mounted. This
+will mount the image to a temporary directory, switch the
+current working directory to it, and invoke the specified
+command line as child process. Once the process ends it will
+unmount the image again, and remove the temporary directory.
+If no command is specified a shell is invoked. The image is
+mounted writable, use <b>&minus;&minus;read&minus;only</b>
+to switch to read&minus;only operation. The invoked process
+will have the <i>$SYSTEMD_DISSECT_ROOT</i> environment
+variable set, containing the absolute path name of the
+temporary mount point, i.e. the same directory that is set
+as the current working directory.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;copy&minus;from</b>,
+<b>&minus;x</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Copies a
+file or directory from the specified OS image into the
+specified location on the host file system. Expects three
+arguments: a path to an image file, a source path (relative
+to the image's root directory) and a destination path
+(relative to the current working directory, or an absolute
+path, both outside of the image). If the destination path is
+omitted or specified as dash (&quot;&minus;&quot;), the
+specified file is written to standard output. If the source
+path in the image file system refers to a regular file it is
+copied to the destination path. In this case access mode,
+extended attributes and timestamps are copied as well, but
+file ownership is not. If the source path in the image
+refers to a directory, it is copied to the destination path,
+recursively with all containing files and directories. In
+this case the file ownership is copied too.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;copy&minus;to</b>,
+<b>&minus;a</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Copies a
+file or directory from the specified location in the host
+file system into the specified OS image. Expects three
+arguments: a path to an image file, a source path (relative
+to the current working directory, or an absolute path, both
+outside of the image) and a destination path (relative to
+the image's root directory). If the source path is omitted
+or specified as dash (&quot;&minus;&quot;), the data to
+write is read from standard input. If the source path in the
+host file system refers to a regular file, it is copied to
+the destination path. In this case access mode, extended
+attributes and timestamps are copied as well, but file
+ownership is not. If the source path in the host file system
+refers to a directory it is copied to the destination path,
+recursively with all containing files and directories. In
+this case the file ownership is copied too.</font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">As
+with <b>&minus;&minus;mount</b> file system checks are
+implicitly run before the copy operation begins.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;discover</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Show a
+list of DDIs in well&minus;known directories. This will show
+machine, portable service and system extension disk images
+in the usual directories /usr/lib/machines/,
+/usr/lib/portables/, /usr/lib/extensions/,
+/var/lib/machines/, /var/lib/portables/,
+/var/lib/extensions/ and so on.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;h</b>,
+<b>&minus;&minus;help</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Print a
+short help text and exit.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;version</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Print a
+short version string and exit.</font></p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">The
+following options are understood:</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;read&minus;only</b>,
+<b>&minus;r</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Operate
+in read&minus;only mode. By default
+<b>&minus;&minus;mount</b> will establish writable mount
+points. If this option is specified they are established in
+read&minus;only mode instead.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;fsck=no</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Turn off
+automatic file system checking. By default when an image is
+accessed for writing (by <b>&minus;&minus;mount</b> or
+<b>&minus;&minus;copy&minus;to</b>) the file systems
+contained in the OS image are automatically checked using
+the appropriate <b>fsck</b>(8) command, in automatic fixing
+mode. This behavior may be switched off using
+<b>&minus;&minus;fsck=no</b>.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;growfs=no</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Turn off
+automatic growing of accessed file systems to their
+partition size, if marked for that in the GPT partition
+table. By default when an image is accessed for writing (by
+<b>&minus;&minus;mount</b> or
+<b>&minus;&minus;copy&minus;to</b>) the file systems
+contained in the OS image are automatically grown to their
+partition sizes, if bit 59 in the GPT partition flags is set
+for partition types that are defined by the</font>
+<b><font color="#0000FF">Discoverable Partitions
+Specification</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">. This behavior may be switched off
+using <b>&minus;&minus;growfs=no</b>. File systems are grown
+automatically on access if all of the following conditions
+are met:</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">1.
+The file system is mounted writable</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">2.
+The file system currently is smaller than the partition it
+is contained in (and thus can be grown)</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">3.
+The image contains a GPT partition table</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">4.
+The file system is stored on a partition defined by the
+Discoverable Partitions Specification</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">5.
+Bit 59 of the GPT partition flags for this partition is set,
+as per specification</font></p>
+
+
+<p style="margin-left:23%; margin-top: 1em"><font color="#000000">6.
+The <b>&minus;&minus;growfs=no</b> option is not
+passed.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;mkdir</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">If
+combined with <b>&minus;&minus;mount</b> the directory to
+mount the OS image to is created if it is missing. Note that
+the directory is not automatically removed when the disk
+image is unmounted again.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;rmdir</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">If
+combined with <b>&minus;&minus;umount</b> the specified
+directory where the OS image is mounted is removed after
+unmounting the OS image.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;discard=</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Takes one
+of &quot;disabled&quot;, &quot;loop&quot;, &quot;all&quot;,
+&quot;crypto&quot;. If &quot;disabled&quot; the image is
+accessed with empty block discarding turned off. If
+&quot;loop&quot; discarding is enabled if operating on a
+regular file. If &quot;crypt&quot; discarding is enabled
+even on encrypted file systems. If &quot;all&quot;
+discarding is unconditionally enabled.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;in&minus;memory</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">If
+specified an in&minus;memory copy of the specified disk
+image is used. This may be used to operate with
+write&minus;access on a (possibly read&minus;only) image,
+without actually modifying the original file. This may also
+be used in order to operate on a disk image without keeping
+the originating file system busy, in order to allow it to be
+unmounted.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;root&minus;hash=</b>,
+<b>&minus;&minus;root&minus;hash&minus;sig=</b>,
+<b>&minus;&minus;verity&minus;data=</b></font></p>
+
+
+<p style="margin-left:17%;"><font color="#000000">Configure
+various aspects of Verity data integrity for the OS image.
+Option <b>&minus;&minus;root&minus;hash=</b> specifies a
+hex&minus;encoded top&minus;level Verity hash to use for
+setting up the Verity integrity protection. Option
+<b>&minus;&minus;root&minus;hash&minus;sig=</b> specifies
+the path to a file containing a PKCS#7 signature for the
+hash. This signature is passed to the kernel during
+activation, which will match it against signature keys
+available in the kernel keyring. Option
+<b>&minus;&minus;verity&minus;data=</b> specifies a path to
+a file with the Verity data to use for the OS image, in case
+it is stored in a detached file. It is recommended to embed
+the Verity data directly in the image, using the Verity
+mechanisms in the</font>
+<b><font color="#0000FF">Discoverable Partitions
+Specification</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;no&minus;pager</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Do not
+pipe output into a pager.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;no&minus;legend</b></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Do not
+print the legend, i.e. column headers and the footer with
+hints.</font></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>&minus;&minus;json=</b><i>MODE</i></font></p>
+
+<p style="margin-left:17%;"><font color="#000000">Shows
+output formatted as JSON. Expects one of &quot;short&quot;
+(for the shortest possible output without any redundant
+whitespace or line breaks), &quot;pretty&quot; (for a pretty
+version of the same, with indentation and line breaks) or
+&quot;off&quot; (to turn off JSON output, the
+default).</font></p>
+
+<h2>EXIT STATUS
+<a name="EXIT STATUS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000">On
+success, 0 is returned, a non&minus;zero failure code
+otherwise. If the <b>&minus;&minus;with</b> command is used
+the exit status of the invoked command is
+propagated.</font></p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>Example&nbsp;1.&nbsp;Generate
+a tarball from an OS disk image</b></font></p>
+
+
+<p style="margin-left:17%; margin-top: 1em"><font color="#000000">$
+systemd&minus;dissect &minus;&minus;with foo.raw tar cz .
+&gt;foo.tar.gz</font></p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><font color="#000000"><b>systemd</b>(1),
+<b>systemd-nspawn</b>(1), <b>systemd.exec</b>(5),</font>
+<b><font color="#0000FF">Discoverable Partitions
+Specification</font></b>
+<small><font color="#000000">[1]</font></small>
+<font color="#000000">, <b>umount</b>(8),
+<b>fdisk</b>(8)</font></p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="12%"></td>
+<td width="3%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">1.</font></p> </td>
+<td width="2%"></td>
+<td width="57%">
+
+
+
+<p style="margin-top: 1em"><font color="#000000">Discoverable
+Partitions Specification</font></p></td>
+<td width="26%">
+</td></tr>
+</table>
+
+
+<p style="margin-left:17%;"><font color="#000000">https://uapi-group.org/specifications/specs/discoverable_partitions_specification</font></p>
+<hr>
+</body>
+</html>

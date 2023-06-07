@@ -1,0 +1,326 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:56:02 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>seccomp_init</title>
+
+</head>
+<body>
+<h1>seccomp_init</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">seccomp_init,
+seccomp_reset &minus; Initialize the seccomp filter
+state</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>#include
+&lt;seccomp.h&gt;</b></p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>typedef void
+* scmp_filter_ctx;</b></p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>scmp_filter_ctx
+seccomp_init(uint32_t</b> <i>def_action</i><b>); <br>
+int seccomp_reset(scmp_filter_ctx</b> <i>ctx</i><b>,
+uint32_t</b> <i>def_action</i><b>);</b></p>
+
+<p style="margin-left:11%; margin-top: 1em">Link with
+<i>&minus;lseccomp</i>.</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>seccomp_init</b>() and <b>seccomp_reset</b>() functions
+(re)initialize the internal seccomp filter state, prepares
+it for use, and sets the default action based on the
+<i>def_action</i> parameter. The <b>seccomp_init</b>()
+function must be called before any other libseccomp
+functions as the rest of the library API will fail if the
+filter context is not initialized properly. The
+<b>seccomp_reset</b>() function releases the existing filter
+context state before reinitializing it and can only be
+called after a call to <b>seccomp_init</b>() has succeeded.
+If <b>seccomp_reset</b>() is called with a NULL filter, it
+resets the library&rsquo;s global task state, including any
+notification file descriptors retrieved by
+<b>seccomp_notify_fd</b>(3). Normally this is not needed,
+but it may be required to continue using the library after a
+<b>fork</b>() or <b>clone</b>() call to ensure the API level
+and user notification state is properly reset.</p>
+
+<p style="margin-left:11%; margin-top: 1em">When the caller
+is finished configuring the seccomp filter and has loaded it
+into the kernel, the caller should call
+<b>seccomp_release</b>(3) to release all of the filter
+context state.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Valid
+<i>def_action</i> values are as follows: <b><br>
+SCMP_ACT_KILL</b></p>
+
+<p style="margin-left:22%;">The thread will be terminated
+by the kernel with SIGSYS when it calls a syscall that does
+not match any of the configured seccomp filter rules. The
+thread will not be able to catch the signal.</p>
+
+
+<p style="margin-left:11%;"><b>SCMP_ACT_KILL_PROCESS</b></p>
+
+<p style="margin-left:22%;">The entire process will be
+terminated by the kernel with SIGSYS when it calls a syscall
+that does not match any of the configured seccomp filter
+rules.</p>
+
+<p style="margin-left:11%;"><b>SCMP_ACT_TRAP</b></p>
+
+<p style="margin-left:22%;">The thread will be sent a
+SIGSYS signal when it calls a syscall that does not match
+any of the configured seccomp filter rules. It may catch
+this and change its behavior accordingly. When using
+SA_SIGINFO with <b>sigaction</b>(2), si_code will be set to
+SYS_SECCOMP, si_syscall will be set to the syscall that
+failed the rules, and si_arch will be set to the AUDIT_ARCH
+for the active ABI.</p>
+
+<p style="margin-left:11%;"><b>SCMP_ACT_ERRNO(uint16_t
+errno)</b></p>
+
+<p style="margin-left:22%;">The thread will receive a
+return value of <i>errno</i> when it calls a syscall that
+does not match any of the configured seccomp filter
+rules.</p>
+
+<p style="margin-left:11%;"><b>SCMP_ACT_TRACE(uint16_t
+msg_num)</b></p>
+
+<p style="margin-left:22%;">If the thread is being traced
+and the tracing process specified the
+<b>PTRACE_O_TRACESECCOMP</b> option in the call to
+<b>ptrace</b>(2), the tracing process will be notified, via
+<b>PTRACE_EVENT_SECCOMP</b>, and the value provided in
+<i>msg_num</i> can be retrieved using the
+<b>PTRACE_GETEVENTMSG</b> option.</p>
+
+<p style="margin-left:11%;"><b>SCMP_ACT_LOG</b></p>
+
+<p style="margin-left:22%;">The seccomp filter will have no
+effect on the thread calling the syscall if it does not
+match any of the configured seccomp filter rules but the
+syscall will be logged.</p>
+
+<p style="margin-left:11%;"><b>SCMP_ACT_ALLOW</b></p>
+
+<p style="margin-left:22%;">The seccomp filter will have no
+effect on the thread calling the syscall if it does not
+match any of the configured seccomp filter rules.</p>
+
+<h2>RETURN VALUE
+<a name="RETURN VALUE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The
+<b>seccomp_init</b>() function returns a filter context on
+success, NULL on failure. The <b>seccomp_reset</b>()
+function returns zero on success or one of the following
+error codes on failure: <b><br>
+-EINVAL</b></p>
+
+<p style="margin-left:22%;">Invalid input, either the
+context or action is invalid.</p>
+
+<p style="margin-left:11%;"><b>-ENOMEM</b></p>
+
+<p style="margin-left:22%;">The library was unable to
+allocate enough memory.</p>
+
+<h2>EXAMPLES
+<a name="EXAMPLES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">#include
+&lt;seccomp.h&gt;</p>
+
+<p style="margin-left:11%; margin-top: 1em">int main(int
+argc, char *argv[]) <br>
+{</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>int rc = &minus;1;</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>scmp_filter_ctx ctx;</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>ctx = seccomp_init(SCMP_ACT_KILL);</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>if (ctx == NULL)</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>goto out;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>/* ... */</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>rc = seccomp_reset(ctx, SCMP_ACT_KILL);</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>if (rc &lt; 0)</p></td>
+<td width="77%">
+</td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%">
+</td>
+<td width="8%">
+</td>
+<td width="77%">
+
+
+<p>goto out;</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="7%"></td>
+<td width="8%">
+
+
+<p>/* ... */</p></td>
+<td width="77%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%; margin-top: 1em">out:</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>seccomp_release(ctx);</p></td></tr>
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="92%">
+
+
+<p>return &minus;rc;</p></td></tr>
+</table>
+
+<p style="margin-left:11%;">}</p>
+
+<h2>NOTES
+<a name="NOTES"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">While the
+seccomp filter can be generated independent of the kernel,
+kernel support is required to load and enforce the seccomp
+filter generated by libseccomp.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The libseccomp
+project site, with more information and the source code
+repository, can be found at
+https://github.com/seccomp/libseccomp. This tool, as well as
+the libseccomp library, is currently under development,
+please report any bugs at the project site or directly to
+the author.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Paul Moore
+&lt;paul@paul-moore.com&gt;</p>
+
+<h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>seccomp_release</b>(3)</p>
+<hr>
+</body>
+</html>

@@ -1,0 +1,799 @@
+<!-- Creator     : groff version 1.22.4 -->
+<!-- CreationDate: Mon May 29 22:55:54 2023 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>Regexp::Common</title>
+
+</head>
+<body>
+<h1>Regexp::Common</h1>
+
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Regexp::Common
+&minus; Provide commonly requested regular expressions</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"># STANDARD
+USAGE <br>
+use Regexp::Common; <br>
+while (&lt;&gt;) { <br>
+/$RE{num}{real}/ and print q{a number}; <br>
+/$RE{quoted}/ and print q{a ['&quot;`] quoted string}; <br>
+m[$RE{delimited}{&minus;delim=&gt;'/'}] and print q{a /.../
+sequence}; <br>
+/$RE{balanced}{&minus;parens=&gt;'()'}/ and print q{balanced
+parentheses}; <br>
+/$RE{profanity}/ and print q{a #*@%&minus;ing word}; <br>
+} <br>
+# SUBROUTINE&minus;BASED INTERFACE <br>
+use Regexp::Common 'RE_ALL'; <br>
+while (&lt;&gt;) { <br>
+$_ =~ RE_num_real() and print q{a number}; <br>
+$_ =~ RE_quoted() and print q{a ['&quot;`] quoted string};
+<br>
+$_ =~ RE_delimited(&minus;delim=&gt;'/') and print q{a /.../
+sequence}; <br>
+$_ =~ RE_balanced(&minus;parens=&gt;'()'} and print
+q{balanced parentheses}; <br>
+$_ =~ RE_profanity() and print q{a #*@%&minus;ing word};
+<br>
+} <br>
+# IN&minus;LINE MATCHING... <br>
+if ( $RE{num}{int}&minus;&gt;matches($text) ) {...} <br>
+# ...AND SUBSTITUTION <br>
+my $cropped = $RE{ws}{crop}&minus;&gt;subs($uncropped); <br>
+# ROLL&minus;YOUR&minus;OWN PATTERNS <br>
+use Regexp::Common 'pattern'; <br>
+pattern name =&gt; ['name', 'mine'], <br>
+create =&gt; '(?i:J[.]?\s+A[.]?\s+Perl&minus;Hacker)', <br>
+; <br>
+my $name_matcher = $RE{name}{mine}; <br>
+pattern name =&gt; [ 'lineof', '&minus;char=_' ], <br>
+create =&gt; sub { <br>
+my $flags = shift; <br>
+my $char = quotemeta $flags&minus;&gt;{&minus;char}; <br>
+return '(?:^$char+$)'; <br>
+}, <br>
+match =&gt; sub { <br>
+my ($self, $str) = @_; <br>
+return $str !~ /[^$self&minus;&gt;{flags}{&minus;char}]/;
+<br>
+}, <br>
+subs =&gt; sub { <br>
+my ($self, $str, $replacement) = @_; <br>
+$_[1] =~ s/^$self&minus;&gt;{flags}{&minus;char}+$//g; <br>
+}, <br>
+; <br>
+my $asterisks = $RE{lineof}{&minus;char=&gt;'*'}; <br>
+# DECIDING WHICH PATTERNS TO LOAD. <br>
+use Regexp::Common qw /comment number/; # Comment and number
+patterns. <br>
+use Regexp::Common qw /no_defaults/; # Don't load any
+patterns. <br>
+use Regexp::Common qw /!delimited/; # All, but delimited
+patterns.</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">By default,
+this module exports a single hash (%RE) that stores or
+generates commonly needed regular expressions (see
+&quot;List of available patterns&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">There is an
+alternative, subroutine-based syntax described in
+&quot;Subroutine-based interface&quot;.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>General
+syntax for requesting patterns</b> <br>
+To access a particular pattern, %RE is treated as a
+hierarchical hash of hashes (of hashes...), with each
+successive key being an identifier. For example, to access
+the pattern that matches real numbers, you specify:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$RE{num}{real}</p>
+
+<p style="margin-left:11%; margin-top: 1em">and to access
+the pattern that matches integers:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$RE{num}{int}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Deeper layers
+of the hash are used to specify <i>flags</i>: arguments that
+modify the resulting pattern in some way. The keys used to
+access these layers are prefixed with a minus sign and may
+have a value; if a value is given, it&rsquo;s done by using
+a multidimensional key. For example, to access the pattern
+that matches base&minus;2 real numbers with embedded commas
+separating groups of three digits (e.g.
+10,101,110.110101101):</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$RE{num}{real}{&minus;base
+=&gt; 2}{&minus;sep =&gt; ','}{&minus;group =&gt; 3}</p>
+
+<p style="margin-left:11%; margin-top: 1em">Through the
+magic of Perl, these flag layers may be specified in any
+order (and even interspersed through the identifier keys!)
+so you could get the same pattern with:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$RE{num}{real}{&minus;sep
+=&gt; ','}{&minus;group =&gt; 3}{&minus;base =&gt; 2}</p>
+
+<p style="margin-left:11%; margin-top: 1em">or:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$RE{num}{&minus;base
+=&gt; 2}{real}{&minus;group =&gt; 3}{&minus;sep =&gt;
+','}</p>
+
+<p style="margin-left:11%; margin-top: 1em">or even:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$RE{&minus;base
+=&gt; 2}{&minus;group =&gt; 3}{&minus;sep =&gt;
+','}{num}{real}</p>
+
+<p style="margin-left:11%; margin-top: 1em">etc.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note, however,
+that the relative order of amongst the identifier keys
+<i>is</i> significant. That is:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$RE{list}{set}</p>
+
+<p style="margin-left:11%; margin-top: 1em">would not be
+the same as:</p>
+
+
+<p style="margin-left:11%; margin-top: 1em">$RE{set}{list}</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Flag
+syntax</b> <br>
+In versions prior to 2.113, flags could also be written as
+&quot;{&quot;&minus;flag=value&quot;}&quot;. This no longer
+works, although &quot;{&quot;&minus;flag$;value&quot;}&quot;
+still does. However, &quot;{&minus;flag =&gt; 'value'}&quot;
+is the preferred syntax.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Universal
+flags</b> <br>
+Normally, flags are specific to a single pattern. However,
+there is two flags that all patterns may specify. <br>
+&quot;&minus;keep&quot;</p>
+
+<p style="margin-left:17%;">By default, the patterns
+provided by %RE contain no capturing parentheses. However,
+if the &quot;&minus;keep&quot; flag is specified (it
+requires no value) then any significant substrings that the
+pattern matches are captured. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">if ($str =~
+$RE{num}{real}{&minus;keep}) { <br>
+$number = $1; <br>
+$whole = $3; <br>
+$decimals = $5; <br>
+}</p>
+
+<p style="margin-left:17%; margin-top: 1em">Special care is
+needed if a &quot;kept&quot; pattern is interpolated into a
+larger regular expression, as the presence of other
+capturing parentheses is likely to change the &quot;number
+variables&quot; into which significant substrings are
+saved.</p>
+
+<p style="margin-left:17%; margin-top: 1em">See also
+&quot;Adding new regular expressions&quot;, which describes
+how to create new patterns with &quot;optional&quot;
+capturing brackets that respond to
+&quot;&minus;keep&quot;.</p>
+
+<p style="margin-left:11%;">&quot;&minus;i&quot;</p>
+
+<p style="margin-left:17%;">Some patterns or subpatterns
+only match lowercase or uppercase letters. If one wants the
+do case insensitive matching, one option is to use the
+&quot;/i&quot; regexp modifier, or the special sequence
+&quot;(?i)&quot;. But if the functional interface is used,
+one does not have this option. The &quot;&minus;i&quot;
+switch solves this problem; by using it, the pattern will do
+case insensitive matching.</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b><small>OO</small>
+interface and inline matching/substitution</b> <br>
+The patterns returned from %RE are objects, so rather than
+writing:</p>
+
+<p style="margin-left:11%; margin-top: 1em">if ($str =~
+/$RE{some}{pattern}/ ) {...}</p>
+
+<p style="margin-left:11%; margin-top: 1em">you can
+write:</p>
+
+<p style="margin-left:11%; margin-top: 1em">if (
+$RE{some}{pattern}&minus;&gt;matches($str) ) {...}</p>
+
+<p style="margin-left:11%; margin-top: 1em">For matching
+this would seem to have no great advantage apart from
+readability (but see below).</p>
+
+<p style="margin-left:11%; margin-top: 1em">For
+substitutions, it has other significant benefits. Frequently
+you want to perform a substitution on a string without
+changing the original. Most people use this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$changed =
+$original; <br>
+$changed =~ s/$RE{some}{pattern}/$replacement/;</p>
+
+<p style="margin-left:11%; margin-top: 1em">The more adept
+use:</p>
+
+<p style="margin-left:11%; margin-top: 1em">($changed =
+$original) =~ s/$RE{some}{pattern}/$replacement/;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Regexp::Common
+allows you do write this:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$changed =
+$RE{some}{pattern}&minus;&gt;subs($original=&gt;$replacement);</p>
+
+<p style="margin-left:11%; margin-top: 1em">Apart from
+reducing precedence-angst, this approach has the added
+advantages that the substitution behaviour can be optimized
+from the regular expression, and the replacement string can
+be provided by default (see &quot;Adding new regular
+expressions&quot;).</p>
+
+<p style="margin-left:11%; margin-top: 1em">For example, in
+the implementation of this substitution:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$cropped =
+$RE{ws}{crop}&minus;&gt;subs($uncropped);</p>
+
+<p style="margin-left:11%; margin-top: 1em">the default
+empty string is provided automatically, and the substitution
+is optimized to use:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$uncropped =~
+s/^\s+//; <br>
+$uncropped =~ s/\s+$//;</p>
+
+<p style="margin-left:11%; margin-top: 1em">rather
+than:</p>
+
+<p style="margin-left:11%; margin-top: 1em">$uncropped =~
+s/^\s+|\s+$//g;</p>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>Subroutine-based
+interface</b> <br>
+The hash-based interface was chosen because it allows
+regexes to be effortlessly interpolated, and because it also
+allows them to be &quot;curried&quot;. For example:</p>
+
+<p style="margin-left:11%; margin-top: 1em">my $num =
+$RE{num}{int}; <br>
+my $commad =
+$num&minus;&gt;{&minus;sep=&gt;','}{&minus;group=&gt;3};
+<br>
+my $duodecimal = $num&minus;&gt;{&minus;base=&gt;12};</p>
+
+<p style="margin-left:11%; margin-top: 1em">However, the
+use of tied hashes does make the access to Regexp::Common
+patterns slower than it might otherwise be. In contexts
+where impatience overrules laziness, Regexp::Common provides
+an additional subroutine-based interface.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For each
+(sub&minus;)entry in the %RE hash ($RE{key1}{key2}{etc}),
+there is a corresponding exportable subroutine:
+&quot;RE_key1_key2_etc()&quot;. The name of each subroutine
+is the underscore-separated concatenation of the
+<i>non-flag</i> keys that locate the same pattern in %RE.
+Flags are passed to the subroutine in its argument list.
+Thus:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Regexp::Common qw( RE_ws_crop RE_num_real RE_profanity );
+<br>
+$str =~ RE_ws_crop() and die &quot;Surrounded by
+whitespace&quot;; <br>
+$str =~ RE_num_real(&minus;base=&gt;8, &minus;sep=&gt;&quot;
+&quot;) or next; <br>
+$offensive = RE_profanity(&minus;keep); <br>
+$str =~ s/$offensive/$bad{$1}++; &quot;&lt;expletive
+deleted&gt;&quot;/ge;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that,
+unlike the hash-based interface (which returns objects),
+these subroutines return ordinary &quot;qr&quot;&rsquo;d
+regular expressions. Hence they do not curry, nor do they
+provide the <small>OO</small> match and substitution
+inlining described in the previous section.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It is also
+possible to export subroutines for all available patterns
+like so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Regexp::Common 'RE_ALL';</p>
+
+<p style="margin-left:11%; margin-top: 1em">Or you can
+export all subroutines with a common prefix of keys like
+so:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Regexp::Common 'RE_num_ALL';</p>
+
+<p style="margin-left:11%; margin-top: 1em">which will
+export &quot;RE_num_int&quot; and &quot;RE_num_real&quot;
+(and if you have create more patterns who have first key
+<i>num</i>, those will be exported as well). In general,
+<i>RE_key1_..._keyn_ALL</i> will export all subroutines
+whose pattern names have first keys <i>key1</i> ...
+<i>keyn</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Adding new
+regular expressions</b> <br>
+You can add your own regular expressions to the %RE hash at
+run-time, using the exportable &quot;pattern&quot;
+subroutine. It expects a hash-like list of key/value pairs
+that specify the behaviour of the pattern. The various
+possible argument pairs are: <br>
+&quot;name =&gt; [ @list ]&quot;</p>
+
+<p style="margin-left:17%;">A required argument that
+specifies the name of the pattern, and any flags it may
+take, via a reference to a list of strings. For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">pattern name
+=&gt; [qw( line of &minus;char )], <br>
+# other args here <br>
+;</p>
+
+<p style="margin-left:17%; margin-top: 1em">This specifies
+an entry $RE{line}{of}, which may take a
+&quot;&minus;char&quot; flag.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Flags may also
+be specified with a default value, which is then used
+whenever the flag is specified without an explicit value
+(but not when the flag is omitted). For example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">pattern name
+=&gt; [qw( line of &minus;char=_ )], <br>
+# default char is '_' <br>
+# other args here <br>
+;</p>
+
+<p style="margin-left:11%;">&quot;create =&gt;
+$sub_ref_or_string&quot;</p>
+
+<p style="margin-left:17%;">A required argument that
+specifies either a string that is to be returned as the
+pattern:</p>
+
+<p style="margin-left:17%; margin-top: 1em">pattern name
+=&gt; [qw( line of underscores )], <br>
+create =&gt; q/(?:^_+$)/ <br>
+;</p>
+
+<p style="margin-left:17%; margin-top: 1em">or a reference
+to a subroutine that will be called to create the
+pattern:</p>
+
+<p style="margin-left:17%; margin-top: 1em">pattern name
+=&gt; [qw( line of &minus;char=_ )], <br>
+create =&gt; sub { <br>
+my ($self, $flags) = @_; <br>
+my $char = quotemeta $flags&minus;&gt;{&minus;char}; <br>
+return '(?:^$char+$)'; <br>
+}, <br>
+;</p>
+
+<p style="margin-left:17%; margin-top: 1em">If the
+subroutine version is used, the subroutine will be called
+with three arguments: a reference to the pattern object
+itself, a reference to a hash containing the flags and their
+values, and a reference to an array containing the non-flag
+keys.</p>
+
+<p style="margin-left:17%; margin-top: 1em">Whatever the
+subroutine returns is stringified as the pattern.</p>
+
+<p style="margin-left:17%; margin-top: 1em">No matter how
+the pattern is created, it is immediately postprocessed to
+include or exclude capturing parentheses (according to the
+value of the &quot;&minus;keep&quot; flag). To specify such
+&quot;optional&quot; capturing parentheses within the
+regular expression associated with &quot;create&quot;, use
+the notation &quot;(?k:...)&quot;. Any parentheses of this
+type will be converted to &quot;(...)&quot; when the
+&quot;&minus;keep&quot; flag is specified, or
+&quot;(?:...)&quot; when it is not. It is a Regexp::Common
+convention that the outermost capturing parentheses always
+capture the entire pattern, but this is not enforced.</p>
+
+<p style="margin-left:11%;">&quot;match =&gt;
+$sub_ref&quot;</p>
+
+<p style="margin-left:17%;">An optional argument that
+specifies a subroutine that is to be called when the
+&quot;$RE{...}&minus;&gt;matches(...)&quot; method of this
+pattern is invoked.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The subroutine
+should expect two arguments: a reference to the pattern
+object itself, and the string to be matched against.</p>
+
+<p style="margin-left:17%; margin-top: 1em">It should
+return the same types of values as a &quot;m/.../&quot;
+does.</p>
+
+<p style="margin-left:17%; margin-top: 1em">pattern name
+=&gt; [qw( line of &minus;char )], <br>
+create =&gt; sub {...}, <br>
+match =&gt; sub { <br>
+my ($self, $str) = @_; <br>
+$str !~ /[^$self&minus;&gt;{flags}{&minus;char}]/; <br>
+}, <br>
+;</p>
+
+<p style="margin-left:11%;">&quot;subs =&gt;
+$sub_ref&quot;</p>
+
+<p style="margin-left:17%;">An optional argument that
+specifies a subroutine that is to be called when the
+&quot;$RE{...}&minus;&gt;subs(...)&quot; method of this
+pattern is invoked.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The subroutine
+should expect three arguments: a reference to the pattern
+object itself, the string to be changed, and the value to be
+substituted into it. The third argument may be
+&quot;undef&quot;, indicating the default substitution is
+required.</p>
+
+<p style="margin-left:17%; margin-top: 1em">The subroutine
+should return the same types of values as an
+&quot;s/.../.../&quot; does.</p>
+
+<p style="margin-left:17%; margin-top: 1em">For
+example:</p>
+
+<p style="margin-left:17%; margin-top: 1em">pattern name
+=&gt; [ 'lineof', '&minus;char=_' ], <br>
+create =&gt; sub {...}, <br>
+subs =&gt; sub { <br>
+my ($self, $str, $ignore_replacement) = @_; <br>
+$_[1] =~ s/^$self&minus;&gt;{flags}{&minus;char}+$//g; <br>
+}, <br>
+;</p>
+
+<p style="margin-left:17%; margin-top: 1em">Note that such
+a subroutine will almost always need to modify $_[1]
+directly.</p>
+
+<p style="margin-left:11%;">&quot;version =&gt;
+$minimum_perl_version&quot;</p>
+
+<p style="margin-left:17%;">If this argument is given, it
+specifies the minimum version of perl required to use the
+new pattern. Attempts to use the pattern with earlier
+versions of perl will generate a fatal diagnostic.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Loading
+specific sets of patterns.</b> <br>
+By default, all the sets of patterns listed below are made
+available. However, it is possible to indicate which sets of
+patterns should be made available &minus; the wanted sets
+should be given as arguments to &quot;use&quot;.
+Alternatively, it is also possible to indicate which sets of
+patterns should not be made available &minus; those sets
+will be given as argument to the &quot;use&quot; statement,
+but are preceded with an exclaimation mark. The argument
+<i>no_defaults</i> indicates none of the default patterns
+should be made available. This is useful for instance if all
+you want is the &quot;pattern()&quot; subroutine.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Examples:</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Regexp::Common qw /comment number/; # Comment and number
+patterns. <br>
+use Regexp::Common qw /no_defaults/; # Don't load any
+patterns. <br>
+use Regexp::Common qw /!delimited/; # All, but delimited
+patterns.</p>
+
+<p style="margin-left:11%; margin-top: 1em">It&rsquo;s also
+possible to load your own set of patterns. If you have a
+module &quot;Regexp::Common::my_patterns&quot; that makes
+patterns available, you can have it made available with</p>
+
+<p style="margin-left:11%; margin-top: 1em">use
+Regexp::Common qw /my_patterns/;</p>
+
+<p style="margin-left:11%; margin-top: 1em">Note that the
+default patterns will still be made available &minus; only
+if you use <i>no_defaults</i>, or mention one of the default
+sets explicitly, the non mentioned defaults aren&rsquo;t
+made available.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>List of
+available patterns</b> <br>
+The patterns listed below are currently available. Each set
+of patterns has its own manual page describing the details.
+For each pattern set named <i>name</i>, the manual page
+<i>Regexp::Common::name</i> describes the details.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Currently
+available are: <br>
+Regexp::Common::balanced</p>
+
+<p style="margin-left:17%;">Provides regexes for strings
+with balanced parenthesized delimiters.</p>
+
+<p style="margin-left:11%;">Regexp::Common::comment</p>
+
+<p style="margin-left:17%;">Provides regexes for comments
+of various languages (43 languages currently).</p>
+
+<p style="margin-left:11%;">Regexp::Common::delimited</p>
+
+<p style="margin-left:17%;">Provides regexes for delimited
+strings.</p>
+
+<p style="margin-left:11%;">Regexp::Common::lingua</p>
+
+<p style="margin-left:17%;">Provides regexes for
+palindromes.</p>
+
+<p style="margin-left:11%;">Regexp::Common::list</p>
+
+<p style="margin-left:17%;">Provides regexes for lists.</p>
+
+<p style="margin-left:11%;">Regexp::Common::net</p>
+
+<p style="margin-left:17%;">Provides regexes for IPv4,
+IPv6, and <small>MAC</small> addresses.</p>
+
+<p style="margin-left:11%;">Regexp::Common::number</p>
+
+<p style="margin-left:17%;">Provides regexes for numbers
+(integers and reals).</p>
+
+<p style="margin-left:11%;">Regexp::Common::profanity</p>
+
+<p style="margin-left:17%;">Provides regexes for
+profanity.</p>
+
+<p style="margin-left:11%;">Regexp::Common::whitespace</p>
+
+<p style="margin-left:17%;">Provides regexes for leading
+and trailing whitespace.</p>
+
+<p style="margin-left:11%;">Regexp::Common::zip</p>
+
+<p style="margin-left:17%;">Provides regexes for zip
+codes.</p>
+
+<p style="margin-left:11%; margin-top: 1em"><b>Forthcoming
+patterns and features</b> <br>
+Future releases of the module will also provide patterns for
+the following:</p>
+
+<p style="margin-left:11%; margin-top: 1em">* email
+addresses <br>
+* HTML/XML tags <br>
+* more numerical matchers, <br>
+* mail headers (including multiline ones), <br>
+* more URLS <br>
+* telephone numbers of various countries <br>
+* currency (universal 3 letter format, Latin&minus;1,
+currency names) <br>
+* dates <br>
+* binary formats (e.g. UUencoded, MIMEd)</p>
+
+<p style="margin-left:11%; margin-top: 1em">If you have
+other patterns or pattern generators that you think would be
+generally useful, please send them to the maintainer --
+preferably as source code using the &quot;pattern&quot;
+subroutine. Submissions that include a set of tests will be
+especially welcome.</p>
+
+<h2>DIAGNOSTICS
+<a name="DIAGNOSTICS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">&quot;Can't
+export unknown subroutine %s&quot;</p>
+
+<p style="margin-left:17%;">The subroutine-based interface
+didn&rsquo;t recognize the requested subroutine. Often
+caused by a spelling mistake or an incompletely specified
+name.</p>
+
+<p style="margin-left:11%;">&quot;Can't create unknown
+regex: $RE{...}&quot;</p>
+
+<p style="margin-left:17%;">Regexp::Common doesn&rsquo;t
+have a generator for the requested pattern. Often indicates
+a misspelt or missing parameter.</p>
+
+<p style="margin-left:11%;">&quot;Perl %f does not support
+the pattern $RE{...}. You need Perl %f or <br>
+later&quot;</p>
+
+<p style="margin-left:17%;">The requested pattern requires
+advanced regex features (e.g. recursion) that not available
+in your version of Perl. Time to upgrade.</p>
+
+<p style="margin-left:11%;">&quot;pattern() requires
+argument: name =&gt; [ @list ]&quot;</p>
+
+<p style="margin-left:17%;">Every user-defined pattern
+specification must have a name.</p>
+
+<p style="margin-left:11%;">&quot;pattern() requires
+argument: create =&gt; $sub_ref_or_string&quot;</p>
+
+<p style="margin-left:17%;">Every user-defined pattern
+specification must provide a pattern creation mechanism:
+either a pattern string or a reference to a subroutine that
+returns the pattern string.</p>
+
+<p style="margin-left:11%;">&quot;Base must be between 1
+and 36&quot;</p>
+
+<p style="margin-left:17%;">The
+$RE{num}{real}{&minus;base=&gt;'<i>N</i>'} pattern uses the
+characters [0&minus;9A&minus;Z] to represent the digits of
+various bases. Hence it only produces regular expressions
+for bases up to hexatricensimal.</p>
+
+<p style="margin-left:11%;">&quot;Must specify delimiter in
+$RE{delimited}&quot;</p>
+
+<p style="margin-left:17%;">The pattern has no default
+delimiter. You need to write:
+$RE{delimited}{&minus;delim=&gt;<i>X</i>'} for some
+character <i>X</i></p>
+
+<h2>ACKNOWLEDGEMENTS
+<a name="ACKNOWLEDGEMENTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Deepest thanks
+to the many people who have encouraged and contributed to
+this project, especially: Elijah, Jarkko, Tom, Nat, Ed, and
+Vivek.</p>
+
+<p style="margin-left:11%; margin-top: 1em">Further thanks
+go to: Alexandr Ciornii, Blair Zajac, Bob Stockdale, Charles
+Thomas, Chris Vertonghen, the <small>CPAN</small> Testers,
+David Hand, Fany, Geoffrey Leach, Hermann-Marcus Behrens,
+Jerome Quelin, Jim Cromie, Lars Wilke, Linda Julien, Mike
+Arms, Mike Castle, Mikko, Murat Uenalan,
+Rafa&Atilde;&laquo;l Garcia-Suarez, Ron Savage, Sam Vilain,
+Slaven Rezic, Smylers, Tim Maher, and all the others
+I&rsquo;ve forgotten.</p>
+
+<h2>AUTHOR
+<a name="AUTHOR"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Damian Conway
+(damian@conway.org)</p>
+
+<h2>MAINTENANCE
+<a name="MAINTENANCE"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This package is
+maintained by Abigail
+(<i>regexp&minus;common@abigail.be</i>).</p>
+
+<h2>BUGS AND IRRITATIONS
+<a name="BUGS AND IRRITATIONS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">Bound to be
+plenty.</p>
+
+<p style="margin-left:11%; margin-top: 1em">For a start,
+there are many common regexes missing. Send them in to
+<i>regexp&minus;common@abigail.be</i>.</p>
+
+<p style="margin-left:11%; margin-top: 1em">There are some
+<small>POD</small> issues when installing this module using
+a pre&minus;5.6.0 perl; some manual pages may not install,
+or may not install correctly using a perl that is that old.
+You might consider upgrading your perl.</p>
+
+<h2>NOT A BUG
+<a name="NOT A BUG"></a>
+</h2>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p style="margin-top: 1em">&bull;</p></td>
+<td width="5%"></td>
+<td width="83%">
+
+
+<p style="margin-top: 1em">The various patterns are not
+anchored. That is, a pattern like &quot;$RE {num}
+{int}&quot; will match against &quot;abc4def&quot;, because
+a substring of the subject matches. This is by design, and
+not a bug. If you want the pattern to be anchored, use
+something like:</p></td></tr>
+</table>
+
+<p style="margin-left:17%; margin-top: 1em">my $integer =
+$RE {num} {int}; <br>
+$subj =~ /^$integer$/ and print &quot;Matches!\n&quot;;</p>
+
+<h2>LICENSE and COPYRIGHT
+<a name="LICENSE and COPYRIGHT"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">This software
+is Copyright (c) 2001 &minus; 2017, Damian Conway and
+Abigail.</p>
+
+<p style="margin-left:11%; margin-top: 1em">This module is
+free software, and maybe used under any of the following
+licenses:</p>
+
+<p style="margin-left:11%; margin-top: 1em">1) The Perl
+Artistic License. See the file COPYRIGHT.AL. <br>
+2) The Perl Artistic License 2.0. See the file
+COPYRIGHT.AL2. <br>
+3) The BSD License. See the file COPYRIGHT.BSD. <br>
+4) The MIT License. See the file COPYRIGHT.MIT.</p>
+<hr>
+</body>
+</html>
