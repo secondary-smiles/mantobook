@@ -1,6 +1,6 @@
 # mantobook
 
-Repo for [this blog post](https://lightblog.dev/articles/all-the-manpages).
+Repo for [this blog post](https://frog.ski/blog/all-the-manpages).
 
 A collection of all the manpages on my computer and how I got them.
 
